@@ -1,0 +1,76 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e97059c79fa37ad46b25265b3908d85c, type: 3}
+  m_Name: SO_WorldAssets
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.Generation.WorldAssets
+  TerrainLayers:
+  - {fileID: 8574412962073106934, guid: 774c5719afb8b8b4ebc7313078cc9e86, type: 2}
+  - {fileID: 8574412962073106934, guid: 1aa5c41f2d9b88d4fbb78787065a6bd2, type: 2}
+  - {fileID: 8574412962073106934, guid: 0c95f29434893b743857a9ba4d2c4ffe, type: 2}
+  - {fileID: 8574412962073106934, guid: de0c4533a6c8c424fb0a32d2ee934cf6, type: 2}
+  - {fileID: 8574412962073106934, guid: 6d1244af3bf0b1f43b690f7931861511, type: 2}
+  - {fileID: 8574412962073106934, guid: 655c1040aefe9b646ae38875b939ad90, type: 2}
+  - {fileID: 8574412962073106934, guid: 52e473a326a31d0418ff3a3036c9608f, type: 2}
+  TerrainMaterial: {fileID: 2100000, guid: 3e07ee3c46148074e8d5fa46feb7ada1, type: 2}
+  PondWater: {fileID: 2100000, guid: fb6bd29c4e7a925489fd0b2e91ebcbf4, type: 2}
+  MarshWater: {fileID: 2100000, guid: f41926e061c47a54b9023dcb8c548e37, type: 2}
+  SeaWater: {fileID: 2100000, guid: 5eaf545ab0c7c07478b76f25859a7ea8, type: 2}
+  SeaFloor: {fileID: 2100000, guid: 5bc16e1a5ec13ed47a3e4efcde040c10, type: 2}
+  RockModels:
+  - {fileID: 919132149155446097, guid: 37ca7097391b9d743ac46935b6d84b8b, type: 3}
+  - {fileID: 919132149155446097, guid: ab1b7a21b6685344da0df27b42294e97, type: 3}
+  - {fileID: 919132149155446097, guid: 0f1e0e6d01634b3459b5e8cdfe19a287, type: 3}
+  TreeModels:
+  - {fileID: 919132149155446097, guid: 2b9cf9671ff6b554ea91b29f7c6dcefa, type: 3}
+  - {fileID: 919132149155446097, guid: 38bdb80495b70924cbd51e0fd6b7f62d, type: 3}
+  - {fileID: 919132149155446097, guid: 2edcb56c7b1cd044db0fac4c21091602, type: 3}
+  - {fileID: 919132149155446097, guid: 86440caf97d1e1d4a8249cff0c5fe774, type: 3}
+  - {fileID: 919132149155446097, guid: 252d20f74798cdf42b6fdc8e3f05bab4, type: 3}
+  - {fileID: 919132149155446097, guid: 00ce743d1d1a02c49934723f26766868, type: 3}
+  - {fileID: 919132149155446097, guid: 8b19c9a3e518379458ce511a6968cde1, type: 3}
+  - {fileID: 919132149155446097, guid: 8e947920005986a4ea59d186c7990c18, type: 3}
+  - {fileID: 919132149155446097, guid: 1ee8d71f9a0c30c41ae2aed79d62d7e7, type: 3}
+  TreeModelHeights:
+  - 18.630604
+  - 2.6917253
+  - 2.590115
+  - 18.630604
+  - 18.630604
+  - 18.630604
+  - 18.630604
+  - 18.630604
+  - 18.630604
+  Species:
+  - Values: 00000000010000000100000002000000
+  - Values: 03000000
+  - Values: 0400000005000000
+  - Values: 0600000007000000
+  - Values: 08000000
+  GrassMaterial: {fileID: 2100000, guid: 302908b8db0cbeb4895985f0002e09b5, type: 2}
+  Campfire: {fileID: 6446816232921968268, guid: 5d972fbef64cee34297378f0e56c093e, type: 3}
+  CryptWall: {fileID: 2100000, guid: 6fc3fff9b2ca77340b64c96bbaa51d01, type: 2}
+  CryptFloor: {fileID: 2100000, guid: 3c251c7b4b5f3a244bfd590f764ca54a, type: 2}
+  CryptCeiling: {fileID: 2100000, guid: a7f437d6ec859954697f456c7dce11f1, type: 2}
+  CryptVoid: {fileID: 2100000, guid: b7f4e4a8bff45ab40a7cfca0e2f5b575, type: 2}
+  ChestModel: {fileID: 919132149155446097, guid: 4ef256babf313794aa9283d83c1335e3, type: 3}
+  GrandChestModel: {fileID: 919132149155446097, guid: 0c73ccc99ff73d84f8608f6669c9a9f1, type: 3}
+  LanternModel: {fileID: 919132149155446097, guid: 68421ff63fdee8243a3d13437a966448, type: 3}
+  MineWall: {fileID: 2100000, guid: e83c412e3b7c3b149a1a9f3ab7f22017, type: 2}
+  MineFloor: {fileID: 2100000, guid: 2fe42410cbd77d34caf5eb6b361dd8db, type: 2}
+  MineCeiling: {fileID: 2100000, guid: 81533405c91822f41aa344add1b1cb78, type: 2}
+  MineTimber: {fileID: 2100000, guid: 95cfa42d12de1b549b54b43029334fde, type: 2}
+  MineVein: {fileID: 2100000, guid: 7816ec764e7b78648867d7497502540f, type: 2}
+  VeinModel: {fileID: 919132149155446097, guid: ab1b7a21b6685344da0df27b42294e97, type: 3}
+  RailModel: {fileID: 919132149155446097, guid: 5ab5e3d4f9ce3e440849079517ae5a16, type: 3}
+  CartModel: {fileID: 919132149155446097, guid: deb4498a99f979d429584d353f612edc, type: 3}
+  BarrelModel: {fileID: 919132149155446097, guid: 1d8ee81638534af47a3c44bfc9ed1a3d, type: 3}
+  LadderModel: {fileID: 919132149155446097, guid: 5fa6c31586f900a49a1569d7e9595449, type: 3}

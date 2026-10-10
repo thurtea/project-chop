@@ -1,0 +1,233 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6666002672748783606
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8344701339370005013}
+  - component: {fileID: 4511771967347464641}
+  - component: {fileID: 2793182510544954822}
+  - component: {fileID: 1321940317012961810}
+  - component: {fileID: 2653618803125815454}
+  - component: {fileID: 1781378326242199371}
+  - component: {fileID: 1024841460172093793}
+  - component: {fileID: 1387693687905777697}
+  - component: {fileID: 6436522114489780117}
+  - component: {fileID: 3219390534677036456}
+  m_Layer: 0
+  m_Name: EnemyDirector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8344701339370005013
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4511771967347464641
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26b716c41e9b56b4baafaf13a523ba2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: FishNet.Runtime::FishNet.Object.NetworkObject
+  _localLevelOfDetailCalculationType: 0
+  _useLevelOfDetail: 0
+  _useRootLevelOfDetail: 1
+  NetworkObserver: {fileID: 0}
+  _enablePrediction: 0
+  _predictionType: 0
+  _localReconcileCorrectionType: 2
+  _graphicalObject: {fileID: 0}
+  _detachGraphicalObject: 0
+  _enableStateForwarding: 1
+  _networkTransform: {fileID: 0}
+  _ownerInterpolation: 1
+  _ownerSmoothedProperties: 255
+  _adaptiveInterpolation: 3
+  _spectatorSmoothedProperties: 255
+  _spectatorInterpolation: 2
+  _enableTeleport: 0
+  _teleportThreshold: 1
+  <PrefabId>k__BackingField: 65535
+  <SpawnableCollectionId>k__BackingField: 0
+  <AssetPathHash>k__BackingField: 14863336106291466990
+  SceneId: 0
+  SerializedTransformProperties:
+    Position: {x: 0, y: 0, z: 0}
+    Rotation: {x: 0, y: 0, z: 0, w: 0}
+    Scale: {x: 0, y: 0, z: 0}
+    IsValid: 0
+  <IsNested>k__BackingField: 0
+  WasActiveDuringEdit: 0
+  WasActiveDuringEdit_Set1: 1
+  <ComponentIndex>k__BackingField: 0
+  <PredictedSpawn>k__BackingField: {fileID: 0}
+  <PredictedOwner>k__BackingField: {fileID: 0}
+  NetworkBehaviours: []
+  InitializedParentNetworkBehaviour: {fileID: 0}
+  InitializedNestedNetworkObjects: []
+  RuntimeParentNetworkBehaviour: {fileID: 0}
+  RuntimeChildNetworkBehaviours: []
+  _isNetworked: 1
+  _isSpawnable: 1
+  _isGlobal: 0
+  _initializeOrder: 0
+  _preventDespawnOnDisconnect: 0
+  _defaultDespawnType: 0
+  _initializedTimestamp: 0
+--- !u!114 &2793182510544954822
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08c5e2c8441a5ad43a8c86af2e98c049, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.HerbManager
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+  _config: {fileID: 11400000, guid: 7b102bf9d3556e34faf545023c1aaa3f, type: 2}
+  _model: {fileID: 919132149155446097, guid: 6c98cb00b9fd12d47bd0d14803267552, type: 3}
+  _fabricBushModel: {fileID: 919132149155446097, guid: 8f6d92363de1dac4a8e15b78c7aa79f4, type: 3}
+--- !u!114 &1321940317012961810
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cabfff72efc12b74c828b5efdc3739f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.CryptManager
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &2653618803125815454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08fa741bdc2757e4aa01dcab624dce1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.ArenaManager
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &1781378326242199371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ff814ca583307047afeceab9658ae3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.MineManager
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &1024841460172093793
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f3be4f2c4cb49454eb3fbaec1ac351bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.FishingHotspots
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+  _config: {fileID: 11400000, guid: 7b102bf9d3556e34faf545023c1aaa3f, type: 2}
+--- !u!114 &1387693687905777697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e265cd62a47cfec4bae21830b38c9a48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.Saving.WorldSaver
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+--- !u!114 &6436522114489780117
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d06b13b71ddfd2e45a675912a7e7ceaa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.BranchManager
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+  _material: {fileID: 2100000, guid: c7b030afc6bab5a44b22975a9a9e7dbd, type: 2}
+--- !u!114 &3219390534677036456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a82549e57bbec6c4a9f310e739900a5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.Enemies.EnemyDirector
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 4511771967347464641}
+  _networkObjectCache: {fileID: 0}
+  _config: {fileID: 11400000, guid: 7b102bf9d3556e34faf545023c1aaa3f, type: 2}
+  _treantPrefab: {fileID: 4665930723661435144, guid: 36f4644d4116f224a9d28dad58578c55, type: 3}
+  _woodPilePrefab: {fileID: 7513897740575178386, guid: 9989f0450d25436449480ea349a92db4, type: 3}
+  _groundItemPrefab: {fileID: 646870130056932160, guid: 3c6e6a5c6cef82d46845cc6b4781d987, type: 3}
+  _spawnTables:
+  - {fileID: 11400000, guid: 9481f75be408ca74ca48ee8c5685f942, type: 2}
+  - {fileID: 11400000, guid: f01864c465c48bb4abd53b49bb440349, type: 2}
+  - {fileID: 11400000, guid: 628e0c33392f14b49b96e33a0fc00e64, type: 2}
+  - {fileID: 11400000, guid: 667b622bac1171848bab71ebd7e7513a, type: 2}

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fb73daedfb1cc4dad9951a3bf5b7b1, type: 3}
+  m_Name: SO_Piece_Roof
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.Building.PieceDefinition
+  _displayName: Roof
+  _prefab: {fileID: 5504018791387801512, guid: 13ba595f10da74344b831edcae518173, type: 3}
+  _woodCost: 3
+  _fiberCost: 0
+  _health: 120
+  _size: {x: 2, y: 2, z: 2}
+  _snap: 0
+  _isWorkbench: 0
+  _icon: piece-roof
+  _snapPoints:
+  - {x: -1, y: 0, z: -1}
+  - {x: 1, y: 0, z: -1}
+  - {x: -1, y: 2, z: 1}
+  - {x: 1, y: 2, z: 1}
