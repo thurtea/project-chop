@@ -1,0 +1,160 @@
+Chopper rig / FBX check report
+========================================================================
+  [PASS] file exists: Export\chopper.fbx (849100 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (25548 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (30300 bytes)
+
+RAW FBX: chopper.fbx
+------------------------------------------------------------------------
+  FBX version 7400, UpAxis=[1] FrontAxis=[2] CoordAxis=[0] UnitScaleFactor=[100.0]
+  bones in file (25): Hips, Spine, Chest, UpperChest, Neck, Head, LeftShoulder, LeftUpperArm, LeftLowerArm, LeftHand, Shield_L, RightShoulder, RightUpperArm, RightLowerArm, RightHand, Weapon_R, Shield_Back, LeftUpperLeg, LeftLowerLeg, LeftFoot, LeftToes, RightUpperLeg, RightLowerLeg, RightFoot, RightToes
+  [PASS] no leaf bones ('_end') in the FBX
+  [PASS] no embedded media (Video objects: 0)
+  [PASS] mesh models are exactly the nine modules: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_shirt', 'chopper_vest']
+  [PASS] take Idle present, frames 0.00-60.00 (expected 0-60 = 2.00 s at 30 fps)
+  [PASS] take Walk present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
+  [PASS] takes are exactly ['Idle', 'Walk'] (found ['Idle', 'Walk'])
+
+IMPORTED chopper.fbx
+------------------------------------------------------------------------
+  [PASS] one armature named chopper_rig (['chopper_rig'])
+  armature transform: loc (0.0, 0.0, 0.0) rot (-0.0, 0.0, 0.0) scale (1.0, 1.0, 1.0)
+  [PASS] armature at origin, scale 1 after import
+  [PASS] all 22 humanoid bones + 3 sockets present (missing: none)
+  [PASS] no bones ending in _end after import
+  [PASS] Hips is the root bone
+  [PASS] socket Weapon_R is a child of RightHand
+  [PASS] socket Shield_L is a child of LeftLowerArm
+  [PASS] socket Shield_Back is a child of UpperChest
+  [PASS] humanoid hierarchy (Hips > Spine > Chest > UpperChest > Neck > Head, shoulders under UpperChest, legs under Hips) (wrong: none)
+  [PASS] skin clusters only on humanoid bones (22 bones carry weights), none on the sockets
+  [PASS] left/right rest frames mirror-symmetric (positions and rolls), max error 7.0e-06
+  [PASS] nine character meshes imported: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_shirt', 'chopper_vest']
+  [PASS] chopper_beard parented to chopper_rig with an Armature modifier
+  [PASS] chopper_belt parented to chopper_rig with an Armature modifier
+  [PASS] chopper_body parented to chopper_rig with an Armature modifier
+  [PASS] chopper_boots parented to chopper_rig with an Armature modifier
+  [PASS] chopper_chainmail parented to chopper_rig with an Armature modifier
+  [PASS] chopper_hair parented to chopper_rig with an Armature modifier
+  [PASS] chopper_head parented to chopper_rig with an Armature modifier
+  [PASS] chopper_shirt parented to chopper_rig with an Armature modifier
+  [PASS] chopper_vest parented to chopper_rig with an Armature modifier
+
+SKIN WEIGHTS (imported)
+  [PASS] chopper_beard       992 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_belt        368 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_body       1036 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_boots       632 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
+  [PASS] chopper_chainmail   140 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_hair       1056 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_head        212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_shirt       456 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_vest        268 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_head is 100% Head
+  [PASS] chopper_hair is 100% Head
+  [PASS] chopper_beard is 100% Head
+
+REST POSE (imported)
+  bounds x -0.872..0.872  y -0.285..0.232  z -0.000..1.800
+  [PASS] character height 1.8000 m in [1.78, 1.82]
+  [PASS] soles at Z=0 in rest (min z -0.0000)
+  [PASS] character faces -Y (nose at y < -0.15)
+  [PASS] rest: Weapon_R (-0.775 -0.096 0.786) inside right-hand bounds (-0.872, -0.203, 0.675)..(-0.675, -0.01, 0.895)
+
+TAKE Idle (imported)
+  [PASS] action for take Idle found (chopper_rig|Idle)
+  [PASS] imported frame range 1-61 (expected 1-61)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+  [PASS] Idle: Weapon_R inside right-hand bounds on all 61 frames (outside: none)
+  [PASS] Idle: soles stay planted (max sole vertex drift 0.0000 m)
+
+TAKE Walk (imported)
+  [PASS] action for take Walk found (chopper_rig|Walk)
+  [PASS] imported frame range 1-31 (expected 1-31)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+  frame  minZ_L   minZ_R   planted  slip(m/frame vs ground 0.75 m/s)
+      1  +0.0000  +0.0000  Left    0.0000
+      2  -0.0000  +0.0000  Left    0.0001
+      3  -0.0000  +0.0000  Left    0.0002
+      4  +0.0000  +0.0000  Left    0.0004
+      5  -0.0000  +0.0322  Left    0.0000
+      6  +0.0000  +0.0457  Left    0.0000
+      7  -0.0000  +0.0526  Left    0.0000
+      8  -0.0000  +0.0550  Left    0.0000
+      9  +0.0000  +0.0538  Left    0.0000
+     10  -0.0000  +0.0500  Left    0.0000
+     11  +0.0000  +0.0440  Left    0.0000
+     12  -0.0000  +0.0366  Left    0.0000
+     13  -0.0000  +0.0281  Left    0.0000
+     14  +0.0000  +0.0189  Left    0.0000
+     15  +0.0000  +0.0095  Left    0.0000
+     16  +0.0000  +0.0000  Left    0.0000
+     17  -0.0000  -0.0000  Right   0.0001
+     18  +0.0000  -0.0000  Right   0.0002
+     19  +0.0000  +0.0000  Left    0.0004
+     20  +0.0322  +0.0000  Right   0.0000
+     21  +0.0457  +0.0000  Right   0.0000
+     22  +0.0526  +0.0000  Right   0.0000
+     23  +0.0550  -0.0000  Right   0.0000
+     24  +0.0538  +0.0000  Right   0.0000
+     25  +0.0500  -0.0000  Right   0.0000
+     26  +0.0440  +0.0000  Right   0.0000
+     27  +0.0366  -0.0000  Right   0.0000
+     28  +0.0281  -0.0000  Right   0.0000
+     29  +0.0189  +0.0000  Right   0.0000
+     30  +0.0095  +0.0000  Right   0.0000
+     31  +0.0000  +0.0000  Left    0.0000
+  [PASS] Walk: planted foot lowest vertex within -0.01..0.03 m of Z=0 on all frames (bad: none)
+  [PASS] Walk: no foot below Z=-0.01 on any frame (bad: none)
+  [PASS] Walk: planted contact vertices move with the ground (in-place 0.75 m/s), max slip 0.0004 m/frame
+  hips height range 0.737..0.752 m (down/up bob 1.5 cm)
+
+PROPS
+------------------------------------------------------------------------
+  [PASS] chopper_axe.fbx imports as exactly one mesh named chopper_axe (got [('chopper_axe', 'MESH')])
+  chopper_axe: 986 tris, transform loc (0.0, 0.0, 0.0) rot (-0.0, 0.0, 0.0) scale (1.0, 1.0, 1.0), bounds z -0.160..0.692
+  [PASS] chopper_axe origin preserved (world bounds z -0.160..0.692, expected -0.160..0.692)
+  [PASS] chopper_shield.fbx imports as exactly one mesh named chopper_shield (got [('chopper_shield', 'MESH')])
+  chopper_shield: 1330 tris, transform loc (0.0, 0.0, 0.0) rot (-0.0, 0.0, 0.0) scale (1.0, 1.0, 1.0), bounds z -0.562..0.412
+  [PASS] chopper_shield origin preserved (world bounds z -0.562..0.412, expected -0.562..0.412)
+
+PROPS ON SOCKETS (identity local transform relative to the socket bone)
+  [PASS] clip detector self-test: shield sunk into the chest -> 218 verts (76 mm), axe through the leg -> 404 verts (99 mm)
+  [PASS] rest: shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
+  [PASS] rest: shield board back not floating: gap to forearm/bracer surface 9.0..9.0 mm (min over the board, per sampled frame; required 5-30 mm)
+  [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (0.000 0.165 0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
+  [PASS] rest: axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] rest: axe grip point inside the right-hand bounds
+  [PASS] Idle (every 4th frame): shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Idle (every 4th frame): shield board back not floating: gap to forearm/bracer surface 9.0..9.0 mm (min over the board, per sampled frame; required 5-30 mm)
+  [PASS] Idle (every 4th frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (0.000 0.165 0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
+  [PASS] Idle (every 4th frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Idle (every 4th frame): axe grip point inside the right-hand bounds
+  [PASS] Walk (every 2nd frame): shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Walk (every 2nd frame): shield board back not floating: gap to forearm/bracer surface 9.0..9.0 mm (min over the board, per sampled frame; required 5-30 mm)
+  [PASS] Walk (every 2nd frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (0.000 0.165 -0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
+  [PASS] Walk (every 2nd frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Walk (every 2nd frame): axe grip point inside the right-hand bounds
+
+CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)
+  [PASS] rest: shirt under chainmail on 1 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] rest: shirt under vest on 1 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] rest: trousers/torso under shirt on 1 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] rest: thighs inside the shirt skirt on 1 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] rest: thighs inside the chainmail on 1 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Idle: shirt under chainmail on 21 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Idle: shirt under vest on 21 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Idle: trousers/torso under shirt on 21 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Idle: thighs inside the shirt skirt on 21 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Idle: thighs inside the chainmail on 21 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Walk: shirt under chainmail on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Walk: shirt under vest on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Walk: trousers/torso under shirt on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Walk: thighs inside the shirt skirt on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  [PASS] Walk: thighs inside the chainmail on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
+  passing frame used for rig_walk_passing_side: 9
+
+RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
+
+========================================================================
+SUMMARY: 92 PASS, 0 FAIL -> ALL PASS

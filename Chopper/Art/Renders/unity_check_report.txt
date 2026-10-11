@@ -1,0 +1,151 @@
+Chopper Unity check report (W1-05)
+Generated 2026-10-11 15:47:33 by ChopperCheck.RunChecks, Unity 6000.5.10f1
+==============================================================================
+
+AVATAR (Assets/Game/Characters/Chopper/Models/chopper.fbx)
+  [PASS] animation type Human (expected Human)
+  [PASS] avatar setup CreateFromThisModel (expected CreateFromThisModel)
+  [PASS] avatar sub-asset present (chopperAvatar)
+  [PASS] avatar.isValid = True
+  [PASS] avatar.isHuman = True
+  mapped bones (22), Unity humanoid name -> our bone:
+    Hips           -> Hips
+    LeftUpperLeg   -> LeftUpperLeg
+    RightUpperLeg  -> RightUpperLeg
+    LeftLowerLeg   -> LeftLowerLeg
+    RightLowerLeg  -> RightLowerLeg
+    LeftFoot       -> LeftFoot
+    RightFoot      -> RightFoot
+    Spine          -> Spine
+    Chest          -> Chest
+    Neck           -> Neck
+    Head           -> Head
+    LeftShoulder   -> LeftShoulder
+    RightShoulder  -> RightShoulder
+    LeftUpperArm   -> LeftUpperArm
+    RightUpperArm  -> RightUpperArm
+    LeftLowerArm   -> LeftLowerArm
+    RightLowerArm  -> RightLowerArm
+    LeftHand       -> LeftHand
+    RightHand      -> RightHand
+    LeftToes       -> LeftToes
+    RightToes      -> RightToes
+    UpperChest     -> UpperChest
+  [PASS] all 15 required humanoid bones mapped (missing: none)
+  [PASS] every mapping is name-identical (mismatches: none)
+  [PASS] 22 bones mapped (expected the 22 rig bones)
+
+CLIPS AND CONTROLLER
+  [PASS] clip Idle present
+  [PASS] clip Idle length 2.000 s (expected 2.0 s), frameRate 30
+  [PASS] clip Idle loops (isLooping=True, loopTime=True, loopBlend=True)
+  [PASS] clip Idle is humanoid motion
+  [PASS] clip Idle root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] clip Walk present
+  [PASS] clip Walk length 1.000 s (expected 1.0 s), frameRate 30
+  [PASS] clip Walk loops (isLooping=True, loopTime=True, loopBlend=True)
+  [PASS] clip Walk is humanoid motion
+  [PASS] clip Walk root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] controller Assets/Game/Characters/Chopper/Animation/Chopper.controller
+  [PASS] Speed float parameter
+  [PASS] states Idle and Walk with matching clips
+  [PASS] default state Idle
+  [PASS] Idle -> Walk when Speed > 0.1, no exit time, duration 0.15 s
+  [PASS] Walk -> Idle when Speed < 0.1, no exit time, duration 0.15 s
+
+PREFAB (Assets/Game/Characters/Chopper/Chopper.prefab)
+  [PASS] prefab exists
+  [PASS] root has Animator
+  [PASS] Animator controller = Chopper.controller
+  [PASS] Animator avatar = chopper.fbx avatar
+  [PASS] Apply Root Motion off
+  [PASS] exactly one Animator in the prefab
+  [PASS] root has CapsuleCollider
+  [PASS] capsule height 1.80, center (0.00, 0.90, 0.00), radius 0.37 (Y axis)
+  [PASS] chopper_axe present
+  [PASS] chopper_axe parent = Weapon_R (expected Weapon_R)
+  [PASS] chopper_axe local transform identity (pos (0.00, 0.00, 0.00), rot (0.00, 0.00, 0.00), scale (1.00, 1.00, 1.00)); correction: FBX root node came in with rotation (-90,0,0), reset to identity by ChopperImport.AttachProp
+  [PASS] chopper_axe has its mesh on the root node
+  [PASS] chopper_shield present
+  [PASS] chopper_shield parent = Shield_L (expected Shield_L)
+  [PASS] chopper_shield local transform identity (pos (0.00, 0.00, 0.00), rot (0.00, 0.00, 0.00), scale (1.00, 1.00, 1.00)); correction: FBX root node came in with rotation (-90,0,0), reset to identity by ChopperImport.AttachProp
+  [PASS] chopper_shield has its mesh on the root node
+  [PASS] 9 skinned meshes (expected 9)
+  [PASS] materials used: M_Chopper (Chopper/VertexColorLit), M_Chopper_Gear (Chopper/VertexColorLit)
+
+TEST SCENE (Assets/Game/Scenes/TestScene.unity)
+  [PASS] Chopper instance in TestScene
+  [PASS] instance of Chopper.prefab
+  [PASS] placed at CharacterSpawn (0.00, 0.00, 0.00)
+  [PASS] ChopperTestDriver present (mode Walk, walkSpeed 0.75)
+
+ANIMATOR STATE MACHINE (edit-mode Animator.Update)
+  [PASS] Animator initialized=True, human=True
+  [PASS] Speed 0 -> Idle (True); Speed 0.75 -> Walk (True); Speed 0.05 -> Idle (True)
+
+IDLE SAMPLES (root fixed at origin; capsule radius 0.37, interior = 75 % of radius)
+   time   L sole   R sole   lowest  Weapon_R in hand  axe interior  shield interior  shield min dist to body axis
+   0.00   0.0000   0.0000   0.0000  True                    0.0 %           0.0 %     0.414 m
+         Weapon_R (0.520, 0.706, 0.278) hand box min (0.422, 0.573, 0.156) max (0.613, 0.839, 0.401)
+         axe bounds min (0.379, 0.550, 0.194) max (0.573, 1.408, 0.731)
+         shield bounds min (-0.845, 0.343, -0.335) max (-0.361, 1.270, 0.438); Shield_L (-0.503, 0.801, 0.080)
+   0.50   0.0000   0.0000   0.0000  True                    0.0 %           0.0 %     0.417 m
+   1.00   0.0000   0.0000   0.0000  True                    0.0 %           0.0 %     0.406 m
+   1.50   0.0000   0.0000   0.0000  True                    0.0 %           0.0 %     0.381 m
+   1.90   0.0000   0.0000   0.0000  True                    0.0 %           0.0 %     0.405 m
+  [PASS] Idle: lowest sole within -0.01..0.05 m on every sample, no vertex below -0.01 m
+  [PASS] Idle: Weapon_R inside the right-hand vertex box (2 cm margin) on every sample
+  [PASS] Idle: axe vertices inside body capsule interior <= 2 % on every sample
+  [PASS] Idle: shield vertices inside body capsule interior <= 2 % on every sample
+
+WALK SAMPLES (every frame at 30 fps, root moved forward +Z at 0.75 m/s)
+  slip = horizontal world movement of the same sole vertex between consecutive frames, for vertices within 3 mm of the ground in both frames (max per foot); ankle = foot bone horizontal movement of the lower foot (information only, includes heel/toe roll)
+  frame  root z   L sole   R sole   lowest  L contact slip  R contact slip  ankle(lower)  in hand  axe int  shield int
+      0   0.000   0.0000   0.0000   0.0000               -               -             -  True       0.0 %      0.0 %
+      1   0.025   0.0000   0.0000   0.0000          0.0001          0.0001        0.0123  True       0.0 %      0.0 %
+      2   0.050   0.0000   0.0000   0.0000          0.0001          0.0002        0.0135  True       0.0 %      0.0 %
+      3   0.075   0.0000   0.0000   0.0000          0.0000          0.0004        0.0066  True       0.0 %      0.0 %
+      4   0.100   0.0000   0.0322   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+      5   0.125   0.0000   0.0457   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+      6   0.150   0.0000   0.0526   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+      7   0.175   0.0000   0.0550   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+      8   0.200   0.0000   0.0538   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+      9   0.225   0.0000   0.0500   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+     10   0.250   0.0000   0.0440   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+     11   0.275   0.0000   0.0366   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+     12   0.300   0.0000   0.0281   0.0000          0.0000               -        0.0000  True       0.0 %      0.0 %
+     13   0.325   0.0000   0.0189   0.0000          0.0000               -        0.0013  True       0.0 %      0.0 %
+     14   0.350   0.0000   0.0095   0.0000          0.0000               -        0.0041  True       0.0 %      0.0 %
+     15   0.375   0.0000   0.0000   0.0000          0.0000               -        0.0128  True       0.0 %      0.0 %
+     16   0.400   0.0000   0.0000   0.0000          0.0001          0.0001        0.0079  True       0.0 %      0.0 %
+     17   0.425   0.0000   0.0000   0.0000          0.0002          0.0001        0.0135  True       0.0 %      0.0 %
+     18   0.450   0.0000   0.0000   0.0000          0.0004          0.0000        0.0066  True       0.0 %      0.0 %
+     19   0.475   0.0322   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     20   0.500   0.0457   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     21   0.525   0.0526   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     22   0.550   0.0550   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     23   0.575   0.0538   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     24   0.600   0.0500   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     25   0.625   0.0440   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     26   0.650   0.0366   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     27   0.675   0.0281   0.0000   0.0000               -          0.0000        0.0000  True       0.0 %      0.0 %
+     28   0.700   0.0189   0.0000   0.0000               -          0.0000        0.0013  True       0.0 %      0.0 %
+     29   0.725   0.0095   0.0000   0.0000               -          0.0000        0.0041  True       0.0 %      0.0 %
+     30   0.750   0.0000   0.0000   0.0000               -          0.0000        0.0128  True       0.0 %      0.0 %
+  [PASS] Walk: lowest sole within -0.01..0.05 m on every frame, no vertex below -0.01 m
+  [PASS] Walk: planted sole slip max 0.39 mm/frame, mean 0.06 mm/frame over 36 foot-frames in contact (limit 5 mm/frame; the ground moves 25 mm/frame, so sliding feet would show ~25 mm)
+  (info) max lower-foot ankle movement 13.5 mm/frame (heel/toe roll and double-support switches, not slip)
+  [PASS] Walk: Weapon_R inside the right-hand vertex box on every frame
+  [PASS] Walk: axe vertices inside body capsule interior <= 2 % on every frame
+  [PASS] Walk: shield vertices inside body capsule interior <= 2 % on every frame
+
+SCREENSHOTS (TestScene camera rendered to a RenderTexture)
+  [PASS] TestScene camera found
+  [PASS] unity_idle_front.png: Idle t=0.50s, camera (0.00, 1.15, 3.40) -> (0.00, 0.95, 0.00) (SubmitRenderRequest, 6340 distinct colours)
+  [PASS] unity_idle_three_quarter.png: Idle t=0.50s, camera (2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 6930 distinct colours)
+  [PASS] unity_idle_three_quarter_left.png: Idle t=0.50s, camera (-2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5180 distinct colours)
+  [PASS] unity_walk_contact_side.png: Walk t=0.00s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5905 distinct colours)
+  [PASS] unity_walk_passing_side.png: Walk t=0.25s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5791 distinct colours)
+
+==============================================================================
+SUMMARY: 63 PASS, 0 FAIL
