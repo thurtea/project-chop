@@ -1,5 +1,5 @@
 Chopper Unity check report (W1-05)
-Generated 2026-10-11 15:47:33 by ChopperCheck.RunChecks, Unity 6000.5.10f1
+Generated 2026-10-11 16:54:16 by ChopperCheck.RunChecks, Unity 6000.5.10f1
 ==============================================================================
 
 AVATAR (Assets/Game/Characters/Chopper/Models/chopper.fbx)
@@ -37,21 +37,53 @@ AVATAR (Assets/Game/Characters/Chopper/Models/chopper.fbx)
 
 CLIPS AND CONTROLLER
   [PASS] clip Idle present
-  [PASS] clip Idle length 2.000 s (expected 2.0 s), frameRate 30
-  [PASS] clip Idle loops (isLooping=True, loopTime=True, loopBlend=True)
+  [PASS] clip Idle length 2.000 s (expected 2.00 s), frameRate 30
+  [PASS] clip Idle loop expected True (isLooping=True)
   [PASS] clip Idle is humanoid motion
   [PASS] clip Idle root motion in place (averageSpeed 0.0000 m/s)
   [PASS] clip Walk present
-  [PASS] clip Walk length 1.000 s (expected 1.0 s), frameRate 30
-  [PASS] clip Walk loops (isLooping=True, loopTime=True, loopBlend=True)
+  [PASS] clip Walk length 1.000 s (expected 1.00 s), frameRate 30
+  [PASS] clip Walk loop expected True (isLooping=True)
   [PASS] clip Walk is humanoid motion
   [PASS] clip Walk root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] clip Run present
+  [PASS] clip Run length 0.667 s (expected 0.67 s), frameRate 30
+  [PASS] clip Run loop expected True (isLooping=True)
+  [PASS] clip Run is humanoid motion
+  [PASS] clip Run root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] clip Attack_1 present
+  [PASS] clip Attack_1 length 0.800 s (expected 0.80 s), frameRate 30
+  [PASS] clip Attack_1 loop expected False (isLooping=False)
+  [PASS] clip Attack_1 is humanoid motion
+  [PASS] clip Attack_1 root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] clip Attack_2 present
+  [PASS] clip Attack_2 length 0.800 s (expected 0.80 s), frameRate 30
+  [PASS] clip Attack_2 loop expected False (isLooping=False)
+  [PASS] clip Attack_2 is humanoid motion
+  [PASS] clip Attack_2 root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] clip HitReact present
+  [PASS] clip HitReact length 0.500 s (expected 0.50 s), frameRate 30
+  [PASS] clip HitReact loop expected False (isLooping=False)
+  [PASS] clip HitReact is humanoid motion
+  [PASS] clip HitReact root motion in place (averageSpeed 0.0000 m/s)
+  [PASS] clip Death present
+  [PASS] clip Death length 1.200 s (expected 1.20 s), frameRate 30
+  [PASS] clip Death loop expected False (isLooping=False)
+  [PASS] clip Death is humanoid motion
+  [PASS] clip Death root motion in place (averageSpeed 0.0000 m/s)
   [PASS] controller Assets/Game/Characters/Chopper/Animation/Chopper.controller
   [PASS] Speed float parameter
   [PASS] states Idle and Walk with matching clips
   [PASS] default state Idle
   [PASS] Idle -> Walk when Speed > 0.1, no exit time, duration 0.15 s
   [PASS] Walk -> Idle when Speed < 0.1, no exit time, duration 0.15 s
+  [PASS] state Run with matching clip
+  [PASS] state Attack_1 with matching clip
+  [PASS] state Attack_2 with matching clip
+  [PASS] state HitReact with matching clip
+  [PASS] state Death with matching clip
+  [PASS] Attack1 trigger
+  [PASS] Die trigger
 
 PREFAB (Assets/Game/Characters/Chopper/Chopper.prefab)
   [PASS] prefab exists
@@ -70,8 +102,12 @@ PREFAB (Assets/Game/Characters/Chopper/Chopper.prefab)
   [PASS] chopper_shield parent = Shield_L (expected Shield_L)
   [PASS] chopper_shield local transform identity (pos (0.00, 0.00, 0.00), rot (0.00, 0.00, 0.00), scale (1.00, 1.00, 1.00)); correction: FBX root node came in with rotation (-90,0,0), reset to identity by ChopperImport.AttachProp
   [PASS] chopper_shield has its mesh on the root node
-  [PASS] 9 skinned meshes (expected 9)
+  [PASS] 10 skinned meshes (expected 10, including the helmet)
   [PASS] materials used: M_Chopper (Chopper/VertexColorLit), M_Chopper_Gear (Chopper/VertexColorLit)
+
+MESH CLIP (shield vertices against the body mesh, not the capsule)
+  [PASS] shield vertices inside the body mesh: 0 (expected 0)
+  [PASS] detector self-test: shield pushed 8 cm into the arm -> 116 inside verts (expected > 20)
 
 TEST SCENE (Assets/Game/Scenes/TestScene.unity)
   [PASS] Chopper instance in TestScene
@@ -141,11 +177,17 @@ WALK SAMPLES (every frame at 30 fps, root moved forward +Z at 0.75 m/s)
 
 SCREENSHOTS (TestScene camera rendered to a RenderTexture)
   [PASS] TestScene camera found
-  [PASS] unity_idle_front.png: Idle t=0.50s, camera (0.00, 1.15, 3.40) -> (0.00, 0.95, 0.00) (SubmitRenderRequest, 6340 distinct colours)
-  [PASS] unity_idle_three_quarter.png: Idle t=0.50s, camera (2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 6930 distinct colours)
-  [PASS] unity_idle_three_quarter_left.png: Idle t=0.50s, camera (-2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5180 distinct colours)
-  [PASS] unity_walk_contact_side.png: Walk t=0.00s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5905 distinct colours)
-  [PASS] unity_walk_passing_side.png: Walk t=0.25s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5791 distinct colours)
+  [PASS] unity_idle_front.png: Idle t=0.50s, camera (0.00, 1.15, 3.40) -> (0.00, 0.95, 0.00) (SubmitRenderRequest, 6221 distinct colours)
+  [PASS] unity_idle_three_quarter.png: Idle t=0.50s, camera (2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 6451 distinct colours)
+  [PASS] unity_idle_three_quarter_left.png: Idle t=0.50s, camera (-2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5350 distinct colours)
+  [PASS] unity_walk_contact_side.png: Walk t=0.00s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5274 distinct colours)
+  [PASS] unity_walk_passing_side.png: Walk t=0.25s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5344 distinct colours)
+
+PLAY-MODE STEP (ChopperTestDriver.Step + Animator.Update, the same calls Play mode makes)
+  [PASS] Chopper in TestScene
+  [PASS] Animator and ChopperTestDriver on the scene Chopper
+  [PASS] after 20 driver steps at walk speed the Animator is in Walk
+  [PASS] after switching the driver to Idle the Animator returns to Idle
 
 ==============================================================================
-SUMMARY: 63 PASS, 0 FAIL
+SUMMARY: 101 PASS, 0 FAIL

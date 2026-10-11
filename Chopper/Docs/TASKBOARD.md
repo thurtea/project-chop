@@ -15,7 +15,25 @@ Shared record of work packages, owners, decisions and evidence. Updated by the m
 | W1-04b | Move Shield_L socket onto the forearm axis; add a shield-not-floating check | rigger-animator | W1-03b | Board back 0.5-3 cm from the forearm in rest, Idle and Walk; grip bar inside the left fist; `check_rig.py` all PASS | done |
 | W1-06 | Independent review of W1-03 to W1-05 | qa-reviewer | W1-05 | Reruns checks, inspects renders and Unity screenshots, reports pass or fail per criterion | done |
 
-## Week 2 and 3 (not started)
+## Week 2: UVs, textures, helmet, combat animations, prefabs
+
+| ID | Package | Owner | Depends on | Acceptance check | Status |
+|---|---|---|---|---|---|
+| W2-01 | UVs on every mesh, one shared 2048 atlas layout, helmet module, base atlas baked from current colours | blender-modeler | W1 | Every mesh has one UV layer inside 0-1, no overlaps except deliberate mirrored islands, uniform texel density reported; `chopper_helmet` 1,000-3,000 tris; Warrior full (helmet instead of hair) 8,000-15,000; base atlas PNG matches gray-box colours | done |
+| W2-02 | Rest-pose FBX export; Run, Attack_1, Attack_2, HitReact, Death; Shield_Back checked; helmet skinned | rigger-animator | W1 (helmet: W2-01) | FBX node transforms equal the A-pose bind; 7 takes; per-take checks (loop, feet, prop clipping); Shield_Back pose clip-checked | done |
+| W2-03 | Avatar from bind pose; textured URP material path; stronger Unity checks; Play-mode test | unity-engineer | W2-01, W2-02 for final run | Avatar reference = bind pose plus real T-pose; mesh-against-mesh prop clipping; axe orientation; FBX tris and unit scale; Play-mode run of all clips | done |
+| W2-04 | Painted atlas detail: face, plaid, stitching, patches, leather, chainmail, wood, knotwork, shield emblem | texture-artist | W2-01 | 2048 atlas PNG, detail in texture not geometry, renders compared with concepts | partial |
+| W2-05 | Independent review of Week 2 | qa-reviewer | W2-01 to W2-04 | Reruns all checks, own probes, visual comparison | pending |
+
+## Week 3
+
+| ID | Package | Owner | Depends on | Acceptance check | Status |
+|---|---|---|---|---|---|
+| W3-01 | Voxel pine `prop_pine_voxel` (concept 4), own file, vertex colour, material M_Pine | blender-modeler | W2-03 | Check in `build_pine.py` all PASS; Unity prefab under `Assets/Game/Props/`; character `ChopperCheck` still passes | done |
+| W3-02 | Elite pauldrons and plated vest (concept 1.8) | blender-modeler | W3-01 | New modules in budget; UV, rig, animate, export, Unity import and checks rerun | pending |
+| W3-03 | Look polish from Open issues | blender-modeler | W2-04 | Side-by-side with concepts 3, 1.5, 1.7 | pending |
+
+The W2-00 notes are the Week 1 review risks. W2-01 to W2-03 closed them. Do not treat them as open work.
 
 Must come first in Week 2 (from the W1-06 review):
 - W2-00a: UV-unwrap every module, axe and shield (no mesh has a UV layer today; colour is per-face vertex colour only). Axe has 14 tris of headroom.
@@ -23,13 +41,15 @@ Must come first in Week 2 (from the W1-06 review):
 - W2-00c: Unity checks: real mesh-against-mesh prop clipping (the capsule test cannot see the forearm), axe orientation in the fist, FBX tri counts and unit scale, a Play-mode run of Idle and Walk.
 - W2-00d: Route every prop attachment (helmet, Shield_Back) through `ChopperImport.AttachProp` (props rely on the -90 X root reset).
 
-Then: textures and atlas, helmet, hair, Run, Attack_1, Attack_2, HitReact, Death, voxel pine, Elite variant, polish.
+Week 3: voxel pine, Elite variant, polish of the open look issues.
 
 ## Decisions
 
 - 2026-10-11: New Unity project lives in `Chopper/` inside this repo, on branch `rebuild/chopper-assets`. The old project at the repo root is left untouched; removing it needs the user's approval.
 - 2026-10-11: The canonical axe is the double-headed axe of concept 1.7 (as the brief says). The single-bladed bear-head axe in concepts 3 and 1.5 is not modeled for now.
 - 2026-10-11: "By hand in Blender" is done through Blender Python with explicit geometry, not AI image-to-3D.
+
+- 2026-10-11 (Week 2 start): One 2048 x 2048 atlas shared by all modules and gear; materials stay M_Chopper and M_Chopper_Gear (both sampling the atlas). Final look uses the atlas, not vertex colours. Capsule radius stays 0.37 and axe blades stay front and back until the user decides.
 
 ## Open issues
 
@@ -46,3 +66,8 @@ Then: textures and atlas, helmet, hair, Run, Attack_1, Attack_2, HitReact, Death
 - W1-04b (2026-10-11): Shield_L socket on the forearm axis (`S + d * 0.50`, no palm offset); Walk left elbow held at 12 degrees so the shield rim clears the sleeve. New checks: board back 5-30 mm from forearm or bracer (measured 9.0 mm on rest, Idle and Walk), grip bar centre inside the left fist covering 97% of the hand width. `rig_check_report.txt`: 92 PASS, 0 FAIL (manager confirmed). Note: the rigger's chained command also re-ran `build_props.py`, regenerating `chopper_props.blend` unchanged in content (check_assets still passes).
 - W1-05 rerun by manager (2026-10-11 15:45) against the final exports (15:44:12, chopper.fbx 849,100 bytes): `ChopperImport.ImportAndBuild` exit 0, copied all three FBX; `ChopperCheck.RunChecks` exit 0, `SUMMARY: 63 PASS, 0 FAIL`; 0 `error CS` in both logs; Assets copies byte-identical to `Art/Export`. Manager viewed unity_idle_three_quarter_left.png.
 - W1-06 (2026-10-11): Independent QA review. Reran check_assets 65/0, check_rig 92/0, Unity RunChecks 63/0, all exit 0. Own probes on the imported FBX agree: height 1.8000, tris body and clothing 5,824, beard 1,864, hair 1,980, axe 986, shield 1,330, Worker plus gear 11,984; A-pose 44.4 degrees; no leaf bones; no Video or Texture nodes, no image or concept strings; Weapon_R in Unity matches Blender to the millimetre. Week 1 criteria all PASS except: materials are hand-made remapped materials, not extracted (PARTIAL, acceptable); some detail still modelled (beard steps, boot rings, bracers) rather than textured (PARTIAL); Idle and Walk sampled in edit mode only. Week 2 risks recorded above as W2-00a to W2-00d.
+- W2-01 (2026-10-11): `Art/Scripts/uv_atlas.py` and `build_helmet` in `build_chopper.py`. Helmet 1,324 tris, skinned 100% to Head, material M_Chopper_Gear. Every mesh has one UVMap inside 0-1, tiles do not overlap (`chopper_props.blend overlaps=0`). Atlas `Art/Textures/chopper_atlas.png` 2048, baked from vertex colours plus a procedural detail pass (plaid, leather stitch, chain, wood, steel, eyes). Texel density is reported and is not uniform: about 9,600 to 23,500 px/m. `check_assets.py`: 84 PASS, 0 FAIL. Warrior (helmet, no hair) plus axe and shield 11,328 tris.
+- W2-02 (2026-10-11): Export at frame 0 with NLA extrapolation NOTHING so FBX node transforms are the rest pose. Imported rest pose measures left upper arm 45.0 deg below horizontal. Takes Idle, Walk, Run (2.20 m/s, slip 0.5 mm/frame), Attack_1, Attack_2, HitReact, Death. Shield_Back at (0, 0.46, 1.12): 0 penetrating verts, mean Y 0.534. `check_rig.py`: 124 PASS, 0 FAIL.
+- W2-03 (2026-10-11): Unity import exit clean, avatar valid and human. Both materials sample `chopper_atlas.png`. Controller has Idle/Walk/Run plus Attack_1, Attack_2, HitReact, Death. `Chopper.prefab` is the Warrior (hair off, helmet on, axe, shield). `Chopper_Worker.prefab` is hair on, helmet off, no weapons. Mesh-against-mesh: 0 shield verts inside the body; a shield pushed 8 cm in is caught (116 verts). `ChopperCheck.RunChecks` with a graphics device: 101 PASS, 0 FAIL, including the driver step that reaches Walk and returns to Idle.
+- W2-04 (partial): the atlas detail is painted in object space during the bake (`uv_atlas.py` `detail()`), not as a tile overlay, because each polygon has its own UV cell. Vertex colours on the mesh are linear, so wood tests must use linear values (red about 0.26, not 0.55). Compared with concepts 3 and 1.5 in `Art/Renders/atlas_char_front.png`, `atlas_head.png`, `atlas_shield_front.png`, `atlas_axe_front.png`: shirt plaid, vest stitch lines and a gray patch, chainmail checker, green eyes, and a shield emblem (block axe above two pines) do land on the right surfaces. Still crude: the axe icon is a rectangle, the pines are flat triangles, axe knotwork is a dot grid, and there is no independent review (W2-05). The PNG was copied to `Assets/Game/Characters/Chopper/Textures/chopper_atlas.png`. UVs did not change, so the FBX was not re-exported.
+- W3-01 (2026-10-11): `Art/Scripts/build_pine.py`. 190 cubes of 0.25 m, 768 tris, height 3.25 m, dirt pad 2.25 m, material M_Pine, vertex colour only. `pine_check_report.txt` ALL PASS. Renders `pine_front.png` and `pine_three_quarter.png`. Unity: `Assets/Game/Props/prop_pine_voxel.prefab`, `M_Pine` with `_UseAtlas` 0, TestScene instance at (10, 0, 10). Import log `RESULT: DONE`. `ChopperCheck` after import: 101 PASS, 0 FAIL (the check does not assert the pine).

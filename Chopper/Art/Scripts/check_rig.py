@@ -25,14 +25,16 @@ SHIELD_FBX = os.path.join(EXPORT, "chopper_shield.fbx")
 REPORT = os.path.join(RENDERS, "rig_check_report.txt")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots"]
+         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
 HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
             "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand",
             "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand",
             "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "LeftToes",
             "RightUpperLeg", "RightLowerLeg", "RightFoot", "RightToes"]
 SOCKETS = ["Weapon_R", "Shield_L", "Shield_Back"]
-TAKES = {"Idle": 60, "Walk": 30}          # expected length in frames at 30 fps (first == last)
+TAKES = {"Idle": 60, "Walk": 30, "Run": 20, "Attack_1": 24, "Attack_2": 24, "HitReact": 15, "Death": 36}
+LOOP_TAKES = {"Idle", "Walk", "Run"}
+RUN_SPEED = 2.20
 FPS = 30
 WALK_SPEED = 0.75                          # m/s, = animate_chopper.WALK_SPEED (ground speed for the slip check)
 FBX_KTIME = 46186158000
@@ -209,7 +211,7 @@ def main():
     log("  bones in file (%d): %s" % (len(raw["limbs"]), ", ".join(raw["limbs"])))
     check(not [n for n in raw["limbs"] if n.lower().endswith("_end")], "no leaf bones ('_end') in the FBX")
     check(raw["videos"] == 0, "no embedded media (Video objects: %d)" % raw["videos"])
-    check(sorted(raw["meshes"]) == sorted(PARTS), "mesh models are exactly the nine modules: %s" % sorted(raw["meshes"]))
+    check(sorted(raw["meshes"]) == sorted(PARTS), "mesh models are exactly the modules: %s" % sorted(raw["meshes"]))
     for take, length in TAKES.items():
         if take not in raw["takes"]:
             check(False, "take %s present" % take)
@@ -281,7 +283,7 @@ def main():
             worst = max(worst, (Vector(Rr.col[k]) - exp[k]).length)
         worst = max(worst, (Rb.translation - Mx @ L.translation).length)
     check(worst < 1e-3, "left/right rest frames mirror-symmetric (positions and rolls), max error %.1e" % worst)
-    check(sorted(meshes) == sorted(PARTS), "nine character meshes imported: %s" % sorted(meshes))
+    check(sorted(meshes) == sorted(PARTS), "character meshes imported: %s" % sorted(meshes))
     for n, ob in sorted(meshes.items()):
         arm_mod = [m for m in ob.modifiers if m.type == "ARMATURE" and m.object == rig]
         check(ob.parent == rig and arm_mod, "%s parented to chopper_rig with an Armature modifier" % n)
@@ -304,7 +306,7 @@ def main():
         check(unweighted == 0 and over4 == 0 and badsum == 0,
               "%-18s %4d verts: unweighted %d, >4 influences %d, not normalized %d (max influences %d)"
               % (n, len(ob.data.vertices), unweighted, over4, badsum, maxinf))
-    for n in ("chopper_head", "chopper_hair", "chopper_beard"):
+    for n in ("chopper_head", "chopper_hair", "chopper_beard", "chopper_helmet"):
         ob = meshes[n]
         only_head = all(len(v.groups) == 1 and ob.vertex_groups[v.groups[0].group].name == "Head"
                         and abs(v.groups[0].weight - 1) < 1e-4 for v in ob.data.vertices)
@@ -325,6 +327,10 @@ def main():
     check(abs(lo.z) < 0.005, "soles at Z=0 in rest (min z %.4f)" % lo.z)
     front = sum(p.y for p in allpts if p.z > 1.4) / max(1, len([p for p in allpts if p.z > 1.4]))
     check(min(p.y for p in eval_points(meshes["chopper_head"])[0]) < -0.15, "character faces -Y (nose at y < -0.15)")
+    ua = rig.data.bones["LeftUpperArm"]
+    direction = (ua.tail_local - ua.head_local).normalized()
+    drop = math.degrees(math.atan2(-direction.z, abs(direction.x)))
+    check(35.0 <= drop <= 55.0, "rest pose is an A-pose: left upper arm %.1f deg below horizontal" % drop)
 
     # hand region for the weapon socket
     body = meshes["chopper_body"]
@@ -357,16 +363,30 @@ def main():
         fr = act.frame_range
         check(abs(fr[0] - 1) < 1e-3 and abs(fr[1] - (length + 1)) < 1e-3,
               "imported frame range %.0f-%.0f (expected 1-%d)" % (fr[0], fr[1], length + 1))
-        # loop seam
-        sc.frame_set(1)
-        first = {n: eval_points(ob)[0] for n, ob in meshes.items()}
-        bones_first = {pb.name: pb.matrix.copy() for pb in rig.pose.bones}
-        sc.frame_set(length + 1)
-        last = {n: eval_points(ob)[0] for n, ob in meshes.items()}
-        dv = max((a - b).length for n in meshes for a, b in zip(first[n], last[n]))
-        db = max(max(abs(x) for row in (pb.matrix - bones_first[pb.name]) for x in row) for pb in rig.pose.bones)
-        check(dv < 5e-4 and db < 5e-4, "first and last frame identical: max vertex delta %.2e m, max bone matrix delta %.2e"
-              % (dv, db))
+        # loop seam only for clips that are authored to repeat
+        if take in LOOP_TAKES:
+            sc.frame_set(1)
+            first = {n: eval_points(ob)[0] for n, ob in meshes.items()}
+            bones_first = {pb.name: pb.matrix.copy() for pb in rig.pose.bones}
+            sc.frame_set(length + 1)
+            last = {n: eval_points(ob)[0] for n, ob in meshes.items()}
+            dv = max((a - b).length for n in meshes for a, b in zip(first[n], last[n]))
+            db = max(max(abs(x) for row in (pb.matrix - bones_first[pb.name]) for x in row) for pb in rig.pose.bones)
+            check(dv < 5e-4 and db < 5e-4, "first and last frame identical: max vertex delta %.2e m, max bone matrix delta %.2e"
+                  % (dv, db))
+        else:
+            sc.frame_set(1)
+            a0 = eval_points(meshes["chopper_body"])[0]
+            sc.frame_set(max(2, length // 2))
+            a1 = eval_points(meshes["chopper_body"])[0]
+            moved = max((a - b).length for a, b in zip(a0, a1))
+            check(moved > 0.02, "%s moves (body vertex delta mid-clip %.3f m)" % (take, moved))
+            low = 0.0
+            for f in range(1, length + 2, 2):
+                sc.frame_set(f)
+                pts = eval_points(boots)[0]
+                low = min(low, min(p.z for p in pts))
+            check(low >= -0.02, "%s: feet stay above Z=-0.02 (lowest %.4f)" % (take, low))
         if take == "Idle":
             outside = []
             for f in range(1, length + 2):
@@ -421,6 +441,33 @@ def main():
                   "max slip %.4f m/frame" % (WALK_SPEED, max(slips)))
             log("  hips height range %.3f..%.3f m (down/up bob %.1f cm)" % (min(hip_track), max(hip_track),
                                                                          100 * (max(hip_track) - min(hip_track))))
+        if take == "Run":
+            bad, sink, slips = [], [], []
+            prev = None
+            for f in range(1, length + 2):
+                sc.frame_set(f)
+                pts = eval_points(boots)[0]
+                mz = {"Left": 1e9, "Right": 1e9}
+                for i, p in enumerate(pts):
+                    mz[side_of[i]] = min(mz[side_of[i]], p.z)
+                planted = min(mz, key=mz.get)
+                if not (-0.01 <= mz[planted] <= 0.04):
+                    bad.append(f)
+                if min(mz.values()) < -0.01:
+                    sink.append(f)
+                slip = 0.0
+                if prev is not None:
+                    gstep = RUN_SPEED / FPS
+                    for i, (a, b) in enumerate(zip(prev, pts)):
+                        if a.z < 0.004 and b.z < 0.004:
+                            d = (b - a) - Vector((0, gstep, 0))
+                            slip = max(slip, Vector((d.x, d.y)).length)
+                    slips.append(slip)
+                prev = pts
+            check(not bad, "Run: planted foot within -0.01..0.04 m (bad: %s)" % (bad or "none"))
+            check(not sink, "Run: no foot below Z=-0.01 (bad: %s)" % (sink or "none"))
+            check(slips and max(slips) < 0.008, "Run: planted slip max %.4f m/frame at %.2f m/s" % (
+                max(slips) if slips else -1, RUN_SPEED))
 
     # ---------------- props
     log("")
@@ -576,6 +623,18 @@ def main():
     prop_pass("rest", [1], None)
     prop_pass("Idle (every 4th frame)", list(range(1, 62, 4)), "Idle")
     prop_pass("Walk (every 2nd frame)", list(range(1, 32, 2)), "Walk")
+
+    attach(shield, rig, "Shield_Back")
+    rig.data.pose_position = "REST"
+    bpy.context.view_layer.update()
+    sp = [shield.matrix_world @ c for c in sh_local]
+    c_back, w_back = penetration(sp, body_like, allow=sh_allow, local=sh_local)
+    mean_y = sum(p.y for p in sp) / len(sp)
+    check(c_back == 0 and mean_y > 0.15,
+          "Shield_Back rest: shield clear of the body and sitting on the back "
+          "(penetrating %d, deepest %.1f mm, mean Y %.3f)" % (c_back, 1000 * w_back, mean_y))
+    attach(shield, rig, "Shield_L")
+    rig.data.pose_position = "POSE"
 
     # ---------------- clothing layering on the imported animation
     log("")

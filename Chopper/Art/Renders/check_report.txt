@@ -3,7 +3,7 @@ Chopper asset check report
 
 FILE chopper_character.blend
 ------------------------------------------------------------------------
-  [PASS] expected objects present, exact names - found ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_shirt', 'chopper_vest']
+  [PASS] expected objects present, exact names - found ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_shirt', 'chopper_vest']
 chopper_body
     triangles  : 1994
     dimensions : 1.745 x 0.373 x 1.470 m  (bounds z 0.050..1.520)
@@ -13,10 +13,11 @@ chopper_body
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_body transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_body materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_body materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_body flat shaded
     winding    : 7 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 969 faces facing inward (ray parity)
   [PASS] chopper_body winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_body has one UV layer inside 0-1 - layers=1 u 0.012..0.488 v 0.512..0.988
 chopper_head
     triangles  : 404
     dimensions : 0.406 x 0.385 x 0.310 m  (bounds z 1.410..1.720)
@@ -26,10 +27,11 @@ chopper_head
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_head transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_head materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_head materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_head flat shaded
     winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 178 faces facing inward (ray parity)
   [PASS] chopper_head winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_head has one UV layer inside 0-1 - layers=1 u 0.683..0.987 v 0.262..0.488
 chopper_beard
     triangles  : 1864
     dimensions : 0.438 x 0.315 x 0.630 m  (bounds z 1.035..1.665)
@@ -39,10 +41,11 @@ chopper_beard
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_beard transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_beard materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_beard materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_beard flat shaded
     winding    : 30 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 804 faces facing inward (ray parity)
   [PASS] chopper_beard winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_beard has one UV layer inside 0-1 - layers=1 u 0.011..0.329 v 0.261..0.489
 chopper_hair
     triangles  : 1980
     dimensions : 0.486 x 0.465 x 0.370 m  (bounds z 1.430..1.800)
@@ -52,10 +55,11 @@ chopper_hair
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_hair transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_hair materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_hair materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_hair flat shaded
     winding    : 33 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 858 faces facing inward (ray parity)
   [PASS] chopper_hair winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_hair has one UV layer inside 0-1 - layers=1 u 0.351..0.659 v 0.261..0.489
 chopper_shirt
     triangles  : 840
     dimensions : 1.272 x 0.364 x 0.915 m  (bounds z 0.515..1.430)
@@ -65,10 +69,11 @@ chopper_shirt
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_shirt transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_shirt materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_shirt materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_shirt flat shaded
     winding    : 3 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 420 faces facing inward (ray parity)
   [PASS] chopper_shirt winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_shirt has one UV layer inside 0-1 - layers=1 u 0.511..0.739 v 0.672..0.988
 chopper_vest
     triangles  : 496
     dimensions : 0.592 x 0.414 x 0.583 m  (bounds z 0.825..1.408)
@@ -78,10 +83,11 @@ chopper_vest
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_vest transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_vest materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_vest materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_vest flat shaded
     winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 232 faces facing inward (ray parity)
   [PASS] chopper_vest winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_vest has one UV layer inside 0-1 - layers=1 u 0.762..0.988 v 0.673..0.987
 chopper_belt
     triangles  : 648
     dimensions : 1.498 x 0.411 x 0.368 m  (bounds z 0.675..1.043)
@@ -91,10 +97,11 @@ chopper_belt
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_belt transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_belt materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_belt materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_belt flat shaded
     winding    : 7 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 308 faces facing inward (ray parity)
   [PASS] chopper_belt winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_belt has one UV layer inside 0-1 - layers=1 u 0.351..0.539 v 0.012..0.238
 chopper_chainmail
     triangles  : 250
     dimensions : 0.566 x 0.392 x 0.305 m  (bounds z 0.565..0.870)
@@ -104,10 +111,11 @@ chopper_chainmail
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_chainmail transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_chainmail materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_chainmail materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_chainmail flat shaded
     winding    : 1 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 125 faces facing inward (ray parity)
   [PASS] chopper_chainmail winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_chainmail has one UV layer inside 0-1 - layers=1 u 0.013..0.327 v 0.013..0.237
 chopper_boots
     triangles  : 1192
     dimensions : 0.532 x 0.400 x 0.420 m  (bounds z 0.000..0.420)
@@ -117,13 +125,28 @@ chopper_boots
     materials  : 1 ['M_Chopper']
     shading    : flat
   [PASS] chopper_boots transforms applied (loc 0, rot 0, scale 1)
-  [PASS] chopper_boots materials within ['M_Chopper'] - ['M_Chopper']
+  [PASS] chopper_boots materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_boots flat shaded
     winding    : 8 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 564 faces facing inward (ray parity)
   [PASS] chopper_boots winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_boots has one UV layer inside 0-1 - layers=1 u 0.511..0.739 v 0.511..0.649
+chopper_helmet
+    triangles  : 1324
+    dimensions : 0.464 x 0.419 x 0.375 m  (bounds z 1.390..1.765)
+    location   : (0.0000, 0.0000, 0.0000)
+    rotation   : (0.0000, 0.0000, 0.0000)
+    scale      : (1.0000, 1.0000, 1.0000)
+    materials  : 1 ['M_Chopper_Gear']
+    shading    : flat
+  [PASS] chopper_helmet transforms applied (loc 0, rot 0, scale 1)
+  [PASS] chopper_helmet materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper_Gear']
+  [PASS] chopper_helmet flat shaded
+    winding    : 19 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 566 faces facing inward (ray parity)
+  [PASS] chopper_helmet winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_helmet has one UV layer inside 0-1 - layers=1 u 0.561..0.739 v 0.011..0.239
   [PASS] winding detector self-test: legs reversed on a scratch copy -> 24 inconsistent edges, 2 inside-out islands, 240 inward faces
   [PASS] chopper_character.blend: no image textures / reference images - none found
-  [PASS] chopper_character.blend: materials used ['M_Chopper']
+  [PASS] chopper_character.blend: materials used ['M_Chopper', 'M_Chopper_Gear']
 
 FILE chopper_props.blend
 ------------------------------------------------------------------------
@@ -141,6 +164,7 @@ chopper_axe
   [PASS] chopper_axe flat shaded
     winding    : 9 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 433 faces facing inward (ray parity)
   [PASS] chopper_axe winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_axe has one UV layer inside 0-1 - layers=1 u 0.761..0.989 v 0.511..0.649
 chopper_shield
     triangles  : 1330
     dimensions : 0.674 x 0.287 x 0.974 m  (bounds z -0.562..0.412)
@@ -154,6 +178,7 @@ chopper_shield
   [PASS] chopper_shield flat shaded
     winding    : 9 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 635 faces facing inward (ray parity)
   [PASS] chopper_shield winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_shield has one UV layer inside 0-1 - layers=1 u 0.761..0.989 v 0.011..0.239
   [PASS] chopper_props.blend: no image textures / reference images - none found
   [PASS] chopper_props.blend: materials used ['M_Chopper_Gear']
 
@@ -164,7 +189,9 @@ BUDGETS (triangles after triangulation)
   [PASS] hair: 1980 in [1000, 3000]
   [PASS] axe: 986 in [300, 1000]
   [PASS] shield: 1330 in [500, 1500]
+  [PASS] helmet: 1324 in [1000, 3000]
   [PASS] Worker + axe + shield: 11984 in [8000, 15000]
+  [PASS] Warrior (helmet, no hair) + axe + shield: 11328 in [8000, 15000]
 
 CHARACTER DIMENSIONS
 ------------------------------------------------------------------------
@@ -177,6 +204,7 @@ CHARACTER DIMENSIONS
   [PASS] axe origin on the haft (grip point inside haft range)
   [PASS] shield height 0.974 m about 0.95 (0.90-1.00)
   [PASS] shield width 0.674 m about 0.65 (0.62-0.70, incl. rim)
+  [PASS] atlas PNG exists at Art/Textures/chopper_atlas.png - 345627 bytes
 
 ========================================================================
-SUMMARY: 65 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 84 PASS, 0 FAIL -> ALL PASS

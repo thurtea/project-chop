@@ -28,11 +28,17 @@ namespace Chopper.EditorTools
         public const string MatGearPath = MaterialsDir + "/M_Chopper_Gear.mat";
         public const string ControllerPath = AnimationDir + "/Chopper.controller";
         public const string PrefabPath = Root + "/Chopper.prefab";
+        public const string WorkerPrefabPath = Root + "/Chopper_Worker.prefab";
+        public const string AtlasPath = Root + "/Textures/chopper_atlas.png";
+        public const string PineFbx = "Assets/Game/Props/prop_pine_voxel.fbx";
+        public const string PineMatPath = "Assets/Game/Props/M_Pine.mat";
+        public const string PinePrefabPath = "Assets/Game/Props/prop_pine_voxel.prefab";
         public const string ShaderName = "Chopper/VertexColorLit";
         public const string WeaponSocket = "Weapon_R";
         public const string ShieldSocket = "Shield_L";
         public const float CharacterHeight = 1.8f;
         public const float SpeedThreshold = 0.1f;
+        public const float RunThreshold = 1.5f;
 
         static readonly string[] ArmBones =
         {
@@ -58,6 +64,7 @@ namespace Chopper.EditorTools
                 var controller = BuildController(log);
                 BuildPrefab(controller, log);
                 PlaceInTestScene(log);
+                ImportPine(log);
                 AssetDatabase.SaveAssets();
             }
             catch (Exception e)
@@ -77,6 +84,7 @@ namespace Chopper.EditorTools
             Directory.CreateDirectory(ModelsDir);
             Directory.CreateDirectory(MaterialsDir);
             Directory.CreateDirectory(AnimationDir);
+            Directory.CreateDirectory(Root + "/Textures");
             foreach (var dest in new[] { CharFbx, AxeFbx, ShieldFbx })
             {
                 string src = Path.Combine(ExportDir, Path.GetFileName(dest));
@@ -85,7 +93,20 @@ namespace Chopper.EditorTools
                 if (!same) File.Copy(src, dest, true);
                 log.AppendLine($"copy {src} -> {dest} ({(same ? "unchanged" : "copied")}, {new FileInfo(src).Length} bytes)");
             }
+            string atlasSrc = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Art", "Textures", "chopper_atlas.png"));
+            if (!File.Exists(atlasSrc)) throw new FileNotFoundException("Missing atlas " + atlasSrc);
+            bool atlasSame = File.Exists(AtlasPath) && File.ReadAllBytes(atlasSrc).SequenceEqual(File.ReadAllBytes(AtlasPath));
+            if (!atlasSame) File.Copy(atlasSrc, AtlasPath, true);
+            log.AppendLine($"copy {atlasSrc} -> {AtlasPath} ({(atlasSame ? "unchanged" : "copied")})");
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            var texImp = (TextureImporter)AssetImporter.GetAtPath(AtlasPath);
+            if (texImp != null)
+            {
+                texImp.sRGBTexture = true;
+                texImp.mipmapEnabled = true;
+                texImp.maxTextureSize = 2048;
+                texImp.SaveAndReimport();
+            }
         }
 
         // ------------------------------------------------------------------ materials
@@ -103,6 +124,12 @@ namespace Chopper.EditorTools
             mat.shader = shader;
             mat.SetColor("_BaseColor", Color.white);
             mat.SetFloat("_AmbientStrength", 1f);
+            var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(AtlasPath);
+            if (atlas != null)
+            {
+                mat.SetTexture("_BaseMap", atlas);
+                mat.SetFloat("_UseAtlas", 1f);
+            }
             EditorUtility.SetDirty(mat);
             return mat;
         }
@@ -140,7 +167,7 @@ namespace Chopper.EditorTools
             imp.importBlendShapes = false;
             imp.meshCompression = ModelImporterMeshCompression.Off;
             imp.importNormals = ModelImporterNormals.Import;
-            imp.isReadable = false;
+            imp.isReadable = true;
             imp.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
             imp.materialLocation = ModelImporterMaterialLocation.InPrefab;
         }
@@ -242,31 +269,38 @@ namespace Chopper.EditorTools
             log.AppendLine($"  {boneName}: rotated {angle:F1} deg to horizontal");
         }
 
+        static readonly (string name, bool loop)[] Clips =
+        {
+            ("Idle", true), ("Walk", true), ("Run", true),
+            ("Attack_1", false), ("Attack_2", false), ("HitReact", false), ("Death", false)
+        };
+
         static ModelImporterClipAnimation[] BuildClips(ModelImporter imp, StringBuilder log)
         {
             var clips = new List<ModelImporterClipAnimation>();
-            foreach (var c in imp.defaultClipAnimations)
+            foreach (var spec in Clips)
             {
-                string name = c.takeName.Contains("Idle") ? "Idle" : c.takeName.Contains("Walk") ? "Walk" : null;
-                if (name == null)
+                var c = imp.defaultClipAnimations.FirstOrDefault(t =>
+                    t.takeName == spec.name || t.takeName.EndsWith("|" + spec.name) || t.name == spec.name);
+                if (c == null)
                 {
-                    log.AppendLine("  skipping unexpected take " + c.takeName);
+                    log.AppendLine("  MISSING take " + spec.name);
                     continue;
                 }
-                c.name = name;
-                c.loopTime = true;
-                c.loopPose = true;          // first and last frames are identical in the export
+                c.name = spec.name;
+                c.loopTime = spec.loop;
+                c.loopPose = spec.loop;
                 c.cycleOffset = 0f;
-                c.lockRootRotation = true;  // Root Transform Rotation: bake into pose, original
+                c.lockRootRotation = true;
                 c.keepOriginalOrientation = true;
-                c.lockRootHeightY = true;   // Root Transform Position (Y): bake into pose, original
+                c.lockRootHeightY = true;
                 c.keepOriginalPositionY = true;
                 c.heightFromFeet = false;
-                c.lockRootPositionXZ = true; // Root Transform Position (XZ): bake into pose, original (walk is in place)
+                c.lockRootPositionXZ = true;
                 c.keepOriginalPositionXZ = true;
                 c.mirror = false;
                 clips.Add(c);
-                log.AppendLine($"  clip {name}: take '{c.takeName}' frames {c.firstFrame}-{c.lastFrame}, loopTime, loopPose, root motion baked in place");
+                log.AppendLine($"  clip {spec.name}: take '{c.takeName}' frames {c.firstFrame}-{c.lastFrame}, loop={spec.loop}");
             }
             return clips.ToArray();
         }
@@ -298,37 +332,77 @@ namespace Chopper.EditorTools
         {
             var idle = LoadClip("Idle");
             var walk = LoadClip("Walk");
-            if (idle == null || walk == null) throw new Exception("Idle or Walk clip missing in " + CharFbx);
+            var run = LoadClip("Run");
+            if (idle == null || walk == null || run == null) throw new Exception("Idle, Walk or Run clip missing in " + CharFbx);
 
             var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath)
                        ?? AnimatorController.CreateAnimatorControllerAtPath(ControllerPath);
             foreach (var p in ctrl.parameters.ToArray()) ctrl.RemoveParameter(p);
             ctrl.AddParameter("Speed", AnimatorControllerParameterType.Float);
+            ctrl.AddParameter("Attack1", AnimatorControllerParameterType.Trigger);
+            ctrl.AddParameter("Attack2", AnimatorControllerParameterType.Trigger);
+            ctrl.AddParameter("Hit", AnimatorControllerParameterType.Trigger);
+            ctrl.AddParameter("Die", AnimatorControllerParameterType.Trigger);
 
             var sm = ctrl.layers[0].stateMachine;
             foreach (var s in sm.states.ToArray()) sm.RemoveState(s.state);
             foreach (var t in sm.anyStateTransitions.ToArray()) sm.RemoveAnyStateTransition(t);
 
-            var sIdle = sm.AddState("Idle", new Vector3(300, 0, 0));
-            sIdle.motion = idle;
-            sIdle.iKOnFeet = true;
-            var sWalk = sm.AddState("Walk", new Vector3(300, 120, 0));
-            sWalk.motion = walk;
-            sWalk.iKOnFeet = true;
+            AnimatorState Add(string name, Vector3 pos)
+            {
+                var clip = LoadClip(name);
+                var st = sm.AddState(name, pos);
+                st.motion = clip;
+                st.iKOnFeet = name != "Death";
+                return st;
+            }
+
+            var sIdle = Add("Idle", new Vector3(300, 0, 0));
+            var sWalk = Add("Walk", new Vector3(300, 80, 0));
+            var sRun = Add("Run", new Vector3(300, 160, 0));
+            var sA1 = Add("Attack_1", new Vector3(560, 0, 0));
+            var sA2 = Add("Attack_2", new Vector3(560, 80, 0));
+            var sHit = Add("HitReact", new Vector3(560, 160, 0));
+            var sDie = Add("Death", new Vector3(560, 240, 0));
             sm.defaultState = sIdle;
 
-            var toWalk = sIdle.AddTransition(sWalk);
-            toWalk.hasExitTime = false;
-            toWalk.duration = 0.15f;
-            toWalk.AddCondition(AnimatorConditionMode.Greater, SpeedThreshold, "Speed");
-            var toIdle = sWalk.AddTransition(sIdle);
-            toIdle.hasExitTime = false;
-            toIdle.duration = 0.15f;
-            toIdle.AddCondition(AnimatorConditionMode.Less, SpeedThreshold, "Speed");
+            void SpeedTo(AnimatorState from, AnimatorState to, AnimatorConditionMode mode, float threshold)
+            {
+                var tr = from.AddTransition(to);
+                tr.hasExitTime = false;
+                tr.duration = 0.15f;
+                tr.AddCondition(mode, threshold, "Speed");
+            }
+            SpeedTo(sIdle, sWalk, AnimatorConditionMode.Greater, SpeedThreshold);
+            SpeedTo(sWalk, sIdle, AnimatorConditionMode.Less, SpeedThreshold);
+            SpeedTo(sWalk, sRun, AnimatorConditionMode.Greater, RunThreshold);
+            SpeedTo(sRun, sWalk, AnimatorConditionMode.Less, RunThreshold);
+            SpeedTo(sIdle, sRun, AnimatorConditionMode.Greater, RunThreshold);
+            SpeedTo(sRun, sIdle, AnimatorConditionMode.Less, SpeedThreshold);
+
+            void Any(AnimatorState to, string trigger)
+            {
+                var tr = sm.AddAnyStateTransition(to);
+                tr.hasExitTime = false;
+                tr.duration = 0.08f;
+                tr.canTransitionToSelf = false;
+                tr.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+            }
+            Any(sA1, "Attack1");
+            Any(sA2, "Attack2");
+            Any(sHit, "Hit");
+            Any(sDie, "Die");
+            foreach (var combat in new[] { sA1, sA2, sHit })
+            {
+                var back = combat.AddTransition(sIdle);
+                back.hasExitTime = true;
+                back.exitTime = 0.9f;
+                back.duration = 0.12f;
+            }
 
             EditorUtility.SetDirty(ctrl);
             AssetDatabase.SaveAssets();
-            log.AppendLine($"controller {ControllerPath}: states Idle (default) / Walk, Speed > {SpeedThreshold} -> Walk, < {SpeedThreshold} -> Idle, 0.15 s transitions, Foot IK on");
+            log.AppendLine($"controller: Idle/Walk/Run on Speed, triggers Attack1 Attack2 Hit Die, Death has no exit");
             return ctrl;
         }
 
@@ -365,10 +439,23 @@ namespace Chopper.EditorTools
 
                 AttachProp(root, AxeFbx, WeaponSocket, log);
                 AttachProp(root, ShieldFbx, ShieldSocket, log);
+                SetRenderer(root, "chopper_hair", false);
+                SetRenderer(root, "chopper_helmet", true);
 
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool success);
                 if (!success) throw new Exception("Saving prefab failed: " + PrefabPath);
-                log.AppendLine("saved " + PrefabPath);
+                log.AppendLine("saved " + PrefabPath + " (Warrior: helmet on, hair off, axe and shield)");
+
+                SetRenderer(root, "chopper_hair", true);
+                SetRenderer(root, "chopper_helmet", false);
+                foreach (var propName in new[] { "chopper_axe", "chopper_shield" })
+                {
+                    var prop = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == propName);
+                    if (prop != null) UnityEngine.Object.DestroyImmediate(prop.gameObject);
+                }
+                PrefabUtility.SaveAsPrefabAsset(root, WorkerPrefabPath, out bool workerOk);
+                if (!workerOk) throw new Exception("Saving worker prefab failed: " + WorkerPrefabPath);
+                log.AppendLine("saved " + WorkerPrefabPath + " (Worker: hair on, helmet off, no weapons)");
             }
             finally
             {
@@ -411,6 +498,14 @@ namespace Chopper.EditorTools
             return r;
         }
 
+        static void SetRenderer(GameObject root, string objectName, bool enabled)
+        {
+            var t = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == objectName);
+            if (t == null) throw new Exception("Module not found: " + objectName);
+            var r = t.GetComponent<Renderer>();
+            if (r != null) r.enabled = enabled;
+        }
+
         static void AttachProp(GameObject root, string fbxPath, string socketName, StringBuilder log)
         {
             var socket = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == socketName);
@@ -451,6 +546,46 @@ namespace Chopper.EditorTools
             driver.walkSpeed = 0.75f;
             EditorSceneManager.SaveScene(scene);
             log.AppendLine($"TestScene: Chopper.prefab placed at CharacterSpawn {spawn.position}, ChopperTestDriver added (mode Walk, 0.75 m/s)");
+        }
+
+        static void ImportPine(StringBuilder log)
+        {
+            string src = Path.Combine(ExportDir, "prop_pine_voxel.fbx");
+            if (!File.Exists(src)) throw new FileNotFoundException("Missing export " + src);
+            Directory.CreateDirectory("Assets/Game/Props");
+            bool same = File.Exists(PineFbx) && File.ReadAllBytes(src).SequenceEqual(File.ReadAllBytes(PineFbx));
+            if (!same) File.Copy(src, PineFbx, true);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+            log.AppendLine($"copy {src} -> {PineFbx} ({(same ? "unchanged" : "copied")})");
+
+            var mat = EnsureMaterial(PineMatPath, "M_Pine");
+            mat.SetFloat("_UseAtlas", 0f);
+            mat.SetTexture("_BaseMap", null);
+            EditorUtility.SetDirty(mat);
+
+            ConfigureProp(PineFbx, mat, log);
+            var asset = AssetDatabase.LoadAssetAtPath<GameObject>(PineFbx);
+            var root = (GameObject)PrefabUtility.InstantiatePrefab(asset);
+            try
+            {
+                root.name = "prop_pine_voxel";
+                PrefabUtility.SaveAsPrefabAsset(root, PinePrefabPath);
+                log.AppendLine("saved " + PinePrefabPath);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(root);
+            }
+
+            var scene = EditorSceneManager.OpenScene(ChopperProjectSetup.TestScenePath, OpenSceneMode.Single);
+            foreach (var go in scene.GetRootGameObjects().Where(g => g.name == "prop_pine_voxel"))
+                UnityEngine.Object.DestroyImmediate(go);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PinePrefabPath);
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+            inst.name = "prop_pine_voxel";
+            inst.transform.position = new Vector3(10f, 0f, 10f);
+            EditorSceneManager.SaveScene(scene);
+            log.AppendLine("TestScene: prop_pine_voxel at (10, 0, 10), behind the character review cameras");
         }
     }
 }

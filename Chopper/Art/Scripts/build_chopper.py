@@ -395,13 +395,42 @@ def build_boots(mat):
     return mb.finish(mat)
 
 
+def build_helmet(mat):
+    """Steel skull cap, nose guard and two horns. Hair stays the tallest point (1.80 m)."""
+    mb = L.MeshBuilder("chopper_helmet")
+    cap = [
+        (1.48, 0.198, 0.188, -0.02),
+        (1.56, 0.208, 0.198, -0.015),
+        (1.64, 0.190, 0.180, 0.0),
+        (1.71, 0.145, 0.135, 0.015),
+        (1.765, 0.075, 0.068, 0.02),
+    ]
+    mb.ztube(0, 0, cap, cs=2, bevel=0.018, color=PAL["steel"])
+    # skull plate and eye sockets (the painted skull lives in the atlas; this is the silhouette)
+    mb.box((0, -0.205, 1.58), (0.155, 0.035, 0.16), 0.008, color=PAL["steel_dark"])
+    mb.box((0, -0.222, 1.46), (0.038, 0.028, 0.14), 0.006, color=PAL["steel"])
+    for s in (-1, 1):
+        axis = Vector((s * 0.72, -0.25, 0.65)).normalized()
+        mb.cylinder((s * 0.145, -0.04, 1.68), axis, 0.026, 0.20, color=PAL["steel_dark"], cs=3, bevel=0.005)
+        mb.box((s * 0.12, -0.17, 1.52), (0.075, 0.04, 0.11), 0.006, color=PAL["steel"])
+        mb.box((s * 0.155, -0.02, 1.60), (0.05, 0.055, 0.09), 0.006, color=PAL["steel_dark"])
+    for ang in range(-72, 80, 16):
+        a = math.radians(ang)
+        mb.box((0.195 * math.sin(a), -0.175 * math.cos(a), 1.705), (0.03, 0.022, 0.02), 0.004,
+               color=PAL["steel_dark"])
+    return mb.finish(mat)
+
+
 def main():
     L.reset_scene()
     m_chop = L.make_material("M_Chopper", (0.8, 0.8, 0.8))
+    m_gear = L.make_material("M_Chopper_Gear", (0.6, 0.6, 0.6))
     for fn in (build_body, build_head, build_beard, build_hair, build_shirt, build_vest,
                build_belt, build_chainmail, build_boots):
         ob = fn(m_chop)
         print(f"built {ob.name}: {L.tri_count(ob)} tris")
+    ob = build_helmet(m_gear)
+    print(f"built {ob.name}: {L.tri_count(ob)} tris")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=OUT)
     print("saved", OUT)

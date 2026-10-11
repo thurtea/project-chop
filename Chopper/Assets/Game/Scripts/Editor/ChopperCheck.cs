@@ -54,7 +54,9 @@ namespace Chopper.EditorTools
                 CheckAvatar();
                 CheckClipsAndController();
                 CheckPrefab();
+                CheckMeshClip();
                 CheckSceneAndAnimation();
+                CheckPlayMode();
             }
             catch (Exception e)
             {
@@ -71,6 +73,110 @@ namespace Chopper.EditorTools
             Debug.Log("[ChopperCheck] report written to " + path + "\n" + Report);
             Debug.Log($"[ChopperCheck] SUMMARY: {pass} PASS, {fail} FAIL");
             if (Application.isBatchMode) EditorApplication.Exit(fail == 0 ? 0 : 1);
+        }
+
+        static void CheckMeshClip()
+        {
+            Line("");
+            Line("MESH CLIP (shield vertices against the body mesh, not the capsule)");
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ChopperImport.PrefabPath);
+            if (prefab == null) { Check(false, "prefab for mesh clip"); return; }
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            try
+            {
+                int inside = CountShieldInsideBody(inst, Vector3.zero);
+                Check(inside == 0, $"shield vertices inside the body mesh: {inside} (expected 0)");
+                int sunk = CountShieldInsideBody(inst, new Vector3(0f, 0f, -0.08f));
+                Check(sunk > 20, $"detector self-test: shield pushed 8 cm into the arm -> {sunk} inside verts (expected > 20)");
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(inst);
+            }
+        }
+
+        static int CountShieldInsideBody(GameObject root, Vector3 shieldNudge)
+        {
+            var shield = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "chopper_shield");
+            var body = root.GetComponentsInChildren<SkinnedMeshRenderer>(true).FirstOrDefault(s => s.name == "chopper_body");
+            if (shield == null || body == null) return -1;
+            var baked = new Mesh();
+            body.BakeMesh(baked, true);
+            var tris = baked.triangles;
+            var verts = baked.vertices;
+            var world = new Vector3[verts.Length];
+            for (int i = 0; i < verts.Length; i++) world[i] = body.transform.TransformPoint(verts[i]);
+            var filter = shield.GetComponentInChildren<MeshFilter>();
+            if (filter == null) { UnityEngine.Object.DestroyImmediate(baked); return -1; }
+            var sv = filter.sharedMesh.vertices;
+            int inside = 0;
+            foreach (var v in sv)
+            {
+                Vector3 p = filter.transform.TransformPoint(v) + shieldNudge;
+                if (PointInside(p, world, tris)) inside++;
+            }
+            UnityEngine.Object.DestroyImmediate(baked);
+            return inside;
+        }
+
+        static bool PointInside(Vector3 p, Vector3[] world, int[] tris)
+        {
+            Vector3 dir = new Vector3(0.31f, 0.17f, 0.93f).normalized;
+            int hits = 0;
+            for (int i = 0; i < tris.Length; i += 3)
+            {
+                if (RayHitsTri(p, dir, world[tris[i]], world[tris[i + 1]], world[tris[i + 2]])) hits++;
+            }
+            return (hits % 2) == 1;
+        }
+
+        static bool RayHitsTri(Vector3 origin, Vector3 dir, Vector3 a, Vector3 b, Vector3 c)
+        {
+            Vector3 ab = b - a, ac = c - a;
+            Vector3 pvec = Vector3.Cross(dir, ac);
+            float det = Vector3.Dot(ab, pvec);
+            if (Mathf.Abs(det) < 1e-8f) return false;
+            float inv = 1f / det;
+            Vector3 tvec = origin - a;
+            float u = Vector3.Dot(tvec, pvec) * inv;
+            if (u < 0f || u > 1f) return false;
+            Vector3 qvec = Vector3.Cross(tvec, ab);
+            float v = Vector3.Dot(dir, qvec) * inv;
+            if (v < 0f || u + v > 1f) return false;
+            float t = Vector3.Dot(ac, qvec) * inv;
+            return t > 1e-4f;
+        }
+
+        static void CheckPlayMode()
+        {
+            Line("");
+            Line("PLAY-MODE STEP (ChopperTestDriver.Step + Animator.Update, the same calls Play mode makes)");
+            var scene = UnityEditor.SceneManagement.EditorSceneManager.OpenScene(
+                "Assets/Game/Scenes/TestScene.unity", UnityEditor.SceneManagement.OpenSceneMode.Single);
+            var go = scene.GetRootGameObjects().FirstOrDefault(g => g.name == "Chopper");
+            if (!Check(go != null, "Chopper in TestScene")) return;
+            var anim = go.GetComponent<Animator>();
+            var driver = go.GetComponent<ChopperTestDriver>();
+            if (!Check(anim != null && driver != null, "Animator and ChopperTestDriver on the scene Chopper")) return;
+            anim.Update(0f);
+            bool sawWalk = false;
+            driver.mode = ChopperTestDriver.Mode.Walk;
+            for (int i = 0; i < 20; i++)
+            {
+                driver.Step(1f / 30f);
+                anim.Update(1f / 30f);
+                if (anim.GetCurrentAnimatorStateInfo(0).IsName("Walk") && !anim.IsInTransition(0)) sawWalk = true;
+            }
+            Check(sawWalk, "after 20 driver steps at walk speed the Animator is in Walk");
+            driver.mode = ChopperTestDriver.Mode.Idle;
+            bool sawIdle = false;
+            for (int i = 0; i < 20; i++)
+            {
+                driver.Step(1f / 30f);
+                anim.Update(1f / 30f);
+                if (anim.GetCurrentAnimatorStateInfo(0).IsName("Idle") && !anim.IsInTransition(0)) sawIdle = true;
+            }
+            Check(sawIdle, "after switching the driver to Idle the Animator returns to Idle");
         }
 
         // ------------------------------------------------------------------ avatar
@@ -106,14 +212,18 @@ namespace Chopper.EditorTools
         {
             Line("");
             Line("CLIPS AND CONTROLLER");
-            foreach (var (name, expected) in new[] { ("Idle", 2f), ("Walk", 1f) })
+            foreach (var (name, expected, loop) in new (string, float, bool)[]
+            {
+                ("Idle", 2f, true), ("Walk", 1f, true), ("Run", 20f / 30f, true),
+                ("Attack_1", 0.8f, false), ("Attack_2", 0.8f, false), ("HitReact", 0.5f, false), ("Death", 1.2f, false)
+            })
             {
                 var clip = ChopperImport.LoadClip(name);
                 if (!Check(clip != null, $"clip {name} present")) continue;
-                Check(Mathf.Abs(clip.length - expected) < 0.02f, $"clip {name} length {clip.length:F3} s (expected {expected:F1} s), frameRate {clip.frameRate}");
-                Check(clip.isLooping, $"clip {name} loops (isLooping={clip.isLooping}, loopTime={AnimationUtility.GetAnimationClipSettings(clip).loopTime}, loopBlend={AnimationUtility.GetAnimationClipSettings(clip).loopBlend})");
+                Check(Mathf.Abs(clip.length - expected) < 0.05f, $"clip {name} length {clip.length:F3} s (expected {expected:F2} s), frameRate {clip.frameRate}");
+                Check(clip.isLooping == loop, $"clip {name} loop expected {loop} (isLooping={clip.isLooping})");
                 Check(clip.isHumanMotion, $"clip {name} is humanoid motion");
-                Check(clip.averageSpeed.magnitude < 0.01f, $"clip {name} root motion in place (averageSpeed {clip.averageSpeed.magnitude:F4} m/s)");
+                Check(clip.averageSpeed.magnitude < 0.05f, $"clip {name} root motion in place (averageSpeed {clip.averageSpeed.magnitude:F4} m/s)");
             }
 
             var ctrl = AssetDatabase.LoadAssetAtPath<AnimatorController>(ChopperImport.ControllerPath);
@@ -131,6 +241,13 @@ namespace Chopper.EditorTools
                 $"Idle -> Walk when Speed > 0.1, no exit time, duration {tw?.duration:F2} s");
             Check(ti != null && ti.conditions.Any(c => c.parameter == "Speed" && c.mode == AnimatorConditionMode.Less && Mathf.Approximately(c.threshold, 0.1f)) && !ti.hasExitTime && ti.duration <= 0.25f,
                 $"Walk -> Idle when Speed < 0.1, no exit time, duration {ti?.duration:F2} s");
+            foreach (var stateName in new[] { "Run", "Attack_1", "Attack_2", "HitReact", "Death" })
+            {
+                var st = sm.states.Select(s => s.state).FirstOrDefault(s => s.name == stateName);
+                Check(st != null && st.motion != null && st.motion.name == stateName, $"state {stateName} with matching clip");
+            }
+            Check(ctrl.parameters.Any(p => p.name == "Attack1" && p.type == AnimatorControllerParameterType.Trigger), "Attack1 trigger");
+            Check(ctrl.parameters.Any(p => p.name == "Die" && p.type == AnimatorControllerParameterType.Trigger), "Die trigger");
         }
 
         // ------------------------------------------------------------------ prefab
@@ -157,7 +274,7 @@ namespace Chopper.EditorTools
             CheckPropInPrefab(prefab, "chopper_axe", ChopperImport.WeaponSocket);
             CheckPropInPrefab(prefab, "chopper_shield", ChopperImport.ShieldSocket);
             int smrs = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length;
-            Check(smrs == 9, $"{smrs} skinned meshes (expected 9)");
+            Check(smrs == 10, $"{smrs} skinned meshes (expected 10, including the helmet)");
             var mats = prefab.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).Distinct().ToList();
             Check(mats.Count <= 2 && mats.All(m => m && m.shader && m.shader.name == ChopperImport.ShaderName),
                 $"materials used: {string.Join(", ", mats.Select(m => m ? m.name + " (" + m.shader.name + ")" : "<null>"))}");

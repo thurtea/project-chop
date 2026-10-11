@@ -1,4 +1,4 @@
-"""Build chopper_rig (humanoid armature + sockets) and skin the nine Worker modules.
+"""Build chopper_rig (humanoid armature + sockets) and skin the Worker modules plus the helmet.
 
 Run:  blender -b -P rig_chopper.py
 In:   Art/Blender/chopper_character.blend   (read only)
@@ -24,7 +24,7 @@ SRC = os.path.join(ART, "Blender", "chopper_character.blend")
 OUT = os.path.join(ART, "Blender", "chopper_rigged.blend")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots"]
+         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
 RIG = "chopper_rig"
 SOCKETS = ("Weapon_R", "Shield_L", "Shield_Back")
 
@@ -185,11 +185,13 @@ def socket_matrices(info):
     Z = (-d).normalized()
     X = Y.cross(Z).normalized()
     out["Shield_L"] = ("LeftLowerArm", Matrix((X, Y, Z)).transposed().to_4x4(), origin)
-    # Shield_Back: stowed on the upper back, face outward (+Y world), top up.
+    # Shield_Back: stowed on the upper back. The shield's +Y local points at the body
+    # when this bone's Y axis points forward, so the origin sits far enough back that
+    # the strap and grip clear the torso.
     Y = Vector((0, -1, 0))
     Z = Vector((0, 0, 1))
     X = Y.cross(Z)
-    out["Shield_Back"] = ("UpperChest", Matrix((X, Y, Z)).transposed().to_4x4(), Vector((0.0, 0.228, 1.02)))
+    out["Shield_Back"] = ("UpperChest", Matrix((X, Y, Z)).transposed().to_4x4(), Vector((0.0, 0.46, 1.12)))
     return out
 
 
@@ -305,7 +307,7 @@ def leg_field(p, side):
 
 def classify(obj_name, centroid, bbox_min, bbox_max):
     """Region of a mesh island: 'torso', 'head', ('arm', side), ('leg', side)."""
-    if obj_name in ("chopper_head", "chopper_hair", "chopper_beard"):
+    if obj_name in ("chopper_head", "chopper_hair", "chopper_beard", "chopper_helmet"):
         return "head"
     side = "Left" if centroid.x > 0 else "Right"
     if obj_name == "chopper_boots":

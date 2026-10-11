@@ -1,4 +1,4 @@
-"""Export chopper.fbx (rig + 9 skinned modules + Idle/Walk takes), chopper_axe.fbx, chopper_shield.fbx.
+"""Export chopper.fbx (rig + skinned modules + takes), chopper_axe.fbx, chopper_shield.fbx.
 
 Run:  blender -b -P export_fbx.py
 In:   Art/Blender/chopper_rigged.blend, Art/Blender/chopper_props.blend (read only)
@@ -15,6 +15,7 @@ no embedded media, flat (face) smoothing, armature modifier not applied
 import os
 
 import bpy
+from mathutils import Matrix
 
 ART = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 RIGGED = os.path.join(ART, "Blender", "chopper_rigged.blend")
@@ -22,7 +23,7 @@ PROPS = os.path.join(ART, "Blender", "chopper_props.blend")
 EXPORT = os.path.join(ART, "Export")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots"]
+         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
 
 COMMON = dict(
     use_selection=True,
@@ -80,6 +81,19 @@ def main():
     bpy.ops.wm.open_mainfile(filepath=RIGGED)
     rig = bpy.data.objects["chopper_rig"]
     rig.animation_data.action = None
+    # Bind-pose node transforms are whatever pose is current when the exporter writes
+    # the models, which is after it bakes. Strips start at frame 1; with no hold
+    # extrapolation, frame 0 is the rest pose, so the FBX nodes are the A-pose.
+    # pose_position stays POSE so the take bake still evaluates the actions.
+    rig.data.pose_position = "POSE"
+    for tr in rig.animation_data.nla_tracks:
+        tr.mute = False
+        for strip in tr.strips:
+            strip.extrapolation = "NOTHING"
+    bpy.context.scene.frame_set(0)
+    for pb in rig.pose.bones:
+        pb.matrix_basis = Matrix.Identity(4)
+    bpy.context.view_layer.update()
     for tr in rig.animation_data.nla_tracks:
         tr.mute = False
         print("NLA", tr.name, [(s.name, s.action.name, s.frame_start, s.frame_end) for s in tr.strips])

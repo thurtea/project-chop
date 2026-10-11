@@ -4,8 +4,10 @@ Shader "Chopper/VertexColorLit"
 {
     Properties
     {
+        _BaseMap ("Atlas", 2D) = "white" {}
         _BaseColor ("Base Color", Color) = (1, 1, 1, 1)
         _AmbientStrength ("Ambient Strength", Range(0, 2)) = 1
+        _UseAtlas ("Use Atlas", Float) = 1
     }
 
     SubShader
@@ -17,7 +19,10 @@ Shader "Chopper/VertexColorLit"
         CBUFFER_START(UnityPerMaterial)
             half4 _BaseColor;
             half _AmbientStrength;
+            half _UseAtlas;
         CBUFFER_END
+        TEXTURE2D(_BaseMap);
+        SAMPLER(sampler_BaseMap);
         ENDHLSL
 
         Pass
@@ -42,6 +47,7 @@ Shader "Chopper/VertexColorLit"
             {
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
+                float2 uv         : TEXCOORD0;
                 half4  color      : COLOR;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -52,6 +58,7 @@ Shader "Chopper/VertexColorLit"
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS   : TEXCOORD1;
                 half   fogFactor  : TEXCOORD2;
+                float2 uv         : TEXCOORD3;
                 half4  color      : COLOR;
             };
 
@@ -64,6 +71,7 @@ Shader "Chopper/VertexColorLit"
                 o.positionWS = p.positionWS;
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.fogFactor = ComputeFogFactor(p.positionCS.z);
+                o.uv = v.uv;
                 o.color = v.color;
                 return o;
             }
@@ -71,10 +79,12 @@ Shader "Chopper/VertexColorLit"
             half4 frag (Varyings i) : SV_Target
             {
                 half3 vc = i.color.rgb;
+                half3 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 vc = SRGBToLinear(vc);
+                tex = SRGBToLinear(tex);
                 #endif
-                half3 albedo = _BaseColor.rgb * vc;
+                half3 albedo = _BaseColor.rgb * (_UseAtlas > 0.5 ? tex : vc);
 
                 float3 n = normalize(i.normalWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(i.positionWS));

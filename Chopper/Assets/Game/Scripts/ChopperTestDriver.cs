@@ -14,13 +14,14 @@ namespace Chopper
     [RequireComponent(typeof(Animator))]
     public class ChopperTestDriver : MonoBehaviour
     {
-        public enum Mode { Idle, Walk }
+        public enum Mode { Idle, Walk, Run }
 
         public static readonly int SpeedId = Animator.StringToHash("Speed");
 
         public Mode mode = Mode.Walk;
         [Tooltip("Ground speed in m/s; must match the authored walk speed (0.75 m/s).")]
         public float walkSpeed = 0.75f;
+        public float runSpeed = 2.2f;
         [Tooltip("Distance after which the character is sent back to its start point.")]
         public float maxDistance = 8f;
 
@@ -37,7 +38,15 @@ namespace Chopper
         {
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame)
-                mode = mode == Mode.Walk ? Mode.Idle : Mode.Walk;
+                mode = mode == Mode.Idle ? Mode.Walk : mode == Mode.Walk ? Mode.Run : Mode.Idle;
+            if (Keyboard.current != null && Keyboard.current.digit1Key.wasPressedThisFrame)
+                animator.SetTrigger("Attack1");
+            if (Keyboard.current != null && Keyboard.current.digit2Key.wasPressedThisFrame)
+                animator.SetTrigger("Attack2");
+            if (Keyboard.current != null && Keyboard.current.hKey.wasPressedThisFrame)
+                animator.SetTrigger("Hit");
+            if (Keyboard.current != null && Keyboard.current.kKey.wasPressedThisFrame)
+                animator.SetTrigger("Die");
 #endif
             Step(Time.deltaTime);
         }
@@ -45,7 +54,7 @@ namespace Chopper
         /// <summary>Applies the current mode for one step of dt seconds (moves the root only).</summary>
         public void Step(float dt)
         {
-            float speed = mode == Mode.Walk ? walkSpeed : 0f;
+            float speed = mode == Mode.Run ? runSpeed : mode == Mode.Walk ? walkSpeed : 0f;
             if (animator == null) animator = GetComponent<Animator>();
             animator.SetFloat(SpeedId, speed);
             if (speed <= 0f) return;

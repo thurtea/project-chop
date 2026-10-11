@@ -15,9 +15,10 @@ FILES = [os.path.join(ART, "Blender", "chopper_character.blend"),
 REPORT = os.path.join(ART, "Renders", "check_report.txt")
 
 CHAR = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-        "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots"]
+        "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
 PROPS = ["chopper_axe", "chopper_shield"]
-ALLOWED_MATS = {"chopper_character.blend": {"M_Chopper"}, "chopper_props.blend": {"M_Chopper_Gear"}}
+ALLOWED_MATS = {"chopper_character.blend": {"M_Chopper", "M_Chopper_Gear"},
+                 "chopper_props.blend": {"M_Chopper_Gear"}}
 
 BUDGETS = [
     ("body+head+shirt+vest+belt+chainmail+boots",
@@ -27,7 +28,10 @@ BUDGETS = [
     ("hair", ["chopper_hair"], 1000, 3000),
     ("axe", ["chopper_axe"], 300, 1000),
     ("shield", ["chopper_shield"], 500, 1500),
-    ("Worker + axe + shield", CHAR + PROPS, 8000, 15000),
+    ("helmet", ["chopper_helmet"], 1000, 3000),
+    ("Worker + axe + shield", [n for n in CHAR if n != "chopper_helmet"] + PROPS, 8000, 15000),
+    ("Warrior (helmet, no hair) + axe + shield",
+     [n for n in CHAR if n != "chopper_hair"] + PROPS, 8000, 15000),
 ]
 
 lines = []
@@ -218,6 +222,18 @@ for path in FILES:
         check(f"{name} winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces)",
               bad_e == 0 and neg_i == 0 and inward == 0,
               f"{bad_e} / {neg_i} / {inward}")
+        uv = ob.data.uv_layers.get("UVMap") if ob.data.uv_layers else None
+        if uv is None:
+            check(f"{name} has one UV layer inside 0-1", False, "no UVMap")
+        else:
+            us, vs = [], []
+            for d in uv.data:
+                us.append(d.uv.x)
+                vs.append(d.uv.y)
+            inside = min(us) >= -1e-4 and min(vs) >= -1e-4 and max(us) <= 1.001 and max(vs) <= 1.001
+            check(f"{name} has one UV layer inside 0-1",
+                  len(ob.data.uv_layers) == 1 and inside,
+                  "layers=%d u %.3f..%.3f v %.3f..%.3f" % (len(ob.data.uv_layers), min(us), max(us), min(vs), max(vs)))
     if base.startswith("chopper_character") and "chopper_body" in bpy.data.objects:
         # detector self-test: a scratch copy of the body with the trouser legs turned inside
         # out (the W1-03 defect) must be caught; the copy is discarded, nothing is saved
@@ -270,6 +286,10 @@ if "chopper_shield" in bounds:
     d = hi - lo
     check(f"shield height {d.z:.3f} m about 0.95 (0.90-1.00)", 0.90 <= d.z <= 1.00)
     check(f"shield width {d.x:.3f} m about 0.65 (0.62-0.70, incl. rim)", 0.62 <= d.x <= 0.70)
+
+atlas = os.path.join(ART, "Textures", "chopper_atlas.png")
+check("atlas PNG exists at Art/Textures/chopper_atlas.png", os.path.isfile(atlas),
+      "%d bytes" % (os.path.getsize(atlas) if os.path.isfile(atlas) else 0))
 
 out("")
 n_fail = sum(1 for _, ok in results if not ok)

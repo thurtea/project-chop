@@ -1,9 +1,11 @@
-"""Author the Idle and Walk actions on chopper_rig (keys on every frame, 30 fps).
+"""Author Idle, Walk, Run, Attack_1, Attack_2, HitReact and Death on chopper_rig.
 
 Run:  blender -b -P animate_chopper.py
 In:   Art/Blender/chopper_rigged.blend (from rig_chopper.py)
-Out:  same file, with actions Idle (frames 1-61) and Walk (frames 1-31), each pushed to
-      its own NLA track/strip named after the action (one FBX take per strip).
+Out:  same file, one NLA strip per action (one FBX take per strip).
+
+Idle, Walk and Run loop (first frame copied onto the last). The four combat clips
+are one-shots: the last frame is the end pose, not a copy of the first.
 
 Method: every frame is computed in closed form. Upper body = FK rotations given as
 rest-space axis/angle deltas. Legs = analytic two-bone IK to a foot transform. The
@@ -26,6 +28,12 @@ FPS = 30
 IDLE_LEN = 60          # frames 1..61 (61 == 1)
 WALK_LEN = 30          # frames 1..31 (31 == 1)
 WALK_SPEED = 0.75      # m/s; Unity should move the character at this speed
+RUN_LEN = 20           # frames 1..21
+RUN_SPEED = 2.20       # m/s
+ATTACK1_LEN = 24       # overhead chop, one-shot
+ATTACK2_LEN = 24       # side sweep, one-shot
+HIT_LEN = 15
+DEATH_LEN = 36
 STANCE = 0.60          # fraction of the cycle a foot is on the ground
 STRIKE_PITCH = -14.0   # deg, toes up at heel strike (rotation about +X)
 TOEOFF_PITCH = 26.0    # deg, heel up at toe off
@@ -196,9 +204,9 @@ def idle_pose(rig, f):
     return hips_off, deltas, feet
 
 
-def stance_F(rig, side, q, y0):
+def stance_F(rig, side, q, y0, speed=WALK_SPEED, length=WALK_LEN):
     """Planted foot at local phase q in [0, STANCE]; pivot heel then flat then toe."""
-    g = T((0, y0 + WALK_SPEED * q * WALK_LEN / FPS, 0))
+    g = T((0, y0 + speed * q * length / FPS, 0))
     x = 0.13 if side == "Left" else -0.13
     heel = Vector((x, 0.140, 0.0))
     toe = Vector((x, -0.250, 0.0))
@@ -220,20 +228,20 @@ def hermite(p0, p1, m0, m1, s):
             (-2 * s3 + 3 * s2) * p1 + (s3 - s2) * m1)
 
 
-def foot_F(rig, side, q, y0):
+def foot_F(rig, side, q, y0, speed=WALK_SPEED, length=WALK_LEN, lift=SWING_LIFT):
     """Foot transform at local phase q. Stance: ground-attached roll. Swing: the foot pitch
     goes from push-off to flat by mid-swing and to the heel-strike pitch at the end; its
-    height is set so the lowest boot vertex follows a low clearance arc (SWING_LIFT)."""
+    height is set so the lowest boot vertex follows a low clearance arc."""
     q = q % 1.0
     if q <= STANCE:
-        return stance_F(rig, side, q, y0), True
+        return stance_F(rig, side, q, y0, speed, length), True
     s = (q - STANCE) / (1 - STANCE)
-    F0 = stance_F(rig, side, STANCE, y0)
-    F1 = stance_F(rig, side, 0.0, y0)
+    F0 = stance_F(rig, side, STANCE, y0, speed, length)
+    F1 = stance_F(rig, side, 0.0, y0, speed, length)
     ank = rig.rest[side + "Foot"].translation
     A0, A1 = F0 @ ank, F1 @ ank
-    dur = (1 - STANCE) * WALK_LEN / FPS
-    m = WALK_SPEED * dur                     # matches ground speed at both ends
+    dur = (1 - STANCE) * length / FPS
+    m = speed * dur                          # matches ground speed at both ends
     yy = hermite(A0.y, A1.y, m, m, s)
     if s < 0.45:
         th = TOEOFF_PITCH * (1 - smooth(s / 0.45))
@@ -242,7 +250,7 @@ def foot_F(rig, side, q, y0):
     else:
         th = STRIKE_PITCH * smooth((s - 0.7) / 0.3)
     F = T((A0.x, yy, 0.0)) @ R(X, th).to_4x4() @ T(-ank)
-    clear = SWING_LIFT * math.sin(math.pi * s ** 0.65)      # peaks early: toe clearance after push-off
+    clear = lift * math.sin(math.pi * s ** 0.65)             # peaks early: toe clearance after push-off
     F = T((0, 0, clear - rig.foot_min_z(side, F))) @ F
     return F, False
 
@@ -250,12 +258,13 @@ def foot_F(rig, side, q, y0):
 _PELVIS_CACHE = {}
 
 
-def pelvis_heights(rig):
-    """Per-frame pelvis Z offset for the walk, derived from the feet: as high as possible
+def pelvis_heights(rig, pose_fn=None, length=None):
+    """Per-frame pelvis Z offset, derived from the feet: as high as possible
     with every leg at REACH_TARGET of its length, then low-passed (periodic, first
-    PELVIS_HARMONICS harmonics) and lowered so no frame exceeds REACH_MAX. Gives the
-    down (double support) / up (mid-stance) bob from the leg geometry itself."""
-    key = (WALK_SPEED, STANCE, FOOT_SHIFT, REACH_TARGET, REACH_MAX, PELVIS_HARMONICS)
+    PELVIS_HARMONICS harmonics) and lowered so no frame exceeds REACH_MAX."""
+    pose_fn = walk_pose if pose_fn is None else pose_fn
+    length = WALK_LEN if length is None else length
+    key = (pose_fn.__name__, length, STANCE, FOOT_SHIFT, REACH_TARGET, REACH_MAX, PELVIS_HARMONICS)
     if key in _PELVIS_CACHE:
         return _PELVIS_CACHE[key]
     saved_reach, saved_gap = rig.max_reach, rig.max_loc_err
@@ -264,8 +273,8 @@ def pelvis_heights(rig):
         L[sd] = ((rig.rest[sd + "LowerLeg"].translation - rig.rest[sd + "UpperLeg"].translation).length +
                  (rig.rest[sd + "Foot"].translation - rig.rest[sd + "LowerLeg"].translation).length)
     raw = []
-    for f in range(1, WALK_LEN + 1):
-        hips_off, deltas, feet = walk_pose(rig, f, pelvis_z=0.0)
+    for f in range(1, length + 1):
+        hips_off, deltas, feet = pose_fn(rig, f, pelvis_z=0.0)
         M, _ = rig.solve(hips_off, deltas, feet)
         need = 1e9
         for sd in ("Left", "Right"):
@@ -288,7 +297,7 @@ def pelvis_heights(rig):
     for _ in range(50):
         worst = 0.0
         for i in range(n):
-            hips_off, deltas, feet = walk_pose(rig, i + 1, pelvis_z=sm[i])
+            hips_off, deltas, feet = pose_fn(rig, i + 1, pelvis_z=sm[i])
             M, _ = rig.solve(hips_off, deltas, feet)
             for sd in ("Left", "Right"):
                 d = (feet[sd] @ rig.rest[sd + "Foot"].translation - M[sd + "UpperLeg"].translation).length
@@ -335,8 +344,131 @@ def walk_pose(rig, f, pelvis_z=None):
     return hips_off, deltas, {"Left": FL, "Right": FR}
 
 
+def gait_pose(rig, f, length, speed, pelvis_fn, adduct, swing, elbow_l, elbow_r, lean, lift):
+    p = (f - 1) / length
+    c1 = math.cos(2 * math.pi * p)
+    if pelvis_fn is None:
+        pelvis_z = 0.0
+    else:
+        pelvis_z = pelvis_fn(rig)[(f - 1) % length]
+    hips_off = Vector((0.018 * math.sin(2 * math.pi * (p - 0.05)), 0.0, pelvis_z))
+    deltas = {}
+    deltas["Hips"] = R(Z, -6.0 * c1) @ R(X, lean)
+    deltas["Spine"] = R(Z, 3.0 * c1) @ R(X, lean * 0.45)
+    deltas["Chest"] = R(Z, 3.5 * c1)
+    deltas["UpperChest"] = R(Z, 1.5 * c1)
+    deltas["Neck"] = R(X, -4.0) @ R(Z, -1.0 * c1)
+    deltas["Head"] = R(X, -2.0) @ R(Z, -0.8 * c1)
+    for side in ("Left", "Right"):
+        nm = side + "Shoulder"
+        deltas[nm] = R(toward(rig, nm, (0, 0, 1), 1), -1.0)
+    arm_base(rig, deltas, adduct, elbow_l, elbow_r + 8.0 * max(0.0, c1))
+    deltas["LeftUpperArm"] = R(X, swing * c1) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(X, -swing * c1) @ deltas["RightUpperArm"]
+    y0 = -speed * STANCE * length / FPS * 0.5 + FOOT_SHIFT
+    FL, _pl = foot_F(rig, "Left", p, y0, speed, length, lift)
+    FR, _pr = foot_F(rig, "Right", p + 0.5, y0, speed, length, lift)
+    return hips_off, deltas, {"Left": FL, "Right": FR}
+
+
+def run_pose(rig, f, pelvis_z=None):
+    if pelvis_z is not None:
+        # used while solving the pelvis curve: feet still move, hips stay at the probe height
+        p = (f - 1) / RUN_LEN
+        c1 = math.cos(2 * math.pi * p)
+        deltas = {}
+        deltas["Hips"] = R(X, 12.0)
+        arm_base(rig, deltas, 12.0, 12.0, 20.0)
+        y0 = -RUN_SPEED * STANCE * RUN_LEN / FPS * 0.5
+        FL, _pl = foot_F(rig, "Left", p, y0, RUN_SPEED, RUN_LEN, 0.09)
+        FR, _pr = foot_F(rig, "Right", p + 0.5, y0, RUN_SPEED, RUN_LEN, 0.09)
+        return Vector((0, 0, pelvis_z)), deltas, {"Left": FL, "Right": FR}
+    return gait_pose(rig, f, RUN_LEN, RUN_SPEED, lambda r: pelvis_heights(r, run_pose, RUN_LEN),
+                     12.0, 28.0, 12.0, 18.0, 12.0, 0.09)
+
+
+def _combat_arms(rig, deltas, right_pitch, right_yaw, elbow):
+    """Keep the shield arm in the walk guard. Drive the axe arm from the A-pose."""
+    arm_base(rig, deltas, 18.0, 12.0, 20.0)
+    ua = "RightUpperArm"
+    deltas[ua] = R(toward(rig, ua, (0, 0, 1), 1), right_pitch) @ deltas[ua]
+    deltas[ua] = R(Z, right_yaw) @ deltas[ua]
+    deltas["RightLowerArm"] = R(toward(rig, "RightLowerArm", (0, -1, 0), 1), elbow) @ deltas["RightLowerArm"]
+
+
+def attack1_pose(rig, f):
+    p = (f - 1) / ATTACK1_LEN
+    # wind up overhead, chop down, settle
+    if p < 0.35:
+        s = smooth(p / 0.35)
+        pitch, elbow = 70 * s, 25 * s
+    elif p < 0.62:
+        s = smooth((p - 0.35) / 0.27)
+        pitch, elbow = 70 - 110 * s, 25 + 35 * s
+    else:
+        s = smooth((p - 0.62) / 0.38)
+        pitch, elbow = -40 + 20 * s, 60 - 40 * s
+    deltas = {}
+    hips_off = Vector((0, 0.0, -0.03 * math.sin(math.pi * min(1, p / 0.62))))
+    deltas["Spine"] = R(X, 8 * math.sin(math.pi * p))
+    deltas["Chest"] = R(X, 6 * math.sin(math.pi * p))
+    _combat_arms(rig, deltas, pitch, 0.0, elbow)
+    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+    return hips_off, deltas, feet
+
+
+def attack2_pose(rig, f):
+    p = (f - 1) / ATTACK2_LEN
+    if p < 0.30:
+        s = smooth(p / 0.30)
+        yaw, elbow = -55 * s, 20 * s
+    elif p < 0.60:
+        s = smooth((p - 0.30) / 0.30)
+        yaw, elbow = -55 + 100 * s, 20 + 25 * s
+    else:
+        s = smooth((p - 0.60) / 0.40)
+        yaw, elbow = 45 - 45 * s, 45 - 25 * s
+    deltas = {}
+    hips_off = Vector((0.02 * math.sin(math.pi * p), 0, -0.02))
+    deltas["Hips"] = R(Z, 8 * math.sin(math.pi * p))
+    deltas["Spine"] = R(Z, -6 * math.sin(math.pi * p))
+    _combat_arms(rig, deltas, 10.0, yaw, elbow)
+    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+    return hips_off, deltas, feet
+
+
+def hit_pose(rig, f):
+    p = (f - 1) / HIT_LEN
+    s = math.sin(math.pi * p)
+    deltas = {}
+    hips_off = Vector((-0.02 * s, 0.03 * s, -0.04 * s))
+    deltas["Hips"] = R(Z, 6 * s) @ R(X, -4 * s)
+    deltas["Spine"] = R(X, -10 * s)
+    deltas["Chest"] = R(X, -8 * s) @ R(Z, 8 * s)
+    deltas["Head"] = R(Z, 10 * s) @ R(X, -6 * s)
+    arm_base(rig, deltas, 16.0, 14.0, 30.0)
+    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+    return hips_off, deltas, feet
+
+
+def death_pose(rig, f):
+    p = (f - 1) / DEATH_LEN
+    s = smooth(min(1.0, p / 0.75))
+    deltas = {}
+    hips_off = Vector((0.0, 0.05 * s, -0.42 * s))
+    deltas["Hips"] = R(X, -55 * s)
+    deltas["Spine"] = R(X, -25 * s)
+    deltas["Chest"] = R(X, -15 * s)
+    deltas["Head"] = R(X, 20 * s)
+    arm_base(rig, deltas, 10.0, 20.0, 25.0)
+    deltas["LeftUpperArm"] = R(Z, 30 * s) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(Z, -40 * s) @ deltas["RightUpperArm"]
+    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+    return hips_off, deltas, feet
+
+
 # ------------------------------------------------------------------ keying
-def key_action(rig, name, length, pose_fn):
+def key_action(rig, name, length, pose_fn, loop=True):
     ob = rig.ob
     ad = ob.animation_data_create()
     act = bpy.data.actions.get(name)
@@ -366,10 +498,11 @@ def key_action(rig, name, length, pose_fn):
             if pb.name == "Hips":
                 pb.location = B[pb.name].translation
                 pb.keyframe_insert("location", frame=f, group=pb.name)
-    # make the loop seam exact: copy frame 1 values onto the last frame
+    # looping clips copy frame 1 onto the last frame so the seam is exact
     for fc in _fcurves(act):
         kps = fc.keyframe_points
-        kps[-1].co.y = kps[0].co.y
+        if loop:
+            kps[-1].co.y = kps[0].co.y
         for kp in kps:
             kp.interpolation = "LINEAR"
         fc.update()
@@ -412,14 +545,23 @@ def main():
               max(abs(B[n][i][j] - (1.0 if i == j else 0.0)) for i in range(4) for j in range(4))
               for n in B)
     print("rest reproduction max matrix error: %.2e" % err)
-    for name, length, fn in (("Idle", IDLE_LEN, idle_pose), ("Walk", WALK_LEN, walk_pose)):
+    clips = (
+        ("Idle", IDLE_LEN, idle_pose, True),
+        ("Walk", WALK_LEN, walk_pose, True),
+        ("Run", RUN_LEN, run_pose, True),
+        ("Attack_1", ATTACK1_LEN, attack1_pose, False),
+        ("Attack_2", ATTACK2_LEN, attack2_pose, False),
+        ("HitReact", HIT_LEN, hit_pose, False),
+        ("Death", DEATH_LEN, death_pose, False),
+    )
+    for name, length, fn, loop in clips:
         rig.max_reach = 0.0
         rig.max_loc_err = 0.0
         rig.thigh_range = [1e9, -1e9]
-        key_action(rig, name, length, fn)
-        print("%s: frames 1-%d, max leg reach %.3f of full length, max non-root joint gap %.4f m, "
+        key_action(rig, name, length, fn, loop=loop)
+        print("%s: frames 1-%d loop=%s, max leg reach %.3f of full length, max non-root joint gap %.4f m, "
               "thigh angle %.1f..%.1f deg (+ = forward)"
-              % (name, length + 1, rig.max_reach, rig.max_loc_err, rig.thigh_range[0], rig.thigh_range[1]))
+              % (name, length + 1, loop, rig.max_reach, rig.max_loc_err, rig.thigh_range[0], rig.thigh_range[1]))
     sc.frame_start = 1
     sc.frame_end = IDLE_LEN + 1
     sc.frame_set(1)
