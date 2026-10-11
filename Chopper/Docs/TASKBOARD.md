@@ -30,8 +30,20 @@ Shared record of work packages, owners, decisions and evidence. Updated by the m
 | ID | Package | Owner | Depends on | Acceptance check | Status |
 |---|---|---|---|---|---|
 | W3-01 | Voxel pine `prop_pine_voxel` (concept 4), own file, vertex colour, material M_Pine | blender-modeler | W2-03 | Check in `build_pine.py` all PASS; Unity prefab under `Assets/Game/Props/`; character `ChopperCheck` still passes | done |
-| W3-02 | Elite pauldrons and plated vest (concept 1.8) | blender-modeler | W3-01 | New modules in budget; UV, rig, animate, export, Unity import and checks rerun | pending |
+| W3-02 | Elite pauldrons and plated vest (concept 1.8) | blender-modeler | W3-01 | New modules in budget; UV, rig, animate, export, Unity import and checks rerun | done |
 | W3-03 | Look polish from Open issues | blender-modeler | W2-04 | Side-by-side with concepts 3, 1.5, 1.7 | pending |
+
+## Week 4: meadow props, then the live world
+
+The character pipeline in the production brief is done. Do not rebuild Chopper from the concept images. The live game at the repo root still uses the old pixel-pack trees and rocks. New world props are made in the same 0.25 m cubes as the pine, then later swapped into that world.
+
+| ID | Package | Owner | Depends on | Acceptance check | Status |
+|---|---|---|---|---|---|
+| W4-01 | Voxel rock, stump, and log (`prop_rock_voxel`, `prop_stump_voxel`, `prop_log_voxel`) | blender-modeler | W3-01 | `build_meadow.py` all PASS; Unity prefabs under `Assets/Game/Props/`; character checks still pass | done |
+| W4-02 | Live world uses the voxel pine and rock | unity-engineer | W4-01 | `SO_WorldAssets` tree and rock slots point at the new prefabs; campfire rebuilt; tree height measures 3.25 m | done |
+| W4-03 | Live player uses the Chopper body | unity-engineer | W2-03 | `Player.prefab` instances `chopper.fbx` with a humanoid avatar; hair on, helmet and elite meshes off; existing animator and gameplay axe stay | done |
+| W4-04 | Felled trees leave the voxel stump | unity-engineer | W4-01 | `TreeManager` spawns `prop_stump_voxel` scaled to the trunk; capsule blocks the player | done |
+| W4-05 | Grass and bushes lean away from the player | unity-engineer | W4-02 | Carpet push is stronger; 700 decorative bushes sit under `GrassField` with the herbs | done |
 
 The W2-00 notes are the Week 1 review risks. W2-01 to W2-03 closed them. Do not treat them as open work.
 
@@ -71,3 +83,9 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 - W2-03 (2026-10-11): Unity import exit clean, avatar valid and human. Both materials sample `chopper_atlas.png`. Controller has Idle/Walk/Run plus Attack_1, Attack_2, HitReact, Death. `Chopper.prefab` is the Warrior (hair off, helmet on, axe, shield). `Chopper_Worker.prefab` is hair on, helmet off, no weapons. Mesh-against-mesh: 0 shield verts inside the body; a shield pushed 8 cm in is caught (116 verts). `ChopperCheck.RunChecks` with a graphics device: 101 PASS, 0 FAIL, including the driver step that reaches Walk and returns to Idle.
 - W2-04 (partial): the atlas detail is painted in object space during the bake (`uv_atlas.py` `detail()`), not as a tile overlay, because each polygon has its own UV cell. Vertex colours on the mesh are linear, so wood tests must use linear values (red about 0.26, not 0.55). Compared with concepts 3 and 1.5 in `Art/Renders/atlas_char_front.png`, `atlas_head.png`, `atlas_shield_front.png`, `atlas_axe_front.png`: shirt plaid, vest stitch lines and a gray patch, chainmail checker, green eyes, and a shield emblem (block axe above two pines) do land on the right surfaces. Still crude: the axe icon is a rectangle, the pines are flat triangles, axe knotwork is a dot grid, and there is no independent review (W2-05). The PNG was copied to `Assets/Game/Characters/Chopper/Textures/chopper_atlas.png`. UVs did not change, so the FBX was not re-exported.
 - W3-01 (2026-10-11): `Art/Scripts/build_pine.py`. 190 cubes of 0.25 m, 768 tris, height 3.25 m, dirt pad 2.25 m, material M_Pine, vertex colour only. `pine_check_report.txt` ALL PASS. Renders `pine_front.png` and `pine_three_quarter.png`. Unity: `Assets/Game/Props/prop_pine_voxel.prefab`, `M_Pine` with `_UseAtlas` 0, TestScene instance at (10, 0, 10). Import log `RESULT: DONE`. `ChopperCheck` after import: 101 PASS, 0 FAIL (the check does not assert the pine).
+- W3-02 (2026-10-11): `chopper_plate` 384 tris and `chopper_pauldrons` 240 tris, material M_Chopper_Gear. Elite total (no hair, no leather vest) plus axe and shield 11,456 tris. Pauldrons sit on the shoulders so the shield crown stays clear. `check_assets.py` 95/0, `check_rig.py` 128/0. Capsule kept at 0.37 (torso fit 0.363 m with plate and pauldrons excluded). Unity `Chopper_Elite.prefab`; Worker and Warrior hide the new meshes. `ChopperCheck` 101/0, 12 skinned meshes. Renders `elite_lineup_front.png` and `elite_lineup_three_quarter.png`.
+- W4-01 (2026-10-11): `Art/Scripts/build_meadow.py`. Rock 1.00 m / 292 tris, stump 0.75 m / 76 tris, log 2.00 m / 144 tris, material M_World, vertex colour. `meadow_check_report.txt` ALL PASS. Render `meadow_kit.png`. Unity prefabs in `Assets/Game/Props/`, TestScene at (6, 0, 8), (8, 0, 8), (10.5, 0, 8). Import `RESULT: DONE`. `ChopperCheck` after import: 101 PASS, 0 FAIL (the check does not assert the props).
+- W4-02 (2026-10-11): `ChopperMeadowSwap.Apply` on the repo-root project. Nine tree slots replaced with tinted `prop_pine_*` prefabs, measured height 3.25 m. Rock slots are `prop_rock_voxel`. Campfire prefab rebuilt with that rock and `prop_log_voxel`. Log ends `Exiting batchmode successfully`.
+- W4-03 (2026-10-11): `UseChopperPlayer` rebuilt `Player.prefab` on `chopper.fbx` (humanoid, scale 1, controller height 1.8). Worker look: hair on, helmet, plate, and pauldrons off. Existing animator kept. Log: `Player prefab rebuilt with the Chopper model`, then `Exiting batchmode successfully`.
+- W4-04 (2026-10-11): `WireStump` set `TreeManager._stumpPrefab` to `prop_stump_voxel` (capsule 0.75 m, scaled to trunk width). Log: `felled trees use prop_stump_voxel`, then `Exiting batchmode successfully`.
+- W4-05 (2026-10-11): Player grass push radius 1.25 m. `M_GrassCarpet` `_PushStrength` 1.15. `HerbManager` scatters 700 decorative bushes and adds `GrassField` on the plant root so herbs, ferns, and bushes lean. Not played in the editor.

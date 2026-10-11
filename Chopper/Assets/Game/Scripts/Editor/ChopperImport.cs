@@ -29,6 +29,7 @@ namespace Chopper.EditorTools
         public const string ControllerPath = AnimationDir + "/Chopper.controller";
         public const string PrefabPath = Root + "/Chopper.prefab";
         public const string WorkerPrefabPath = Root + "/Chopper_Worker.prefab";
+        public const string ElitePrefabPath = Root + "/Chopper_Elite.prefab";
         public const string AtlasPath = Root + "/Textures/chopper_atlas.png";
         public const string PineFbx = "Assets/Game/Props/prop_pine_voxel.fbx";
         public const string PineMatPath = "Assets/Game/Props/M_Pine.mat";
@@ -65,6 +66,7 @@ namespace Chopper.EditorTools
                 BuildPrefab(controller, log);
                 PlaceInTestScene(log);
                 ImportPine(log);
+                ImportMeadow(log);
                 AssetDatabase.SaveAssets();
             }
             catch (Exception e)
@@ -441,13 +443,26 @@ namespace Chopper.EditorTools
                 AttachProp(root, ShieldFbx, ShieldSocket, log);
                 SetRenderer(root, "chopper_hair", false);
                 SetRenderer(root, "chopper_helmet", true);
+                SetRenderer(root, "chopper_vest", true);
+                SetRenderer(root, "chopper_plate", false);
+                SetRenderer(root, "chopper_pauldrons", false);
 
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath, out bool success);
                 if (!success) throw new Exception("Saving prefab failed: " + PrefabPath);
-                log.AppendLine("saved " + PrefabPath + " (Warrior: helmet on, hair off, axe and shield)");
+                log.AppendLine("saved " + PrefabPath + " (Warrior: helmet on, hair off, leather vest, axe and shield)");
+
+                SetRenderer(root, "chopper_vest", false);
+                SetRenderer(root, "chopper_plate", true);
+                SetRenderer(root, "chopper_pauldrons", true);
+                PrefabUtility.SaveAsPrefabAsset(root, ElitePrefabPath, out bool eliteOk);
+                if (!eliteOk) throw new Exception("Saving elite prefab failed: " + ElitePrefabPath);
+                log.AppendLine("saved " + ElitePrefabPath + " (Elite: plate and pauldrons, helmet, axe and shield)");
 
                 SetRenderer(root, "chopper_hair", true);
                 SetRenderer(root, "chopper_helmet", false);
+                SetRenderer(root, "chopper_vest", true);
+                SetRenderer(root, "chopper_plate", false);
+                SetRenderer(root, "chopper_pauldrons", false);
                 foreach (var propName in new[] { "chopper_axe", "chopper_shield" })
                 {
                     var prop = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == propName);
@@ -470,6 +485,11 @@ namespace Chopper.EditorTools
             var mesh = new Mesh();
             foreach (var smr in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
             {
+                if (smr.gameObject.name == "chopper_plate" || smr.gameObject.name == "chopper_pauldrons")
+                {
+                    skipped += smr.sharedMesh.vertexCount;
+                    continue;
+                }
                 var armIdx = new HashSet<int>();
                 var headIdx = new HashSet<int>();
                 for (int b = 0; b < smr.bones.Length; b++)
@@ -493,8 +513,9 @@ namespace Chopper.EditorTools
                 }
             }
             UnityEngine.Object.DestroyImmediate(mesh);
-            float r = Mathf.Clamp(Mathf.Ceil(maxR * 100f) / 100f, 0.15f, 0.4f);
-            log.AppendLine($"capsule fit: max radial distance of torso/leg vertices (rest pose, arms and head excluded) {maxR:F3} m over {used} verts ({skipped} skipped) -> radius {r:F2}");
+            float fitted = Mathf.Ceil(maxR * 100f) / 100f;
+            const float r = 0.37f;
+            log.AppendLine($"capsule fit: max radial distance of torso/leg vertices (rest pose, arms, head, plate and pauldrons excluded) {maxR:F3} m over {used} verts ({skipped} skipped), fitted {fitted:F2} -> radius kept at {r:F2}");
             return r;
         }
 
@@ -586,6 +607,54 @@ namespace Chopper.EditorTools
             inst.transform.position = new Vector3(10f, 0f, 10f);
             EditorSceneManager.SaveScene(scene);
             log.AppendLine("TestScene: prop_pine_voxel at (10, 0, 10), behind the character review cameras");
+        }
+
+        static void ImportMeadow(StringBuilder log)
+        {
+            var mat = EnsureMaterial("Assets/Game/Props/M_World.mat", "M_World");
+            mat.SetFloat("_UseAtlas", 0f);
+            mat.SetTexture("_BaseMap", null);
+            EditorUtility.SetDirty(mat);
+            var spots = new (string file, Vector3 at)[]
+            {
+                ("prop_rock_voxel", new Vector3(6f, 0f, 8f)),
+                ("prop_stump_voxel", new Vector3(8f, 0f, 8f)),
+                ("prop_log_voxel", new Vector3(10.5f, 0f, 8f)),
+            };
+            var scene = EditorSceneManager.OpenScene(ChopperProjectSetup.TestScenePath, OpenSceneMode.Single);
+            foreach (var (file, at) in spots)
+            {
+                string src = Path.Combine(ExportDir, file + ".fbx");
+                if (!File.Exists(src)) throw new FileNotFoundException("Missing export " + src);
+                string fbx = "Assets/Game/Props/" + file + ".fbx";
+                string prefabPath = "Assets/Game/Props/" + file + ".prefab";
+                Directory.CreateDirectory("Assets/Game/Props");
+                bool same = File.Exists(fbx) && File.ReadAllBytes(src).SequenceEqual(File.ReadAllBytes(fbx));
+                if (!same) File.Copy(src, fbx, true);
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                log.AppendLine($"copy {src} -> {fbx} ({(same ? "unchanged" : "copied")})");
+                ConfigureProp(fbx, mat, log);
+                var asset = AssetDatabase.LoadAssetAtPath<GameObject>(fbx);
+                var root = (GameObject)PrefabUtility.InstantiatePrefab(asset);
+                try
+                {
+                    root.name = file;
+                    PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
+                    log.AppendLine("saved " + prefabPath);
+                }
+                finally
+                {
+                    UnityEngine.Object.DestroyImmediate(root);
+                }
+                foreach (var go in scene.GetRootGameObjects().Where(g => g.name == file))
+                    UnityEngine.Object.DestroyImmediate(go);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+                var inst = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
+                inst.name = file;
+                inst.transform.position = at;
+                log.AppendLine($"TestScene: {file} at {at}");
+            }
+            EditorSceneManager.SaveScene(scene);
         }
     }
 }

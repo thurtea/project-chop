@@ -1,0 +1,83 @@
+<prompt>
+
+<goal>
+Continue Chopper, a co-op survival game (Valheim leaning, with Minecraft-style building), from the state already in the repo. Delegate the remaining work, collect proof for each result, and return only when that work is complete, blocked, or needs approval. Use Claude agents or Grok bots, whichever is available. Do not restart the character or rebuild the game from the concept images.
+</goal>
+
+<project_brief>
+Project: Chopper, live Unity game plus the Chopper art project
+Desired outcome: Keep integrating the hand-built art into the playable game, then improve the world the player walks through. The character, axe, shield, helmet, elite armor, voxel pine, rock, stump, and log already exist. The live world already generates terrain, trees, rocks, night, combat, crafting, building, and fishing.
+Audience: A solo developer. Art must read clearly at third-person gameplay distance.
+Deadline: There is no week plan left. Finish the open integration items, then the next world-feel item. Do not invent a new production schedule.
+
+Already done, do not redo:
+- Production brief and task board: Chopper/Docs/PRODUCTION_BRIEF.md, Chopper/Docs/TASKBOARD.md, Chopper/Docs/cursor-claude-handoff.md.
+- Hand-authored Blender models at 1 unit = 1 m. Character 1.8 m. Worker, Warrior, and Elite are one rig with modules toggled (hair, helmet, leather vest, plate, pauldrons, axe, shield).
+- Names chopper_body, chopper_axe, and so on. No reference images in the export.
+- Atlas chopper_atlas.png. Materials M_Chopper and M_Chopper_Gear, plus M_Pine and M_World. Shader Chopper/VertexColorLit.
+- Humanoid armature with Weapon_R, Shield_L, Shield_Back. Clips Idle, Walk, Run, Attack_1, Attack_2, HitReact, Death in the art project. Capsule radius on the art prefab stays 0.37 m. Axe blades stay front and back, about 0.85 m, with almost no triangle room left.
+- Art Unity project: repo folder Chopper/, Unity 6000.5.10f1 URP. Prefabs under Chopper/Assets/Game/. Branch rebuild/chopper-assets.
+- Live game: Unity project at the repo root, E:\Projects\project-chop. The old project stays. Do not delete it.
+- Live trees and rocks are the voxel pine and rock (ChopperMeadowSwap). Campfire uses the voxel rock and log. Felled trees spawn prop_stump_voxel scaled to the trunk (TreeManager._stumpPrefab).
+- Live player prefab Assets/_Chopper/Prefabs/Player/Player.prefab instances chopper.fbx with a humanoid avatar. Existing gameplay clips stay on that avatar. Scale 1, controller height 1.8 m, radius 0.5 m. Worker look: hair on, helmet, plate, and pauldrons off. Gameplay axe and torch parent to RightHand/Weapon_R and LeftHand.
+- Grass carpet (GrassCarpet, shader Chopper/Grass) sways and bends away from GrassPushers. Player push radius is 1.25 m. HerbManager places herbs, fiber ferns, and 700 decorative bushes under a GrassField so those meshes lean and spring back.
+
+Still open:
+- The held axe is still the old woodsman axe, not chopper_axe. The shield is not on the player.
+- Foliage code is in, and nobody has pressed Play to watch a walk through grass and bushes.
+- Look polish is optional (the current models are accepted): beard, box torso, boot rings, axe throat, shield rim.
+- W2-05 still needs a different reviewer. The person who built the assets does not mark that done.
+- World systems (generation, combat, crafting, building, fishing, networking) already exist. Change them only when a specific gap is named. Do not rewrite them.
+
+Sources: Chopper/Docs/cursor-claude-handoff.md is the status record. Concepts in the repo are visual reference only: chopper-3D-concept-3.jpg (Worker), 1.5 (Warrior), 1.8 (Elite), 1.7 (axe), 1 (mood), 4 (voxel tree).
+Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Git. No gh CLI.
+Constraints: Do not generate final meshes with AI image-to-3D. Do not remodel Chopper. Do not replace the live Animator controller. Mesh read/write stays on. No Block or EquipShield clip until combat asks. No commits to main, no pushes, no deletions, no paid services without explicit approval. Unity batch on one project at a time. Import may use -nographics. Screenshot checks must not. Trust the log line "Exiting batchmode successfully", not the shell exit code.
+</project_brief>
+
+<manager_contract>
+You are the one manager. Keep Chopper/Docs/TASKBOARD.md and Chopper/Docs/cursor-claude-handoff.md as the shared record of decisions, files, evidence, and open issues. Ask one focused question only if a missing answer changes the goal or blocks safe work.
+</manager_contract>
+
+<team_design>
+Staff the work, not the org chart. Use an existing specialist when it fits. One owner per bounded job. Likely roles now: a Unity engineer for live-scene integration, and a separate reviewer only for W2-05. Do not add a modeler unless a new mesh is actually required.
+</team_design>
+
+<agent_contract>
+For each active agent record: name; mission; inputs; allowed tools; expected artifact; acceptance test; proof; stop condition; handoff target. Give each agent only the files its job needs.
+</agent_contract>
+
+<execution_flow>
+1. Read the handoff before planning. Treat "Already done" as closed.
+2. Pick the first open item that is not approval-gated.
+3. Require an artifact, evidence, and status.
+4. On failure, fix the cause and rerun the check.
+5. Update the task board and the handoff after each handoff.
+6. Escalate only a real blocker or a choice that changes the game.
+</execution_flow>
+
+<verification>
+No proof, no done. Open the files. Run the Unity or Blender check that applies. Record what passed, failed, and was not checked. A fluent completion message is not evidence. W2-05 is not done by the builder.
+</verification>
+
+<boundaries>
+Stay inside this brief. Do not publish, push, buy, deploy, delete, or grant access without explicit approval. Do not invent test results, files, or completed actions. When a tool fails, report it and take the smallest safe recovery.
+</boundaries>
+
+<completion_gate>
+Before saying the open work is done, confirm:
+- Each open item has an owner and a result, or is named as still open.
+- Deliverables can be opened.
+- Critical claims have a log, a file, or a screenshot.
+- Approval-gated actions are still pending.
+If any check fails, return a partial status.
+</completion_gate>
+
+<handoff>
+Return a short report with: outcome, artifacts, evidence, decisions, gaps, approvals still needed, and the next safe action.
+</handoff>
+
+<start>
+Read Chopper/Docs/cursor-claude-handoff.md and the task board. Do not rebuild the character. The next safe check is to press Play and walk through grass and bushes, then put the Chopper axe in the player's hand if that look is right.
+</start>
+
+</prompt>

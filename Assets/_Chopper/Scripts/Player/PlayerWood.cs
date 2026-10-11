@@ -36,7 +36,7 @@ namespace Chopper.Player
         public int Carried => _carried.Value;
         public int Cap => _config.WoodCarryCap;
 
-        private const float GrassPushRadius = 0.9f;
+        private const float GrassPushRadius = 1.25f;
 
         public override void OnStartClient()
         {

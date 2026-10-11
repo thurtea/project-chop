@@ -55,6 +55,7 @@ namespace Chopper.Editor
         {
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(PixelMeshes + name + ".fbx");
             if (model == null) model = AssetDatabase.LoadAssetAtPath<GameObject>(NatureMeshes + name + ".fbx");
+            if (model == null) model = ChopperMeadowSwap.MeadowModel(name);
             return model;
         }
 
@@ -213,6 +214,8 @@ namespace Chopper.Editor
             assets.TreeModels = models.ToArray();
             assets.TreeModelHeights = heights.ToArray();
             assets.Species = species;
+            if (ChopperMeadowSwap.MeadowModel("prop_pine_voxel") != null)
+                ChopperMeadowSwap.Retarget(assets);
             assets.GrassMaterial = CreateGrassMaterial();
 
             // Crypts: grey brick walls, big flagstones underfoot, dark stone overhead, pixel pack chests and lanterns.
@@ -264,24 +267,39 @@ namespace Chopper.Editor
             {
                 float angle = i * Mathf.PI * 2f / CampfireStones;
                 var at = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * CampfireRingRadius;
-                string rock = i % 3 == 0 ? "pixel_rock_lowpoly" : i % 3 == 1 ? "pixel_rock2_lowpoly" : "pixel_rock3_lowpoly";
+                string rock = ChopperMeadowSwap.MeadowModel("prop_rock_voxel") != null
+                    ? "prop_rock_voxel"
+                    : (i % 3 == 0 ? "pixel_rock_lowpoly" : i % 3 == 1 ? "pixel_rock2_lowpoly" : "pixel_rock3_lowpoly");
                 GameObject stone = PlaceModel(rock, root.transform, at, i * 47f, 0.3f + 0.06f * (i % 2), false, 0.05f);
                 if (stone != null) stone.name = "Stone";
             }
 
-            Material log = PixelMaterial("tree_oak_log_psx2");
-            if (log == null) log = CreateColorMaterial("M_Branch", new Color(0.36f, 0.24f, 0.13f));
-            for (int i = 0; i < 3; i++)
+            if (ChopperMeadowSwap.MeadowModel("prop_log_voxel") != null)
             {
-                GameObject piece = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                piece.name = "Log";
-                Object.DestroyImmediate(piece.GetComponent<Collider>());
-                piece.transform.SetParent(root.transform, false);
-                // Laid across each other, ends raised a little toward the middle like a small tepee that has burned down.
-                piece.transform.localRotation = Quaternion.Euler(0f, i * 60f, 0f) * Quaternion.Euler(0f, 0f, 78f);
-                piece.transform.localPosition = new Vector3(0f, 0.12f + i * 0.04f, 0f);
-                piece.transform.localScale = new Vector3(0.12f, 0.42f, 0.12f);
-                piece.GetComponent<MeshRenderer>().sharedMaterial = log;
+                for (int i = 0; i < 3; i++)
+                {
+                    GameObject piece = PlaceModel("prop_log_voxel", root.transform, new Vector3(0f, 0.12f + i * 0.04f, 0f),
+                        i * 60f, 0.85f, false, 0f);
+                    if (piece == null) continue;
+                    piece.name = "Log";
+                    piece.transform.localRotation = Quaternion.Euler(0f, i * 60f, 78f);
+                }
+            }
+            else
+            {
+                Material log = PixelMaterial("tree_oak_log_psx2");
+                if (log == null) log = CreateColorMaterial("M_Branch", new Color(0.36f, 0.24f, 0.13f));
+                for (int i = 0; i < 3; i++)
+                {
+                    GameObject piece = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    piece.name = "Log";
+                    Object.DestroyImmediate(piece.GetComponent<Collider>());
+                    piece.transform.SetParent(root.transform, false);
+                    piece.transform.localRotation = Quaternion.Euler(0f, i * 60f, 0f) * Quaternion.Euler(0f, 0f, 78f);
+                    piece.transform.localPosition = new Vector3(0f, 0.12f + i * 0.04f, 0f);
+                    piece.transform.localScale = new Vector3(0.12f, 0.42f, 0.12f);
+                    piece.GetComponent<MeshRenderer>().sharedMaterial = log;
+                }
             }
 
             GameObject embers = GameObject.CreatePrimitive(PrimitiveType.Sphere);
@@ -787,6 +805,8 @@ namespace Chopper.Editor
             var so = new SerializedObject(manager);
             so.FindProperty("_config").objectReferenceValue = config;
             so.FindProperty("_stumpMaterial").objectReferenceValue = stump;
+            if (ChopperMeadowSwap.MeadowModel("prop_stump_voxel") != null)
+                so.FindProperty("_stumpPrefab").objectReferenceValue = ChopperMeadowSwap.StumpPrefab();
             so.FindProperty("_particleMaterial").objectReferenceValue = particle;
 
             // Enemies path on a NavMesh baked at runtime on the server, after the tree colliders exist.

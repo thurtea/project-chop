@@ -3,7 +3,7 @@ Chopper asset check report
 
 FILE chopper_character.blend
 ------------------------------------------------------------------------
-  [PASS] expected objects present, exact names - found ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_shirt', 'chopper_vest']
+  [PASS] expected objects present, exact names - found ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_pauldrons', 'chopper_plate', 'chopper_shirt', 'chopper_vest']
 chopper_body
     triangles  : 1994
     dimensions : 1.745 x 0.373 x 1.470 m  (bounds z 0.050..1.520)
@@ -17,7 +17,7 @@ chopper_body
   [PASS] chopper_body flat shaded
     winding    : 7 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 969 faces facing inward (ray parity)
   [PASS] chopper_body winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_body has one UV layer inside 0-1 - layers=1 u 0.012..0.488 v 0.512..0.988
+  [PASS] chopper_body has one UV layer inside 0-1 - layers=1 u 0.011..0.379 v 0.512..0.988
 chopper_head
     triangles  : 404
     dimensions : 0.406 x 0.385 x 0.310 m  (bounds z 1.410..1.720)
@@ -144,6 +144,34 @@ chopper_helmet
     winding    : 19 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 566 faces facing inward (ray parity)
   [PASS] chopper_helmet winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
   [PASS] chopper_helmet has one UV layer inside 0-1 - layers=1 u 0.561..0.739 v 0.011..0.239
+chopper_plate
+    triangles  : 384
+    dimensions : 0.600 x 0.422 x 0.460 m  (bounds z 0.900..1.360)
+    location   : (0.0000, 0.0000, 0.0000)
+    rotation   : (0.0000, 0.0000, 0.0000)
+    scale      : (1.0000, 1.0000, 1.0000)
+    materials  : 1 ['M_Chopper_Gear']
+    shading    : flat
+  [PASS] chopper_plate transforms applied (loc 0, rot 0, scale 1)
+  [PASS] chopper_plate materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper_Gear']
+  [PASS] chopper_plate flat shaded
+    winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 176 faces facing inward (ray parity)
+  [PASS] chopper_plate winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_plate has one UV layer inside 0-1 - layers=1 u 0.401..0.489 v 0.512..0.738
+chopper_pauldrons
+    triangles  : 240
+    dimensions : 0.800 x 0.160 x 0.085 m  (bounds z 1.372..1.457)
+    location   : (0.0000, 0.0000, 0.0000)
+    rotation   : (0.0000, 0.0000, 0.0000)
+    scale      : (1.0000, 1.0000, 1.0000)
+    materials  : 1 ['M_Chopper_Gear']
+    shading    : flat
+  [PASS] chopper_pauldrons transforms applied (loc 0, rot 0, scale 1)
+  [PASS] chopper_pauldrons materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper_Gear']
+  [PASS] chopper_pauldrons flat shaded
+    winding    : 4 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 104 faces facing inward (ray parity)
+  [PASS] chopper_pauldrons winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
+  [PASS] chopper_pauldrons has one UV layer inside 0-1 - layers=1 u 0.401..0.489 v 0.763..0.987
   [PASS] winding detector self-test: legs reversed on a scratch copy -> 24 inconsistent edges, 2 inside-out islands, 240 inward faces
   [PASS] chopper_character.blend: no image textures / reference images - none found
   [PASS] chopper_character.blend: materials used ['M_Chopper', 'M_Chopper_Gear']
@@ -192,6 +220,7 @@ BUDGETS (triangles after triangulation)
   [PASS] helmet: 1324 in [1000, 3000]
   [PASS] Worker + axe + shield: 11984 in [8000, 15000]
   [PASS] Warrior (helmet, no hair) + axe + shield: 11328 in [8000, 15000]
+  [PASS] Elite (plate and pauldrons, no leather vest, no hair) + axe + shield: 11456 in [8000, 15000]
 
 CHARACTER DIMENSIONS
 ------------------------------------------------------------------------
@@ -204,7 +233,7 @@ CHARACTER DIMENSIONS
   [PASS] axe origin on the haft (grip point inside haft range)
   [PASS] shield height 0.974 m about 0.95 (0.90-1.00)
   [PASS] shield width 0.674 m about 0.65 (0.62-0.70, incl. rim)
-  [PASS] atlas PNG exists at Art/Textures/chopper_atlas.png - 345627 bytes
+  [PASS] atlas PNG exists at Art/Textures/chopper_atlas.png - 366273 bytes
 
 ========================================================================
-SUMMARY: 84 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 95 PASS, 0 FAIL -> ALL PASS

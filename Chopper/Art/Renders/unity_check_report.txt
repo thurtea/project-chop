@@ -1,5 +1,5 @@
 Chopper Unity check report (W1-05)
-Generated 2026-10-11 16:54:16 by ChopperCheck.RunChecks, Unity 6000.5.10f1
+Generated 2026-10-11 18:32:49 by ChopperCheck.RunChecks, Unity 6000.5.10f1
 ==============================================================================
 
 AVATAR (Assets/Game/Characters/Chopper/Models/chopper.fbx)
@@ -102,7 +102,7 @@ PREFAB (Assets/Game/Characters/Chopper/Chopper.prefab)
   [PASS] chopper_shield parent = Shield_L (expected Shield_L)
   [PASS] chopper_shield local transform identity (pos (0.00, 0.00, 0.00), rot (0.00, 0.00, 0.00), scale (1.00, 1.00, 1.00)); correction: FBX root node came in with rotation (-90,0,0), reset to identity by ChopperImport.AttachProp
   [PASS] chopper_shield has its mesh on the root node
-  [PASS] 10 skinned meshes (expected 10, including the helmet)
+  [PASS] 12 skinned meshes (expected 12, including helmet, plate and pauldrons)
   [PASS] materials used: M_Chopper (Chopper/VertexColorLit), M_Chopper_Gear (Chopper/VertexColorLit)
 
 MESH CLIP (shield vertices against the body mesh, not the capsule)
@@ -177,11 +177,11 @@ WALK SAMPLES (every frame at 30 fps, root moved forward +Z at 0.75 m/s)
 
 SCREENSHOTS (TestScene camera rendered to a RenderTexture)
   [PASS] TestScene camera found
-  [PASS] unity_idle_front.png: Idle t=0.50s, camera (0.00, 1.15, 3.40) -> (0.00, 0.95, 0.00) (SubmitRenderRequest, 6221 distinct colours)
-  [PASS] unity_idle_three_quarter.png: Idle t=0.50s, camera (2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 6451 distinct colours)
-  [PASS] unity_idle_three_quarter_left.png: Idle t=0.50s, camera (-2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5350 distinct colours)
-  [PASS] unity_walk_contact_side.png: Walk t=0.00s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5274 distinct colours)
-  [PASS] unity_walk_passing_side.png: Walk t=0.25s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5344 distinct colours)
+  [PASS] unity_idle_front.png: Idle t=0.50s, camera (0.00, 1.15, 3.40) -> (0.00, 0.95, 0.00) (SubmitRenderRequest, 6124 distinct colours)
+  [PASS] unity_idle_three_quarter.png: Idle t=0.50s, camera (2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 6427 distinct colours)
+  [PASS] unity_idle_three_quarter_left.png: Idle t=0.50s, camera (-2.40, 1.35, 2.40) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5282 distinct colours)
+  [PASS] unity_walk_contact_side.png: Walk t=0.00s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5299 distinct colours)
+  [PASS] unity_walk_passing_side.png: Walk t=0.25s, camera (3.40, 1.00, 0.00) -> (0.00, 0.90, 0.00) (SubmitRenderRequest, 5361 distinct colours)
 
 PLAY-MODE STEP (ChopperTestDriver.Step + Animator.Update, the same calls Play mode makes)
   [PASS] Chopper in TestScene

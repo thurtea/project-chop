@@ -1,6 +1,6 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (1902156 bytes)
+  [PASS] file exists: Export\chopper.fbx (1974044 bytes)
   [PASS] file exists: Export\chopper_axe.fbx (35788 bytes)
   [PASS] file exists: Export\chopper_shield.fbx (44236 bytes)
 
@@ -10,7 +10,7 @@ RAW FBX: chopper.fbx
   bones in file (25): Hips, Spine, Chest, UpperChest, Neck, Head, LeftShoulder, LeftUpperArm, LeftLowerArm, LeftHand, Shield_L, RightShoulder, RightUpperArm, RightLowerArm, RightHand, Weapon_R, Shield_Back, LeftUpperLeg, LeftLowerLeg, LeftFoot, LeftToes, RightUpperLeg, RightLowerLeg, RightFoot, RightToes
   [PASS] no leaf bones ('_end') in the FBX
   [PASS] no embedded media (Video objects: 0)
-  [PASS] mesh models are exactly the modules: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_shirt', 'chopper_vest']
+  [PASS] mesh models are exactly the modules: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_pauldrons', 'chopper_plate', 'chopper_shirt', 'chopper_vest']
   [PASS] take Idle present, frames 0.00-60.00 (expected 0-60 = 2.00 s at 30 fps)
   [PASS] take Walk present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
   [PASS] take Run present, frames 0.00-20.00 (expected 0-20 = 0.67 s at 30 fps)
@@ -34,7 +34,7 @@ IMPORTED chopper.fbx
   [PASS] humanoid hierarchy (Hips > Spine > Chest > UpperChest > Neck > Head, shoulders under UpperChest, legs under Hips) (wrong: none)
   [PASS] skin clusters only on humanoid bones (22 bones carry weights), none on the sockets
   [PASS] left/right rest frames mirror-symmetric (positions and rolls), max error 7.0e-06
-  [PASS] character meshes imported: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_shirt', 'chopper_vest']
+  [PASS] character meshes imported: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_pauldrons', 'chopper_plate', 'chopper_shirt', 'chopper_vest']
   [PASS] chopper_beard parented to chopper_rig with an Armature modifier
   [PASS] chopper_belt parented to chopper_rig with an Armature modifier
   [PASS] chopper_body parented to chopper_rig with an Armature modifier
@@ -43,6 +43,8 @@ IMPORTED chopper.fbx
   [PASS] chopper_hair parented to chopper_rig with an Armature modifier
   [PASS] chopper_head parented to chopper_rig with an Armature modifier
   [PASS] chopper_helmet parented to chopper_rig with an Armature modifier
+  [PASS] chopper_pauldrons parented to chopper_rig with an Armature modifier
+  [PASS] chopper_plate parented to chopper_rig with an Armature modifier
   [PASS] chopper_shirt parented to chopper_rig with an Armature modifier
   [PASS] chopper_vest parented to chopper_rig with an Armature modifier
 
@@ -55,6 +57,8 @@ SKIN WEIGHTS (imported)
   [PASS] chopper_hair       1056 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_head        212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_helmet      700 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_pauldrons   128 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
+  [PASS] chopper_plate       212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_shirt       456 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_vest        268 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_head is 100% Head
@@ -160,7 +164,7 @@ PROPS
   [PASS] chopper_shield origin preserved (world bounds z -0.562..0.412, expected -0.562..0.412)
 
 PROPS ON SOCKETS (identity local transform relative to the socket bone)
-  [PASS] clip detector self-test: shield sunk into the chest -> 220 verts (76 mm), axe through the leg -> 404 verts (99 mm)
+  [PASS] clip detector self-test: shield sunk into the chest -> 250 verts (76 mm), axe through the leg -> 414 verts (99 mm)
   [PASS] rest: shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
   [PASS] rest: shield board back not floating: gap to forearm/bracer surface 9.0..9.0 mm (min over the board, per sampled frame; required 5-30 mm)
   [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.000 0.165 0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
@@ -199,4 +203,4 @@ CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 
 ========================================================================
-SUMMARY: 124 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 128 PASS, 0 FAIL -> ALL PASS

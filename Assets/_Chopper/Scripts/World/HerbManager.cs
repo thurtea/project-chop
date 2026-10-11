@@ -16,6 +16,9 @@ namespace Chopper.World
     {
         private const int Seed = 4711;
         private const int FabricBushSeed = 90210;
+        private const int FoliageSeed = 12011;
+        // Decorative bushes, not pickable. Spread through the same ring as the herbs.
+        private const int FoliageCount = 700;
         private const float MinRadius = 30f;
         private const float MaxRadius = 238f;
         private const float PickReach = 2.4f;
@@ -109,7 +112,7 @@ namespace Chopper.World
 
         private void BuildViews()
         {
-            _root = new GameObject("Herbs").transform;
+            _root = new GameObject("Plants").transform;
             _root.SetParent(transform, false);
             _views = new GameObject[_positions.Length];
 
@@ -132,6 +135,28 @@ namespace Chopper.World
                 if (!bush) foreach (Renderer renderer in view.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(herbBlock);
                 foreach (Collider collider in view.GetComponentsInChildren<Collider>()) Destroy(collider);
                 _views[i] = view;
+            }
+
+            BuildFoliage(bushScale > 0f ? bushScale : 1f);
+            _root.gameObject.AddComponent<GrassField>();
+        }
+
+        // Extra bushes so the meadow reads as foliage. Same placement rules as the pickable plants, a different seed,
+        // and they are not in the pick list. GrassField on the parent leans every plant away from GrassPushers.
+        private void BuildFoliage(float bushScale)
+        {
+            if (_fabricBushModel == null) return;
+            var spots = new List<Vector3>();
+            AddPositions(spots, FoliageSeed, FoliageCount);
+            var rng = new System.Random(FoliageSeed ^ Chopper.World.Generation.WorldSession.Seed);
+            for (int i = 0; i < spots.Count; i++)
+            {
+                float yaw = (float)rng.NextDouble() * 360f;
+                float scale = bushScale * Mathf.Lerp(0.7f, 1.35f, (float)rng.NextDouble());
+                GameObject view = Instantiate(_fabricBushModel, spots[i], Quaternion.Euler(0f, yaw, 0f), _root);
+                view.name = "Bush_" + i;
+                view.transform.localScale = Vector3.one * scale;
+                foreach (Collider collider in view.GetComponentsInChildren<Collider>()) Destroy(collider);
             }
         }
 

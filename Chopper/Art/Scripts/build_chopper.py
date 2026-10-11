@@ -421,6 +421,42 @@ def build_helmet(mat):
     return mb.finish(mat)
 
 
+def build_plate(mat):
+    """Steel chest shell for the Elite. Sits outside the leather vest; the Elite prefab hides the vest."""
+    mb = L.MeshBuilder("chopper_plate")
+    plate = [
+        (0.90, 0.268, 0.178),
+        (0.98, 0.278, 0.184),
+        (1.08, 0.292, 0.190),
+        (1.16, 0.300, 0.190),
+        (1.24, 0.292, 0.180),
+        (1.32, 0.260, 0.158),
+        (1.36, 0.190, 0.128),
+    ]
+    mb.ztube(0, 0, plate, cs=2, bevel=0.028, cap0=False, cap1=False, color=PAL["steel"],
+             color_fn=lambda p: PAL["steel_dark"] if (0.99 < p.z < 1.05 or 1.17 < p.z < 1.23) else None)
+    for z, w, h in ((1.06, 0.22, 0.09), (1.18, 0.24, 0.10)):
+        hd = interp(plate, z, 2)
+        mb.box((0, -(hd + 0.010), z), (w, 0.016, h), 0.004, color=PAL["steel_dark"])
+    def surf_y(z, side):
+        return side * (interp(plate, z, 2) + 0.016)
+    front = [(0.22, 0.92), (0.08, 1.06), (-0.06, 1.18), (-0.16, 1.30)]
+    for side in (-1, 1):
+        pts = [(x, surf_y(z, side), z) for x, z in front]
+        mb.path_strip(pts, [(0, side, 0)] * len(pts), 0.028, 0.006, PAL["leather_dark"], cs=1, bevel=0.003)
+    return mb.finish(mat)
+
+
+def build_pauldrons(mat):
+    """Steel caps on top of the shoulders. Kept off the upper arm so the shield crown stays clear."""
+    mb = L.MeshBuilder("chopper_pauldrons")
+    for s in (-1, 1):
+        c = Vector((s * 0.30, -0.01, 1.40))
+        mb.box(c, (0.20, 0.16, 0.055), 0.008, color=PAL["steel"])
+        mb.box(c + Vector((0, 0, 0.04)), (0.14, 0.11, 0.035), 0.006, color=PAL["steel_dark"])
+    return mb.finish(mat)
+
+
 def main():
     L.reset_scene()
     m_chop = L.make_material("M_Chopper", (0.8, 0.8, 0.8))
@@ -429,8 +465,9 @@ def main():
                build_belt, build_chainmail, build_boots):
         ob = fn(m_chop)
         print(f"built {ob.name}: {L.tri_count(ob)} tris")
-    ob = build_helmet(m_gear)
-    print(f"built {ob.name}: {L.tri_count(ob)} tris")
+    for fn in (build_helmet, build_plate, build_pauldrons):
+        ob = fn(m_gear)
+        print(f"built {ob.name}: {L.tri_count(ob)} tris")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=OUT)
     print("saved", OUT)

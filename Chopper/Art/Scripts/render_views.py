@@ -89,6 +89,8 @@ def main():
     bpy.ops.wm.open_mainfile(filepath=CHAR)
     sc = bpy.context.scene
     setup_scene(sc)
+    for name in ("chopper_plate", "chopper_pauldrons"):
+        bpy.data.objects[name].hide_render = True
     tgt = (0, 0, 0.90)
     shoot(sc, "char_front", tgt, 0, 0, 2.05)
     shoot(sc, "char_side", tgt, -90, 0, 2.05)      # from character's right (-X)
@@ -116,10 +118,16 @@ def main():
     shield.matrix_world = Matrix.Translation(fore) @ rot
     shoot(sc, "warrior_lineup_front", (0, 0, 0.90), 0, 0, 2.2)
     shoot(sc, "warrior_lineup_three_quarter", (0, 0, 0.90), -35, 8, 2.2)
+    for name in ("chopper_hair", "chopper_vest"):
+        bpy.data.objects[name].hide_render = True
+    for name in ("chopper_plate", "chopper_pauldrons"):
+        bpy.data.objects[name].hide_render = False
+    shoot(sc, "elite_lineup_front", (0, 0, 0.90), 0, 0, 2.2)
+    shoot(sc, "elite_lineup_three_quarter", (0, 0, 0.90), -35, 8, 2.2)
 
     # ---------------- props alone
     for ob in list(sc.objects):
-        if ob.name in CHAR_PARTS:
+        if ob.name in CHAR_PARTS or ob.name in ("chopper_helmet", "chopper_plate", "chopper_pauldrons"):
             ob.hide_render = True
     axe.matrix_world = Matrix.Identity(4)
     shield.hide_render = True

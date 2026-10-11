@@ -14,6 +14,8 @@ namespace Chopper.Editor
     public static class CharacterSetup
     {
         public const string ModelPath = "Assets/ThirdParty/Quaternius_UniversalAnimationLibrary/UAL1_Standard.fbx";
+        public const string ChopperModelPath = "Assets/_Chopper/Art/Character/chopper.fbx";
+        public const string ChopperAtlasPath = "Assets/_Chopper/Art/Character/chopper_atlas.png";
         // The second library, on the same skeleton: tree chopping, sword combos and block, eating, chests, the bed.
         public const string ModelPath2 = "Assets/ThirdParty/Quaternius_UniversalAnimationLibrary2/UAL2_Standard.fbx";
 
@@ -824,14 +826,64 @@ namespace Chopper.Editor
 
         // ---------- Model ----------
 
+        static void PrepareChopperModel()
+        {
+            var importer = AssetImporter.GetAtPath(ChopperModelPath) as ModelImporter;
+            if (importer == null) return;
+            importer.globalScale = 1f;
+            importer.bakeAxisConversion = true;
+            importer.animationType = ModelImporterAnimationType.Human;
+            importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
+            importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.SaveAndReimport();
+            var tex = AssetImporter.GetAtPath(ChopperAtlasPath) as TextureImporter;
+            if (tex != null)
+            {
+                tex.sRGBTexture = true;
+                tex.SaveAndReimport();
+            }
+        }
+
+        static void DressChopper(GameObject model)
+        {
+            var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/_Chopper/Shaders/ChopperVertexColorLit.shader");
+            var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(ChopperAtlasPath);
+            Material Body(string matName)
+            {
+                string path = "Assets/_Chopper/Materials/Character/" + matName + ".mat";
+                var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+                if (mat == null)
+                {
+                    mat = new Material(shader) { name = matName };
+                    AssetDatabase.CreateAsset(mat, path);
+                }
+                mat.shader = shader;
+                mat.SetFloat("_UseAtlas", 1f);
+                mat.SetTexture("_BaseMap", atlas);
+                mat.SetColor("_BaseColor", Color.white);
+                return mat;
+            }
+            Material body = Body("M_Chopper");
+            Material gear = Body("M_Chopper_Gear");
+            foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                bool gearPart = renderer.gameObject.name is "chopper_helmet" or "chopper_plate" or "chopper_pauldrons";
+                renderer.sharedMaterial = gearPart ? gear : body;
+                if (gearPart) renderer.enabled = false;
+            }
+        }
+
         // Adds the animated mannequin and the axe to the player root. Returns null when the model is missing.
         public static Result AttachModel(GameObject playerRoot)
         {
             PrepareClips();
-            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(ModelPath);
+            bool chopper = AssetDatabase.LoadAssetAtPath<GameObject>(ChopperModelPath) != null;
+            if (chopper) PrepareChopperModel();
+            string modelPath = chopper ? ChopperModelPath : ModelPath;
+            var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
             if (fbx == null)
             {
-                Debug.LogWarning($"[CharacterSetup] Missing {ModelPath}; the player has no model.");
+                Debug.LogWarning($"[CharacterSetup] Missing {modelPath}; the player has no model.");
                 return null;
             }
 
@@ -839,12 +891,14 @@ namespace Chopper.Editor
             model.name = "Model";
             model.transform.localPosition = Vector3.zero;
             model.transform.localRotation = Quaternion.Euler(0f, FacingCorrectionYaw(model.transform), 0f);
-            model.transform.localScale = new Vector3(ChopperScale * ChopperBreadth, ChopperScale, ChopperScale * ChopperBreadth);
+            model.transform.localScale = chopper
+                ? Vector3.one
+                : new Vector3(ChopperScale * ChopperBreadth, ChopperScale, ChopperScale * ChopperBreadth);
 
             // Not '??': Unity objects override null checks, so the operator would keep a missing component.
             Animator animator = model.GetComponent<Animator>();
             if (animator == null) animator = model.AddComponent<Animator>();
-            Avatar avatar = AssetDatabase.LoadAllAssetsAtPath(ModelPath).OfType<Avatar>().FirstOrDefault();
+            Avatar avatar = AssetDatabase.LoadAllAssetsAtPath(modelPath).OfType<Avatar>().FirstOrDefault();
             if (avatar != null && avatar.isHuman) animator.avatar = avatar;
             else Debug.LogError("[CharacterSetup] The character has no humanoid Avatar; it will stay in its T-pose.");
             animator.applyRootMotion = false;
@@ -857,16 +911,23 @@ namespace Chopper.Editor
 
             var result = new Result { Animator = animator };
 
-            // Dress the skeleton from the character catalog (the mannequin mesh is hidden at runtime). Every player is
-            // Chopper: PlayerAppearance dresses each one in the default look.
-            CharacterCatalog catalog = OutfitSetup.BuildCatalog();
-            if (catalog != null)
+            if (chopper)
             {
-                CharacterOutfitter outfitter = model.AddComponent<CharacterOutfitter>();
-                outfitter.Catalog = catalog;
-                outfitter.ApplyChopper();
-                result.Outfitter = outfitter;
-                OutfitSetup.BuildPreview(catalog, fbx, avatar, animator.runtimeAnimatorController, model.transform.localEulerAngles.y);
+                DressChopper(model);
+            }
+            else
+            {
+                // Dress the skeleton from the character catalog (the mannequin mesh is hidden at runtime). Every player is
+                // Chopper: PlayerAppearance dresses each one in the default look.
+                CharacterCatalog catalog = OutfitSetup.BuildCatalog();
+                if (catalog != null)
+                {
+                    CharacterOutfitter outfitter = model.AddComponent<CharacterOutfitter>();
+                    outfitter.Catalog = catalog;
+                    outfitter.ApplyChopper();
+                    result.Outfitter = outfitter;
+                    OutfitSetup.BuildPreview(catalog, fbx, avatar, animator.runtimeAnimatorController, model.transform.localEulerAngles.y);
+                }
             }
 
             AttachAxe(model.transform, playerRoot.transform, result);
@@ -930,8 +991,9 @@ namespace Chopper.Editor
         private static Transform AttachHeld(Transform model, GameObject prefab, AxeShape shape, string gripName, string itemName, out Renderer renderer)
         {
             renderer = null;
-            Transform hand = FindDeep(model, RightHand);
+            Transform hand = FindDeep(model, RightHand) ?? FindDeep(model, "RightHand");
             Transform finger = hand != null ? FindDeep(hand, RightMiddleFinger) : null;
+            if (finger == null) finger = FindDeep(model, "Weapon_R");
             if (hand == null || finger == null)
             {
                 Debug.LogWarning($"[CharacterSetup] Right hand bone missing; the player has no {itemName}.");
@@ -1036,7 +1098,7 @@ namespace Chopper.Editor
 
         private static GameObject AttachTorch(Transform model, Transform playerRoot)
         {
-            Transform hand = FindDeep(model, "hand_l");
+            Transform hand = FindDeep(model, "hand_l") ?? FindDeep(model, "LeftHand");
             if (hand == null)
             {
                 Debug.LogWarning("[CharacterSetup] Left hand bone missing; the player has no torch.");

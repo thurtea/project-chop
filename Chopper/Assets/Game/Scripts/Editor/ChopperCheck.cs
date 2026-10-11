@@ -274,7 +274,7 @@ namespace Chopper.EditorTools
             CheckPropInPrefab(prefab, "chopper_axe", ChopperImport.WeaponSocket);
             CheckPropInPrefab(prefab, "chopper_shield", ChopperImport.ShieldSocket);
             int smrs = prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length;
-            Check(smrs == 10, $"{smrs} skinned meshes (expected 10, including the helmet)");
+            Check(smrs == 12, $"{smrs} skinned meshes (expected 12, including helmet, plate and pauldrons)");
             var mats = prefab.GetComponentsInChildren<Renderer>(true).SelectMany(r => r.sharedMaterials).Distinct().ToList();
             Check(mats.Count <= 2 && mats.All(m => m && m.shader && m.shader.name == ChopperImport.ShaderName),
                 $"materials used: {string.Join(", ", mats.Select(m => m ? m.name + " (" + m.shader.name + ")" : "<null>"))}");

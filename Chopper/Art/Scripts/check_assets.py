@@ -15,7 +15,9 @@ FILES = [os.path.join(ART, "Blender", "chopper_character.blend"),
 REPORT = os.path.join(ART, "Renders", "check_report.txt")
 
 CHAR = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-        "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
+        "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+        "chopper_plate", "chopper_pauldrons"]
+ELITE_ONLY = ["chopper_plate", "chopper_pauldrons"]
 PROPS = ["chopper_axe", "chopper_shield"]
 ALLOWED_MATS = {"chopper_character.blend": {"M_Chopper", "M_Chopper_Gear"},
                  "chopper_props.blend": {"M_Chopper_Gear"}}
@@ -29,9 +31,12 @@ BUDGETS = [
     ("axe", ["chopper_axe"], 300, 1000),
     ("shield", ["chopper_shield"], 500, 1500),
     ("helmet", ["chopper_helmet"], 1000, 3000),
-    ("Worker + axe + shield", [n for n in CHAR if n != "chopper_helmet"] + PROPS, 8000, 15000),
+    ("Worker + axe + shield",
+     [n for n in CHAR if n not in ("chopper_helmet", *ELITE_ONLY)] + PROPS, 8000, 15000),
     ("Warrior (helmet, no hair) + axe + shield",
-     [n for n in CHAR if n != "chopper_hair"] + PROPS, 8000, 15000),
+     [n for n in CHAR if n not in ("chopper_hair", *ELITE_ONLY)] + PROPS, 8000, 15000),
+    ("Elite (plate and pauldrons, no leather vest, no hair) + axe + shield",
+     [n for n in CHAR if n not in ("chopper_hair", "chopper_vest")] + PROPS, 8000, 15000),
 ]
 
 lines = []

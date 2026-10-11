@@ -28,6 +28,7 @@ namespace Chopper.Trees
 
         [SerializeField] private GameConfig _config;
         [SerializeField] private Material _stumpMaterial;
+        [SerializeField] private GameObject _stumpPrefab;
         [SerializeField] private Material _particleMaterial;
         [Tooltip("Baked on the server at start, after the tree colliders exist, so enemies path around trees.")]
         [SerializeField] private NavMeshSurface _navSurface;
@@ -441,17 +442,30 @@ namespace Chopper.Trees
             _stumps[treeId] = CreateStump(entry);
         }
 
+        // Authored prop_stump_voxel is 0.75 m wide and 0.75 m tall, base on Y = 0.
+        private const float StumpModelSize = 0.75f;
+
         private GameObject CreateStump(TreeEntry entry)
         {
-            GameObject stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            stump.name = "Stump";
-            stump.transform.SetParent(_root, false);
             float diameter = _config.GetTrunkRadius(entry.Size) * 2f;
+            if (_stumpPrefab != null)
+            {
+                GameObject stump = Instantiate(_stumpPrefab, _root);
+                stump.name = "Stump";
+                float scale = diameter / StumpModelSize;
+                stump.transform.localScale = Vector3.one * scale;
+                stump.transform.position = entry.Position;
+                return stump;
+            }
+
+            GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            cylinder.name = "Stump";
+            cylinder.transform.SetParent(_root, false);
             // A Unity cylinder is 2 m tall at scale 1, so half the desired height is the Y scale.
-            stump.transform.localScale = new Vector3(diameter, StumpHeight * 0.5f, diameter);
-            stump.transform.position = entry.Position + Vector3.up * (StumpHeight * 0.5f);
-            if (_stumpMaterial != null) stump.GetComponent<MeshRenderer>().sharedMaterial = _stumpMaterial;
-            return stump;
+            cylinder.transform.localScale = new Vector3(diameter, StumpHeight * 0.5f, diameter);
+            cylinder.transform.position = entry.Position + Vector3.up * (StumpHeight * 0.5f);
+            if (_stumpMaterial != null) cylinder.GetComponent<MeshRenderer>().sharedMaterial = _stumpMaterial;
+            return cylinder;
         }
     }
 }

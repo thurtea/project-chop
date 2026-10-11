@@ -25,7 +25,8 @@ SHIELD_FBX = os.path.join(EXPORT, "chopper_shield.fbx")
 REPORT = os.path.join(RENDERS, "rig_check_report.txt")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
+         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+         "chopper_plate", "chopper_pauldrons"]
 HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
             "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand",
             "RightShoulder", "RightUpperArm", "RightLowerArm", "RightHand",
@@ -885,6 +886,9 @@ def render_all(rig, meshes, axe, shield):
     cam, ground = setup_render(sc)
     out = []
     axe.hide_render = shield.hide_render = True
+    for extra in ("chopper_plate", "chopper_pauldrons"):
+        if extra in meshes:
+            meshes[extra].hide_render = True
     # rest with bones (x-ray so the bones show through the meshes)
     rig.data.pose_position = "REST"
     sc.frame_set(1)

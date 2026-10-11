@@ -93,16 +93,54 @@ Unity.exe -batchmode -quit -projectPath Chopper -executeMethod Chopper.EditorToo
 
 `ChopperImport.ImportAndBuild` now also runs `ImportPine`: copies the FBX to `Assets/Game/Props/prop_pine_voxel.fbx`, makes `M_Pine` with `_UseAtlas` 0 and no `_BaseMap` (so the shader uses vertex colour), saves `Assets/Game/Props/prop_pine_voxel.prefab`, and places one instance in TestScene at (10, 0, 10), behind the character review cameras. Last import log ends with `RESULT: DONE`. `ChopperCheck.RunChecks` after that, with a graphics device: 101 PASS, 0 FAIL. That check does not assert the pine. `AtlasPath` must stay declared in `ChopperImport.cs`; a pine edit dropped it once and the project failed to compile.
 
+### Elite done
+
+`chopper_plate` (384 tris, steel shell with two dark bands, two front plates, a leather strap) and `chopper_pauldrons` (240 tris, a cap on each shoulder) are on the same rig. Material `M_Chopper_Gear`. The Elite prefab hides the leather vest and the hair, and shows the plate, pauldrons, helmet, axe, and shield. Worker and Warrior hide the plate and pauldrons. Pauldrons sit on top of the shoulders so the shield crown stays clear (an earlier wrap down the arm failed the shield clip check).
+
+Budgets: Elite (no hair, no leather vest) plus axe and shield 11,456 tris. Height still 1.800 m. `check_assets.py` 95 PASS, 0 FAIL. `check_rig.py` 128 PASS, 0 FAIL. Unity capsule stays 0.37 m: the fit measured 0.363 m once plate and pauldrons were left out of the torso sample. `ChopperCheck` after import: 101 PASS, 0 FAIL, 12 skinned meshes. Prefab: `Assets/Game/Characters/Chopper/Chopper_Elite.prefab`. Renders: `Art/Renders/elite_lineup_front.png`, `elite_lineup_three_quarter.png`.
+
+### Meadow kit done
+
+`Art/Scripts/build_meadow.py` builds a rock (1.00 m, 292 tris), a stump (0.75 m, 76 tris), and a 2 m log (144 tris) from the same 0.25 m cubes as the pine. Vertex colour on `M_World`. Check ALL PASS. Render: `Art/Renders/meadow_kit.png`. Unity prefabs under `Assets/Game/Props/`, placed in TestScene at (6, 0, 8), (8, 0, 8), and (10.5, 0, 8). The live world uses the rock and the pine. Felled trees use the stump. The log is on the campfire.
+
+## Do not restart the character
+
+A generic “concept to Blender to Unity” pipeline was pasted after the character was already built. It matches `PRODUCTION_BRIEF.md`. Do not remodel Chopper from the images, do not generate an FBX from the concepts, and do not rename the modules.
+
+Keep these choices where they already differ from that write-up:
+
+- Two materials, `M_Chopper` and `M_Chopper_Gear`, plus `M_Pine` and `M_World` for props. Not four character materials.
+- Axe stays about 0.85 m (concept 1.7), with 14 tris of room. Not 1.1–1.3 m.
+- `Shield_L` stays on the forearm. `Shield_Back` stays on the upper chest.
+- Capsule radius stays 0.37 m. Do not switch the prefab to a CharacterController.
+- No Block or EquipShield clip until combat asks for one.
+- Mesh read/write stays on. The Unity checks sample vertices.
+
+### Live world uses the pine and rock
+
+`ChopperMeadowSwap.Apply` retargets `Assets/_Chopper/Config/SO_WorldAssets.asset`. Every tree slot is the voxel pine (natural height 3.25 m) with a `_BaseColor` tint per old species, so water stays blue, fire red and orange, earth dark and yellow, wind light green, and the hub stays the authored green. All three rock slots are `prop_rock_voxel`. The campfire prefab was rebuilt with that rock and `prop_log_voxel`. Shader: `Assets/_Chopper/Shaders/ChopperVertexColorLit.shader`. Meshes: `Assets/_Chopper/Art/Meadow/`. A later Rebuild Network Scenes calls `Retarget` again, so it will not put the pixel trees back.
+
+### Live player uses the Chopper body
+
+`NetworkScenesBuilder.UseChopperPlayer` rebuilt `Assets/_Chopper/Prefabs/Player/Player.prefab` from `Assets/_Chopper/Art/Character/chopper.fbx`. The avatar is humanoid, so the existing combat, fishing, mining, and locomotion clips still play. Scale is 1 (the mesh is already 1.8 m). CharacterController height is 1.8 m, radius stays 0.5 m. Hair is on. Helmet, plate, and pauldrons are off. The outfit catalog is not used. The gameplay axe and torch parent to `RightHand` / `Weapon_R` and `LeftHand`, because this rig has no finger bones. The atlas is `chopper_atlas.png` on `M_Chopper` and `M_Chopper_Gear` with `_UseAtlas` 1.
+
+### Felled trees leave the voxel stump
+
+`TreeManager.CreateStump` instantiates `prop_stump_voxel` when `_stumpPrefab` is set. The mesh is 0.75 m wide and 0.75 m tall with its base on the ground, scaled so its width matches the trunk diameter (0.6 m, 0.9 m, 1.3 m for small, medium, large). A capsule collider of that same size blocks the player. `ChopperMeadowSwap.WireStump` wrote the prefab onto `Assets/_Chopper/Prefabs/World/TreeManager.prefab`. A later Rebuild Network Scenes keeps the reference, because `BuildTreeManagerPrefab` assigns it when the FBX is present. The old cylinder remains only if the prefab is missing.
+
+### Foliage leans when you walk through it
+
+The grass carpet (`GrassCarpet`, shader `Chopper/Grass`) already sways in the wind and bends away from `GrassPushers`. The player push radius is 1.25 m and `_PushStrength` on `M_GrassCarpet` is 1.15, so the part is wider than the old 0.9 m / 0.75 setting. `HerbManager` also places 700 decorative bushes (same model as the fiber ferns, not pickable) and puts every herb, fern, and bush under one `GrassField`. That component leans the meshes away from the same pushers and springs them back. Picked plants are hidden and are skipped while inactive.
+
 ## Stop here
 
-Cursor stopped after the pine. The next packages are a character remodel (Elite) and an independent Week 2 review. Both should be a fresh Claude Code session, not a continuation that marks its own review done.
+The live world grows the voxel pine, places the voxel rock, leaves the voxel stump when a tree falls, and parts grass and bushes around the player. The player wears the Chopper body. The held axe is still the old woodsman axe, not `chopper_axe`. The shield is not on the player. Look polish is optional. W2-05 still needs a different reviewer. Nobody has pressed Play on this foliage pass. The other two GitHub repos named as MVPs (`thurtea/3D-Game`, `thurtea/Chopper`) are private and were not readable. [project-chop](https://github.com/thurtea/project-chop) is this repo. The current agent prompt is `Chopper/Docs/agent-prompt.md`.
 
 ## Still open
 
-- W2-04: the paint now hits the right surfaces, and it is still a procedural stand-in. A tighter shield axe, real knotwork on the axe blades, and a concept side-by-side are open. Do not go back to painting the atlas tile rectangle.
-- W2-05: an independent review that reruns the three checks and looks at `Art/Renders/atlas_*.png` against concepts 3, 1.5, and 1.7, plus `pine_front.png` and `pine_three_quarter.png` against concept 4. The reviewer should not trust this file as proof.
-- Elite (concept 1.8): steel pauldrons and a plated vest. That changes the character mesh, so UV, rig, animate, and export have to run again, then Unity import and checks.
-- Look polish on the task board: beard, box torso, boot rings, axe throat (14 tris of room), shield rim fold.
+- W2-04: the paint now hits the right surfaces, and it is still a procedural stand-in. A tighter shield axe, real knotwork on the axe blades, and a concept side-by-side are open. Do not go back to painting the atlas tile rectangle. The user has accepted this look for now.
+- W2-05: an independent review that reruns the three checks and looks at `Art/Renders/atlas_*.png` against concepts 3, 1.5, and 1.7, `elite_lineup_*.png` against concept 1.8, and `pine_three_quarter.png` against concept 4. The reviewer should not trust this file as proof.
+- Look polish on the task board (optional; the user accepted the current models): beard, box torso, boot rings, axe throat (14 tris of room), shield rim fold.
 - The user has not pressed Play in the editor. The batch driver step and the screenshots are the evidence so far.
 
 ## User still has to approve

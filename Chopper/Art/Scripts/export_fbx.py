@@ -23,7 +23,8 @@ PROPS = os.path.join(ART, "Blender", "chopper_props.blend")
 EXPORT = os.path.join(ART, "Export")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
+         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+         "chopper_plate", "chopper_pauldrons"]
 
 COMMON = dict(
     use_selection=True,

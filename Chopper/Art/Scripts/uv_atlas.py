@@ -26,7 +26,9 @@ SIZE = 2048
 
 # (u0, v0, u1, v1) in 0-1. Margins between tiles are empty.
 TILES = {
-    "chopper_body": (0.01, 0.51, 0.49, 0.99),
+    "chopper_body": (0.01, 0.51, 0.38, 0.99),
+    "chopper_plate": (0.40, 0.51, 0.49, 0.74),
+    "chopper_pauldrons": (0.40, 0.76, 0.49, 0.99),
     "chopper_shirt": (0.51, 0.67, 0.74, 0.99),
     "chopper_vest": (0.76, 0.67, 0.99, 0.99),
     "chopper_boots": (0.51, 0.51, 0.74, 0.65),
@@ -150,6 +152,9 @@ def detail(name, p, n, rgb):
             return (0.12, 0.42, 0.16)
         if brow:
             return dark(rgb, 0.35)
+    elif name in ("chopper_plate", "chopper_pauldrons"):
+        if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
+            return dark(rgb, 0.62)
     elif name == "chopper_helmet" and n.y < -0.35 and abs(x) < 0.12 and 1.48 < z < 1.66:
         # skull sockets on the front plate
         socket = 1.56 < z < 1.64 and 0.03 < abs(x) < 0.08
@@ -270,7 +275,8 @@ def main():
     owners = [""] * (SIZE * SIZE)
     report = ["Chopper atlas UV report", "size %d" % SIZE]
     char = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-            "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet"]
+            "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+            "chopper_plate", "chopper_pauldrons"]
     process(CHAR, char, buf, owners, report)
     process(PROPS, ["chopper_axe", "chopper_shield"], buf, owners, report)
     img = bpy.data.images.new("chopper_atlas", SIZE, SIZE, alpha=False)

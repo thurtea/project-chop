@@ -106,6 +106,7 @@ namespace Chopper.World
                     for (int k = 0; k < list.Count; k++)
                     {
                         int i = list[k];
+                        if (_plants[i] == null || !_plants[i].gameObject.activeInHierarchy) continue;
                         Vector3 offset = _plants[i].position - center;
                         offset.y = 0f;
                         float sqr = offset.sqrMagnitude;

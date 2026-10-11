@@ -108,16 +108,27 @@ namespace Chopper.Editor
             Debug.Log("[Chopper] Player prefab, Boot and World rebuilt; scenes registered in Build Settings.");
         }
 
+        [MenuItem("Chopper/Art/Use Chopper Player")]
+        public static void UseChopperPlayer()
+        {
+            var config = AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath);
+            BuildPlayerPrefab(config);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[Chopper] Player prefab rebuilt with the Chopper model.");
+        }
+
         private static NetworkObject BuildPlayerPrefab(GameConfig config)
         {
             var root = new GameObject("Player");
             root.AddComponent<NetworkObject>();
             NetworkTransform networkTransform = root.AddComponent<NetworkTransform>();
 
+            bool chopper = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterSetup.ChopperModelPath) != null;
+            float height = chopper ? 1.8f : PlayerHeight;
             CharacterController controller = root.AddComponent<CharacterController>();
-            controller.height = PlayerHeight;
+            controller.height = height;
             controller.radius = PlayerRadius;
-            controller.center = new Vector3(0f, PlayerHeight * 0.5f, 0f);
+            controller.center = new Vector3(0f, height * 0.5f, 0f);
 
             // Animated mannequin with an axe in the right hand (see CharacterSetup).
             CharacterSetup.Result character = CharacterSetup.AttachModel(root);
