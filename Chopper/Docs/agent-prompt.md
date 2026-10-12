@@ -1,46 +1,68 @@
 <prompt>
 
 <goal>
-Continue Chopper, a co-op survival game (Valheim leaning, with Minecraft-style building), from the state already in the repo. Make the game match chopper-3D-concept-2.0.jpg as closely as possible: world, house, character and objects. Work the open items below in order, collect proof for each result, and return only when that work is complete, blocked, or needs approval. Do not restart the character or rebuild the game from the concept images.
+Continue Chopper, a co-op survival game (Valheim leaning, Minecraft-style building), from the state already in the repo, toward chopper-3D-concept-2.0.jpg (world, house, character and objects). Read the report card first, fix what it reports, then work the open items below in order. Return when the work is done, blocked, or needs approval. Do not restart the character or rebuild the game from the concept image.
 </goal>
 
-<project_brief>
-Project: Chopper, live Unity game (repo root) plus the Chopper art project (Chopper/).
-Audience: a solo developer. Art must read clearly at third-person gameplay distance.
-Look: concept 2.0 is the target for the whole world and the characters (Minecraft shapes, Valheim-style light and motion). Forests only change colour.
+<report_card_first>
+The user runs the tests, builds and play checks and records the results, so agents do not spend tokens and time on them.
+1. Before anything else, read Chopper/Docs/Reportcard.md.
+   - FAIL: fix it first, using the user's notes and video times. Do not re-run the test to see for yourself unless the notes are not enough.
+   - PASS: closed. Move the row to History with one line on what you did, and delete the item from Homework.md.
+   - SKIP or blank: still open. Do not run it in the user's place; carry on with other work and leave the row as it is.
+2. Do not run builds, Unity batch jobs, Play tours, EditMode tests or Blender checks yourself unless the user's prompt asks you to. Instead, at the end of your work, add what needs checking to Chopper/Docs/Homework.md and a matching empty row in Reportcard.md.
+3. Each homework item has the next free ID (HW-n), the exact command (normally `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 <task>`), what to look for, and what to paste back. Keep items few: only what proves your change, or what needs the user's eyes (look, feel, decisions).
+4. Without a compiler, keep C# edits small and careful, and re-read every edited block once. A broken script stops the user from opening the project (2026-10-12: a stray fragment in WorldGenTests.cs did exactly that). If you changed C#, HW "Unity opens cleanly" must be in Homework.md.
+5. A result counts as proof only when it is pasted in the report card (a RESULT or SUMMARY line, a log line, or the user's PASS on a picture or video) or when you checked it yourself because the prompt asked you to.
+</report_card_first>
 
-Already done, do not redo (details and proof in Chopper/Docs/cursor-claude-handoff.md and TASKBOARD.md):
-- Character pipeline in Blender (Chopper/Art/Scripts): build_chopper, uv_atlas, rig_chopper, animate_chopper, export_fbx, check_assets (136 PASS), check_rig (145 PASS). Atlas paint colour bug fixed, grain halved, hair and beard strands softened, gutter filled (no dark mip edges), compact spade beard, patchwork vest.
-- Axe swings: Chopper's own Valheim-style one-handed chops Attack_1 (diagonal from the right shoulder), Attack_2 (diagonal from the left), Attack_3 (overhead finisher), wind-ups found by a search over the rig. The live combo and the tree chop use them (CharacterSetup.ChopperTake). Proof: Chopper/Art/Renders/attacks_sheet.png; Logs/chopper_play/chop_probe.log (each swing plays its clip, hand rises 0.5 m over the shoulder). Walking is fine (user).
-- Live player: new chopper.fbx and atlas, bear-head axe carried edge down, atlas anisotropic 4. Starts unarmoured; an armour kit from each felled boss tree puts on helmet, chainmail, bracers, shield (PlayerUpgrades, PlayerOutfit; armour.log PASS). Double jump (double_jump.log PASS). stepOffset 0.55.
-- Hub house (Hut.DressCabin): wide, low log house 18 m x 12 m, basement, main floor, loft in the roof, 2 beds, 2 workbenches, door and steps on the long front side (house5.log PASS). Stairs use tread colliders; the doorway sill is gone.
-- Voxel props in the live world: pine, rock, stump, log, grass tufts, bushes, torch (yard and piece), sign (tutorial and notice board), chest, grand chest (crypts), bed, workbench (yard and piece), fireplace. Dress tool: Chopper.Editor.ChopperPropDress.Apply (rerun it after any MeadowBuilder or PieceBuilder rebuild).
-- Block ground draws (shader fix), with distance-faded detail; website pictures were retaken once but must be retaken again last.
+<homework_and_report_card_notes>
+Issues found while setting this up (2026-10-12), already handled in Tools/homework.ps1 and Homework.md. Keep them in mind when you write items:
+- Unity batch jobs must be waited for: `Start-Process -Wait` (homework.ps1 does it). A plain call returns in seconds while Unity is still working, and its exit code is not the result; read the "Exiting batchmode successfully", "Build Finished" or RESULT lines.
+- `-runTests` quits Unity by itself. Never add `-quit` to it, or the tests never run.
+- Batch jobs need the editor closed. homework.ps1 refuses to start while an editor has project-chop open.
+- Start the game from PowerShell. Started from Git Bash it quits during world load.
+- Some tours only take pictures (Fishing, Swim, Crypt, Mine, Site, Concept, GearLook, Motion). For those, ask the user to judge the shots or the video, and do not wait for a RESULT line.
+- Logs and shots from homework go to Logs/homework/. Agent-run logs stay in Logs/chopper_play/.
+- Commits: the user stages, commits and pushes. End with a suggested one-line commit message, no author or co-author line.
+</homework_and_report_card_notes>
+
+<project_brief>
+Project: Chopper, a live Unity game (repo root) plus the Chopper art project (Chopper/).
+Audience: a solo developer. Art must read clearly at third-person gameplay distance.
+Look: concept 2.0 for everything (Minecraft shapes, Valheim-style light and motion). The movement is blocky, with no ragdoll and no motion capture on the base layer.
+
+Already done, do not redo (proof in TASKBOARD.md):
+- Character pipeline (Chopper/Art/Scripts): build_chopper, build_props, uv_atlas, rig_chopper, animate_chopper, export_fbx, check_assets (137 PASS), check_rig (207 PASS). Concept 2.0 armour: skull helmet with stepped bone horns, blocky beard, scale-row chainmail (W8-14). Own takes for every base-layer state, three axe chops, and the fishing takes FishWait, FishCast, FishFight and FishCatch (W8-15). The fishing rod sits on AxeGrip along HeldItemFrame.Head. Gathering is still a library clip.
+- Live player: starts unarmoured; a boss tree's armour kit adds the helmet, chainmail, bracers and shield. Double jump; stepOffset 0.65; no sliding on block tops; swimmers climb out onto banks.
+- Hub house: an 18 m x 12 m hall restyled to the concept hut (posts on stone, plank-course roof, crossed gable ends, ridge dormer, cross-gable porch). Floors, stairs and basement walls show inside (Hut.DressCabin).
+- Block world (W5-08 steps 1-10): chunk colliders on every peer; the Terrain collider is off; WorldGround reads the block tops; trees and rocks sit on block tops; the NavMesh is baked from the chunks; water at -0.75 (halfway between block tops); mountains in 4.5 m risers (ring 20 m, ridges 28 m), sealed (VoxelChecks.ZoneSeal); building on block tops with the half-block footprint rule; grass lip colour fixed (sRGB).
+- Herb, campfire piece and held torch are voxel; the sky has block clouds and a block sun; the water is flat concept blue.
+- Playtest guide: Chopper/Docs/playtest-windows.md.
 
 Still open, in this order:
-1. Texture flicker on the character and the ground: confirm in Play whether it is gone after the gutter fill, softer paint, anisotropic 4 and the block shader fade. Use a moving camera capture, not stills. If it remains, find the cause (shadow acne on the blocky body, mip selection, TAA/MSAA) before changing more.
-2. Character to concept 2.0: skull helmet with horns (the current one is a plain cap with stubs), chainmail texture (reads flat blue-grey), chunkier bear axe, broader chest. Keep the rig and the module names.
-3. House details from concept 2.0: the small porch roof over the door and the raised grass and stone terrace with steps. Basement walls are tinted log pieces today.
-4. Water, block clouds and the block sun to concept 2.0. Healing herbs are still the old red flowers; the campfire piece and the held torch are still old models.
-5. W5-08 step 5: chunk colliders, WorldGround reads the block columns, Terrain collider removed, then snap trees onto block tops.
-6. Website pictures last, after everything above (-chopperSite tour on a development build; launch players with PowerShell Start-Process, not Git Bash).
-7. Art-project Unity checks (ChopperCheck expects 12 skinned meshes; the FBX has 13) not rerun. W2-05 needs a reviewer who is not the builder.
+1. Whatever the report card says (HW-1 to HW-6, after the user's playtest).
+2. Mine ladder exit: the interact prompt picks the spent vein beside the exit spot instead of the ladder (step9_mine_shots/mine_ladder_prompt.png).
+3. An enemy woken inside the hall has only a partial path out (the door is not linked on the NavMesh).
+4. Gathering: replace the library clip with an own take (animate_chopper.py), as was done for fishing.
+5. W5-08 step 11 (hub plateau checks), step 12 (minimap from the columns), step 13 (save version 2, remove the dead Terrain; separate commit).
+6. Mountains read as a wall more than as separate peaks; backdrop peaks outside the island are not built.
+7. Website gallery: only from the user's screenshots (HW-6), cropped to 1600 x 900 in Website/images/. Do not restore the old pictures.
+8. Art-project ChopperCheck expects 12 skinned meshes and the FBX has 13; do not mark it done. W2-05 needs a reviewer who is not the builder.
 
-Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. Git. No gh CLI.
-Checks that exist: Play tours on a development build (Builds/Site, BuildTools.BuildDevPlayer): -chopperHouse, -chopperArmour, -chopperDoubleJump, -chopperAnimProbe, -chopperGearLook, -chopperGroundProbe, -chopperTutorialTour, -chopperSite. Blender: render_attacks.py, render_base_look.py, build_furniture.py checks.
-Constraints: Do not generate final meshes with AI image-to-3D. Do not remodel Chopper from scratch. Do not replace the live Animator controller (swap motions only). Mesh read/write stays on. Do not run PieceBuilder.BuildAll. Work on main; no other branch. No commits, pushes, deletions or paid services without explicit approval; stage the work and give the user a commit message. Unity batch on one project at a time. Trust "Exiting batchmode successfully" and RESULT lines, not exit codes. The concept JPGs other than 2.0 were deleted from the repo root by the user; leave that unstaged.
+Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. Git. No gh CLI. Tools/homework.ps1 runs every check (see Homework.md).
+Constraints: no AI image-to-3D meshes. Do not remodel Chopper from scratch. Do not replace the live Animator controller (swap motions only). Mesh read/write stays on. Do not run PieceBuilder.BuildAll. Work on main. No commits, pushes, deletions, deploys or paid services without explicit approval. One Unity project at a time.
 </project_brief>
 
 <working_rules>
-- Read Chopper/Docs/cursor-claude-handoff.md and TASKBOARD.md first. Treat "Already done" as closed.
-- No proof, no done: a Play tour log line, a check report, or a picture you looked at.
-- After every change, update cursor-claude-handoff.md, TASKBOARD.md, this file and PRODUCTION_BRIEF.md where they are affected.
-- Ask one focused question only when an answer changes what gets built.
-- End with: what changed, the proof, what is still open, the staged files, and a commit message.
+- Report card first (above). Then TASKBOARD.md, the status board: rows marked done are closed unless the report card says otherwise.
+- Update TASKBOARD.md, Homework.md and Reportcard.md as you work. Update this file and cursor-claude-handoff.md only when the user says "Summary".
+- Ask one focused question only when the answer changes what gets built.
+- End with: what changed, the proof you have, the new homework IDs, what is still open, and a suggested one-line commit message (no author line).
 </working_rules>
 
 <start>
-Read the handoff and the task board, then start with open item 1 (texture flicker, verified in motion).
+Read Chopper/Docs/Reportcard.md, act on it, then continue with the first open item that the report card does not cover.
 </start>
 
 </prompt>
