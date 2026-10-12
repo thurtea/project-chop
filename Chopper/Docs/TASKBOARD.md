@@ -166,7 +166,7 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 | W8-10 | Softer character textures, no flicker | done: no shimmer on the body in motion (heat map `flicker2/flicker/heat.png`, yard character 0.73 mean) |
 | W8-11 | Blocky Minecraft/ARPG movement, no ragdoll (user) | done: own takes for every base-layer state (Idle, Walk, Run, Sprint, crouch, Air, LandHard, Roll, swim, Death); check_rig 189/0, `moves_sheet.png`, `moves2.log` feet move with the ground. Work layers (fish, gather, mine) still motion capture |
 | W8-12 | Axe held head up, blade forward (user: upside down again) | done: carry turn skipped for the Chopper rig (`HeldItemFrame.HandPosed`); `gear2.log` head up, edge forward |
-| W8-08 | Water, clouds, sun to concept 2.0 | open |
+| W8-08 | Water, clouds, sun to concept 2.0 | in: pond, marsh, and sea materials are flat concept blue (ripple, swell, refraction, specular off). `BlockSky` builds white cube clouds that follow the camera and a pale unlit block sun on the daylight. Skybox disc shrunk. Compiled (`sky_compile.log`). A Play shot is still needed before this is done |
 | W8-09 | Website pictures, last | open |
 | W8-13 | Character forms toward concept 2.0: beard wide at the jaw and down the chest, hair one cap, smooth boots, broader chest, horns above the head, skull plate over the eyes, chainmail rings, chunkier bear head. Rig and module names kept | done: `check_assets` 137/0, `check_rig` 189/0, `concept_bust.png`. Player rebuilt (`concept_player2.log`) |
 

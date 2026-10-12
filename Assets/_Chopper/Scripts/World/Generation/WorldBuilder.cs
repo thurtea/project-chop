@@ -70,6 +70,7 @@ namespace Chopper.World.Generation
                           (blockTris > 0 ? "Terrain paint hidden, collider kept." : "Terrain paint left on."));
             }
             BuildWater(gen);
+            if (graphics) Chopper.World.BlockSky.Build(transform);
             BuildBoundary();
             List<RockSpot> rocks = gen.GenerateRocks(_assets.RockModels.Length);
             BuildRocks(gen, rocks);

@@ -272,7 +272,8 @@ namespace Chopper.World
                 Color tint = Color.Lerp(new Color(0.50f, 0.52f, 0.54f), new Color(0.52f, 0.47f, 0.44f), lowSun);
                 if (_skyRuntime.HasProperty(SkyTintId)) _skyRuntime.SetColor(SkyTintId, Color.Lerp(tint, OvercastSky, weather.Overcast));
                 if (_skyRuntime.HasProperty(GroundColorId)) _skyRuntime.SetColor(GroundColorId, Color.Lerp(SeaHorizon, SeaHorizon * 0.15f, d));
-                if (_skyRuntime.HasProperty(SunSizeId)) _skyRuntime.SetFloat(SunSizeId, Mathf.Lerp(0.035f, 0.05f, lowSun));
+                // The visible sun is the block disc (BlockSky). This disc in the skybox stays a small glow behind it.
+                if (_skyRuntime.HasProperty(SunSizeId)) _skyRuntime.SetFloat(SunSizeId, 0.012f);
             }
 
             if (_colorAdjustments != null)
