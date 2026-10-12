@@ -31,11 +31,11 @@ TORSO = [
     (0.86, 0.235, 0.150),   # waist loops
     (0.90, 0.230, 0.150),
     (0.94, 0.235, 0.155),
-    (1.02, 0.250, 0.165),
-    (1.12, 0.265, 0.170),   # chest
-    (1.20, 0.275, 0.170),
-    (1.27, 0.280, 0.165),   # shoulder loops
-    (1.33, 0.275, 0.155),
+    (1.02, 0.285, 0.185),
+    (1.12, 0.315, 0.198),   # chest, broader like concept 2.0
+    (1.20, 0.330, 0.200),
+    (1.27, 0.325, 0.190),   # shoulder loops
+    (1.33, 0.300, 0.170),
     (1.37, 0.230, 0.130),
     (1.395, 0.100, 0.095),  # neck loops
     (1.43, 0.085, 0.085),
@@ -169,45 +169,49 @@ def vest_front(z0, z1):
     return max(interp(VEST, z, 2) for z in zs) + 0.014
 
 
+def loft(mb, samples, cs, color):
+    """One smooth form. samples are (center, hw, hd) along any path. The cross-section
+    stays perpendicular to the path so a beard, a horn and a moustache all wind outward."""
+    rings = []
+    n = len(samples)
+    for i, (c, hw, hd) in enumerate(samples):
+        c = Vector(c)
+        nxt = Vector(samples[min(i + 1, n - 1)][0])
+        prv = Vector(samples[max(i - 1, 0)][0])
+        direction = nxt - prv
+        if direction.length < 1e-6:
+            direction = Z
+        u, v, _w = L.basis(direction)
+        rings.append((c, u, v, hw, hd, min(hw, hd) * 0.35))
+    return mb.tube(rings, cs=cs, color=color)
+
+
 def build_beard(mat):
-    """Voxel V-spade beard (concept 1.5): full at the jaw and cheeks, stepping in to a point at
-    mid-chest, with a separate moustache bar and drooping ends proud of it. Every layer below
-    the chin keeps its back face BEARD_CLEAR in front of the vest and crossbelt so the beard does
-    not touch the chest in rest, Idle and Walk (it is skinned 100% to Head)."""
+    """One spade (concept 2.0): full at the jaw, tapering to the collarbone. Strand lines
+    stay in the atlas. A straight tube, so the back stays clear of the vest and the
+    front unwraps in one strip."""
     mb = L.MeshBuilder("chopper_beard")
     G, D = PAL["ginger"], PAL["ginger_dark"]
-    M = MOUSTACHE
-
-    def blk(x0, x1, y0, y1, z0, z1, c, b=0.012):
-        mb.box(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (x1 - x0, y1 - y0, z1 - z0), b, color=c)
-
-    # chin and jaw (over the lower head; the head is behind, so these can be deep)
-    blk(-0.20, 0.20, -0.255, -0.13, 1.425, 1.50, G)          # chin plate
+    clear = vest_front(1.20, 1.52) + BEARD_CLEAR
+    rows = []
+    for i in range(16):
+        t = i / 15.0
+        z = 1.22 + (1.50 - 1.22) * t
+        hw = 0.035 + 0.165 * math.sin(t * math.pi * 0.92) ** 1.15
+        hd = 0.028 + 0.030 * math.sin(t * math.pi)
+        rows.append((z, hw, hd, -(clear + hd)))
+    mb.ztube(0, 0, rows, cs=6, bevel=0.02, color=G)
     for s in (-1, 1):
-        x0, x1 = sorted((s * 0.125, s * 0.205))
-        blk(x0, x1, -0.245, -0.02, 1.43, 1.585, G)           # cheek sides rising to the ears
-        x0, x1 = sorted((s * 0.178, s * 0.213))
-        blk(x0, x1, -0.13, 0.03, 1.52, 1.665, D, 0.01)        # sideburn into the hair
-    # the V: layers hang in front of the chest, each narrower than the one above
-    front = -0.268
-    # Concept 2.0: a compact spade that ends at the collarbone, not mid-chest.
-    layers = [(1.375, 1.425, 0.195), (1.330, 1.375, 0.172), (1.290, 1.330, 0.140),
-              (1.255, 1.290, 0.100), (1.230, 1.255, 0.055)]
-    for i, (z0, z1, hw) in enumerate(layers):
-        back = -(vest_front(z0 - 0.01, z1 + 0.01) + BEARD_CLEAR)
-        blk(-hw, hw, front + 0.002 * i, back, z0, z1 + 0.004, G if i % 2 == 0 else D)
-    # darker strand blocks proud of the front, stepping down the V
-    chunks = [(-0.14, 1.40, 0.05), (0.0, 1.405, 0.06), (0.14, 1.40, 0.05),
-              (-0.075, 1.355, 0.05), (0.075, 1.355, 0.05),
-              (-0.04, 1.31, 0.05), (0.06, 1.31, 0.04),
-              (0.0, 1.265, 0.05)]
-    for i, (x, z, w) in enumerate(chunks):
-        mb.box((x, front - 0.008, z), (w, 0.02, 0.04), 0.006, color=D if i % 2 == 0 else G)
-    # moustache: separate darker bar over the mouth with ends drooping proud of the beard
-    mb.box((0, -0.228, 1.522), (0.25, 0.05, 0.042), 0.01, color=M)
-    for s in (-1, 1):
-        mb.box((s * 0.105, -0.262, 1.485), (0.058, 0.03, 0.08), 0.008, color=M)
-        mb.box((s * 0.125, -0.279, 1.44), (0.04, 0.02, 0.06), 0.006, color=M)
+        cheek = []
+        for i in range(8):
+            t = i / 7.0
+            z = 1.44 + 0.20 * t
+            r = 0.042 * (1.0 - 0.3 * t)
+            cheek.append((z, r, r * 0.8, s * (0.15 + 0.05 * t)))
+        # ztube x is the first arg; the side offset is x, dy shifts Y
+        mb.ztube(s * 0.16, -0.18, [(row[0], row[1], row[2]) for row in cheek], cs=3, bevel=0.01,
+                 color=D if s < 0 else G)
+    mb.box((0, -0.255, 1.505), (0.24, 0.045, 0.04), 0.008, color=MOUSTACHE)
     return mb.finish(mat)
 
 
@@ -216,40 +220,32 @@ BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~
 
 
 def build_hair(mat):
-    """Swept-back block hair: domed voxel cap, thick sides, long back."""
+    """One swept cap (concept 2.0). Rings stay horizontal so the top is exactly 1.80 m
+    and the cap unwraps like the other tubes. Strand lines are painted."""
     mb = L.MeshBuilder("chopper_hair")
     G, D = PAL["ginger"], PAL["ginger_dark"]
-    xs = [-0.155, -0.052, 0.052, 0.155]
-    ys = [-0.14, -0.04, 0.06, 0.155]
-    tops = [[1.789, 1.800, 1.800, 1.789],
-            [1.786, 1.798, 1.798, 1.786],
-            [1.776, 1.790, 1.790, 1.776],
-            [1.762, 1.776, 1.776, 1.762]]
-    for j, y in enumerate(ys):
-        for i, x in enumerate(xs):
-            zt, zb = tops[j][i], 1.695
-            mb.box((x, y, (zb + zt) / 2), (0.108, 0.104, zt - zb), 0.011, color=G if (i + j) % 2 == 0 else D)
-    # swept front roll over the hairline
-    rot = Matrix.Rotation(math.radians(-25.0), 3, "X")
-    for x in (-0.13, 0.0, 0.13):
-        mb.box((x, -0.198, 1.748), (0.135, 0.05, 0.08), 0.011, rot=rot, color=G)
-    for s in (-1, 1):
-        for y, zb in ((-0.07, 1.62), (0.03, 1.57), (0.13, 1.50)):
-            zt = 1.77
-            mb.box((s * 0.205, y, (zb + zt) / 2), (0.045, 0.104, zt - zb), 0.01, color=D if y > 0 else G)
-        mb.box((s * 0.232, 0.07, 1.67), (0.022, 0.14, 0.13), 0.008, color=G)
-    for i, (x, zb) in enumerate(zip(xs, (1.47, 1.43, 1.435, 1.47))):
-        zt = 1.77
-        mb.box((x, 0.19, (zb + zt) / 2), (0.108, 0.05, zt - zb), 0.011, color=G if i % 2 else D)
-    for x, zb in ((-0.08, 1.56), (0.08, 1.55)):
-        mb.box((x, 0.222, (zb + 1.74) / 2), (0.13, 0.02, 1.74 - zb), 0.007, color=G)
+    dome = []
+    for i in range(18):
+        t = i / 17.0
+        z = 1.695 + 0.105 * t
+        spread = math.sin(t * math.pi) ** 0.55
+        hw = 0.045 + 0.135 * spread * (1.0 - 0.4 * t)
+        hd = 0.04 + 0.115 * spread
+        dy = -0.035 * t
+        if i == 17:
+            z, hw, hd, dy = 1.800, 0.038, 0.030, -0.03
+        dome.append((z, hw, hd, dy))
+    mb.ztube(0, 0, dome, cs=6, bevel=0.015, color=G)
+    mb.box((0, -0.155, 1.725), (0.28, 0.055, 0.045), 0.01, color=G)
+    mb.ztube(0, 0.155, [(1.50, 0.06, 0.028), (1.62, 0.095, 0.034), (1.74, 0.07, 0.028)],
+             cs=3, bevel=0.01, color=D)
     return mb.finish(mat)
 
 SHIRT = [
     (0.515, 0.262, 0.182), (0.53, 0.260, 0.180), (0.60, 0.256, 0.175), (0.70, 0.253, 0.170),
     (0.80, 0.253, 0.163), (0.86, 0.243, 0.158), (0.90, 0.238, 0.158), (0.94, 0.243, 0.163),
-    (1.02, 0.258, 0.173), (1.12, 0.273, 0.178), (1.20, 0.283, 0.178), (1.27, 0.288, 0.173),
-    (1.33, 0.283, 0.163), (1.37, 0.238, 0.138), (1.395, 0.110, 0.105), (1.43, 0.098, 0.098),
+    (1.02, 0.298, 0.195), (1.12, 0.328, 0.210), (1.20, 0.345, 0.214), (1.27, 0.340, 0.202),
+    (1.33, 0.312, 0.180), (1.37, 0.250, 0.148), (1.395, 0.118, 0.112), (1.43, 0.104, 0.104),
 ]
 
 
@@ -279,8 +275,8 @@ def L_interp_arm(t, col):
 
 VEST = [
     (0.825, 0.258, 0.169), (0.86, 0.251, 0.166), (0.90, 0.246, 0.166), (0.94, 0.251, 0.171),
-    (1.02, 0.266, 0.181), (1.12, 0.281, 0.186), (1.20, 0.291, 0.186), (1.27, 0.296, 0.181),
-    (1.33, 0.291, 0.171), (1.37, 0.246, 0.146), (1.39, 0.156, 0.121),
+    (1.02, 0.312, 0.208), (1.12, 0.345, 0.222), (1.20, 0.362, 0.226), (1.27, 0.356, 0.214),
+    (1.33, 0.328, 0.192), (1.37, 0.262, 0.158), (1.39, 0.168, 0.130),
 ]
 
 
@@ -384,17 +380,15 @@ def build_boots(mat):
     mb = L.MeshBuilder("chopper_boots")
     for s in (-1, 1):
         x0 = s * LEG_X
-        # shaft over the shin: leg + 8 mm, two raised wraps and a cuff
+        # one smooth shaft. The crossed wraps are painted on the cuff, not stacked rings.
         shaft = []
-        for z, raise_ in ((0.05, 0.0), (0.13, 0.0), (0.175, 0.0), (0.18, 0.010), (0.225, 0.010),
-                          (0.23, 0.0), (0.265, 0.0), (0.27, 0.010), (0.315, 0.010), (0.32, 0.0),
-                          (0.355, 0.0), (0.36, 0.020), (0.415, 0.020), (0.42, 0.006)):
-            hw = interp(LEG, z, 1) + 0.008 + raise_
-            hd = interp(LEG, z, 2) + 0.008 + raise_
+        for z in (0.05, 0.14, 0.26, 0.36, 0.40, 0.43):
+            raise_ = 0.012 if z >= 0.40 else 0.0
+            hw = interp(LEG, z, 1) + 0.010 + raise_
+            hd = interp(LEG, z, 2) + 0.010 + raise_
             shaft.append((z, hw, hd))
         mb.ztube(x0, 0, shaft, cs=2, bevel=0.03, cap0=False, cap1=False, color=PAL["boot"],
-                 color_fn=lambda p: PAL["boot_wrap"] if (0.177 < p.z < 0.228 or 0.267 < p.z < 0.318
-                                                         or p.z > 0.357) else None)
+                 color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.395 else None)
         # foot, as a tube running heel -> toe (axis -Y)
         w = -Y
         v = Z
@@ -413,28 +407,36 @@ def build_boots(mat):
 
 
 def build_helmet(mat):
-    """Steel skull cap, nose guard and two horns. Hair stays the tallest point (1.80 m)."""
+    """Skull cap with a brow band, a nasal guard and two long curved horns (concept 2.0).
+    The skull face is painted on the front. Hair stays the tallest point (1.80 m)."""
     mb = L.MeshBuilder("chopper_helmet")
-    cap = [
-        (1.48, 0.198, 0.188, -0.02),
-        (1.56, 0.208, 0.198, -0.015),
-        (1.64, 0.190, 0.180, 0.0),
-        (1.71, 0.145, 0.135, 0.015),
-        (1.765, 0.075, 0.068, 0.02),
-    ]
-    mb.ztube(0, 0, cap, cs=2, bevel=0.018, color=PAL["steel"])
-    # skull plate and eye sockets (the painted skull lives in the atlas; this is the silhouette)
-    mb.box((0, -0.205, 1.58), (0.155, 0.035, 0.16), 0.008, color=PAL["steel_dark"])
-    mb.box((0, -0.222, 1.46), (0.038, 0.028, 0.14), 0.006, color=PAL["steel"])
+    cap = []
+    for i in range(10):
+        t = i / 9.0
+        z = 1.46 + 0.30 * t
+        spread = math.sin(min(t * 1.15, 1.0) * math.pi) ** 0.65
+        hw = 0.05 + 0.155 * spread * (1.05 - 0.55 * t)
+        hd = 0.045 + 0.150 * spread * (1.0 - 0.4 * t)
+        cap.append((z, hw, hd, -0.02 * (1.0 - t)))
+    mb.ztube(0, 0, cap, cs=4, bevel=0.02, color=PAL["steel"])
+    # brow band and nasal guard, so the skull reads before the paint does
+    brow = []
+    for i in range(12):
+        t = i / 11.0
+        a = math.radians(-70 + 140 * t)
+        brow.append((Vector((0.195 * math.sin(a), -0.175 * math.cos(a), 1.60)), 0.028, 0.022))
+    loft(mb, brow, cs=2, color=PAL["steel_dark"])
+    mb.box((0, -0.210, 1.50), (0.045, 0.03, 0.16), 0.006, color=PAL["steel"])
     for s in (-1, 1):
-        axis = Vector((s * 0.72, -0.25, 0.65)).normalized()
-        mb.cylinder((s * 0.145, -0.04, 1.68), axis, 0.026, 0.20, color=PAL["steel_dark"], cs=3, bevel=0.005)
-        mb.box((s * 0.12, -0.17, 1.52), (0.075, 0.04, 0.11), 0.006, color=PAL["steel"])
-        mb.box((s * 0.155, -0.02, 1.60), (0.05, 0.055, 0.09), 0.006, color=PAL["steel_dark"])
-    for ang in range(-72, 80, 16):
-        a = math.radians(ang)
-        mb.box((0.195 * math.sin(a), -0.175 * math.cos(a), 1.705), (0.03, 0.022, 0.02), 0.004,
-               color=PAL["steel_dark"])
+        horn = []
+        for i in range(16):
+            t = i / 15.0
+            x = s * (0.14 + 0.16 * t)
+            y = -0.02 - 0.08 * math.sin(t * math.pi)
+            z = 1.55 + 0.14 * math.sin(t * math.pi * 0.55)
+            r = 0.040 * (1.0 - 0.72 * t)
+            horn.append((Vector((x, y, z)), r, r * 0.82))
+        loft(mb, horn, cs=3, color=PAL["steel_dark"])
     return mb.finish(mat)
 
 

@@ -157,7 +157,7 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 | ID | Package | Status |
 |---|---|---|
 | W8-01 | Unarmoured start; armour kit from each felled boss tree, used from the bag (`PlayerUpgrades`, `PlayerOutfit`, save fields) | done: `armour.log` RESULT PASS |
-| W8-02 | Hub house: wide, low, basement, main floor, loft, 2 beds, 2 workbenches (`Hut.DressCabin`) | done: `house5.log` RESULT PASS. Porch gable and stone terrace open |
+| W8-02 | Hub house: wide, low, basement, main floor, loft, 2 beds, 2 workbenches (`Hut.DressCabin`) | done: collision from `house5.log`. Look is `hall_voxel` (`hall_check_report.txt` ALL PASS, `hall_three_quarter.png`); terrace is `WorldGen.TerraceRaise` |
 | W8-03 | Voxel furniture: chest, grand chest, bed, workbench, fireplace; crypt chests | done: `furniture_check_report.txt` ALL PASS, `prop_dress4.log` RESULT PASS |
 | W8-04 | Step up automatically: stepOffset 0.55, stair treads, doorway sill removed | done: house tour climbs every stair |
 | W8-05 | Flicker: block shader detail fade, atlas gutter fill | done: measured in motion (`-chopperFlicker`, `flicker2_measure.txt`); body and block faces quiet; grass tufts and edges in wind remain |
@@ -168,5 +168,6 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 | W8-12 | Axe held head up, blade forward (user: upside down again) | done: carry turn skipped for the Chopper rig (`HeldItemFrame.HandPosed`); `gear2.log` head up, edge forward |
 | W8-08 | Water, clouds, sun to concept 2.0 | open |
 | W8-09 | Website pictures, last | open |
+| W8-13 | Character forms toward concept 2.0: one beard, one hair cap, smooth boots, broader chest, curved horns, painted skull, chainmail rings. Rig and module names kept | done: `check_assets` 136/0, `check_rig` 189/0. Bear axe not made chunkier |
 
 - 2026-10-12 (user): everyone starts unarmoured; armour comes from a kit dropped by boss trees. Concept 2.0 is the target for the whole world and the characters. The house is wide and low like the concept, for two players, with a basement and an upstairs. Website pictures come last.

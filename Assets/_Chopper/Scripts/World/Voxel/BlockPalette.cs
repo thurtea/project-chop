@@ -39,7 +39,8 @@ namespace Chopper.World.Voxel
         static FaceColors[] Defaults()
         {
             var faces = new FaceColors[6];
-            faces[(int)BlockType.Grass] = Face(0.1070f, 0.2623f, 0.0296f, 0.2159f, 0.0931f, 0.0343f);
+            // grass top a little darker and less saturated than the old (92, 140, 48) sRGB, toward concept 2.0 (86, 126, 46)
+            faces[(int)BlockType.Grass] = Face(0.0931f, 0.2086f, 0.0273f, 0.2159f, 0.0931f, 0.0343f);
             faces[(int)BlockType.Dirt] = Face(0.2384f, 0.1070f, 0.0395f, 0.2159f, 0.0931f, 0.0343f);
             faces[(int)BlockType.Stone] = Face(0.2232f, 0.2232f, 0.2086f, 0.1878f, 0.1878f, 0.1746f);
             faces[(int)BlockType.Sand] = Face(0.6867f, 0.5647f, 0.2705f, 0.6172f, 0.4910f, 0.2232f);

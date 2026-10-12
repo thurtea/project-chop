@@ -120,19 +120,20 @@ namespace Chopper.World
                 }
             }
 
-            // Basement walls, stone tinted, with small windows; the main floor walls with windows and the door.
+            // Basement walls, stone tinted and without windows: the terrace (WorldGen.TerraceRaise) buries them, leaving
+            // a stone foundation course showing; the main floor walls with windows and the door.
             Walls(root, 0f,
-                new[] { "Wood wall", "Wood wall", "Log window", "Wood wall", "Wood wall", "Wood wall" },
-                new[] { "Log window", "Wood wall", "Log window", "Wood wall", "Log window", "Wood wall" }, 99f, BasementStone);
+                new[] { "Wood wall", "Wood wall", "Wood wall", "Wood wall", "Wood wall", "Wood wall" },
+                new[] { "Wood wall", "Wood wall", "Wood wall", "Wood wall", "Wood wall", "Wood wall" }, 99f, BasementStone);
             Walls(root, main,
                 new[] { "Wood wall", "Log window", "Wood wall", "Wood wall", "Log window", "Wood wall" },
                 new[] { "Log window", "Wood wall", "Log window", "Doorway", "Log window", "Wood wall" }, 1f, Color.white);
 
             // Stairs: from the basement up toward the back at the -X end, and from the main floor up into the loft
-            // (rising toward +X). Outside, log steps up to the door.
+            // (rising toward +X).
             Put(root, "Stairs", new Vector3(basementHole.x, 0f, basementHole.y), 180f);
             Put(root, "Stairs", new Vector3(loftHole.x, main, loftHole.y), 90f);
-            Put(root, "Stairs", new Vector3(doorX, 0f, LayoutHalf.y + 1f), 180f);
+            BuildPorch(root, doorX, main);
 
             // Thatch: ridge along X at z = 0, two roof pieces (4 m rise) down the front and the back; log gables at both
             // ends, stretched to the 8 m depth and 4 m height.
@@ -143,8 +144,22 @@ namespace Chopper.World
                 Put(root, "Roof", new Vector3(x, loft, -3f), 0f);
                 Put(root, "Roof", new Vector3(x, loft + 2f, -1f), 0f);
             }
-            Put(root, "Log gable", new Vector3(LayoutHalf.x, loft, 0f), 90f, new Vector3(4f, 2f, 1f));
-            Put(root, "Log gable", new Vector3(-LayoutHalf.x, loft, 0f), -90f, new Vector3(4f, 2f, 1f));
+            // The gable triangle is 2 wide and 1 high per unit scale: 8 wide and 4 high fills the 45 degree roof end.
+            Put(root, "Log gable", new Vector3(LayoutHalf.x, loft, 0f), 90f, new Vector3(4f, 4f, 1f));
+            Put(root, "Log gable", new Vector3(-LayoutHalf.x, loft, 0f), -90f, new Vector3(4f, 4f, 1f));
+
+            // The piece meshes are the collision. The look is one hall (stone, logs, a closed roof, a porch).
+            GameObject hallPrefab = Resources.Load<GameObject>("Props/hall_hub");
+            if (hallPrefab != null)
+            {
+                foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+                    renderer.enabled = false;
+                Transform hall = Instantiate(hallPrefab, root).transform;
+                hall.name = "Hall";
+                hall.localPosition = Vector3.zero;
+                hall.localRotation = Quaternion.identity;
+                hall.localScale = Vector3.one;
+            }
 
             // Furniture at its own size, placed in piece-metres (scaled to metres by Spot). The bed and the workbench are
             // copied for the second player.
@@ -171,6 +186,32 @@ namespace Chopper.World
                 PlaceAt(second, Spot(-1f, 0f, 2.8f), 0f);
             }
             _houseHalfExtents = HouseHalfSize;
+        }
+
+        // The porch of concept 2.0: a plank deck at the main floor in front of the door, a short flight up from the
+        // terrace, and a small cross gable (two roof pieces with the ridge running out from the wall, a log gable with
+        // the crossed beams at the front) on two log posts. Piece-metres under the scaled root.
+        void BuildPorch(Transform root, float doorX, float main)
+        {
+            float terrace = Chopper.World.Generation.WorldGen.TerraceHeight / HouseScale;
+            float z0 = LayoutHalf.y;                       // the front wall
+            Put(root, "Wood floor", new Vector3(doorX - 1f, main, z0 + 1f), 0f);
+            Put(root, "Wood floor", new Vector3(doorX + 1f, main, z0 + 1f), 0f);
+            // Steps from the terrace up to the deck (rising toward the house).
+            float rise = main + 0.25f - terrace;
+            Put(root, "Stairs", new Vector3(doorX, terrace, z0 + 2.5f), 180f, new Vector3(1f, rise / 2f, 0.5f));
+            // Roof: eaves `eave` above the deck, ridge along Z over the door, out past the deck by a little.
+            // The eaves clear the door (1.75 high); a flatter pitch (rise 1.2 over 2) keeps the ridge near the main eave.
+            const float eave = 1.75f, depth = 2.6f, pitch = 0.6f;
+            float zc = z0 + depth * 0.5f;
+            Put(root, "Roof", new Vector3(doorX - 1f, main + eave, zc), 90f, new Vector3(depth / 2f, pitch, 1f));
+            Put(root, "Roof", new Vector3(doorX + 1f, main + eave, zc), -90f, new Vector3(depth / 2f, pitch, 1f));
+            Put(root, "Log gable", new Vector3(doorX, main + eave, z0 + depth - 0.1f), 0f, new Vector3(2f, 2f * pitch, 1f));
+            // The back of the cross gable stands above the main eave, against the main roof; close it with logs.
+            Put(root, "Log gable", new Vector3(doorX, main + eave, z0 + 0.1f), 180f, new Vector3(2f, 2f * pitch, 1f));
+            // Two log posts at the deck's front corners, from the planks to the eaves.
+            foreach (float side in new[] { -1.8f, 1.8f })
+                Put(root, "Wood wall", new Vector3(doorX + side, main + 0.25f, z0 + 1.85f), 0f, new Vector3(0.125f, (eave - 0.25f) / 2f, 1f));
         }
 
         // One storey's walls at height y: six pieces along the back (-Z) and the front (+Z), from -X to +X, and four along

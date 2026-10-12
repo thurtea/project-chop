@@ -760,6 +760,44 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Concept 2.0 comparison (-chopperConcept): the same framings as chopper-3D-concept-2.0.jpg, armoured Chopper in
+            // front of the hut in late afternoon light, the hut on its own, the ground and grass low down, Chopper close.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperConcept") >= 0)
+            {
+                Hut.Instance.ServerSetRepaired(true);
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.75f);
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                wood.GetComponent<PlayerAxe>().ServerSetHasAxe(true);
+                wood.GetComponent<PlayerUpgrades>().ServerLoadOutfit(0, true);
+                yield return new WaitForSeconds(4f);
+                GameUi.HudHidden = true;
+                ui.DebugShow(0);
+                Debug.developerConsoleVisible = false;
+                Debug.Log($"[Concept] hut at {Hut.Instance.transform.position} rotation {Hut.Instance.transform.eulerAngles.y:F0}");
+                // (player position, body yaw, camera yaw, distance, pitch, name)
+                (Vector2 at, float body, float camYaw, float dist, float pitch, string name)[] views =
+                {
+                    (new Vector2(6f, 15f), 20f, 200f, 3.6f, 4f, "concept_view"),
+                    (new Vector2(-4f, 30f), 180f, 170f, 9f, 8f, "hut_front"),
+                    (new Vector2(14f, 12f), 230f, 230f, 2.2f, 14f, "ground_grass"),
+                    (new Vector2(6f, 15f), 0f, 180f, 2.0f, 2f, "character_front"),
+                };
+                foreach (var v in views)
+                {
+                    yield return TeleportLocalPlayer(v.at, v.body);
+                    PlayerCamera cam = PlayerCamera.Local;
+                    cam.DebugSetDistance(v.dist);
+                    cam.DebugSetPitch(v.pitch);
+                    cam.SnapYaw(v.camYaw);
+                    yield return new WaitForSeconds(1.5f);
+                    Debug.developerConsoleVisible = false;
+                    yield return Shot(folder, v.name);
+                }
+                Debug.Log("[Concept] done");
+                Application.Quit(0);
+                yield break;
+            }
+
             // Flicker in motion (-chopperFlicker): the camera orbits the standing player slowly at a fixed frame step
             // and every frame is saved, once per setting (as is, sun shadows off, anti-aliasing off, character atlas
             // mip bias +1, ground block detail off). Tools/flicker_measure.py scores the shimmer between frames.

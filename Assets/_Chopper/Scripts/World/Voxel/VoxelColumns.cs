@@ -60,7 +60,7 @@ namespace Chopper.World.Voxel
             if (height < WorldGen.WaterHeight + 0.25f) return BlockType.Sand;
             if (radius > WorldGen.BeachStartRadius && radius < WorldGen.CoastEndRadius && height < 1.2f) return BlockType.Sand;
             if (gen.MountainWeight(x, z) > 0.35f) return height > 30f ? BlockType.Snow : BlockType.Stone;
-            if (gen.PathWeight(x, z) > 0.6f) return BlockType.Path;
+            if (gen.PathWeight(x, z) > 0.6f || WorldGen.TerraceStairs(x, z)) return BlockType.Path;
             return BlockType.Grass;
         }
 

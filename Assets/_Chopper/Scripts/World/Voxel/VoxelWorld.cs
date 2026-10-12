@@ -77,6 +77,7 @@ namespace Chopper.World.Voxel
             var verts = new List<Vector3>(4096);
             var normals = new List<Vector3>(4096);
             var colors = new List<Color>(4096);
+            var uvs = new List<Vector2>(4096);
             var tris = new List<int>(8192);
             var used = new bool[ChunkSize, ChunkSize];
 
@@ -104,8 +105,8 @@ namespace Chopper.World.Voxel
                     float y = height * VoxelColumns.Step;
                     float wx = VoxelColumns.WorldX(gx);
                     float wz = VoxelColumns.WorldZ(gz);
-                    Color color = BlockPalette.Of(type).Top;
-                    AddQuad(verts, normals, colors, tris,
+                    Color color = Tagged(BlockPalette.Of(type).Top, type);
+                    AddQuad(verts, normals, colors, uvs, y, tris,
                         new Vector3(wx, y, wz),
                         new Vector3(wx + width, y, wz),
                         new Vector3(wx + width, y, wz + depth),
@@ -114,13 +115,14 @@ namespace Chopper.World.Voxel
                 }
             }
 
-            AddSides(columns, x0, z0, verts, normals, colors, tris, alongX: true);
-            AddSides(columns, x0, z0, verts, normals, colors, tris, alongX: false);
+            AddSides(columns, x0, z0, verts, normals, colors, uvs, tris, alongX: true);
+            AddSides(columns, x0, z0, verts, normals, colors, uvs, tris, alongX: false);
 
             var mesh = new Mesh { name = "VoxelChunk", indexFormat = IndexFormat.UInt32 };
             mesh.SetVertices(verts);
             mesh.SetNormals(normals);
             mesh.SetColors(colors);
+            mesh.SetUVs(0, uvs);
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
             return mesh;
@@ -136,7 +138,14 @@ namespace Chopper.World.Voxel
             return true;
         }
 
-        static void AddSides(VoxelColumns columns, int x0, int z0, List<Vector3> verts, List<Vector3> normals, List<Color> colors, List<int> tris, bool alongX)
+        // Chopper/Block reads the block type from the colour's alpha (type / 8 + 1 / 16).
+        static Color Tagged(Color color, BlockType type)
+        {
+            color.a = (int)type / 8f + 1f / 16f;
+            return color;
+        }
+
+        static void AddSides(VoxelColumns columns, int x0, int z0, List<Vector3> verts, List<Vector3> normals, List<Color> colors, List<Vector2> uvs, List<int> tris, bool alongX)
         {
             var used = new bool[ChunkSize, ChunkSize];
             for (int z = 0; z < ChunkSize; z++)
@@ -165,12 +174,12 @@ namespace Chopper.World.Voxel
 
                     float y0 = neighbor * VoxelColumns.Step;
                     float y1 = height * VoxelColumns.Step;
-                    Color color = BlockPalette.Of(type).Side;
+                    Color color = Tagged(BlockPalette.Of(type).Side, type);
                     if (alongX)
                     {
                         float faceX = VoxelColumns.WorldX(gx) + 1f;
                         float wz = VoxelColumns.WorldZ(gz);
-                        AddQuad(verts, normals, colors, tris,
+                        AddQuad(verts, normals, colors, uvs, y1, tris,
                             new Vector3(faceX, y0, wz),
                             new Vector3(faceX, y0, wz + run),
                             new Vector3(faceX, y1, wz + run),
@@ -181,7 +190,7 @@ namespace Chopper.World.Voxel
                     {
                         float faceZ = VoxelColumns.WorldZ(gz) + 1f;
                         float wx = VoxelColumns.WorldX(gx);
-                        AddQuad(verts, normals, colors, tris,
+                        AddQuad(verts, normals, colors, uvs, y1, tris,
                             new Vector3(wx, y0, faceZ),
                             new Vector3(wx, y1, faceZ),
                             new Vector3(wx + run, y1, faceZ),
@@ -202,9 +211,11 @@ namespace Chopper.World.Voxel
             return neighbor < height;
         }
 
-        static void AddQuad(List<Vector3> verts, List<Vector3> normals, List<Color> colors, List<int> tris, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, Color color)
+        // faceTop: the height of the face's top edge (the column top), which the shader hangs the grass lip from.
+        static void AddQuad(List<Vector3> verts, List<Vector3> normals, List<Color> colors, List<Vector2> uvs, float faceTop, List<int> tris, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, Color color)
         {
             int i = verts.Count;
+            for (int k = 0; k < 4; k++) uvs.Add(new Vector2(faceTop, 0f));
             verts.Add(a);
             verts.Add(b);
             verts.Add(c);

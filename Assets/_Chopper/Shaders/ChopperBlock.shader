@@ -1,11 +1,16 @@
-// Block terrain (W5-08). Vertex colour is already linear. A world-space pixel jitter and a
-// dark line on the 1 m grid keep greedy-merged faces reading as separate blocks.
+// Block terrain (W5-08). Vertex colour is already linear; its alpha carries the block type (type / 8 + 1 / 16) and
+// UV0.x the top height of a side face. Each face is drawn as Minecraft-style 1/16 m texels in three shades
+// (terrain_palette.txt: a quarter dark, half base, a quarter light), grass blocks get a jagged green lip down their dirt
+// sides, and a soft line on the block grid keeps greedy-merged faces reading as separate blocks (concept 2.0).
 Shader "Chopper/Block"
 {
     Properties
     {
-        _Edge ("Edge darkening", Range(0, 1)) = 0.28
-        _Jitter ("Pixel jitter", Range(0, 0.2)) = 0.06
+        _Edge ("Edge darkening", Range(0, 1)) = 0.16
+        _Jitter ("Texel shade strength", Range(0, 1)) = 1
+        _Dark ("Dark texel shade", Range(0.3, 1)) = 0.72
+        _Light ("Light texel shade", Range(1, 2)) = 1.32
+        _LipColor ("Grass lip colour (linear)", Color) = (0.0931, 0.2086, 0.0273, 1)
     }
 
     SubShader
@@ -17,6 +22,9 @@ Shader "Chopper/Block"
         CBUFFER_START(UnityPerMaterial)
             half _Edge;
             half _Jitter;
+            half _Dark;
+            half _Light;
+            half4 _LipColor;
         CBUFFER_END
         ENDHLSL
 
@@ -43,6 +51,7 @@ Shader "Chopper/Block"
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
                 half4  color      : COLOR;
+                float2 uv         : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -52,6 +61,7 @@ Shader "Chopper/Block"
                 float3 positionWS : TEXCOORD0;
                 float3 normalWS   : TEXCOORD1;
                 half   fogFactor  : TEXCOORD2;
+                float  faceTop    : TEXCOORD3;
                 half4  color      : COLOR;
             };
 
@@ -72,27 +82,45 @@ Shader "Chopper/Block"
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.fogFactor = ComputeFogFactor(p.positionCS.z);
                 o.color = v.color;
+                o.faceTop = v.uv.x;
                 return o;
             }
 
             half4 frag (Varyings i) : SV_Target
             {
                 float3 n0 = normalize(i.normalWS);
-                // One jitter value per 1/16 m cell in 3D (nudged inside the face), so cliff faces get pixels, not streaks.
+                bool isTop = n0.y > 0.5;
+                int type = (int)floor(i.color.a * 8.0);
+                // One shade per 1/16 m texel in 3D (nudged inside the face), so cliff faces get pixels, not streaks.
                 float3 cell3 = floor(i.positionWS * 16.0 - n0 * 0.5);
-                half jitter = (half)(Hash21(cell3.xz + cell3.y * float2(17.0, 31.0)) * 2.0 - 1.0) * _Jitter;
+                float h = Hash21(cell3.xz + cell3.y * float2(17.0, 31.0));
+                float h2 = Hash21(cell3.zx * 1.37 + cell3.y * float2(5.0, 11.0));
+                half shade = h < 0.25 ? _Dark : (h < 0.75 ? 1.0 : _Light);
+                // a touch of hue drift between texels, warmer or cooler, as in the concept's grass
+                half3 drift = half3(1.0 + (h2 - 0.5) * 0.10, 1.0, 1.0 - (h2 - 0.5) * 0.10);
+                half3 base = i.color.rgb;
+                // Grass sides: dirt with a green lip of 2 to 5 texels hanging from the top edge, per texel column.
+                if (!isTop && type == 0)
+                {
+                    float along = abs(n0.x) > 0.5 ? i.positionWS.z : i.positionWS.x;
+                    float column = floor(along * 16.0);
+                    float lip = 2.0 + floor(Hash21(float2(column, 7.0 + i.faceTop * 3.0)) * 4.0);
+                    float below = (i.faceTop - i.positionWS.y) * 16.0;
+                    if (below < lip) base = _LipColor.rgb;
+                }
                 float3 g = frac(i.positionWS);
                 float gy = frac(i.positionWS.y * 2.0);
                 float edge = min(min(g.x, 1.0 - g.x), min(g.z, 1.0 - g.z));
                 edge = min(edge, min(gy, 1.0 - gy));
                 half gridLine = (half)(1.0 - saturate(edge * 28.0));
                 // Fade the fine detail out where one screen pixel covers more of it than it can show: far away the
-                // 6 cm jitter and the 3.5 cm grid lines aliased into shimmering (the flicker on distant ground and cliffs).
+                // 6 cm texels and the 3.5 cm grid lines aliased into shimmering (the flicker on distant ground and cliffs).
                 float3 fw3 = fwidth(i.positionWS);
                 float footprint = max(fw3.x, max(fw3.y, fw3.z));
-                jitter *= (half)saturate(1.5 - footprint * 16.0);
+                half texel = (half)saturate(1.5 - footprint * 16.0) * _Jitter;
                 gridLine *= (half)saturate(1.5 - footprint * 24.0);
-                half3 albedo = i.color.rgb * (1.0 + jitter) * (1.0 - gridLine * _Edge);
+                half3 texelShade = lerp(half3(1, 1, 1), shade * drift, texel);
+                half3 albedo = base * texelShade * (1.0 - gridLine * _Edge);
 
                 float3 n = normalize(i.normalWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(i.positionWS));

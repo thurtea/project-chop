@@ -5,10 +5,10 @@ Shader "Chopper/Grass"
 {
     Properties
     {
-        _BaseDark ("Root color", Color) = (0.07, 0.10, 0.04, 1)
-        _TipGreen ("Tip color, fresh", Color) = (0.42, 0.52, 0.17, 1)
-        _TipDry ("Tip color, dry", Color) = (0.66, 0.58, 0.30, 1)
-        _TipLush ("Tip color, lush", Color) = (0.20, 0.36, 0.13, 1)
+        _BaseDark ("Root color", Color) = (0.13, 0.22, 0.07, 1)
+        _TipGreen ("Tip color, fresh", Color) = (0.42, 0.62, 0.20, 1)
+        _TipDry ("Tip color, dry", Color) = (0.55, 0.60, 0.24, 1)
+        _TipLush ("Tip color, lush", Color) = (0.26, 0.48, 0.15, 1)
         _WindStrength ("Wind strength", Float) = 0.22
         _WindSpeed ("Wind speed", Float) = 1.1
         _GustScale ("Gust wave length (m)", Float) = 38
@@ -170,7 +170,8 @@ Shader "Chopper/Grass"
                 tip = lerp(tip, _TipLush.rgb, zone.b);
                 tip = lerp(tip, _TipDry.rgb, zone.g);
                 float patch = sin(rootWS.x * 0.043 + sin(rootWS.z * 0.031) * 2.0) * sin(rootWS.z * 0.037 + 1.7);
-                tip = lerp(tip, _TipDry.rgb, saturate(patch * 0.35 + 0.08));
+                // broad drier patches, mild: concept 2.0 grass is green with lighter tips, not wheat (was patch * 0.35 + 0.08)
+                tip = lerp(tip, _TipDry.rgb, saturate(patch * 0.25));
                 float clump = Hash21(rootWS.xz);
                 tip *= 0.86 + clump * 0.24 + (bladeRandom - 0.5) * 0.12;
                 output.color = tip;

@@ -351,17 +351,34 @@ def paint_armour(name, p, n, rgb):
     """Armour and the unused double axe: kept sensible, not painted to the concept yet."""
     x, z = p.x, p.z
     if name == "chopper_chainmail":
-        if (int(x * 45) + int(z * 45)) % 2 == 0:
-            return dark(rgb, 0.72)
+        # Interlocking rings, so the skirt is chain and not a flat blue-grey sheet.
+        u = x * 32.0
+        v = z * 32.0
+        fu = u - round(u)
+        fv = v - round(v)
+        d = fu * fu + fv * fv
+        if d < 0.06:
+            return (0.72, 0.74, 0.76)
+        if d < 0.13:
+            return (0.22, 0.24, 0.27)
+        return (0.42, 0.44, 0.48)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)
     elif name == "chopper_bracers":
         if abs((z * 36) - round(z * 36)) < 0.08:
             return dark(rgb, 0.62)
-    elif name == "chopper_helmet" and n.y < -0.35 and abs(x) < 0.12 and 1.48 < z < 1.66:
-        if 1.56 < z < 1.64 and 0.03 < abs(x) < 0.08:
-            return (0.12, 0.12, 0.13)
+    elif name == "chopper_helmet" and n.y < -0.25 and abs(x) < 0.16 and 1.40 < z < 1.68:
+        # Skull on the face of the cap: sockets, nasal opening, a row of teeth.
+        bone = (0.78, 0.74, 0.66)
+        pit = (0.08, 0.08, 0.09)
+        if 1.54 < z < 1.63 and 0.035 < abs(x) < 0.095:
+            return pit
+        if 1.46 < z < 1.54 and abs(x) < 0.022:
+            return pit
+        if 1.40 < z < 1.46 and abs(x) < 0.09:
+            return bone if int(x * 70) % 2 == 0 else pit
+        return bone
     elif name == "chopper_axe":
         if abs(x) > 0.06 and z > 0.40 and abs(n.y) > 0.5 and (int(x * 40) + int(z * 40)) % 5 == 0:
             return dark(rgb, 0.55)

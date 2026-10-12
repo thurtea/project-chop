@@ -72,3 +72,4 @@ Models are authored by hand in Blender through Python (explicit vertex and primi
 - Chopper starts unarmoured: hair, plaid shirt, patchwork vest, crossbelt, belt, trousers, boots, the bear-head axe (`chopper_axe_bear`). No helmet, chainmail, bracers or shield.
 - Armoured: after an armour kit (dropped by each felled boss tree) the helmet, chainmail, bracers and the shield on the back show and the hair hides.
 - Concept 2.0 is the target for the whole world and the characters; forests differ only in colour.
+- 2026-10-12: beard, hair and boots are single forms (detail in the atlas). The chest is broader. The helmet has curved horns and a painted skull. Chainmail reads as rings. Export keeps a crease only where the edge is sharper than 55 degrees.

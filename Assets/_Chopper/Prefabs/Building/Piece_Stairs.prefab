@@ -1,37 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &395610609050088008
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 7269195301730417129}
-  m_Layer: 0
-  m_Name: Voxel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &7269195301730417129
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 395610609050088008}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 3866877574121452453}
-  m_Father: {fileID: 88809006165267515}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &676524794683611994
 GameObject:
   m_ObjectHideFlags: 0
@@ -937,8 +905,8 @@ Transform:
   - {fileID: 58942738752809716}
   - {fileID: 8724473001096073028}
   - {fileID: 1525818643522104098}
-  - {fileID: 7269195301730417129}
   - {fileID: 2735947420998114287}
+  - {fileID: 2052579489015403023}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!208 &4904342654097399556
@@ -969,6 +937,38 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 991c6179af38c4f49ad7bad9e416f8a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.Building.PieceView
+--- !u!1 &6031554843798428514
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2052579489015403023}
+  m_Layer: 0
+  m_Name: Voxel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2052579489015403023
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6031554843798428514}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5323744333814607034}
+  m_Father: {fileID: 88809006165267515}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &6779743427048954602
 GameObject:
   m_ObjectHideFlags: 0
@@ -1266,13 +1266,13 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1001 &3612821314199589966
+--- !u!1001 &5650614824396770129
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7269195301730417129}
+    m_TransformParent: {fileID: 2052579489015403023}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 8b383677ef9f1f841ba0707485d458c4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1327,8 +1327,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8b383677ef9f1f841ba0707485d458c4, type: 3}
---- !u!4 &3866877574121452453 stripped
+--- !u!4 &5323744333814607034 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 8b383677ef9f1f841ba0707485d458c4, type: 3}
-  m_PrefabInstance: {fileID: 3612821314199589966}
+  m_PrefabInstance: {fileID: 5650614824396770129}
   m_PrefabAsset: {fileID: 0}

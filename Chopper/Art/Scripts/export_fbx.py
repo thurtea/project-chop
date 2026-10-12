@@ -13,8 +13,10 @@ no embedded media, flat (face) smoothing, armature modifier not applied
 (skin exported as clusters). Animation: baked, one take per NLA strip
 (take names = strip names Idle and Walk), every frame keyed, no simplification.
 """
+import math
 import os
 
+import bmesh
 import bpy
 from mathutils import Matrix
 
@@ -40,7 +42,7 @@ COMMON = dict(
     axis_forward="-Z",
     axis_up="Y",
     use_mesh_modifiers=False,
-    mesh_smooth_type="FACE",
+    mesh_smooth_type="EDGE",
     use_mesh_edges=False,
     use_tspace=False,
     use_custom_props=False,
@@ -70,6 +72,26 @@ CHAR_SETTINGS = dict(
 PROP_SETTINGS = dict(COMMON, object_types={"MESH"}, bake_anim=False)
 
 
+def smooth_forms():
+    """Bevels stay soft; a crease sharper than 55 degrees stays a crease. This is what
+    turns the chamfered body into the concept's smooth shapes without melting the cube head."""
+    limit = math.radians(55.0)
+    for name in PARTS:
+        me = bpy.data.objects[name].data
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bm.normal_update()
+        for edge in bm.edges:
+            if len(edge.link_faces) < 2:
+                edge.smooth = False
+            else:
+                edge.smooth = edge.calc_face_angle() < limit
+        for face in bm.faces:
+            face.smooth = True
+        bm.to_mesh(me)
+        bm.free()
+
+
 def select_only(names):
     bpy.ops.object.select_all(action="DESELECT")
     for n in names:
@@ -93,6 +115,7 @@ def main():
         tr.mute = False
         for strip in tr.strips:
             strip.extrapolation = "NOTHING"
+    smooth_forms()
     bpy.context.scene.frame_set(0)
     for pb in rig.pose.bones:
         pb.matrix_basis = Matrix.Identity(4)

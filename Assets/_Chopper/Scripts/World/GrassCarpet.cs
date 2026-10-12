@@ -19,7 +19,8 @@ namespace Chopper.World
         [SerializeField, Min(2f)] private float _cellSize = 10f;
         [SerializeField, Min(10f)] private float _drawDistance = 70f;
         [Tooltip("Clumps per square meter where the map's density is full.")]
-        [SerializeField, Min(0.1f)] private float _clumpsPerSquareMeter = 4f;
+        // Concept 2.0: separate clumps on textured grass blocks, not a wheat carpet (was 4).
+        [SerializeField, Min(0.1f)] private float _clumpsPerSquareMeter = 1.6f;
         [Tooltip("Beyond this share of the draw distance fewer clumps are drawn, down to Far Fraction at the edge.")]
         [SerializeField, Range(0f, 1f)] private float _thinStart = 0.45f;
         [SerializeField, Range(0.05f, 1f)] private float _farFraction = 0.55f;
