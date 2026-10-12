@@ -9,6 +9,7 @@ using Chopper.Player;
 using Chopper.Trees;
 using Chopper.UI;
 using Chopper.World;
+using Chopper.World.Building;
 using Chopper.Core;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -688,6 +689,15 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Concept 2.0 cabin (-chopperCabin): places a floor, log walls, a doorway, a window, a gable and two
+            // roofs through the real build rules, away from the hub. Logs "[Cabin] RESULT PASS" or "FAIL".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperCabin") >= 0)
+            {
+                yield return CabinTour(folder, wood, ui);
+                Application.Quit(0);
+                yield break;
+            }
+
             // Foliage walk (-chopperFoliageWalk): the player stands in a patch of grass carpet with decorative bushes, then a
             // virtual stick walks him straight through it. Pictures standing still, mid-walk, and a second after passing,
             // with the bushes' lean measured at each. Logs "[Foliage] RESULT PASS" or "FAIL".
@@ -928,23 +938,23 @@ namespace Chopper.Networking
                 }
                 else Debug.Log("[Shot] no Water forest pond found");
 
-                // Inside the house: the fireplace, the bed and the chest, the workbench with the axe in the corner.
-                yield return TeleportLocalPlayer(new Vector2(1.5f, 2.5f), 215f);
-                siteCam.DebugSetDistance(2.8f);
-                siteCam.SnapYaw(215f);
-                siteCam.DebugSetPitch(10f);
+                // The concept 2.0 cabin, door and gable on +Z. A three-quarter from the front so the doorway, window and roof read.
+                Vector3 siteHome = Hut.Instance.transform.position;
+                yield return TeleportLocalPlayer(new Vector2(siteHome.x + 3.2f, siteHome.z + 7.2f), 205f);
+                siteCam.DebugSetDistance(6.2f);
+                siteCam.SnapYaw(205f);
+                siteCam.DebugSetPitch(6f);
                 yield return new WaitForSeconds(1.5f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "hut");
 
-                // Night outside the house with a lit torch, the hut and the yard torches glowing behind.
+                // Night outside the cabin with a lit torch, the hut and the yard torches glowing behind.
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, 0.35f);
                 yield return new WaitForSeconds(0.5f);
                 inventory.ServerToggleTorch();
-                // Walking out of the house toward the camera, so the torch, his face and the lit doorway behind show.
-                yield return TeleportLocalPlayer(new Vector2(0.5f, 11f), 0f);
-                siteCam.DebugSetDistance(3.4f);
-                siteCam.SnapYaw(195f);
+                yield return TeleportLocalPlayer(new Vector2(siteHome.x - 2.2f, siteHome.z + 8f), 155f);
+                siteCam.DebugSetDistance(5.4f);
+                siteCam.SnapYaw(165f);
                 siteCam.DebugSetPitch(8f);
                 yield return new WaitForSeconds(2f);
                 ui.DebugShow(0);
@@ -3451,6 +3461,191 @@ namespace Chopper.Networking
             yield return Shot(folder, name);
             Debug.Log($"[Audit] {name} eye {eye:F0} look {look:F0}");
             rig.enabled = true;
+        }
+
+        // A 2 m by 4 m log cabin: doorway and gable on the south end, window on the east wall, two roofs
+        // whose high edges meet on the ridge (yaw 0 and 180). Placed with ServerPlace so overlap is real.
+        private static IEnumerator CabinTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            if (ui != null) ui.DebugShow(0);
+            wood.ServerAddWood(80);
+            yield return null;
+
+            BuildManager build = BuildManager.Instance;
+            PieceCatalog catalog = build != null ? build.Catalog : null;
+            int floor = CabinKind(catalog, "Wood floor");
+            int wall = CabinKind(catalog, "Wood wall");
+            int doorway = CabinKind(catalog, "Doorway");
+            int window = CabinKind(catalog, "Log window");
+            int gable = CabinKind(catalog, "Log gable");
+            int roof = CabinKind(catalog, "Roof");
+            int bench = CabinKind(catalog, "Workbench");
+            if (build == null || floor < 0 || wall < 0 || doorway < 0 || window < 0 || gable < 0 || roof < 0 || bench < 0)
+            {
+                Debug.Log("[Cabin] RESULT FAIL missing catalog piece");
+                yield break;
+            }
+
+            float x0 = 0f, z0 = 0f, gy = 0f;
+            bool found = false;
+            var probe = new Collider[16];
+            for (int i = 0; i < 48 && !found; i++)
+            {
+                x0 = Mathf.Floor((28f + (i % 8) * 8f) / 2f) * 2f;
+                z0 = Mathf.Floor((-48f + (i / 8) * 8f) / 2f) * 2f;
+                Vector3 mid = new Vector3(x0 + 1f, 0f, z0 + 2f);
+                gy = WorldGround.HeightAt(mid);
+                if (gy < Chopper.World.Generation.WorldGen.WaterHeight + 1f) continue;
+                if (BuildRules.TooSteep(WorldGround.NormalAt(mid).y)) continue;
+                int hits = Physics.OverlapBoxNonAlloc(mid + Vector3.up * 2f, new Vector3(2.2f, 2.5f, 3.2f), probe, Quaternion.identity, ~0, QueryTriggerInteraction.Ignore);
+                bool blocked = false;
+                for (int h = 0; h < hits; h++)
+                {
+                    if (probe[h] == null || probe[h] is TerrainCollider) continue;
+                    blocked = true;
+                    break;
+                }
+                if (!blocked) found = true;
+            }
+            if (!found)
+            {
+                Debug.Log("[Cabin] RESULT FAIL no clear ground");
+                yield break;
+            }
+
+            yield return TeleportLocalPlayer(new Vector2(x0 + 1f, z0 - 3.2f), 0f);
+            yield return new WaitForSeconds(0.4f);
+
+            var fails = new List<string>();
+            void Place(string label, int kind, Vector3 pos, float yaw)
+            {
+                PlaceResult result = build.ServerPlace(wood.gameObject, kind, pos, yaw);
+                Debug.Log($"[Cabin] {label} {result} at {pos.x:F2},{pos.y:F2},{pos.z:F2} yaw {yaw:F0}");
+                if (result != PlaceResult.Ok) fails.Add(label + " " + result);
+            }
+
+            Place("bench", bench, new Vector3(x0 + 4.5f, gy, z0 + 1f), 0f);
+            Place("floor south", floor, new Vector3(x0 + 1f, gy, z0 + 1f), 0f);
+            Place("floor north", floor, new Vector3(x0 + 1f, gy, z0 + 3f), 0f);
+            Place("doorway", doorway, new Vector3(x0 + 1f, gy, z0), 0f);
+            Place("wall north", wall, new Vector3(x0 + 1f, gy, z0 + 4f), 0f);
+            Place("wall west south", wall, new Vector3(x0, gy, z0 + 1f), 90f);
+            Place("wall west north", wall, new Vector3(x0, gy, z0 + 3f), 90f);
+            Place("window", window, new Vector3(x0 + 2f, gy, z0 + 1f), 90f);
+            Place("wall east", wall, new Vector3(x0 + 2f, gy, z0 + 3f), 90f);
+            wood.ServerAddWood(40);
+            Place("gable", gable, new Vector3(x0 + 1f, gy + 2f, z0), 0f);
+            Place("roof south", roof, new Vector3(x0 + 1f, gy + 2f, z0 + 1f), 0f);
+            Place("roof north", roof, new Vector3(x0 + 1f, gy + 2f, z0 + 3f), 180f);
+            yield return new WaitForSeconds(0.8f);
+
+            float ridgeZ = z0 + 2f;
+            int roofCount = 0;
+            bool roofsOk = true;
+            foreach (PieceState state in build.Pieces)
+            {
+                if (state.Kind != roof) continue;
+                roofCount++;
+                Vector3 high = BuildRules.WorldPoint(state.Position, state.Yaw, new Vector3(0f, 2f, 1f));
+                Vector3 low = BuildRules.WorldPoint(state.Position, state.Yaw, new Vector3(0f, 0f, -1f));
+                bool toward = high.y > low.y + 0.5f && Mathf.Abs(high.z - ridgeZ) + 0.2f < Mathf.Abs(low.z - ridgeZ);
+                Debug.Log($"[Cabin] roof high {high.x:F2},{high.y:F2},{high.z:F2} low {low.x:F2},{low.y:F2},{low.z:F2} toward ridge {toward}");
+                if (!toward) roofsOk = false;
+            }
+
+            Vector3 door = new Vector3(x0 + 1f, gy, z0);
+            Vector3 doorTop = BuildRules.WorldPoint(door, 0f, new Vector3(-1f, 2f, 0f));
+            Vector3 gableFoot = BuildRules.WorldPoint(door + Vector3.up * 2f, 0f, new Vector3(-1f, 0f, 0f));
+            float gableGap = (doorTop - gableFoot).magnitude;
+            bool gableOk = gableGap < 0.05f;
+            Debug.Log($"[Cabin] gable on wall top {gableOk} gap {gableGap:F3} m");
+
+            int doorHits = CabinSolid(door + Vector3.up * 0.9f, new Vector3(0.2f, 0.3f, 0.06f), Quaternion.identity, probe);
+            bool doorOpen = doorHits == 0;
+            Debug.Log($"[Cabin] doorway opening colliders {doorHits}");
+
+            Quaternion windowYaw = Quaternion.Euler(0f, 90f, 0f);
+            Vector3 windowHole = new Vector3(x0 + 2f, gy, z0 + 1f) + windowYaw * new Vector3(0f, 1.25f, 0f);
+            int windowHits = CabinSolid(windowHole, new Vector3(0.12f, 0.12f, 0.06f), windowYaw, probe);
+            bool windowOpen = windowHits == 0;
+            Debug.Log($"[Cabin] window opening colliders {windowHits}");
+
+            yield return TeleportLocalPlayer(new Vector2(x0 + 1f, z0 - 4.5f), 0f);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "cabin_front");
+            yield return TeleportLocalPlayer(new Vector2(x0 + 5.5f, z0 - 3.5f), 230f);
+            yield return new WaitForSeconds(0.4f);
+            yield return Shot(folder, "cabin_three_quarter");
+
+            Hut hut = Hut.Instance;
+            bool cabinHome = false, longhouse = false, bed = false, chest = false, fire = false;
+            if (hut != null)
+            {
+                foreach (Transform child in hut.GetComponentsInChildren<Transform>(true))
+                {
+                    if (child.name == "Cabin") cabinHome = true;
+                    if (child.name == "Longhouse") longhouse = true;
+                    if (child.name == "Bed") bed = true;
+                    if (child.name == "StorageChest") chest = true;
+                    if (child.name == "Fireplace") fire = true;
+                }
+                Vector3 home = hut.transform.position;
+                yield return TeleportLocalPlayer(new Vector2(home.x, home.z + 5.5f), 180f);
+                yield return new WaitForSeconds(0.5f);
+                yield return Shot(folder, "hub_front");
+                yield return TeleportLocalPlayer(new Vector2(home.x + 6f, home.z + 6f), 225f);
+                yield return new WaitForSeconds(0.3f);
+                yield return Shot(folder, "hub_three_quarter");
+            }
+            bool hubSizeOk = false;
+            if (hut != null)
+            {
+                Transform built = null;
+                foreach (Transform child in hut.GetComponentsInChildren<Transform>(true))
+                    if (child.name == "Cabin") { built = child; break; }
+                if (built != null)
+                {
+                    Renderer[] renderers = built.GetComponentsInChildren<Renderer>();
+                    if (renderers.Length > 0)
+                    {
+                        Bounds bounds = renderers[0].bounds;
+                        for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+                        hubSizeOk = bounds.size.x < 4f && bounds.size.z < 6f && bounds.size.y > 2f && bounds.size.y < 6f;
+                        Debug.Log($"[Cabin] hub mesh {renderers.Length} renderers size {bounds.size.x:F2} x {bounds.size.y:F2} x {bounds.size.z:F2}");
+                    }
+                }
+            }
+            bool hubOk = cabinHome && !longhouse && bed && chest && fire && hubSizeOk;
+            Debug.Log($"[Cabin] hub cabin {cabinHome} longhouse {longhouse} bed {bed} chest {chest} fireplace {fire} size {hubSizeOk} repair wood {(hut != null ? hut.RepairWoodNeeded : -1)}");
+
+            bool pass = fails.Count == 0 && roofsOk && roofCount == 2 && gableOk && doorOpen && windowOpen && hubOk;
+            string why = fails.Count == 0 ? "all pieces placed" : string.Join(", ", fails);
+            Debug.Log($"[Cabin] RESULT {(pass ? "PASS" : "FAIL")} ({why}; roofs {roofCount} toward ridge {roofsOk}; gable {gableOk}; door open {doorOpen}; window open {windowOpen}; hub {hubOk})");
+        }
+
+        private static int CabinKind(PieceCatalog catalog, string displayName)
+        {
+            if (catalog == null) return -1;
+            for (int i = 0; i < catalog.Count; i++)
+            {
+                PieceDefinition piece = catalog.Get(i);
+                if (piece != null && piece.DisplayName == displayName) return i;
+            }
+            return -1;
+        }
+
+        // Colliders in a box, ignoring the terrain and the player. Returns how many solid ones sit there.
+        private static int CabinSolid(Vector3 center, Vector3 halfExtents, Quaternion rotation, Collider[] probe)
+        {
+            int hits = Physics.OverlapBoxNonAlloc(center, halfExtents, probe, rotation, ~0, QueryTriggerInteraction.Ignore);
+            int solid = 0;
+            for (int i = 0; i < hits; i++)
+            {
+                Collider hit = probe[i];
+                if (hit == null || hit is TerrainCollider || hit is CharacterController) continue;
+                solid++;
+            }
+            return solid;
         }
 
         private static IEnumerator TeleportLocalPlayer(Vector2 position, float yaw)

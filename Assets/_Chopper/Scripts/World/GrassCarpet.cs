@@ -81,26 +81,27 @@ namespace Chopper.World
             if (Instance == this) Instance = null;
             _cells.Clear();
             _pixels = null;
-            if (_farMesh != null)
+            Release(ref _farMesh);
+            Release(ref _mesh);
+        }
+
+        static void Release(ref Mesh mesh)
+        {
+            if (mesh == null) return;
+            if (mesh.hideFlags == HideFlags.DontSave)
             {
-                if (Application.isPlaying) Destroy(_farMesh);
-                else DestroyImmediate(_farMesh);
-                _farMesh = null;
+                if (Application.isPlaying) Destroy(mesh);
+                else DestroyImmediate(mesh);
             }
-            if (_mesh != null)
-            {
-                if (Application.isPlaying) Destroy(_mesh);
-                else DestroyImmediate(_mesh);
-                _mesh = null;
-            }
+            mesh = null;
         }
 
         private bool Ready()
         {
             if (_material == null || _map == null) return false;
             if (!WorldGround.Exists) return false;
-            if (_mesh == null) _mesh = BuildClumpMesh(_seed);
-            if (_farMesh == null) _farMesh = BuildClumpMesh(_seed, 10, 2, 1.7f);
+            if (_mesh == null) _mesh = LoadTuft("prop_grass_tuft_voxel_a_carpet") ?? BuildClumpMesh(_seed);
+            if (_farMesh == null) _farMesh = LoadTuft("prop_grass_tuft_voxel_c_carpet") ?? BuildClumpMesh(_seed, 10, 2, 1.7f);
             if (_pixels == null)
             {
                 if (!_map.isReadable)
@@ -113,6 +114,19 @@ namespace Chopper.World
                 _mapHeight = _map.height;
             }
             return true;
+        }
+
+        // Voxel tufts from the world kit, vertex colour already in the Chopper/Grass channels (red = height).
+        // The smooth blade clump stays as the fallback when those meshes are not in the build.
+        static Mesh LoadTuft(string name)
+        {
+            var prefab = Resources.Load<GameObject>("Foliage/" + name);
+            if (prefab == null) return null;
+            var filter = prefab.GetComponentInChildren<MeshFilter>();
+            Mesh mesh = filter != null ? filter.sharedMesh : null;
+            if (mesh == null || mesh.vertexCount == 0) return null;
+            Debug.Log($"[GrassCarpet] clump {name} verts {mesh.vertexCount} size {mesh.bounds.size.x:F2} x {mesh.bounds.size.y:F2} x {mesh.bounds.size.z:F2}");
+            return mesh;
         }
 
         private void OnBeginCamera(ScriptableRenderContext context, Camera camera)

@@ -78,13 +78,14 @@ The user wants the whole world, not only the character, to read like `chopper-3D
 | W5-02a | Stand voxel pines, rock, stump, campfire props upright (prefabs carry a +90 X root override from the FBX import); Unity-side builder fix | done |
 | W5-02b | Lighting and post toward concept 1 (warmer sun, softer sky, haze); reversible | done |
 | W5-02c | Pixel textures on terrain layers | dropped: terrain becomes voxel blocks (W5-08) |
-| W5-05 | Voxel world kit `build_world_kit.py`: longhouse (replaces hub cabin, same footprint), torch post, grass tufts x3, bushes x2, clouds x3, block sun, path stones, optional mountain chunk; M_World vertex colour, same export settings as the pine | in progress (blender world-kit modeler) |
-| W5-06 | Swap the kit into the live world (cabin, torches, ferns to bushes, grass carpet to tufts, sky clouds and sun) through the editor builders | in progress: log longhouse replaces the cabin at runtime (`Resources/prop_longhouse_voxel`). Torches, tufts, clouds, and the sun are not swapped |
+| W5-05 | Voxel world kit `build_world_kit.py`: longhouse (replaces hub cabin, same footprint), torch post, grass tufts x3, bushes x2, clouds x3, block sun, path stones, optional mountain chunk; M_World vertex colour, same export settings as the pine | tufts and bushes exported; the longhouse mesh is no longer the hub |
+| W5-06 | Swap the kit into the live world (cabin, torches, ferns to bushes, grass carpet to tufts, sky clouds and sun) through the editor builders | cabin, grass tufts, and bushes are in. Torches, clouds, and the sun are not. Herbs are still the old red flowers |
 | W5-07 | Mountains: voxel look. Option A: shader-only blocky rock (no save break). Option B: terraced heights in WorldGen (save-version bump, needs user approval) | Option B approved by the user (saves do not matter); folded into W5-08 |
 | W5-08 | Voxel terrain: WorldGen heights rendered as block-column chunk meshes (grass-top dirt sides, stone, sand, snow), stepped mountains, block water, colliders; design first, then build | steps 1-4 done beside the Terrain collider. Play tour `site_tour4.log`: 376,056 tris, paint hidden. Website JPGs replaced from that tour. Steps 5+ not started. |
-| W5-02 | Voxel grass tufts and ground block look (grass top over dirt sides) | pending |
+| W5-02 | Voxel grass tufts and ground block look (grass top over dirt sides) | tufts are the grass carpet (`cabin_play3.log` loads the carpet meshes). Ground blocks were already W5-08 steps 1-4 |
 | W5-03 | Stepped voxel mountains and terrain edges | pending |
 | W5-04 | Water, sky, blocky clouds and sun, fog and mood | pending |
+| W5-09 | Double jump on the live player motor (asked 2026-10-12) | not started |
 
 The W2-00 notes are the Week 1 review risks. W2-01 to W2-03 closed them. Do not treat them as open work.
 

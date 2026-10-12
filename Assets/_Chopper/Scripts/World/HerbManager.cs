@@ -34,6 +34,7 @@ namespace Chopper.World
         [SerializeField] private GameConfig _config;
         [SerializeField] private GameObject _model;
         [SerializeField] private GameObject _fabricBushModel;
+        [SerializeField] private GameObject _foliageBushB;
 
         private Vector3[] _positions;
         private int _herbCount;
@@ -153,7 +154,8 @@ namespace Chopper.World
             {
                 float yaw = (float)rng.NextDouble() * 360f;
                 float scale = bushScale * Mathf.Lerp(0.7f, 1.35f, (float)rng.NextDouble());
-                GameObject view = Instantiate(_fabricBushModel, spots[i], Quaternion.Euler(0f, yaw, 0f), _root);
+                GameObject model = (i % 2 == 1 && _foliageBushB != null) ? _foliageBushB : _fabricBushModel;
+                GameObject view = Instantiate(model, spots[i], Quaternion.Euler(0f, yaw, 0f), _root);
                 view.name = "Bush_" + i;
                 view.transform.localScale = Vector3.one * scale;
                 foreach (Collider collider in view.GetComponentsInChildren<Collider>()) Destroy(collider);

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 90fb73daedfb1cc4dad9951a3bf5b7b1, type: 3}
+  m_Name: SO_Piece_Window
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.Building.PieceDefinition
+  _displayName: Log window
+  _prefab: {fileID: 5344541463073026459, guid: a0f20138b266d284bb33d0b315e391d5, type: 3}
+  _woodCost: 4
+  _fiberCost: 0
+  _health: 180
+  _size: {x: 2, y: 2, z: 0.3}
+  _snap: 1
+  _isWorkbench: 0
+  _icon: piece-doorway
+  _snapPoints:
+  - {x: -1, y: 0, z: 0}
+  - {x: 1, y: 0, z: 0}
+  - {x: -1, y: 2, z: 0}
+  - {x: 1, y: 2, z: 0}

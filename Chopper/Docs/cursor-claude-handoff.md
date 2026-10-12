@@ -1,58 +1,72 @@
-# Chopper handoff (2026-10-11, after the rate limit)
+# Chopper handoff (2026-10-12, cabin, foliage, stop)
 
-The live game and the art project are both on `main`. There is no `rebuild/chopper-assets` branch. Do not open another branch. Do not commit or push unless asked. Do not remodel the character from the concept images. Do not delete the Unity project at the repo root.
+The live game and the art project are both on `main`. Do not open another branch. Do not commit or push unless asked. Do not remodel the character from the concept images. Do not delete the Unity project at the repo root. Do not generate final meshes with AI image-to-3D. Hand-author them in Blender.
 
-Unity: `C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe`. Live project: `E:\Projects\project-chop`. Art project: `E:\Projects\project-chop\Chopper`. Blender: `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`. One Unity project at a time. Import may use `-nographics`. Screenshot checks must not. Trust `Exiting batchmode successfully` in the log. Mesh read/write stays on. Art-project capsule radius stays 0.37 m.
+Unity: `C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe`. Live project: `E:\Projects\project-chop`. Art project: `E:\Projects\project-chop\Chopper`. Blender: `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`. One Unity project at a time. Import may use `-nographics`. Screenshot checks must not. Mesh read/write stays on. Art-project capsule radius stays 0.37 m.
 
-## What the game is
+A batchmode Unity often stays alive after the method has already logged success, stuck in an asset-import worker. If the log already has the RESULT line and a new batch says another instance is running, stop that batchmode `Unity.exe` (the one whose command line is `-executeMethod`). Do not stop an editor the user opened themselves.
 
-Co-op survival, Valheim leaning, with Minecraft shapes. Concept art wins over the current cabin, the smooth mountains, and old saves. Gameplay systems stay (gather, build, fight, fish, network). Their look and the terrain shape change.
+## What the picture requires
 
-Visual target: block shapes, then crisp pixel textures (nearest filter, one texel size), Valheim lighting (fog, warm sun, cool shadows, bloom, grading), and motion (wind, fire flicker). That look pass is Week 7 and has not started.
+`chopper-3D-concept-2.0.jpg` is the look for the world, the character, and the objects. The home in that picture is a small log cabin: horizontal logs, a steep thatch roof, crossed beams at the gable peak, the door on the gable end, one small window. It is not the 12 × 9 m concept-1 longhouse.
 
-## Already in the live game
+The player must be able to build that cabin. The old pixel hammer pieces are not the goal.
 
-- Player body is `chopper.fbx`, humanoid, scale 1, controller height 1.8 m, radius 0.5 m. Hair on. Helmet, plate, and pauldrons off. Existing combat, fishing, and mining clips stay on that avatar. The held axe is still the old woodsman axe. `chopper_axe_bear.fbx` exists and is not on the player yet.
-- Trees and rocks are the voxel pine and rock. Felled trees leave `prop_stump_voxel`, scaled to the trunk. Campfire uses the voxel rock and log.
-- Props stand upright. The prefab root is a plain object and the FBX (which imports at +90 X) is a child. `CheckOrientation` after that fix: `RESULT PASS (0 props not upright)`.
-- Lighting pass is in: warmer sun, cooler ambient, thicker hub fog, bloom 0.30, saturation -12, SSAO radius 0.6. Hub frame time went from 5.6 ms to 5.1 ms at 2560x1440.
-- Grass carpet bends away from the player (push radius 1.25 m, `_PushStrength` 1.15). Herbs, ferns, and 700 decorative bushes lean through `GrassField`.
+## Hammer pieces (done this pass)
 
-## What Claude finished before the limit
+`Chopper/Art/Scripts/build_pieces.py` builds the meshes. Check: `Chopper/Art/Renders/piece_check_report.txt`, SUMMARY ALL PASS. Exports: `Chopper/Art/Export/piece_*_voxel.fbx`.
 
-- World audit: `Logs/chopper_play/world_audit/W5-01_audit.md`, 14 shots, 0 errors. Every voxel prop was lying on its side. That orientation bug is fixed (above).
-- Bear-head axe and the unarmoured base look (bracers split out of the belt). `check_assets` 115 PASS, 0 FAIL. `check_rig` 137 PASS, 0 FAIL. Renders: `Chopper/Art/Renders/base_look_*.png`, `axe_bear_*.png`. Unity's `ChopperCheck` still expects 12 skinned meshes and the FBX now has 13, so that check was not rerun.
-- World kit, Blender, `check` SUMMARY ALL PASS. Exports in `Chopper/Art/Export/`: longhouse, torch, grass tufts (and carpet variants), bushes, clouds, sun, path stone, mountain chunks, backdrop mountain, `terrain_blocks_voxel.fbx`, `terrain_palette.txt`. These files are not in the live scene yet.
-- Voxel terrain design, approved, half-block steps (0.5 m) so the player can walk them: `Logs/chopper_play/world_audit/W5-08_voxel_terrain_design.md`.
-- `WorldGround` facade started. Callers were only partly moved, and two of the edits did not compile (`BranchManager` and `SmokeTest` still named a `terrain` variable that no longer existed).
+`Chopper.Editor.ChopperPieceDress.Apply` copied them into `Assets/_Chopper/Art/Building/`, hid the old renderers, and parented each mesh under a child named `Voxel`. Colliders were left as they were. Log: `Logs/chopper_play/world_audit/piece_dress2.log`.
 
-## What was finished after the limit
+```
+[ChopperPieces] Piece_Wall height 2.00 base 0.00
+[ChopperPieces] Piece_Roof rises toward +Z True
+[ChopperPieces] RESULT PASS
+```
 
-Step 1: height, normal, steepness, the minimap, the grass carpet, building placement, the motor, and the dev tours read `WorldGround`, which still reads the Unity Terrain collider. Compile log: `Logs/chopper_play/world_audit/W5-08_step1_compile.log`.
+The process was stopped after that line. The log does not contain `Exiting batchmode successfully`.
 
-Steps 2 to 4: `VoxelColumns` (640 x 640 columns, 0.5 m steps), `BlockPalette` from `Chopper/Art/Export/terrain_palette.txt`, and `VoxelWorld` chunk meshes with shader `Chopper/Block`. On world build the terrain **paint** is hidden and the **collider stays**, so walking still uses the smooth ground. Batch check `Chopper.Editor.VoxelChecks.RunColumns`: CRC `D467EE29` matched on three runs, first build 89 ms, 382,074 triangles, palette file loaded. Log: `Logs/chopper_play/world_audit/W5-08_step2.log`, `RESULT PASS`, then `Exiting batchmode successfully`. Nobody has pressed Play to look at it.
+| Piece | What it is | Catalog |
+|---|---|---|
+| Floor, wall, doorway, roof, stairs | Old prefabs, new meshes. Floor is 2×2 planks. Wall, doorway, and window are horizontal logs, 2 m × 2 m, 0.25 m thick. Door opening is 1 m × 1.75 m. Roof is thatch on the old 45° slope (low at local −Z, high at +Z). Stairs are log treads on that same slope. | Indexes unchanged |
+| Window | New. Same snap points as a wall. | Appended |
+| Gable | New. Log triangle with the pale crossed beams. Snap points are only the bottom corners, so it sits on a wall top. | Appended last |
 
-## Do not do next
+Do not run `PieceBuilder.BuildAll`. It rebuilds the pieces from the pixel pack and can drop Window and Gable, because those two are not in its spec list. New pieces go on the end of `SO_PieceCatalog` so saved indexes stay valid.
 
-- Do not remove the Terrain collider yet. Step 5 is the switch, after a Play look at the blocks.
-- Do not start Week 7 (pixel textures, extra fog, wind on pines) before the Terrain collider is replaced.
-- Do not mark W2-05 done. A different reviewer still has to look at the renders.
-- The character paint (W6-03: V-spade beard, chunkier bear axe, painted atlas) was in progress and is not finished. Do not restart it from scratch. Look at `Chopper/Art/Scripts/` and the latest renders before editing.
+Workbench, standing torch, and campfire pieces are still the old models.
 
-## Website pictures
+Play has placed them (`cabin_play3.log`, RESULT PASS). The menu icons for window and gable reuse `piece-doorway` and `piece-roof`; the SVG pack is not in the repo.
 
-`Website/images/*.jpg` were replaced from a `-chopperSite` tour of a development player (1600 by 900). The shots show the Chopper body, the voxel pines, and the block ground. The block shader needed a small fill light or flat tops sat in black shadow; chunks do not cast shadows. The character creator is gone from the page. The logo and favicons were left as they are. The page was not published.
+## Hub hut (not the concept cabin)
 
-## Next safe step
+The hub is the concept 2.0 cabin built from the hammer pieces (door and gable on +Z, 2 m × 4 m). `Hut.DressCabin` hides the old pixel house. Bed, chest, and fireplace are moved inside. Repair is unchanged.
 
-Pines are planted 0.40 m (times tree scale) below the ground so the dirt pad is buried and the trunk comes out of the grass (`TreeManager.PineBuryMeters`). The hub cabin's walls and roof are hidden and `prop_longhouse_voxel` is parented on the hut (door toward +Z, footprint 12 x 9 m). Bed, chest, and fireplace stay. The rest of the world kit is not in the scene.
+## Ground and trees
 
-W5-08 step 5: point `WorldGround` at the columns, add chunk colliders, hide the Terrain, and raise the player step offset to 0.55. The collider is still the old terrain, so feet can sit slightly off a step. Then NavMesh.
+Pines are sunk `TreeManager.PineBuryMeters` (0.40 m times scale) so the dirt pad is buried. Stumps stay on the surface.
 
-## Still open, not this step
+Block columns, the palette, and the chunk mesh are in. On world build the terrain paint hides and `Chopper/Block` draws the steps. The Terrain collider is still what the player walks on. `WorldGround` still reads that Terrain. Batch check: `Logs/chopper_play/world_audit/W5-08_step2.log`, RESULT PASS, CRC `D467EE29`, 382,074 triangles. Chunks do not cast shadows (flat tops went black when they did).
 
-- Live player still holds the woodsman axe. Shield is not equipped.
-- W5-06 longhouse is in. Torches, grass tufts, clouds, and the block sun are still the old props.
-- W6-04 puts the base look and the bear axe on the live player after W6-03.
-- Look polish and W2-05 stay optional and separate.
-- Paid voxel plugins need an explicit yes. The design says not to use them.
+## Still open, in this order
+
+1. Double jump, asked for on 2026-10-12. Not started. Add it on the live player motor. Do not rewrite the rest of movement.
+2. W5-08 step 5: `WorldGround` reads the columns, chunk colliders, drop the Terrain collider, `stepOffset` 0.55, slide only when pushing into a riser taller than 1 m. Design: `Logs/chopper_play/world_audit/W5-08_voxel_terrain_design.md`. Then snap tree Y onto the block top (step 7), or the buried pines will float off the new surface.
+3. Workbench, torch, and campfire piece meshes. A voxel torch already exists at `Chopper/Art/Export/prop_torch_voxel.fbx`. The standing torches in the yard are still the old posts.
+4. Clouds and the block sun. Healing herbs are still the old red flowers; there is no voxel herb in the world kit.
+5. The bear axe on the live player. Do not restart W6-03 from scratch. Do not mark W2-05 done.
+6. Website pictures of the hut, fishing, and the world. The page still has the old JPGs. A release player was built at `Builds/Site/Chopper.exe` and a `-chopperSite` run was started, then stopped before any shot was written. The hut and night cameras in that tour now aim at the new cabin. Do not publish.
+
+## Cabin and foliage (2026-10-12)
+
+Play tour `-chopperCabin`: `Logs/chopper_play/world_audit/cabin_play3.log` `[Cabin] RESULT PASS`. Shots in `Logs/chopper_play/world_audit/cabin3/` (`cabin_front.png`, `hub_front.png`). Hub mesh bounds 2.30 × 4.22 × 4.30 m. The longhouse is gone. Bed, chest, fireplace, and repair stay. The carry cap is 40 wood, so the tour refills before the gable and the roofs.
+
+`ChopperFoliageSwap.Apply` (`foliage_swap.log`, RESULT PASS) copies the world-kit tufts and bushes in. The grass carpet instances `prop_grass_tuft_voxel_a_carpet` up close and `prop_grass_tuft_voxel_c_carpet` farther out. Ferns and the decorative bushes are `prop_bush_voxel_a` and `prop_bush_voxel_b`. Foliage walk: `foliage_walk3.log` `[Foliage] RESULT PASS` (lean 27.3 deg mid-walk, 0 after). Shot `foliage3/foliage_b_mid_walk.png`.
+
+The build menu has no new silhouettes: the game-icons SVG pack is not in the repo. Window uses `piece-doorway`, gable uses `piece-roof`.
+
+## Do not
+
+- Do not remodel Chopper or replace the live Animator controller.
+- Do not turn chunk shadow casting back on without a bias fix.
+- Do not use a paid voxel plugin without an explicit yes.

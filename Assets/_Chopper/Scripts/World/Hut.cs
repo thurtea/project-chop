@@ -2,6 +2,7 @@ using Chopper.Audio;
 using Chopper.Core;
 using Chopper.Enemies;
 using Chopper.Player;
+using Chopper.World.Building;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
@@ -68,67 +69,114 @@ namespace Chopper.World
         private void Awake()
         {
             Instance = this;
-            DressLonghouse();
         }
 
-        // Concept 2.0's home is a log longhouse, not the pixel cabin. The bed, chest, fireplace, and floor stay.
-        // The longhouse is 12 m on X and 9 m on Z, door on +Z (build_world_kit.py).
-        void DressLonghouse()
+        private void Start()
         {
-            var prefab = Resources.Load<GameObject>("prop_longhouse_voxel");
-            if (prefab == null) return;
+            DressCabin();
+        }
 
+        // Concept 2.0's home is a small log cabin: door on the gable (+Z), one window, two thatch slopes.
+        // The bed, chest, and fireplace move inside. The old pixel house and the longhouse stay hidden.
+        void DressCabin()
+        {
             Transform house = null;
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
                 if (child.name == "House") { house = child; break; }
 
             if (house != null)
             {
-                foreach (Renderer renderer in house.GetComponentsInChildren<Renderer>(true))
-                {
-                    if (Kept(renderer.transform)) continue;
-                    renderer.enabled = false;
-                }
-                foreach (Collider collider in house.GetComponentsInChildren<Collider>(true))
-                {
-                    if (Kept(collider.transform) || collider.gameObject.name == "FloorCollider") continue;
-                    collider.enabled = false;
-                }
-                Transform floor = house.Find("FloorCollider");
-                if (floor != null && floor.TryGetComponent(out BoxCollider box))
-                    box.size = new Vector3(11.2f, box.size.y, 8.2f);
+                HideOldHouse();
+                MoveInside(house, "Fireplace", new Vector3(0f, 0.1f, -1.55f), Quaternion.identity);
+                MoveInside(house, "Bed", new Vector3(0f, 0.1f, 0.15f), Quaternion.Euler(0f, 90f, 0f));
+                MoveInside(house, "StorageChest", new Vector3(0f, 0.1f, 1.7f), Quaternion.identity);
             }
 
-            var longhouse = Instantiate(prefab, transform);
-            longhouse.name = "Longhouse";
-            longhouse.transform.localPosition = Vector3.zero;
-            longhouse.transform.localRotation = Quaternion.identity;
-            longhouse.transform.localScale = Vector3.one;
-            AddWall(longhouse.transform, new Vector3(0f, 1.375f, -4.5f), new Vector3(12.5f, 2.75f, 0.5f));
-            AddWall(longhouse.transform, new Vector3(-6f, 1.375f, 0f), new Vector3(0.5f, 2.75f, 9f));
-            AddWall(longhouse.transform, new Vector3(6f, 1.375f, 0f), new Vector3(0.5f, 2.75f, 9f));
-            AddWall(longhouse.transform, new Vector3(-3.375f, 1.375f, 4.5f), new Vector3(5.25f, 2.75f, 0.5f));
-            AddWall(longhouse.transform, new Vector3(3.375f, 1.375f, 4.5f), new Vector3(5.25f, 2.75f, 0.5f));
-            _houseHalfExtents = new Vector2(6f, 4.5f);
+            var root = new GameObject("Cabin").transform;
+            root.SetParent(transform, false);
+            // 2 m wide, 4 m deep, centered on the hut. Door and gable face +Z. Roofs meet on the ridge at z = 0.
+            Put(root, "Wood floor", new Vector3(0f, 0f, -1f), 0f);
+            Put(root, "Wood floor", new Vector3(0f, 0f, 1f), 0f);
+            Put(root, "Doorway", new Vector3(0f, 0f, 2f), 0f);
+            Put(root, "Wood wall", new Vector3(0f, 0f, -2f), 0f);
+            Put(root, "Wood wall", new Vector3(-1f, 0f, -1f), 90f);
+            Put(root, "Wood wall", new Vector3(-1f, 0f, 1f), 90f);
+            Put(root, "Log window", new Vector3(1f, 0f, -1f), 90f);
+            Put(root, "Wood wall", new Vector3(1f, 0f, 1f), 90f);
+            Put(root, "Log gable", new Vector3(0f, 2f, 2f), 0f);
+            Put(root, "Roof", new Vector3(0f, 2f, -1f), 0f);
+            Put(root, "Roof", new Vector3(0f, 2f, 1f), 180f);
+            _houseHalfExtents = new Vector2(1f, 2f);
+        }
+
+        static void MoveInside(Transform house, string name, Vector3 localPosition, Quaternion localRotation)
+        {
+            Transform prop = house.Find(name);
+            if (prop == null) return;
+            prop.localPosition = localPosition;
+            prop.localRotation = localRotation;
+        }
+
+        void Put(Transform root, string displayName, Vector3 localPosition, float yaw)
+        {
+            PieceCatalog catalog = BuildManager.Instance != null ? BuildManager.Instance.Catalog : null;
+            GameObject prefab = null;
+            if (catalog != null)
+            {
+                for (int i = 0; i < catalog.Count; i++)
+                {
+                    PieceDefinition piece = catalog.Get(i);
+                    if (piece != null && piece.DisplayName == displayName) { prefab = piece.Prefab; break; }
+                }
+            }
+            if (prefab == null)
+            {
+                Debug.LogWarning("[Hut] missing piece " + displayName);
+                return;
+            }
+            GameObject copy = Instantiate(prefab, root);
+            copy.name = displayName;
+            copy.transform.localPosition = localPosition;
+            copy.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
+            copy.transform.localScale = Vector3.one;
+        }
+
+        void HideOldHouse()
+        {
+            Transform house = null;
+            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                if (child.name == "House") { house = child; break; }
+            if (house == null) return;
+            foreach (Renderer renderer in house.GetComponentsInChildren<Renderer>(true))
+            {
+                if (Kept(renderer.transform)) continue;
+                renderer.enabled = false;
+            }
+            foreach (Collider collider in house.GetComponentsInChildren<Collider>(true))
+            {
+                if (Kept(collider.transform)) continue;
+                collider.enabled = false;
+            }
         }
 
         static bool Kept(Transform t)
         {
             while (t != null)
             {
-                if (t.name is "Bed" or "StorageChest" or "Fireplace" or "Workbench" or "Longhouse") return true;
+                if (t.name is "Bed" or "StorageChest" or "Fireplace" or "Workbench") return true;
                 t = t.parent;
             }
             return false;
         }
 
-        static void AddWall(Transform parent, Vector3 center, Vector3 size)
+        static bool UnderCabin(Transform t)
         {
-            var wall = new GameObject("LonghouseWall");
-            wall.transform.SetParent(parent, false);
-            wall.transform.localPosition = center;
-            var box = wall.AddComponent<BoxCollider>();
-            box.size = size;
+            while (t != null)
+            {
+                if (t.name == "Cabin") return true;
+                t = t.parent;
+            }
+            return false;
         }
 
         private void OnDestroy()
@@ -143,6 +191,7 @@ namespace Chopper.World
             _health.OnChange += OnHealthChanged;
             _repaired.OnChange += OnRepairedChanged;
             ApplyRuinLook();
+            HideOldHouse();
         }
 
         public override void OnStopClient()
@@ -174,6 +223,7 @@ namespace Chopper.World
             }
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>())
             {
+                if (UnderCabin(renderer.transform)) continue;
                 if (!ruined)
                 {
                     renderer.SetPropertyBlock(null);
