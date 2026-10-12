@@ -642,8 +642,8 @@ namespace Chopper.Networking
                 Debug.Log($"[House] upstairs across the floor at {upstairs:F2} m; basement at {basement:F2} m, up its stairs to {fromBasement:F2} m");
                 InputSystem.RemoveDevice(walkPad);
 
-                // Enemy paths out of the house (open item: one woken in the basement had only a partial path out).
-                // Information only: each floor to the front yard on the baked NavMesh, and where a partial path stops.
+                // Each floor to the front yard. PathComplete means the doorway and the stairs are on the NavMesh.
+                bool pathsOut = true;
                 {
                     Vector3 yard = home + new Vector3(1f, 0f, 12f) * hs;
                     yard.y = WorldGround.HeightAt(yard);
@@ -653,17 +653,19 @@ namespace Chopper.Networking
                         Vector3 from = home + local * hs;
                         if (!yardOnMesh || !UnityEngine.AI.NavMesh.SamplePosition(from, out UnityEngine.AI.NavMeshHit fromHit, 1.5f, UnityEngine.AI.NavMesh.AllAreas))
                         {
+                            pathsOut = false;
                             Debug.Log($"[House] nav {floor}: {(yardOnMesh ? "no NavMesh on this floor" : "no NavMesh in the yard")}");
                             continue;
                         }
                         var path = new UnityEngine.AI.NavMeshPath();
                         UnityEngine.AI.NavMesh.CalculatePath(fromHit.position, yardHit.position, UnityEngine.AI.NavMesh.AllAreas, path);
+                        if (path.status != UnityEngine.AI.NavMeshPathStatus.PathComplete) pathsOut = false;
                         Vector3 end = path.corners.Length > 0 ? path.corners[path.corners.Length - 1] - home : Vector3.zero;
                         Debug.Log($"[House] nav {floor}: {path.status}, {path.corners.Length} corners, ends at {end.x / hs:F1},{end.y / hs:F1},{end.z / hs:F1} piece-m from the hut (yard at 1,?,12)");
                     }
                 }
 
-                bool houseOk = beds == 2 && benches == 2 && atDoor > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
+                bool houseOk = pathsOut && beds == 2 && benches == 2 && atDoor > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
                                && atTop > 2f * storey - 0.2f && upstairs > 2f * storey - 0.2f && basement < 0.6f && fromBasement > storey - 0.2f;
                 Debug.Log("[House] RESULT " + (houseOk ? "PASS" : "FAIL"));
                 Application.Quit(houseOk ? 0 : 1);

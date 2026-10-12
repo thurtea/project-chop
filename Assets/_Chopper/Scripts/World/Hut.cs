@@ -198,7 +198,31 @@ namespace Chopper.World
                 second.name = "Workbench";
                 PlaceAt(second, Spot(-1f, 0f, 2.8f), 0f);
             }
+            OpenEnemyPaths(root);
             _houseHalfExtents = HouseHalfSize;
+        }
+
+        // The old house carved its whole floor out of the NavMesh (KeepOut), and that box still crossed the new
+        // doorway, so an enemy inside the hall had no complete path to the yard. The stair pieces also carved away
+        // their own treads. Walls and doorway jambs still block; the opening and a link up each flight stay open.
+        void OpenEnemyPaths(Transform cabin)
+        {
+            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                if (child.name == "KeepOut") child.gameObject.SetActive(false);
+            foreach (Transform piece in cabin)
+            {
+                if (piece.name != "Stairs") continue;
+                foreach (UnityEngine.AI.NavMeshObstacle obstacle in piece.GetComponentsInChildren<UnityEngine.AI.NavMeshObstacle>(true))
+                    obstacle.enabled = false;
+                var link = piece.gameObject.AddComponent<Unity.AI.Navigation.NavMeshLink>();
+                // The link ignores the object's scale, so the piece-metre ends are scaled here. Stairs rise from
+                // local -Z on the lower floor to local +Z, 2 m up.
+                Vector3 scale = piece.lossyScale;
+                link.startPoint = Vector3.Scale(scale, new Vector3(0f, 0.2f, -1.4f));
+                link.endPoint = Vector3.Scale(scale, new Vector3(0f, 2.15f, 1.4f));
+                link.width = 1.2f;
+                link.bidirectional = true;
+            }
         }
 
         // The porch of concept 2.0: a plank deck at the main floor in front of the door, a short flight up from the

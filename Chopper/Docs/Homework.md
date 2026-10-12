@@ -64,9 +64,9 @@ pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 unity VoxelChecks.ZoneSeal
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode                 # expect: EditMode: Passed - total 294, passed 294, failed 0
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build                    # expect: error CS lines: 0 and Build Finished, Result: Success
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Mine                # expect: [Mine] RESULT PASS (out by the ladder)
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour House               # expect: [House] RESULT PASS, and three "[House] nav" lines
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour House               # expect: [House] RESULT PASS, and three "[House] nav" lines each saying PathComplete
 ```
-- Report: the lines each command printed. For `tour House`, paste all three `[House] nav` lines, even if they say PathPartial: they show where enemies get stuck leaving the house.
+- Report: the lines each command printed. For `tour House`, paste all three `[House] nav` lines. Each should say PathComplete (an enemy on that floor can leave through the door).
 
 ### HW-8 Minimap and ring peaks (look)
 In the new build, open the map (M) and walk to the hub's edge.
