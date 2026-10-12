@@ -620,6 +620,27 @@ namespace Chopper.Networking
                 Debug.Log($"[House] upstairs across the floor at {upstairs:F2} m; basement at {basement:F2} m, up its stairs to {fromBasement:F2} m");
                 InputSystem.RemoveDevice(walkPad);
 
+                // Enemy paths out of the house (open item: one woken in the basement had only a partial path out).
+                // Information only: each floor to the front yard on the baked NavMesh, and where a partial path stops.
+                {
+                    Vector3 yard = home + new Vector3(1f, 0f, 12f) * hs;
+                    yard.y = WorldGround.HeightAt(yard);
+                    bool yardOnMesh = UnityEngine.AI.NavMesh.SamplePosition(yard, out UnityEngine.AI.NavMeshHit yardHit, 3f, UnityEngine.AI.NavMesh.AllAreas);
+                    foreach ((string floor, Vector3 local) in new[] { ("basement", new Vector3(-3f, 0f, 2f)), ("main floor", new Vector3(-2f, 2f, 0f)), ("loft", new Vector3(-1f, 4f, -0.5f)) })
+                    {
+                        Vector3 from = home + local * hs;
+                        if (!yardOnMesh || !UnityEngine.AI.NavMesh.SamplePosition(from, out UnityEngine.AI.NavMeshHit fromHit, 1.5f, UnityEngine.AI.NavMesh.AllAreas))
+                        {
+                            Debug.Log($"[House] nav {floor}: {(yardOnMesh ? "no NavMesh on this floor" : "no NavMesh in the yard")}");
+                            continue;
+                        }
+                        var path = new UnityEngine.AI.NavMeshPath();
+                        UnityEngine.AI.NavMesh.CalculatePath(fromHit.position, yardHit.position, UnityEngine.AI.NavMesh.AllAreas, path);
+                        Vector3 end = path.corners.Length > 0 ? path.corners[path.corners.Length - 1] - home : Vector3.zero;
+                        Debug.Log($"[House] nav {floor}: {path.status}, {path.corners.Length} corners, ends at {end.x / hs:F1},{end.y / hs:F1},{end.z / hs:F1} piece-m from the hut (yard at 1,?,12)");
+                    }
+                }
+
                 bool houseOk = beds == 2 && benches == 2 && atDoor > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
                                && atTop > 2f * storey - 0.2f && upstairs > 2f * storey - 0.2f && basement < 0.6f && fromBasement > storey - 0.2f;
                 Debug.Log("[House] RESULT " + (houseOk ? "PASS" : "FAIL"));
@@ -2154,10 +2175,8 @@ namespace Chopper.Networking
                 for (int room = 1; room < first.Rooms.Count; room++)
                 {
                     Vector3 c = first.RoomCenter(room);
-                    wood.transform.position = c + Vector3.up * 0.1f;
-                    var nt = wood.GetComponent<FishNet.Component.Transforming.NetworkTransform>();
-                    if (nt != null) nt.Teleport();
-                    mineCam.SnapYaw(room * 90f);
+                    // TeleportExact: a bare transform move was snapped back by the controller and the server speed check.
+                    yield return TeleportExact(c + Vector3.up * 0.1f, room * 90f);
                     yield return new WaitForSeconds(0.8f);
                     ui.DebugShow(0); yield return Shot(folder, $"mine_chamber_{room}");
                 }
@@ -2212,15 +2231,16 @@ namespace Chopper.Networking
                 yield return Shot(folder, "mine_bag");
                 ui.DebugShow(0);
 
-                // Out by the ladder.
-                wood.transform.position = first.ExitSpot + Vector3.up * 0.1f;
-                var nt3 = wood.GetComponent<FishNet.Component.Transforming.NetworkTransform>();
-                if (nt3 != null) nt3.Teleport();
+                // Out by the ladder. TeleportExact, not a bare transform move: that was snapped back to the vein just
+                // struck (the speed check), so the prompt showed the vein and the ladder press did nothing.
+                yield return TeleportExact(first.ExitSpot + Vector3.up * 0.1f, first.LadderYaw + 180f);   // facing the ladder
                 yield return new WaitForSeconds(0.6f);
                 ui.DebugShow(0); yield return Shot(folder, "mine_ladder_prompt");
                 miner.TryInteract();
                 yield return new WaitForSeconds(2f);
                 Debug.Log($"[Mine] after the ladder: at {wood.transform.position:F1}, distance to the portal {Vector3.Distance(wood.transform.position, first.DoorSpot):F1}");
+                bool backUp = Chopper.World.Generation.MineWorld.MineAt(wood.transform.position) < 0 && wood.transform.position.y > -50f;
+                Debug.Log("[Mine] RESULT " + (backUp ? "PASS (out by the ladder)" : "FAIL (still in the mine after the ladder)"));
                 Debug.Log("[Shot] done");
                 Application.Quit(0);
                 yield break;

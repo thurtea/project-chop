@@ -1,6 +1,6 @@
 """Author Chopper's takes on chopper_rig: Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, LandHard, Roll,
 SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact, Death, and the fishing takes FishWait, FishCast, FishFight
-and FishCatch.
+and FishCatch, and Gather.
 
 Movement style (user, 2026-10-12): no ragdoll looseness. Blocky and snappy like Minecraft and survival ARPGs: the
 torso and head stay rigid (no hip twist, no spine sway, no head bob), the arms swing as near-straight pendulums, the
@@ -627,10 +627,23 @@ def fish_pose(name, length):
     return pose
 
 
+# Gathering (open item after fishing: the library pick-up was the last motion capture on the Work layer): crouch and
+# reach low in front of the right foot, close the hand, lift it to the chest, stand up. Reach values searched on the
+# rig (hand 9 mm from a point 0.30 m above the ground, in front of the right toes, with the body bent 40 deg and
+# lowered 0.30 m).
+GATHER_REACH = (38, 90, -20, 5, 0)
+GATHER_LEN = 30        # one-shot, 1.0 s
+FISH_KEYS["Gather"] = [_k(0.00, (0, 0, 0, 0, 0)),
+                       _k(0.38, GATHER_REACH, lean=40, drop=0.30),
+                       _k(0.52, GATHER_REACH[:4] + (-25,), lean=40, drop=0.30),
+                       _k(0.76, FISH_FIGHT, lean=8, drop=0.06),
+                       _k(1.00, (0, 0, 0, 0, 0))]
+
 fish_wait_pose = fish_pose("FishWait", FISH_WAIT_LEN)
 fish_cast_pose = fish_pose("FishCast", FISH_CAST_LEN)
 fish_fight_pose = fish_pose("FishFight", FISH_FIGHT_LEN)
 fish_catch_pose = fish_pose("FishCatch", FISH_CATCH_LEN)
+gather_pose = fish_pose("Gather", GATHER_LEN)
 
 attack1_pose = chop_pose("Attack_1", ATTACK1_LEN)
 attack2_pose = chop_pose("Attack_2", ATTACK2_LEN)
@@ -750,6 +763,7 @@ def main():
         ("FishCast", FISH_CAST_LEN, fish_cast_pose, False),
         ("FishFight", FISH_FIGHT_LEN, fish_fight_pose, True),
         ("FishCatch", FISH_CATCH_LEN, fish_catch_pose, False),
+        ("Gather", GATHER_LEN, gather_pose, False),
     )
     for name, length, fn, loop in clips:
         rig.max_reach = 0.0

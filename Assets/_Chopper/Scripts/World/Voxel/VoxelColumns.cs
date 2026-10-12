@@ -24,6 +24,15 @@ namespace Chopper.World.Voxel
             return Inside(x, z);
         }
 
+        // Top block type of the column that holds a world position (Grass off the table). Read-only, so the minimap's
+        // worker threads may call it.
+        public BlockType TypeAtWorld(float wx, float wz)
+        {
+            int x = Mathf.FloorToInt(wx + WorldGen.HalfSize);
+            int z = Mathf.FloorToInt(wz + WorldGen.HalfSize);
+            return Inside(x, z) ? TypeAt(x, z) : BlockType.Grass;
+        }
+
         readonly short[] _top;
         readonly byte[] _type;
 

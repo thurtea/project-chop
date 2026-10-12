@@ -89,7 +89,7 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 ### H. Crypts and mines
 - [ ] `crypts` lists them; `tp crypt 1` takes you to a door. Go in, take the stairs, find the vault and loot, and come back up.
 - [ ] Mines sit in notches at the mountain foot. Go through the portal, strike a vein (it glows), and keep a find.
-  Known issue: at the mine's ladder exit the prompt can pick the spent vein beside it instead of the ladder. Step away from the vein and try again.
+- [ ] Climb out by the ladder in the first chamber (E at its foot): you come back up beside the mine's portal. (The earlier "ladder does nothing" came from the test tour's teleport, not the game; check it here.)
 
 ### I. Co-op (if a second PC is free)
 - [ ] Host, share the six-character code, and join from the second PC. Both players see the same world, house and trees.

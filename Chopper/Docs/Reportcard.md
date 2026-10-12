@@ -17,6 +17,9 @@ Status values: `PASS`, `FAIL`, `SKIP`, or for decisions the answer itself (for e
 | HW-4 | Hut floors and basement |  |  |  |
 | HW-5 | Herb colour: KEEP or YELLOWER |  |  |  |
 | HW-6 | Website screenshots folder |  |  |  |
+| HW-7 | Rebuild and checks (blender, player, ZoneSeal, editmode, build, tour Mine, tour House) |  |  |  |
+| HW-8 | Minimap and ring peaks |  |  |  |
+| HW-9 | Gather motion |  |  |  |
 
 ## History
 

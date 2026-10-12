@@ -102,6 +102,8 @@ namespace Chopper.World.Generation
         // Every mountain riser is this tall: above the 3.05 m a player reaches (double jump 2.4 m plus the 0.65 step)
         // even where the ground under it already falls 1 m (4 m leaked there on seed 4242).
         public const float MountainStep = 4.5f;
+        // Peaks on the ring crest rise up to this much above it (two risers), most of them less.
+        public const float RingPeakHeight = 9f;
         // Block tops above this are snow: only the ridge tops (up to 27 m); the 18 m ring crest stays stone (concept 2.0 caps the tips).
         public const float SnowLine = 22f;
         // How much of the wall follows the ledges (the rest stays the plain slope, so ledges tilt a little).
@@ -345,6 +347,15 @@ namespace Chopper.World.Generation
             float gully = groove * groove * groove * GullyDepth * 4f * weight * (1f - weight);
 
             float crest = (_ridges.Fbm(x * 0.09f + 57f, z * 0.09f, 2) - 0.5f) * 2f * CrestBreakHeight * weight * weight * weight;
+            // Separate peaks along the ring (open item: the ring read as one long wall, concept 2.0 shows stepped
+            // peaks). Only near the crest, irregular around the ring, gone at the passes (ring is 0 there), and only
+            // ever added, so no new low point opens a way over (VoxelChecks.ZoneSeal).
+            if (ring > 0.5f)
+            {
+                float around = Mathf.Atan2(z, x) * RingRadius;
+                float peak = Mathf.Clamp01((_ridges.Sample(around * 0.035f + 191f, 3.7f) - 0.45f) * 2.4f);
+                wall += peak * peak * RingPeakHeight * Smooth(0.5f, 1f, ring);
+            }
             float rubble = _ridges.Fbm(x * 0.12f - 91f, z * 0.12f, 2) * ApronHeight * apron;
             // Block mountains (W5-08 step 9): the whole mountain share moves in MountainStep risers, so on a mountain
             // two neighbouring columns differ by the ground's own half-block wobble (a shelf) or by a full riser that

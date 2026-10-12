@@ -29,6 +29,7 @@ namespace Chopper.UI
         private static readonly Color Deep = new Color(0.12f, 0.3f, 0.46f);
         private static readonly Color Shore = new Color(0.1f, 0.2f, 0.27f);
         private static readonly Color Sand = new Color(0.8f, 0.74f, 0.55f);
+        private static readonly Color Snow = new Color(0.92f, 0.93f, 0.95f);
         // North west sun, fairly high, for the hill shading.
         private static readonly Vector3 Sun = new Vector3(-0.6f, 1.1f, 0.6f).normalized;
 
@@ -76,7 +77,11 @@ namespace Chopper.UI
                 waterY[i] = water.SurfaceY;
             }
 
-            float HeightAt(float wx, float wz) => snap.HeightAt(wx, wz);
+            // W5-08 step 12: on the block world the map reads the columns, so hill shading draws the terrace steps and
+            // each block type keeps its colour. The smooth terrain snapshot is the fallback (and gives the map square).
+            Chopper.World.Voxel.VoxelColumns columns = Chopper.World.Voxel.VoxelColumns.Current;
+            float HeightAt(float wx, float wz) =>
+                columns != null && columns.TryTopAt(wx, wz, out float top) ? top : snap.HeightAt(wx, wz);
 
             float DepthAt(float wx, float wz, float ground)
             {
@@ -111,6 +116,19 @@ namespace Chopper.UI
                     Element zone = ZoneMap.ElementAt(wx, wz, hubRadius);
                     Color color = Color.Lerp(ZonePalette.Ground(zone) * 1.15f, Parchment, 0.25f);
                     if (gen != null) color = Color.Lerp(color, Trodden, gen.PathWeight(wx, wz) * 0.85f);
+                    if (columns != null)
+                    {
+                        // Block types: stone and snow on the mountains (with contour lines), sand, trodden paths.
+                        Chopper.World.Voxel.BlockType type = columns.TypeAtWorld(wx, wz);
+                        bool rock = type == Chopper.World.Voxel.BlockType.Stone || type == Chopper.World.Voxel.BlockType.Snow;
+                        stones[i] = rock ? 1f : 0f;
+                        if (type == Chopper.World.Voxel.BlockType.Stone) color = Stone;
+                        else if (type == Chopper.World.Voxel.BlockType.Snow) color = Snow;
+                        else if (type == Chopper.World.Voxel.BlockType.Sand) color = Sand;
+                        else if (type == Chopper.World.Voxel.BlockType.Path) color = Trodden;
+                        land[i] = color;
+                        continue;
+                    }
                     // The mountains read as grey stone; without the generator, any high ground does.
                     float stone = gen != null ? Mathf.Clamp01(gen.MountainWeight(wx, wz) * 2.5f) : Mathf.Clamp01((h - MountainHeight) / 10f);
                     stones[i] = stone;

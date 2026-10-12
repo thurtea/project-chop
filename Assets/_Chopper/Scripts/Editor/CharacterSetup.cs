@@ -463,7 +463,7 @@ namespace Chopper.Editor
             AnimationClip cast = ChopperTake("FishCast") ?? CraftingClip("Fishing/HumanM@FishingThrow01");
             AnimationClip fight = ChopperTake("FishFight") ?? CraftingClip("Fishing/HumanM@FishingFighting01");
             AnimationClip pull = ChopperTake("FishCatch") ?? CraftingClip("Fishing/HumanM@FishingPullOut01");
-            AnimationClip gather = CraftingClip("Gathering/HumanM@Gathering01");
+            AnimationClip gather = ChopperTake("Gather") ?? CraftingClip("Gathering/HumanM@Gathering01");
             if (wait == null || cast == null || fight == null || pull == null || gather == null)
             {
                 Debug.LogWarning($"[CharacterSetup] Crafting clips missing from {CraftingFolder}; no fishing or gathering motions.");
