@@ -1,6 +1,6 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (2138172 bytes)
+  [PASS] file exists: Export\chopper.fbx (3560380 bytes)
   [PASS] file exists: Export\chopper_axe.fbx (32268 bytes)
   [PASS] file exists: Export\chopper_axe_bear.fbx (30748 bytes)
   [PASS] file exists: Export\chopper_shield.fbx (40556 bytes)
@@ -14,13 +14,21 @@ RAW FBX: chopper.fbx
   [PASS] mesh models are exactly the modules: ['chopper_beard', 'chopper_belt', 'chopper_body', 'chopper_boots', 'chopper_bracers', 'chopper_chainmail', 'chopper_hair', 'chopper_head', 'chopper_helmet', 'chopper_pauldrons', 'chopper_plate', 'chopper_shirt', 'chopper_vest']
   [PASS] take Idle present, frames 0.00-60.00 (expected 0-60 = 2.00 s at 30 fps)
   [PASS] take Walk present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
-  [PASS] take Run present, frames 0.00-20.00 (expected 0-20 = 0.67 s at 30 fps)
+  [PASS] take Run present, frames 0.00-18.00 (expected 0-18 = 0.60 s at 30 fps)
+  [PASS] take Sprint present, frames 0.00-16.00 (expected 0-16 = 0.53 s at 30 fps)
+  [PASS] take CrouchIdle present, frames 0.00-40.00 (expected 0-40 = 1.33 s at 30 fps)
+  [PASS] take CrouchWalk present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
+  [PASS] take Air present, frames 0.00-20.00 (expected 0-20 = 0.67 s at 30 fps)
+  [PASS] take LandHard present, frames 0.00-18.00 (expected 0-18 = 0.60 s at 30 fps)
+  [PASS] take Roll present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
+  [PASS] take SwimIdle present, frames 0.00-40.00 (expected 0-40 = 1.33 s at 30 fps)
+  [PASS] take Swim present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
   [PASS] take Attack_1 present, frames 0.00-22.00 (expected 0-22 = 0.73 s at 30 fps)
   [PASS] take Attack_2 present, frames 0.00-22.00 (expected 0-22 = 0.73 s at 30 fps)
   [PASS] take Attack_3 present, frames 0.00-28.00 (expected 0-28 = 0.93 s at 30 fps)
   [PASS] take HitReact present, frames 0.00-15.00 (expected 0-15 = 0.50 s at 30 fps)
-  [PASS] take Death present, frames 0.00-36.00 (expected 0-36 = 1.20 s at 30 fps)
-  [PASS] takes are exactly ['Attack_1', 'Attack_2', 'Attack_3', 'Death', 'HitReact', 'Idle', 'Run', 'Walk'] (found ['Attack_1', 'Attack_2', 'Attack_3', 'Death', 'HitReact', 'Idle', 'Run', 'Walk'])
+  [PASS] take Death present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
+  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
 
 IMPORTED chopper.fbx
 ------------------------------------------------------------------------
@@ -90,49 +98,100 @@ TAKE Walk (imported)
   [PASS] imported frame range 1-31 (expected 1-31)
   [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
   frame  minZ_L   minZ_R   planted  slip(m/frame vs ground 0.75 m/s)
-      1  +0.0000  +0.0000  Left    0.0000
+      1  -0.0000  +0.0000  Left    0.0000
       2  -0.0000  +0.0000  Left    0.0001
       3  -0.0000  +0.0000  Left    0.0002
-      4  +0.0000  +0.0000  Left    0.0004
-      5  -0.0000  +0.0322  Left    0.0000
-      6  +0.0000  +0.0457  Left    0.0000
+      4  -0.0000  +0.0000  Left    0.0004
+      5  +0.0000  +0.0322  Left    0.0000
+      6  -0.0000  +0.0457  Left    0.0000
       7  -0.0000  +0.0526  Left    0.0000
       8  -0.0000  +0.0550  Left    0.0000
-      9  +0.0000  +0.0538  Left    0.0000
+      9  -0.0000  +0.0538  Left    0.0000
      10  -0.0000  +0.0500  Left    0.0000
-     11  +0.0000  +0.0440  Left    0.0000
+     11  -0.0000  +0.0440  Left    0.0000
      12  -0.0000  +0.0366  Left    0.0000
      13  -0.0000  +0.0281  Left    0.0000
      14  +0.0000  +0.0189  Left    0.0000
-     15  +0.0000  +0.0095  Left    0.0000
-     16  +0.0000  +0.0000  Left    0.0000
+     15  -0.0000  +0.0095  Left    0.0000
+     16  -0.0000  +0.0000  Left    0.0000
      17  -0.0000  -0.0000  Right   0.0001
-     18  +0.0000  -0.0000  Right   0.0002
-     19  +0.0000  +0.0000  Left    0.0004
+     18  -0.0000  -0.0000  Right   0.0002
+     19  -0.0000  -0.0000  Right   0.0004
      20  +0.0322  +0.0000  Right   0.0000
-     21  +0.0457  +0.0000  Right   0.0000
-     22  +0.0526  +0.0000  Right   0.0000
-     23  +0.0550  -0.0000  Right   0.0000
-     24  +0.0538  +0.0000  Right   0.0000
+     21  +0.0457  -0.0000  Right   0.0000
+     22  +0.0526  -0.0000  Right   0.0000
+     23  +0.0550  +0.0000  Right   0.0000
+     24  +0.0538  -0.0000  Right   0.0000
      25  +0.0500  -0.0000  Right   0.0000
-     26  +0.0440  +0.0000  Right   0.0000
+     26  +0.0440  -0.0000  Right   0.0000
      27  +0.0366  -0.0000  Right   0.0000
      28  +0.0281  -0.0000  Right   0.0000
      29  +0.0189  +0.0000  Right   0.0000
-     30  +0.0095  +0.0000  Right   0.0000
-     31  +0.0000  +0.0000  Left    0.0000
+     30  +0.0095  -0.0000  Right   0.0000
+     31  -0.0000  +0.0000  Left    0.0000
   [PASS] Walk: planted foot lowest vertex within -0.01..0.03 m of Z=0 on all frames (bad: none)
   [PASS] Walk: no foot below Z=-0.01 on any frame (bad: none)
   [PASS] Walk: planted contact vertices move with the ground (in-place 0.75 m/s), max slip 0.0004 m/frame
-  hips height range 0.737..0.752 m (down/up bob 1.5 cm)
+  hips height range 0.739..0.753 m (down/up bob 1.4 cm)
 
 TAKE Run (imported)
   [PASS] action for take Run found (chopper_rig|Run)
+  [PASS] imported frame range 1-19 (expected 1-19)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+  [PASS] Run: planted foot not below -0.01 m (bad: none)
+  [PASS] Run: no foot below Z=-0.01 (bad: none)
+  [PASS] Run: planted slip max 0.0002 m/frame at 4.10 m/s
+
+TAKE Sprint (imported)
+  [PASS] action for take Sprint found (chopper_rig|Sprint)
+  [PASS] imported frame range 1-17 (expected 1-17)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+  [PASS] Sprint: planted foot not below -0.01 m (bad: none)
+  [PASS] Sprint: no foot below Z=-0.01 (bad: none)
+  [PASS] Sprint: planted slip max 0.0002 m/frame at 6.50 m/s
+
+TAKE CrouchIdle (imported)
+  [PASS] action for take CrouchIdle found (chopper_rig|CrouchIdle)
+  [PASS] imported frame range 1-41 (expected 1-41)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+  [PASS] CrouchIdle: whole body stays above Z=-0.06 (lowest -0.000 m at frame 7)
+
+TAKE CrouchWalk (imported)
+  [PASS] action for take CrouchWalk found (chopper_rig|CrouchWalk)
+  [PASS] imported frame range 1-25 (expected 1-25)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+  [PASS] CrouchWalk: planted foot not below -0.01 m (bad: none)
+  [PASS] CrouchWalk: no foot below Z=-0.01 (bad: none)
+  [PASS] CrouchWalk: planted slip max 0.0003 m/frame at 1.60 m/s
+
+TAKE Air (imported)
+  [PASS] action for take Air found (chopper_rig|Air)
   [PASS] imported frame range 1-21 (expected 1-21)
   [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
-  [PASS] Run: planted foot within -0.01..0.04 m (bad: none)
-  [PASS] Run: no foot below Z=-0.01 (bad: none)
-  [PASS] Run: planted slip max 0.0005 m/frame at 2.20 m/s
+
+TAKE LandHard (imported)
+  [PASS] action for take LandHard found (chopper_rig|LandHard)
+  [PASS] imported frame range 1-19 (expected 1-19)
+  [PASS] LandHard moves (body vertex delta mid-clip 0.420 m)
+  [PASS] LandHard: feet stay above Z=-0.02 (lowest -0.0000)
+  [PASS] LandHard: whole body stays above Z=-0.06 (lowest -0.000 m at frame 3)
+
+TAKE Roll (imported)
+  [PASS] action for take Roll found (chopper_rig|Roll)
+  [PASS] imported frame range 1-25 (expected 1-25)
+  [PASS] Roll moves (body vertex delta mid-clip 1.133 m)
+  [PASS] Roll: feet stay above Z=-0.02 (lowest -0.0051)
+  [PASS] Roll: whole body stays above Z=-0.06 (lowest -0.030 m at frame 21)
+
+TAKE SwimIdle (imported)
+  [PASS] action for take SwimIdle found (chopper_rig|SwimIdle)
+  [PASS] imported frame range 1-41 (expected 1-41)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+
+TAKE Swim (imported)
+  [PASS] action for take Swim found (chopper_rig|Swim)
+  [PASS] imported frame range 1-25 (expected 1-25)
+  [PASS] first and last frame identical: max vertex delta 4.04e-07 m, max bone matrix delta 2.98e-07
 
 TAKE Attack_1 (imported)
   [PASS] action for take Attack_1 found (chopper_rig|Attack_1)
@@ -160,9 +219,10 @@ TAKE HitReact (imported)
 
 TAKE Death (imported)
   [PASS] action for take Death found (chopper_rig|Death)
-  [PASS] imported frame range 1-37 (expected 1-37)
-  [PASS] Death moves (body vertex delta mid-clip 0.951 m)
+  [PASS] imported frame range 1-31 (expected 1-31)
+  [PASS] Death moves (body vertex delta mid-clip 2.235 m)
   [PASS] Death: feet stay above Z=-0.02 (lowest -0.0000)
+  [PASS] Death: whole body stays above Z=-0.06 (lowest -0.000 m at frame 1)
 
 PROPS
 ------------------------------------------------------------------------
@@ -187,13 +247,13 @@ PROPS ON SOCKETS (identity local transform relative to the socket bone)
   [PASS] rest: bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Idle (every 4th frame): shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
   [PASS] Idle (every 4th frame): shield board back not floating: gap to forearm/bracer surface 9.0..9.0 mm (min over the board, per sampled frame; required 5-30 mm)
-  [PASS] Idle (every 4th frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (0.000 0.165 0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
+  [PASS] Idle (every 4th frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.000 0.165 0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
   [PASS] Idle (every 4th frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Idle (every 4th frame): axe grip point inside the right-hand bounds
   [PASS] Idle (every 4th frame): bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Walk (every 2nd frame): shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
   [PASS] Walk (every 2nd frame): shield board back not floating: gap to forearm/bracer surface 9.0..9.0 mm (min over the board, per sampled frame; required 5-30 mm)
-  [PASS] Walk (every 2nd frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (0.000 0.165 0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
+  [PASS] Walk (every 2nd frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.000 0.165 -0.000), covers 97% of hand width -0.080..0.113, bar 0.216 m)
   [PASS] Walk (every 2nd frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Walk (every 2nd frame): axe grip point inside the right-hand bounds
   [PASS] Walk (every 2nd frame): bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
@@ -218,12 +278,12 @@ CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)
 
 BEARD CLEARANCE (beard vertices vs vest, shirt and body)
   [PASS] rest: beard clear of vest, shirt and body on 1 frames (closest 25.1 mm to chopper_vest at frame 1)
-  [PASS] Idle: beard clear of vest, shirt and body on 21 frames (closest 23.8 mm to chopper_vest at frame 19)
-  [PASS] Walk: beard clear of vest, shirt and body on 31 frames (closest 26.4 mm to chopper_vest at frame 7)
-  [INFO] Run (info): beard clear of vest, shirt and body on 11 frames (closest 26.9 mm to chopper_vest at frame 1)
+  [PASS] Idle: beard clear of vest, shirt and body on 21 frames (closest 25.5 mm to chopper_vest at frame 34)
+  [PASS] Walk: beard clear of vest, shirt and body on 31 frames (closest 25.5 mm to chopper_vest at frame 1)
+  [INFO] Run (info): beard clear of vest, shirt and body on 11 frames (closest 28.2 mm to chopper_vest at frame 1)
   passing frame used for rig_walk_passing_side: 9
 
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 
 ========================================================================
-SUMMARY: 145 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 189 PASS, 0 FAIL -> ALL PASS

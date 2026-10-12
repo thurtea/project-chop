@@ -59,7 +59,7 @@ Hair and helmet are mutually exclusive. All modules are skinned to the one share
 - Triangle budgets: body plus clothing 4,000-8,000; beard, hair, helmet 1,000-3,000 each; axe 300-1,000; shield 500-1,500; full equipped Warrior 8,000-15,000.
 - One texture atlas, 2048 or 1024 square, at most 4 materials across the character (target: `M_Chopper` for the character, `M_Chopper_Gear` for axe, shield, helmet).
 - One humanoid armature `chopper_rig`, A-pose bind (arms about 45 degrees down), bones named for clean Unity Humanoid auto-mapping, plus sockets `Weapon_R` (right hand), `Shield_L` (left forearm), `Shield_Back` (upper spine).
-- Animations: Idle, Walk, Run, Attack_1, Attack_2, HitReact, Death. Week 1 needs Idle and Walk.
+- Animations: Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, LandHard, Roll, SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact, Death. Style (user, 2026-10-12): blocky like Minecraft and survival ARPGs, no ragdoll looseness: rigid torso and head, pendulum limbs, planted feet; whole-body moves turn the body as one block.
 - FBX: Apply Scalings FBX All, Forward -Z, Up Y, Add Leaf Bones off, Bake Animation on, only selected objects, no images embedded.
 - Unity: imported to `Assets/Game/Characters/Chopper/`, Avatar from this model, materials extracted, `Chopper.prefab` with Animator and CapsuleCollider.
 

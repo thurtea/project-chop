@@ -11,6 +11,9 @@ namespace Chopper.Player
         public Vector3 Head = Vector3.up;
         [Tooltip("The way the edge faces, at right angles to Head, in this transform's space.")]
         public Vector3 Edge = Vector3.forward;
+        [Tooltip("The hand's own animation already holds the item the right way (Chopper's rig and takes: the Weapon_R " +
+                 "socket puts the head up and the blade forward, as in concept 2.0). The carry turn in PlayerAxe is skipped.")]
+        public bool HandPosed;
 
         // A world rotation for this transform that points the head along head and the edge along edge.
         public Quaternion RotationFor(Vector3 head, Vector3 edge)

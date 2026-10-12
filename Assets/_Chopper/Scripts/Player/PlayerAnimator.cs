@@ -39,7 +39,8 @@ namespace Chopper.Player
         // the body, so these layers are only weighted in while they are playing something.
         private static readonly string[] ActionLayerNames = { "Work", "Chop", "Stow", "CrouchArms" };
         private static readonly Color HealGlow = new Color(0.45f, 1.3f, 0.5f, 0.9f);
-        private const float RollClipSeconds = 1.47f;
+        // Chopper's own Roll take (animate_chopper ROLL_LEN, 24 frames at 30 fps).
+        private const float RollClipSeconds = 24f / 30f;
         private const float WakeInterval = 0.22f;
 
         // Clip lengths in seconds (TreeChopping and the sword combo from the second library), and the fraction of a

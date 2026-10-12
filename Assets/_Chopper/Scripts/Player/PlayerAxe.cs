@@ -571,6 +571,16 @@ namespace Chopper.Player
             }
             Transform hand = _axePivot.parent;
             if (hand == null) return;
+            // Chopper's own takes hold the axe head up and blade forward through the Weapon_R socket. Turning the wrist
+            // here (built for the library clips) hung the head down and the edge the wrong way (user, 2026-10-12).
+            if (_frame == null) _frame = _axePivot.GetComponent<HeldItemFrame>();
+            if (_frame != null && _frame.HandPosed)
+            {
+                _carry = 0f;
+                _axePivot.localRotation = _restRotation;
+                SetCarryLayer(0f);
+                return;
+            }
             if (!_headKnown) MeasureHead();
             if (!_headKnown) return;
 

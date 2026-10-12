@@ -164,17 +164,40 @@ namespace Chopper.Editor
                 .FirstOrDefault(c => !c.name.StartsWith("__preview__") && (c.name == take || c.name.EndsWith("|" + take)));
         }
 
+        // Chopper's own blocky takes (animate_chopper.py) for the base layer. The Mixamo motion capture read as ragdoll
+        // on the block body (user, 2026-10-12: movement should feel like Minecraft and survival ARPGs), so a slot plays
+        // Chopper's take when chopper.fbx has it, then the user's Mixamo file, then the library's clip.
+        private static readonly Dictionary<string, string> OwnTakes = new Dictionary<string, string>
+        {
+            { "idle", "Idle" }, { "walk", "Walk" }, { "run", "Run" }, { "sprint", "Sprint" }, { "fall", "Air" },
+            { "land_hard", "LandHard" }, { "death", "Death" }, { "swim_idle", "SwimIdle" }, { "swim", "Swim" },
+        };
+        // Ground speed each own loop was authored at (animate_chopper WALK_SPEED and GAITS), m/s.
+        private static readonly Dictionary<string, float> OwnNaturalSpeed = new Dictionary<string, float>
+        {
+            { "walk", 0.75f }, { "run", 4.1f }, { "sprint", 6.5f }, { "crouch_walk", 1.6f }, { "swim", 2.4f },
+        };
+
         internal static AnimationClip Slot(string slot, string fallback)
         {
+            AnimationClip own = OwnTakes.TryGetValue(slot, out string take) ? ChopperTake(take) : null;
+            if (own != null) return own;
             AnimationClip clip = MotionClip($"{MixamoFolder}/{slot}.fbx");
             return clip != null ? clip : FindClip(fallback);
         }
+
+        private static bool HasOwnTake(string slot) => OwnTakes.TryGetValue(slot, out string take) && ChopperTake(take) != null;
 
         private static bool HasSlot(string slot) => File.Exists($"{MixamoFolder}/{slot}.fbx");
 
         // A loop on the Speed blend at its natural pace: the user's clip with its own speed, or the library's.
         private static void AddSlotLoop(BlendTree tree, string slot, string fallback, float speed, float fallbackNatural)
         {
+            if (HasOwnTake(slot) && OwnNaturalSpeed.TryGetValue(slot, out float ownNatural))
+            {
+                AddLoop(tree, Slot(slot, fallback), speed, ownNatural);
+                return;
+            }
             bool own = HasSlot(slot);
             AddLoop(tree, Slot(slot, fallback), speed, own && SlotNaturalSpeed.TryGetValue(slot, out float natural) ? natural : fallbackNatural);
         }
@@ -315,8 +338,15 @@ namespace Chopper.Editor
             crouchTree.blendType = BlendTreeType.Simple1D;
             crouchTree.blendParameter = "Speed";
             crouchTree.useAutomaticThresholds = false;
+            AnimationClip ownCrouchIdle = ChopperTake("CrouchIdle");
+            AnimationClip ownCrouchWalk = ChopperTake("CrouchWalk");
             AnimationClip crouchWalk = MotionClip(CrouchWalkPath);
-            if (crouchWalk != null)
+            if (ownCrouchIdle != null && ownCrouchWalk != null)
+            {
+                crouchTree.AddChild(ownCrouchIdle, 0f);
+                AddLoop(crouchTree, ownCrouchWalk, CrouchWalkBlendSpeed, OwnNaturalSpeed["crouch_walk"]);
+            }
+            else if (crouchWalk != null)
             {
                 crouchTree.AddChild(BuildPoseClip(crouchWalk, CrouchIdleFrameTime, CrouchIdleClipPath), 0f);
                 AddLoop(crouchTree, crouchWalk, CrouchWalkBlendSpeed, SlotNaturalSpeed["crouch_walk"]);
@@ -380,7 +410,8 @@ namespace Chopper.Editor
 
             // Dodge roll: a full body clip, sped up to fit the roll time.
             AnimatorState roll = baseMachine.AddState("Roll");
-            roll.motion = FindClip("Roll");
+            AnimationClip ownRoll = ChopperTake("Roll");
+            roll.motion = ownRoll != null ? ownRoll : FindClip("Roll");
             roll.speedParameterActive = true;
             roll.speedParameter = "RollSpeed";
             AnimatorStateTransition toRoll = baseMachine.AddAnyStateTransition(roll);
@@ -401,7 +432,7 @@ namespace Chopper.Editor
             swimTree.useAutomaticThresholds = false;
             swimTree.AddChild(Slot("swim_idle", "Swim_Idle_Loop"), 0f);
             // The Mixamo stroke is slow (4.5 s for its strokes); a little quicker reads as swimming at the swim speed.
-            AddLoop(swimTree, Slot("swim", "Swim_Fwd_Loop"), 2.4f, HasSlot("swim") ? 1.6f : 2.4f);
+            AddLoop(swimTree, Slot("swim", "Swim_Fwd_Loop"), 2.4f, HasOwnTake("swim") ? OwnNaturalSpeed["swim"] : HasSlot("swim") ? 1.6f : 2.4f);
             AnimatorStateTransition toSwim = baseMachine.AddAnyStateTransition(swim);
             toSwim.hasExitTime = false;
             toSwim.duration = 0.2f;
@@ -502,7 +533,8 @@ namespace Chopper.Editor
             AnimatorState off = machine.AddState("Empty");
             off.writeDefaultValues = false; // an Empty humanoid state that writes defaults shows the T-pose
             AnimatorState arms = machine.AddState("Arms");
-            arms.motion = FindClip("Idle_Loop");
+            AnimationClip ownCrouchArms = ChopperTake("CrouchIdle");
+            arms.motion = ownCrouchArms != null ? ownCrouchArms : FindClip("Idle_Loop");
             machine.defaultState = off;
             AnimatorStateTransition down = off.AddTransition(arms);
             down.hasExitTime = false;
@@ -837,6 +869,8 @@ namespace Chopper.Editor
 
         // ---------- Model ----------
 
+        private static readonly string[] ChopperLoopTakes = { "Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim" };
+
         static void PrepareChopperModel()
         {
             var importer = AssetImporter.GetAtPath(ChopperModelPath) as ModelImporter;
@@ -846,6 +880,21 @@ namespace Chopper.Editor
             importer.animationType = ModelImporterAnimationType.Human;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.SaveAndReimport();
+            // Every take keeps its body motion in the pose (the player's Animator ignores root motion): the roll, the
+            // sideways death and the swim turn the whole body, and the crouch and the landing lower it.
+            ModelImporterClipAnimation[] takes = importer.defaultClipAnimations;
+            foreach (ModelImporterClipAnimation take in takes)
+            {
+                take.lockRootRotation = true;
+                take.keepOriginalOrientation = false;   // body orientation (Original faced the takes 180 deg round)
+                take.lockRootHeightY = true;
+                take.keepOriginalPositionY = true;
+                take.lockRootPositionXZ = true;
+                take.keepOriginalPositionXZ = true;
+                take.loopTime = ChopperLoopTakes.Any(t => take.name == t || take.name.EndsWith("|" + t));
+            }
+            importer.clipAnimations = takes;
             importer.SaveAndReimport();
             var tex = AssetImporter.GetAtPath(ChopperAtlasPath) as TextureImporter;
             if (tex != null)
@@ -1093,6 +1142,8 @@ namespace Chopper.Editor
             HeldItemFrame frame = grip.AddComponent<HeldItemFrame>();
             frame.Head = toGrip.MultiplyVector(head).normalized;
             frame.Edge = toGrip.MultiplyVector(edge).normalized;
+            // The socket already holds the axe as authored in Blender (head up, blade forward); no carry turn on top.
+            frame.HandPosed = true;
             Debug.Log($"[CharacterSetup] chopper_axe mesh size {size:F3} m, bounds min {b.min:F3} max {b.max:F3}; grip {Vector3.Distance(grip.transform.position, hand.position) * 100f:F1} cm from the hand, " +
                       $"head along {frame.Head:F2}, blades along {frame.Edge:F2} (grip space); haft in model space {model.InverseTransformDirection(grip.transform.rotation * frame.Head):F2}.");
             result.AxeGrip = grip.transform;

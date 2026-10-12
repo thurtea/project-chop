@@ -35,9 +35,14 @@ HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
             "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "LeftToes",
             "RightUpperLeg", "RightLowerLeg", "RightFoot", "RightToes"]
 SOCKETS = ["Weapon_R", "Shield_L", "Shield_Back"]
-TAKES = {"Idle": 60, "Walk": 30, "Run": 20, "Attack_1": 22, "Attack_2": 22, "Attack_3": 28, "HitReact": 15, "Death": 36}
-LOOP_TAKES = {"Idle", "Walk", "Run"}
-RUN_SPEED = 2.20
+TAKES = {"Idle": 60, "Walk": 30, "Run": 18, "Sprint": 16, "CrouchIdle": 40, "CrouchWalk": 24, "Air": 20, "LandHard": 18,
+         "Roll": 24, "SwimIdle": 40, "Swim": 24, "Attack_1": 22, "Attack_2": 22, "Attack_3": 28, "HitReact": 15,
+         "Death": 30}
+LOOP_TAKES = {"Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim"}
+# Ground speed of each in-place gait (= animate_chopper GAITS), for the planted-foot slip check.
+GAIT_SPEEDS = {"Run": 4.10, "Sprint": 6.50, "CrouchWalk": 1.60}
+# Whole-body moves that must not sink into the ground (lowest vertex of every mesh).
+GROUND_TAKES = {"Roll", "Death", "LandHard", "CrouchIdle"}
 FPS = 30
 WALK_SPEED = 0.75                          # m/s, = animate_chopper.WALK_SPEED (ground speed for the slip check)
 FBX_KTIME = 46186158000
@@ -444,7 +449,16 @@ def main():
                   "max slip %.4f m/frame" % (WALK_SPEED, max(slips)))
             log("  hips height range %.3f..%.3f m (down/up bob %.1f cm)" % (min(hip_track), max(hip_track),
                                                                          100 * (max(hip_track) - min(hip_track))))
-        if take == "Run":
+        if take in GROUND_TAKES:
+            low, at = 1e9, 0
+            for f in range(1, length + 2):
+                sc.frame_set(f)
+                z = min(p.z for ob in meshes.values() for p in eval_points(ob)[0])
+                if z < low:
+                    low, at = z, f
+            check(low >= -0.06, "%s: whole body stays above Z=-0.06 (lowest %.3f m at frame %d)" % (take, low, at))
+        if take in GAIT_SPEEDS:
+            gait_speed = GAIT_SPEEDS[take]
             bad, sink, slips = [], [], []
             prev = None
             for f in range(1, length + 2):
@@ -454,23 +468,24 @@ def main():
                 for i, p in enumerate(pts):
                     mz[side_of[i]] = min(mz[side_of[i]], p.z)
                 planted = min(mz, key=mz.get)
-                if not (-0.01 <= mz[planted] <= 0.04):
+                # a run has a flight phase: only a foot near the ground counts as planted
+                if mz[planted] < 0.04 and mz[planted] < -0.01:
                     bad.append(f)
                 if min(mz.values()) < -0.01:
                     sink.append(f)
                 slip = 0.0
                 if prev is not None:
-                    gstep = RUN_SPEED / FPS
+                    gstep = gait_speed / FPS
                     for i, (a, b) in enumerate(zip(prev, pts)):
                         if a.z < 0.004 and b.z < 0.004:
                             d = (b - a) - Vector((0, gstep, 0))
                             slip = max(slip, Vector((d.x, d.y)).length)
                     slips.append(slip)
                 prev = pts
-            check(not bad, "Run: planted foot within -0.01..0.04 m (bad: %s)" % (bad or "none"))
-            check(not sink, "Run: no foot below Z=-0.01 (bad: %s)" % (sink or "none"))
-            check(slips and max(slips) < 0.008, "Run: planted slip max %.4f m/frame at %.2f m/s" % (
-                max(slips) if slips else -1, RUN_SPEED))
+            check(not bad, "%s: planted foot not below -0.01 m (bad: %s)" % (take, bad or "none"))
+            check(not sink, "%s: no foot below Z=-0.01 (bad: %s)" % (take, sink or "none"))
+            check(slips and max(slips) < 0.008 + 0.001 * gait_speed, "%s: planted slip max %.4f m/frame at %.2f m/s" % (
+                take, max(slips) if slips else -1, gait_speed))
 
     # ---------------- props
     log("")

@@ -160,10 +160,12 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 | W8-02 | Hub house: wide, low, basement, main floor, loft, 2 beds, 2 workbenches (`Hut.DressCabin`) | done: `house5.log` RESULT PASS. Porch gable and stone terrace open |
 | W8-03 | Voxel furniture: chest, grand chest, bed, workbench, fireplace; crypt chests | done: `furniture_check_report.txt` ALL PASS, `prop_dress4.log` RESULT PASS |
 | W8-04 | Step up automatically: stepOffset 0.55, stair treads, doorway sill removed | done: house tour climbs every stair |
-| W8-05 | Flicker: block shader detail fade, atlas gutter fill | done, not measured beyond pictures |
+| W8-05 | Flicker: block shader detail fade, atlas gutter fill | done: measured in motion (`-chopperFlicker`, `flicker2_measure.txt`); body and block faces quiet; grass tufts and edges in wind remain |
 | W8-06 | Carry the bear axe edge down | done: `axe_gear.log`, picture checked |
 | W8-07 | Axe swings like Valheim (walking is fine) | done: Attack_1/2/3 own chops, `attacks_sheet.png`, `chop_probe.log`, check_rig 145/0 |
-| W8-10 | Softer character textures, no flicker | paint softened, atlas aniso 4; flicker not yet verified in motion |
+| W8-10 | Softer character textures, no flicker | done: no shimmer on the body in motion (heat map `flicker2/flicker/heat.png`, yard character 0.73 mean) |
+| W8-11 | Blocky Minecraft/ARPG movement, no ragdoll (user) | done: own takes for every base-layer state (Idle, Walk, Run, Sprint, crouch, Air, LandHard, Roll, swim, Death); check_rig 189/0, `moves_sheet.png`, `moves2.log` feet move with the ground. Work layers (fish, gather, mine) still motion capture |
+| W8-12 | Axe held head up, blade forward (user: upside down again) | done: carry turn skipped for the Chopper rig (`HeldItemFrame.HandPosed`); `gear2.log` head up, edge forward |
 | W8-08 | Water, clouds, sun to concept 2.0 | open |
 | W8-09 | Website pictures, last | open |
 

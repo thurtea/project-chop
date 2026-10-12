@@ -760,6 +760,17 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Flicker in motion (-chopperFlicker): the camera orbits the standing player slowly at a fixed frame step
+            // and every frame is saved, once per setting (as is, sun shadows off, anti-aliasing off, character atlas
+            // mip bias +1, ground block detail off). Tools/flicker_measure.py scores the shimmer between frames.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFlicker") >= 0)
+            {
+                yield return FlickerTour(folder, wood, ui);
+                Debug.Log("[Flicker] done");
+                Application.Quit(0);
+                yield break;
+            }
+
             // Ground probe (-chopperGroundProbe): logs every renderer at the player's feet and the block colour there,
             // then takes the same view with the block chunks, the water and the terrain toggled, to find what draws the
             // dark ground.
@@ -4134,6 +4145,105 @@ namespace Chopper.Networking
             yield return new WaitForEndOfFrame();
             ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + ".png"));
             yield return null;
+        }
+
+        // See -chopperFlicker. Frames go to <folder>/flicker/<place>_<setting>/f###.png, plus mask.png (the same first
+        // frame with the player hidden, so the measuring script can tell character pixels from ground pixels).
+        private static IEnumerator FlickerTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            const int Frames = 40;
+            const float YawStep = 0.35f;
+            Hut.Instance.ServerSetRepaired(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            wood.GetComponent<PlayerAxe>().ServerSetHasAxe(true);
+            yield return new WaitForSeconds(4f);
+            GameUi.HudHidden = true;
+            ui.DebugShow(0);
+            Debug.developerConsoleVisible = false;
+
+            var pipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            Camera view = PlayerCamera.Local.View;
+            var viewData = view.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            Light sun = null;
+            foreach (Light l in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (l.type == LightType.Directional && l.isActiveAndEnabled && (sun == null || l.intensity > sun.intensity)) sun = l;
+            Renderer[] body = wood.GetComponentsInChildren<Renderer>(false);
+            var atlases = new HashSet<Texture>();
+            foreach (Renderer r in body)
+                foreach (Material m in r.sharedMaterials)
+                    if (m != null && m.HasTexture("_BaseMap") && m.GetTexture("_BaseMap") != null) atlases.Add(m.GetTexture("_BaseMap"));
+            var blockMaterials = new HashSet<Material>();
+            foreach (MeshRenderer r in UnityEngine.Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+                if (r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name == "Chopper/Block") blockMaterials.Add(r.sharedMaterial);
+            Debug.Log($"[Flicker] msaa {pipeline.msaaSampleCount}, aa {viewData.antialiasing}, shadows {pipeline.mainLightShadowmapResolution} px to {pipeline.shadowDistance:F0} m in {pipeline.shadowCascadeCount} cascades, " +
+                      $"depth bias {pipeline.shadowDepthBias:F2} normal {pipeline.shadowNormalBias:F2}, sun {(sun ? sun.name : "none")} bias {(sun ? sun.shadowBias : 0f):F2}/{(sun ? sun.shadowNormalBias : 0f):F2}, " +
+                      $"atlases {string.Join(", ", atlases.Select(t => $"{t.name} {t.width}px mips {t.mipmapCount} filter {t.filterMode} aniso {t.anisoLevel}"))}, block materials {blockMaterials.Count}, screen {Screen.width}x{Screen.height}");
+
+            (Vector2 where, float yaw, string label, float distance, float pitch)[] places =
+            {
+                (new Vector2(0f, 9f), 180f, "yard", 4.5f, 18f),
+                (new Vector2(150f, 0f), 90f, "meadow", 4.5f, 22f),
+            };
+            string[] settings = { "base", "noshadow", "noaa", "mipbias", "noblockdetail" };
+            int msaa = pipeline.msaaSampleCount;
+            var aa = viewData.antialiasing;
+            LightShadows sunShadows = sun ? sun.shadows : LightShadows.None;
+            var oldBlock = blockMaterials.ToDictionary(m => m, m => (m.GetFloat("_Jitter"), m.GetFloat("_Edge")));
+            foreach (var place in places)
+            {
+                yield return TeleportLocalPlayer(place.where, place.yaw);
+                PlayerCamera cam = PlayerCamera.Local;
+                cam.DebugSetDistance(place.distance);
+                cam.DebugSetPitch(place.pitch);
+                yield return new WaitForSeconds(1.5f);
+                foreach (string setting in settings)
+                {
+                    if (setting == "noshadow" && sun) sun.shadows = LightShadows.None;
+                    if (setting == "noaa") { pipeline.msaaSampleCount = 1; viewData.antialiasing = UnityEngine.Rendering.Universal.AntialiasingMode.None; }
+                    if (setting == "mipbias") foreach (Texture t in atlases) t.mipMapBias = 1f;
+                    if (setting == "noblockdetail") foreach (Material m in blockMaterials) { m.SetFloat("_Jitter", 0f); m.SetFloat("_Edge", 0f); }
+
+                    string dir = Path.Combine(folder, "flicker", place.label + "_" + setting);
+                    Directory.CreateDirectory(dir);
+                    cam.SnapYaw(place.yaw);
+                    yield return new WaitForSeconds(0.5f);
+                    // A fixed game step per frame, so the idle sway and the orbit match in every setting.
+                    Time.captureFramerate = 30;
+                    Debug.developerConsoleVisible = false;
+                    for (int i = 0; i < 6; i++) yield return null;
+                    if (setting == "base")
+                    {
+                        foreach (Renderer r in body) r.enabled = false;
+                        yield return new WaitForEndOfFrame();
+                        WriteFrame(Path.Combine(dir, "mask.png"));
+                        foreach (Renderer r in body) r.enabled = true;
+                        yield return null;
+                    }
+                    for (int i = 0; i < Frames; i++)
+                    {
+                        cam.SnapYaw(place.yaw + i * YawStep);
+                        yield return new WaitForEndOfFrame();
+                        WriteFrame(Path.Combine(dir, $"f{i:000}.png"));
+                        yield return null;
+                    }
+                    Time.captureFramerate = 0;
+                    Debug.Log($"[Flicker] wrote {place.label} {setting} ({Frames} frames, {YawStep} deg per frame)");
+
+                    if (sun) sun.shadows = sunShadows;
+                    pipeline.msaaSampleCount = msaa;
+                    viewData.antialiasing = aa;
+                    foreach (Texture t in atlases) t.mipMapBias = 0f;
+                    foreach (var kv in oldBlock) { kv.Key.SetFloat("_Jitter", kv.Value.Item1); kv.Key.SetFloat("_Edge", kv.Value.Item2); }
+                }
+            }
+        }
+
+        private static void WriteFrame(string path)
+        {
+            Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
+            File.WriteAllBytes(path, shot.EncodeToPNG());
+            UnityEngine.Object.Destroy(shot);
         }
 
         private static IEnumerator Shot(string folder, string name)

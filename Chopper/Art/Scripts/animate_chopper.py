@@ -1,11 +1,16 @@
-"""Author Idle, Walk, Run, Attack_1, Attack_2, Attack_3, HitReact and Death on chopper_rig.
+"""Author Chopper's takes on chopper_rig: Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, LandHard, Roll,
+SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact and Death.
+
+Movement style (user, 2026-10-12): no ragdoll looseness. Blocky and snappy like Minecraft and survival ARPGs: the
+torso and head stay rigid (no hip twist, no spine sway, no head bob), the arms swing as near-straight pendulums, the
+feet stay planted on the ground (ARPG grounding), and whole-body moves (roll, death, swim) turn the body as one block.
 
 Run:  blender -b -P animate_chopper.py
 In:   Art/Blender/chopper_rigged.blend (from rig_chopper.py)
 Out:  same file, one NLA strip per action (one FBX take per strip).
 
-Idle, Walk and Run loop (first frame copied onto the last). The four combat clips
-are one-shots: the last frame is the end pose, not a copy of the first.
+Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, SwimIdle and Swim loop (first frame copied onto the
+last). LandHard, Roll and the combat clips are one-shots: the last frame is the end pose, not a copy of the first.
 
 Method: every frame is computed in closed form. Upper body = FK rotations given as
 rest-space axis/angle deltas. Legs = analytic two-bone IK to a foot transform. The
@@ -28,13 +33,27 @@ FPS = 30
 IDLE_LEN = 60          # frames 1..61 (61 == 1)
 WALK_LEN = 30          # frames 1..31 (31 == 1)
 WALK_SPEED = 0.75      # m/s; Unity should move the character at this speed
-RUN_LEN = 20           # frames 1..21
-RUN_SPEED = 2.20       # m/s
+RUN_LEN = 18           # frames 1..19
+RUN_SPEED = 4.10       # m/s (the live jog, 5.5 m/s, plays it at 1.34x: about 0.45 s a stride)
+RUN_STANCE = 0.32
+SPRINT_LEN = 16
+SPRINT_SPEED = 6.50    # m/s (live sprint 8.7 m/s)
+SPRINT_STANCE = 0.24
+CROUCH_LEN = 24
+CROUCH_SPEED = 1.60    # m/s (live crouch walk 2.6 m/s)
+CROUCH_DROP = 0.20     # m the hips sit lower than in the walk
+CROUCH_IDLE_LEN = 40
+AIR_LEN = 20
+LAND_LEN = 18
+ROLL_LEN = 24          # 0.80 s; PlayerAnimator.RollClipSeconds must match
+ROLL_SKIN = 0.20       # m from the joints out to the surface of the head, back and boots
+SWIM_IDLE_LEN = 40
+SWIM_LEN = 24
 ATTACK1_LEN = 22       # diagonal chop from over the right shoulder, one-shot
 ATTACK2_LEN = 22       # diagonal chop from over the left shoulder, one-shot
 ATTACK3_LEN = 28       # overhead finisher, one-shot
 HIT_LEN = 15
-DEATH_LEN = 36
+DEATH_LEN = 30
 STANCE = 0.60          # fraction of the cycle a foot is on the ground
 STRIKE_PITCH = -14.0   # deg, toes up at heel strike (rotation about +X)
 TOEOFF_PITCH = 26.0    # deg, heel up at toe off
@@ -180,34 +199,40 @@ def arm_base(rig, deltas, adduct, elbow_l, elbow_r):
         deltas[la] = R(toward(rig, la, (0, -1, 0), 1), ang) @ deltas.get(la, I3)
 
 
+def planted():
+    return {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+
+
+def block_upper(rig, deltas, lean, adduct, swing, phase, elbow_l, elbow_r):
+    """Rigid torso, the head kept level, the arms as near-straight pendulums opposite the legs (left leg forward at
+    phase 0 -> left arm back)."""
+    deltas["Spine"] = R(X, lean * 0.6)
+    deltas["Chest"] = R(X, lean * 0.4)
+    deltas["Neck"] = R(X, -lean * 0.5)
+    deltas["Head"] = R(X, -lean * 0.5)
+    arm_base(rig, deltas, adduct, elbow_l, elbow_r)
+    c1 = math.cos(2 * math.pi * phase)
+    deltas["LeftUpperArm"] = R(X, swing * c1) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(X, -swing * c1) @ deltas["RightUpperArm"]
+
+
 def idle_pose(rig, f):
+    """Standing still: a slow breath in the chest and arms; the head, hips and legs hold."""
     p = (f - 1) / IDLE_LEN
     br = math.sin(2 * math.pi * p)                 # breath
-    sh = math.sin(2 * math.pi * p + 0.6)           # weight shift
     deltas = {}
-    hips_off = Vector((0.012 * sh, 0.0, -0.016 - 0.003 * math.cos(4 * math.pi * p)))
-    deltas["Hips"] = R(Y, -1.4 * sh)
-    deltas["Spine"] = R(Y, 0.9 * sh) @ R(X, 1.0)
-    deltas["Chest"] = R(Y, 0.5 * sh) @ R(X, -0.9 * br)
-    deltas["UpperChest"] = R(X, -0.9 * br)
-    deltas["Neck"] = R(X, 0.9 * br - 0.5)
-    deltas["Head"] = R(X, 0.6 * br) @ R(Z, 2.0 * math.sin(2 * math.pi * p + 1.3))
-    # shoulders rise on the in-breath
+    block_upper(rig, deltas, 1.0, 21.0, 0.0, 0.0, 12.0, 30.0)
+    deltas["Chest"] = R(X, -0.8 * br) @ deltas["Chest"]
     for side in ("Left", "Right"):
-        nm = side + "Shoulder"
-        deltas[nm] = R(toward(rig, nm, (0, 0, 1), 1), 1.8 * br)
-    arm_base(rig, deltas, 21.0, 12.0, 38.0)
-    for side, ph in (("Left", 0.0), ("Right", 0.4)):
         ua = side + "UpperArm"
-        deltas[ua] = R(X, 1.2 * math.sin(2 * math.pi * p + ph)) @ deltas[ua]
-        deltas[ua] = R(toward(rig, ua, (0, 0, -1), 1), -0.8 * br) @ deltas[ua]
-    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
-    return hips_off, deltas, feet
+        deltas[ua] = R(toward(rig, ua, (0, 0, -1), 1), -1.2 * br) @ deltas[ua]
+    return Vector((0.0, 0.0, -0.004 - 0.003 * br)), deltas, planted()
 
 
-def stance_F(rig, side, q, y0, speed=WALK_SPEED, length=WALK_LEN):
-    """Planted foot at local phase q in [0, STANCE]; pivot heel then flat then toe."""
+def stance_F(rig, side, q, y0, speed=WALK_SPEED, length=WALK_LEN, stance=STANCE):
+    """Planted foot at local phase q in [0, stance]; pivot heel then flat then toe."""
     g = T((0, y0 + speed * q * length / FPS, 0))
+    q = q * STANCE / stance          # the heel and toe roll keep their share of the stance
     x = 0.13 if side == "Left" else -0.13
     heel = Vector((x, 0.140, 0.0))
     toe = Vector((x, -0.250, 0.0))
@@ -229,19 +254,19 @@ def hermite(p0, p1, m0, m1, s):
             (-2 * s3 + 3 * s2) * p1 + (s3 - s2) * m1)
 
 
-def foot_F(rig, side, q, y0, speed=WALK_SPEED, length=WALK_LEN, lift=SWING_LIFT):
+def foot_F(rig, side, q, y0, speed=WALK_SPEED, length=WALK_LEN, lift=SWING_LIFT, stance=STANCE):
     """Foot transform at local phase q. Stance: ground-attached roll. Swing: the foot pitch
     goes from push-off to flat by mid-swing and to the heel-strike pitch at the end; its
     height is set so the lowest boot vertex follows a low clearance arc."""
     q = q % 1.0
-    if q <= STANCE:
-        return stance_F(rig, side, q, y0, speed, length), True
-    s = (q - STANCE) / (1 - STANCE)
-    F0 = stance_F(rig, side, STANCE, y0, speed, length)
-    F1 = stance_F(rig, side, 0.0, y0, speed, length)
+    if q <= stance:
+        return stance_F(rig, side, q, y0, speed, length, stance), True
+    s = (q - stance) / (1 - stance)
+    F0 = stance_F(rig, side, stance, y0, speed, length, stance)
+    F1 = stance_F(rig, side, 0.0, y0, speed, length, stance)
     ank = rig.rest[side + "Foot"].translation
     A0, A1 = F0 @ ank, F1 @ ank
-    dur = (1 - STANCE) * length / FPS
+    dur = (1 - stance) * length / FPS
     m = speed * dur                          # matches ground speed at both ends
     yy = hermite(A0.y, A1.y, m, m, s)
     if s < 0.45:
@@ -265,7 +290,7 @@ def pelvis_heights(rig, pose_fn=None, length=None):
     PELVIS_HARMONICS harmonics) and lowered so no frame exceeds REACH_MAX."""
     pose_fn = walk_pose if pose_fn is None else pose_fn
     length = WALK_LEN if length is None else length
-    key = (pose_fn.__name__, length, STANCE, FOOT_SHIFT, REACH_TARGET, REACH_MAX, PELVIS_HARMONICS)
+    key = (pose_fn.__name__, length, FOOT_SHIFT, REACH_TARGET, REACH_MAX, PELVIS_HARMONICS)
     if key in _PELVIS_CACHE:
         return _PELVIS_CACHE[key]
     saved_reach, saved_gap = rig.max_reach, rig.max_loc_err
@@ -313,31 +338,13 @@ def pelvis_heights(rig, pose_fn=None, length=None):
 
 def walk_pose(rig, f, pelvis_z=None):
     p = (f - 1) / WALK_LEN
-    c1 = math.cos(2 * math.pi * p)
-    s1 = math.sin(2 * math.pi * p)
     if pelvis_z is None:
         pelvis_z = pelvis_heights(rig)[(f - 1) % WALK_LEN]
-    hips_off = Vector((0.014 * math.sin(2 * math.pi * (p - 0.05)), 0.0, pelvis_z))
-    deltas = {}
-    deltas["Hips"] = R(Z, -5.0 * c1) @ R(Y, -2.5 * math.sin(2 * math.pi * (p - 0.05))) @ R(X, 3.0)
-    deltas["Spine"] = R(Z, 2.5 * c1) @ R(Y, 1.5 * math.sin(2 * math.pi * (p - 0.05))) @ R(X, 1.5)
-    deltas["Chest"] = R(Z, 3.0 * c1) @ R(X, 0.8 * math.cos(4 * math.pi * p))
-    deltas["UpperChest"] = R(Z, 1.5 * c1)
-    deltas["Neck"] = R(X, -3.0) @ R(Z, -1.0 * c1)
-    deltas["Head"] = R(X, -1.5 - 0.8 * math.cos(4 * math.pi * p)) @ R(Z, -1.0 * c1)
-    for side in ("Left", "Right"):
-        nm = side + "Shoulder"
-        deltas[nm] = R(toward(rig, nm, (0, 0, 1), 1), -1.0)
-    # arms: relaxed base, swing opposite to the legs (left leg forward at p=0 -> left arm back)
-    swing_l = 17.0 * c1
-    swing_r = -17.0 * c1
-    # shield arm: elbow held steady (the shield extends past the elbow; extra flexion would
-    # sweep its curved top rim across the upper-arm sleeve)
-    el_l = 12.0
-    el_r = 14.0 + 10.0 * max(0.0, c1)
-    arm_base(rig, deltas, 15.0, el_l, el_r)
-    deltas["LeftUpperArm"] = R(X, swing_l) @ deltas["LeftUpperArm"]
-    deltas["RightUpperArm"] = R(X, swing_r) @ deltas["RightUpperArm"]
+    hips_off = Vector((0.0, 0.0, pelvis_z))
+    deltas = {"Hips": R(X, 2.0)}
+    # shield arm: elbow held steady (the shield extends past the elbow; extra flexion would sweep its curved top rim
+    # across the upper-arm sleeve)
+    block_upper(rig, deltas, 1.0, 17.0, 24.0, p, 12.0, 16.0)
     # feet: left heel strike at p=0, right at p=0.5
     y0 = -WALK_SPEED * STANCE * WALK_LEN / FPS * 0.5 + FOOT_SHIFT
     FL, pl = foot_F(rig, "Left", p, y0)
@@ -345,47 +352,151 @@ def walk_pose(rig, f, pelvis_z=None):
     return hips_off, deltas, {"Left": FL, "Right": FR}
 
 
-def gait_pose(rig, f, length, speed, pelvis_fn, adduct, swing, elbow_l, elbow_r, lean, lift):
-    p = (f - 1) / length
-    c1 = math.cos(2 * math.pi * p)
-    if pelvis_fn is None:
-        pelvis_z = 0.0
-    else:
-        pelvis_z = pelvis_fn(rig)[(f - 1) % length]
-    hips_off = Vector((0.018 * math.sin(2 * math.pi * (p - 0.05)), 0.0, pelvis_z))
+# Faster gaits: (length, speed m/s, stance, swing lift m, lean deg, arm swing deg, elbow L, elbow R, adduct, hips drop m)
+GAITS = {
+    "Run": (RUN_LEN, RUN_SPEED, RUN_STANCE, 0.14, 8.0, 40.0, 30.0, 40.0, 17.0, 0.0),
+    "Sprint": (SPRINT_LEN, SPRINT_SPEED, SPRINT_STANCE, 0.20, 14.0, 55.0, 60.0, 70.0, 17.0, 0.0),
+    "CrouchWalk": (CROUCH_LEN, CROUCH_SPEED, 0.60, 0.07, 22.0, 14.0, 40.0, 45.0, 14.0, CROUCH_DROP),
+}
+
+
+def gait(name):
+    length, speed, stance, lift, lean, swing, el_l, el_r, adduct, drop = GAITS[name]
+
+    def pose(rig, f, pelvis_z=None):
+        p = (f - 1) / length
+        if pelvis_z is None:
+            pelvis_z = pelvis_heights(rig, pose, length)[(f - 1) % length] - drop
+        hips_off = Vector((0.0, 0.0, pelvis_z))
+        deltas = {"Hips": R(X, 2.0)}
+        block_upper(rig, deltas, lean, adduct, swing, p, el_l, el_r)
+        y0 = -speed * stance * length / FPS * 0.5
+        FL, _pl = foot_F(rig, "Left", p, y0, speed, length, lift, stance)
+        FR, _pr = foot_F(rig, "Right", p + 0.5, y0, speed, length, lift, stance)
+        return hips_off, deltas, {"Left": FL, "Right": FR}
+    pose.__name__ = name.lower() + "_pose"
+    return pose
+
+
+run_pose = gait("Run")
+sprint_pose = gait("Sprint")
+crouch_walk_pose = gait("CrouchWalk")
+
+
+def crouch_idle_pose(rig, f):
+    p = (f - 1) / CROUCH_IDLE_LEN
+    br = math.sin(2 * math.pi * p)
+    deltas = {"Hips": R(X, 2.0)}
+    block_upper(rig, deltas, 22.0, 14.0, 0.0, 0.0, 40.0, 45.0)
+    deltas["Chest"] = R(X, -0.8 * br) @ deltas["Chest"]
+    return Vector((0.0, 0.0, -CROUCH_DROP - 0.004 * br)), deltas, planted()
+
+
+def body_turn(hips_off, deltas, feet, rig, axis, deg, pivot):
+    """Turn the whole posed body as one block by deg about axis through pivot (roll, death, swim)."""
+    Rp = R(axis, deg)
+    c = Vector(pivot)
+    P = T(c) @ Rp.to_4x4() @ T(-c)
+    head = rig.rest["Hips"].translation
+    new_off = c + Rp @ (head + hips_off - c) - head
+    deltas = dict(deltas)
+    deltas["Hips"] = Rp @ deltas.get("Hips", I3)
+    return new_off, deltas, {sd: P @ F for sd, F in feet.items()}
+
+
+def leg_swing(rig, side, deg, lift=0.0):
+    """A foot placed by turning the whole leg about the hip joint (a Minecraft limb), raised by lift (the knee bends)."""
+    H = rig.rest[side + "UpperLeg"].translation
+    return T((0, 0, lift)) @ T(H) @ R(X, deg).to_4x4() @ T(-H)
+
+
+def air_pose(rig, f):
+    """In the air (jump and fall): one knee up, the other leg back, the arms a little out for balance."""
+    p = (f - 1) / AIR_LEN
+    w = math.sin(2 * math.pi * p)
     deltas = {}
-    deltas["Hips"] = R(Z, -6.0 * c1) @ R(X, lean)
-    deltas["Spine"] = R(Z, 3.0 * c1) @ R(X, lean * 0.45)
-    deltas["Chest"] = R(Z, 3.5 * c1)
-    deltas["UpperChest"] = R(Z, 1.5 * c1)
-    deltas["Neck"] = R(X, -4.0) @ R(Z, -1.0 * c1)
-    deltas["Head"] = R(X, -2.0) @ R(Z, -0.8 * c1)
-    for side in ("Left", "Right"):
-        nm = side + "Shoulder"
-        deltas[nm] = R(toward(rig, nm, (0, 0, 1), 1), -1.0)
-    arm_base(rig, deltas, adduct, elbow_l, elbow_r + 8.0 * max(0.0, c1))
-    deltas["LeftUpperArm"] = R(X, swing * c1) @ deltas["LeftUpperArm"]
-    deltas["RightUpperArm"] = R(X, -swing * c1) @ deltas["RightUpperArm"]
-    y0 = -speed * STANCE * length / FPS * 0.5 + FOOT_SHIFT
-    FL, _pl = foot_F(rig, "Left", p, y0, speed, length, lift)
-    FR, _pr = foot_F(rig, "Right", p + 0.5, y0, speed, length, lift)
-    return hips_off, deltas, {"Left": FL, "Right": FR}
+    block_upper(rig, deltas, 4.0, 4.0, 0.0, 0.0, 25.0, 30.0)
+    deltas["LeftUpperArm"] = R(X, -18.0 + 3.0 * w) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(X, 14.0 - 3.0 * w) @ deltas["RightUpperArm"]
+    feet = {"Left": leg_swing(rig, "Left", -22.0 - 2.0 * w, 0.20), "Right": leg_swing(rig, "Right", 12.0 + 2.0 * w, 0.05)}
+    return Vector((0.0, 0.0, 0.0)), deltas, feet
 
 
-def run_pose(rig, f, pelvis_z=None):
-    if pelvis_z is not None:
-        # used while solving the pelvis curve: feet still move, hips stay at the probe height
-        p = (f - 1) / RUN_LEN
-        c1 = math.cos(2 * math.pi * p)
-        deltas = {}
-        deltas["Hips"] = R(X, 12.0)
-        arm_base(rig, deltas, 12.0, 12.0, 20.0)
-        y0 = -RUN_SPEED * STANCE * RUN_LEN / FPS * 0.5
-        FL, _pl = foot_F(rig, "Left", p, y0, RUN_SPEED, RUN_LEN, 0.09)
-        FR, _pr = foot_F(rig, "Right", p + 0.5, y0, RUN_SPEED, RUN_LEN, 0.09)
-        return Vector((0, 0, pelvis_z)), deltas, {"Left": FL, "Right": FR}
-    return gait_pose(rig, f, RUN_LEN, RUN_SPEED, lambda r: pelvis_heights(r, run_pose, RUN_LEN),
-                     12.0, 28.0, 12.0, 18.0, 12.0, 0.09)
+def land_pose(rig, f):
+    """A hard landing: a quick squat that soaks up the fall, then straight back up."""
+    p = (f - 1) / LAND_LEN
+    s = smooth(p / 0.18) if p < 0.18 else (1.0 if p < 0.45 else 1.0 - smooth((p - 0.45) / 0.55))
+    deltas = {"Hips": R(X, 4.0 * s)}
+    block_upper(rig, deltas, 20.0 * s, 17.0 - 10.0 * s, 0.0, 0.0, 12.0 + 30.0 * s, 16.0 + 30.0 * s)
+    deltas["LeftUpperArm"] = R(X, -25.0 * s) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(X, -25.0 * s) @ deltas["RightUpperArm"]
+    return Vector((0.0, 0.0, -0.26 * s)), deltas, planted()
+
+
+def roll_pose(rig, f):
+    """Dodge roll: tuck, one forward somersault as a block, stand up."""
+    p = (f - 1) / ROLL_LEN
+    tuck = smooth(p / 0.15) if p < 0.8 else 1.0 - smooth((p - 0.8) / 0.2)
+    turn = 360.0 * smooth((p - 0.12) / 0.68) if 0.12 < p < 0.8 else 0.0
+    deltas = {"Hips": R(X, 10.0 * tuck)}
+    block_upper(rig, deltas, 0.0, 25.0, 0.0, 0.0, 12.0 + 70.0 * tuck, 16.0 + 70.0 * tuck)
+    deltas["Spine"] = R(X, 45.0 * tuck)
+    deltas["Chest"] = R(X, 25.0 * tuck)
+    deltas["Head"] = R(X, 30.0 * tuck)
+    deltas["LeftUpperArm"] = R(X, -40.0 * tuck) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(X, -40.0 * tuck) @ deltas["RightUpperArm"]
+    feet = {sd: T((0, -0.10 * tuck, 0.25 * tuck * tuck)) for sd in ("Left", "Right")}
+    hips_off = Vector((0.0, 0.0, -0.48 * tuck))
+    hips_off, deltas, feet = body_turn(hips_off, deltas, feet, rig, X, turn, (0.0, 0.0, 0.50))
+    # rolls along the ground: lift the turned block so its lowest joint (plus the head and body thickness) stays on it
+    if turn > 0.0:
+        M, _ = rig.solve(hips_off, deltas, feet)
+        low = min(min(m.translation.z, (m @ Vector((0, rig.length[n], 0))).z) for n, m in M.items()) - ROLL_SKIN
+        if low < 0.0:
+            hips_off = hips_off + Vector((0.0, 0.0, -low))
+            feet = {sd: T((0, 0, -low)) @ F for sd, F in feet.items()}
+    return hips_off, deltas, feet
+
+
+def death_pose(rig, f):
+    """Stiff, Minecraft-style: the body tips over sideways as one block and lands on its side."""
+    p = (f - 1) / DEATH_LEN
+    if p < 0.45:
+        a = 90.0 * (p / 0.45) ** 2
+    elif p < 0.6:
+        a = 90.0 - 7.0 * math.sin(math.pi * (p - 0.45) / 0.15)
+    else:
+        a = 90.0
+    deltas = {}
+    block_upper(rig, deltas, 0.0, 38.0, 0.0, 0.0, 10.0, 14.0)
+    return body_turn(Vector((0.0, 0.0, 0.0)), deltas, planted(), rig, Y, a, (0.46, 0.0, 0.0))
+
+
+def swim_idle_pose(rig, f):
+    """Treading water: upright, slow alternate leg kicks, the arms out sculling."""
+    p = (f - 1) / SWIM_IDLE_LEN
+    c1 = math.cos(2 * math.pi * p)
+    deltas = {}
+    block_upper(rig, deltas, 6.0, -15.0, 0.0, 0.0, 20.0, 25.0)
+    deltas["LeftUpperArm"] = R(Z, 18.0 * c1) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(Z, 18.0 * c1) @ deltas["RightUpperArm"]
+    feet = {"Left": leg_swing(rig, "Left", -16.0 * c1, 0.06 * max(0.0, c1)),
+            "Right": leg_swing(rig, "Right", 16.0 * c1, 0.06 * max(0.0, -c1))}
+    return Vector((0.0, 0.0, 0.0)), deltas, feet
+
+
+def swim_pose(rig, f):
+    """Swimming forward: the body lies along the stroke, flutter kick, the arms in a front crawl."""
+    p = (f - 1) / SWIM_LEN
+    deltas = {}
+    block_upper(rig, deltas, 0.0, 30.0, 0.0, 0.0, 15.0, 20.0)
+    deltas["Neck"] = R(X, -30.0)
+    deltas["Head"] = R(X, -20.0)
+    deltas["LeftUpperArm"] = R(X, 360.0 * p) @ deltas["LeftUpperArm"]
+    deltas["RightUpperArm"] = R(X, 360.0 * p + 180.0) @ deltas["RightUpperArm"]
+    k = math.sin(4 * math.pi * p)
+    feet = {"Left": leg_swing(rig, "Left", 16.0 * k), "Right": leg_swing(rig, "Right", -16.0 * k)}
+    return body_turn(Vector((0.0, 0.0, 0.0)), deltas, feet, rig, X, 75.0, (0.0, 0.0, 1.10))
 
 
 def _combat_arms(rig, deltas, right_pitch, right_yaw, elbow):
@@ -479,22 +590,6 @@ def hit_pose(rig, f):
     return hips_off, deltas, feet
 
 
-def death_pose(rig, f):
-    p = (f - 1) / DEATH_LEN
-    s = smooth(min(1.0, p / 0.75))
-    deltas = {}
-    hips_off = Vector((0.0, 0.05 * s, -0.42 * s))
-    deltas["Hips"] = R(X, -55 * s)
-    deltas["Spine"] = R(X, -25 * s)
-    deltas["Chest"] = R(X, -15 * s)
-    deltas["Head"] = R(X, 20 * s)
-    arm_base(rig, deltas, 10.0, 20.0, 25.0)
-    deltas["LeftUpperArm"] = R(Z, 30 * s) @ deltas["LeftUpperArm"]
-    deltas["RightUpperArm"] = R(Z, -40 * s) @ deltas["RightUpperArm"]
-    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
-    return hips_off, deltas, feet
-
-
 # ------------------------------------------------------------------ keying
 def key_action(rig, name, length, pose_fn, loop=True):
     ob = rig.ob
@@ -577,6 +672,14 @@ def main():
         ("Idle", IDLE_LEN, idle_pose, True),
         ("Walk", WALK_LEN, walk_pose, True),
         ("Run", RUN_LEN, run_pose, True),
+        ("Sprint", SPRINT_LEN, sprint_pose, True),
+        ("CrouchIdle", CROUCH_IDLE_LEN, crouch_idle_pose, True),
+        ("CrouchWalk", CROUCH_LEN, crouch_walk_pose, True),
+        ("Air", AIR_LEN, air_pose, True),
+        ("LandHard", LAND_LEN, land_pose, False),
+        ("Roll", ROLL_LEN, roll_pose, False),
+        ("SwimIdle", SWIM_IDLE_LEN, swim_idle_pose, True),
+        ("Swim", SWIM_LEN, swim_pose, True),
         ("Attack_1", ATTACK1_LEN, attack1_pose, False),
         ("Attack_2", ATTACK2_LEN, attack2_pose, False),
         ("Attack_3", ATTACK3_LEN, attack3_pose, False),
