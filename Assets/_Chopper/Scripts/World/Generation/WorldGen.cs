@@ -90,15 +90,20 @@ namespace Chopper.World.Generation
         public const float RingOffset = 18f;
         public const float RingCrestHalfWidth = 4f;
         public const float RingFootHalfWidth = 20f;
-        public const float RingHeight = 30f;
+        public const float RingHeight = 20f;
         public const float RidgeCrestHalfWidth = 5f;
         public const float RidgeFootHalfWidth = 26f;
-        public const float RidgeHeight = 42f;
+        public const float RidgeHeight = 28f;
         public const float PassHalfWidth = 5f;
         public const float PassWallWidth = 9f;
         public const float MountainCragHeight = 7f;
         // The walls are rock, not a smooth bank: they climb in this many ledges, each riser a short cliff.
         public const int MountainLedges = 3;
+        // Every mountain riser is this tall: above the 3.05 m a player reaches (double jump 2.4 m plus the 0.65 step)
+        // even where the ground under it already falls 1 m (4 m leaked there on seed 4242).
+        public const float MountainStep = 4.5f;
+        // Block tops above this are snow: only the ridge tops (up to 27 m); the 18 m ring crest stays stone (concept 2.0 caps the tips).
+        public const float SnowLine = 22f;
         // How much of the wall follows the ledges (the rest stays the plain slope, so ledges tilt a little).
         private const float LedgeStrength = 0.7f;
         // How far the ledges drift up and down along a wall, as a share of the wall profile.
@@ -341,7 +346,10 @@ namespace Chopper.World.Generation
 
             float crest = (_ridges.Fbm(x * 0.09f + 57f, z * 0.09f, 2) - 0.5f) * 2f * CrestBreakHeight * weight * weight * weight;
             float rubble = _ridges.Fbm(x * 0.12f - 91f, z * 0.12f, 2) * ApronHeight * apron;
-            return wall + crag - gully + crest + rubble;
+            // Block mountains (W5-08 step 9): the whole mountain share moves in MountainStep risers, so on a mountain
+            // two neighbouring columns differ by the ground's own half-block wobble (a shelf) or by a full riser that
+            // a double jump plus the step cannot clear (VoxelChecks.ZoneSeal). Stacked blocks, as in concept 2.0.
+            return Mathf.Round((wall + crag - gully + crest + rubble) / MountainStep) * MountainStep;
         }
 
         // Shifts a 0 to 1 wall profile by up to offset in the middle of the wall, never at its foot or crest.
@@ -780,7 +788,11 @@ namespace Chopper.World.Generation
                 foreach (MineSite site in Mines)
                 {
                     float d = Vector2.Distance(new Vector2(x, z), site.PadCenter);
-                    if (d < MinePadBlend) height = Mathf.Lerp(site.Ground, height, Smooth(MinePadRadius, MinePadBlend, d));
+                    if (d >= MinePadBlend) continue;
+                    // The notch walls rise in mountain risers too: a smooth blend made a stair of 2 to 3 m steps up
+                    // into the ridge on seed 4242 (VoxelChecks.ZoneSeal).
+                    float lift = (height - site.Ground) * Smooth(MinePadRadius, MinePadBlend, d);
+                    height = site.Ground + Mathf.Round(lift / MountainStep) * MountainStep;
                 }
             }
             return height;
