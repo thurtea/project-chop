@@ -8,6 +8,7 @@ Shader "Chopper/VertexColorLit"
         _BaseColor ("Base Color", Color) = (1, 1, 1, 1)
         _AmbientStrength ("Ambient Strength", Range(0, 2)) = 1
         _UseAtlas ("Use Atlas", Float) = 1
+        _Wrap ("Wrap Light", Range(0, 1)) = 0.42
     }
 
     SubShader
@@ -20,6 +21,7 @@ Shader "Chopper/VertexColorLit"
             half4 _BaseColor;
             half _AmbientStrength;
             half _UseAtlas;
+            half _Wrap;
         CBUFFER_END
         TEXTURE2D(_BaseMap);
         SAMPLER(sampler_BaseMap);
@@ -88,7 +90,9 @@ Shader "Chopper/VertexColorLit"
 
                 float3 n = normalize(i.normalWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(i.positionWS));
-                half ndl = saturate(dot(n, mainLight.direction));
+                // Wrapped so a hard cube face is not black beside a lit one (the concept's softer light).
+                half wrap = saturate(_Wrap);
+                half ndl = saturate(dot(n, mainLight.direction) * (1 - wrap) + wrap);
                 half3 direct = mainLight.color * (ndl * mainLight.shadowAttenuation * mainLight.distanceAttenuation);
                 half3 ambient = SampleSH(n) * _AmbientStrength;
 

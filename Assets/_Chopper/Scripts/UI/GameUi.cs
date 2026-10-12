@@ -833,6 +833,8 @@ namespace Chopper.UI
                 else if (MineWorld.ExitInReach(position) >= 0) prompt = InputHints.MineExitPrompt;
                 else if (MineWorld.VeinInReach(position, LocalAim(local)) is int vein && vein >= 0)
                     prompt = MineWorld.SpentHere(vein) ? InputHints.WorkedVeinPrompt : InputHints.VeinPrompt;
+                else if (GroundItem.GearInReach(position) is GroundItem gear)
+                    prompt = gear.Kind == GroundItemKind.Axe ? InputHints.AxeOnGroundPrompt : InputHints.OutfitOnGroundPrompt;
                 // Fishing has no prompts: the rod in hand at the water says it all.
                 else if (fishing != null && (fishing.Busy || (fishing.Rod > 0 && PlayerFishing.AtWater(position)))) prompt = string.Empty;
                 else if (herbHere) prompt = InputHints.HerbPrompt(HerbManager.Instance.FabricInReach(position));

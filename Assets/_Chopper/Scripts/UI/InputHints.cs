@@ -88,6 +88,9 @@ namespace Chopper.UI
 
         private static string Action(KeyAction action, string verb) => $"<color={KeyColor}>[{Name(action)}]</color> {verb}";
 
+        public static string AxeOnGroundPrompt => Prompt("Axe", KeyAction.Interact, "Pick up");
+        public static string OutfitOnGroundPrompt => Prompt("Outfit", KeyAction.Interact, "Put on");
+
         public static string WorkbenchPrompt => Prompt("Workbench", KeyAction.Interact, "Use");
 
         public static string StoragePrompt => Prompt("Storage chest", KeyAction.Interact, "Open");

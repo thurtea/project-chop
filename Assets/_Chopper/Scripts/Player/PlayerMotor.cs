@@ -36,8 +36,11 @@ namespace Chopper.Player
         private const float SteepSlideSpeed = GameConfig.SteepSlideSpeed;
         private const float SteepProbeLength = 0.6f;
         // Swimming into a bank: rise at this speed while the block ahead tops out no higher than this over the water.
-        private const float SwimClimbSpeed = 3f;
+        private const float SwimClimbSpeed = 4f;
         private const float SwimClimbMaxAboveSurface = 0.75f;
+        // A jump at a higher bank (a full step of sand, a dock, a rock) pulls the swimmer up onto it.
+        private const float SwimMantleMaxAboveSurface = 1.7f;
+        private const float SwimMantleSeconds = 0.75f;
 
         // Double jump: one more jump in the air, as high as the first and for the same stamina. It comes back on landing.
         private const int AirJumps = 1;
@@ -69,6 +72,7 @@ namespace Chopper.Player
         private Vector3 _horizontalVelocity;
         private float _wetSeconds;
         private bool _swimming;
+        private float _mantleUntil;
 
         // Owner only. Seconds of Wet left (WetRules): 0 is dry.
         public float WetSeconds => _wetSeconds;
@@ -297,13 +301,27 @@ namespace Chopper.Player
             Vector3 downhill = Vector3.zero;
             if (swimming)
             {
-                // Buoyancy: float with the chest in the water instead of sinking or standing on the bottom.
-                float floatY = surfaceY - WaterSystem.SwimFloatDepth;
-                _verticalVelocity = Mathf.Clamp((floatY - transform.position.y) * 4f, -3f, 3f);
-                // Climbing out: swimming into a bank block whose top is near the surface lifts the swimmer over its
-                // edge (the feet float 1.05 m down, far below the step height), like pulling up onto a ledge.
-                if (direction.sqrMagnitude > TurnInputThreshold && BankAhead(direction, surfaceY))
+                Vector3 swimDir = direction.sqrMagnitude > TurnInputThreshold ? direction : transform.forward;
+                bool jumping = !blocked && !rolling && !guardUp && JumpPressed();
+                if (jumping && LedgeAhead(swimDir, surfaceY, SwimMantleMaxAboveSurface))
+                    _mantleUntil = Time.time + SwimMantleSeconds;
+                if (Time.time < _mantleUntil)
+                {
+                    // Out of the buoyancy band and onto the block in front.
                     _verticalVelocity = SwimClimbSpeed;
+                    if (direction.sqrMagnitude <= TurnInputThreshold) direction = transform.forward;
+                }
+                else
+                {
+                    // Buoyancy: float with the chest in the water instead of sinking or standing on the bottom.
+                    float floatY = surfaceY - WaterSystem.SwimFloatDepth;
+                    _verticalVelocity = Mathf.Clamp((floatY - transform.position.y) * 4f, -3f, 3f);
+                    // A low bank is climbed by swimming into it. A jump in open water is a stroke upward.
+                    if (direction.sqrMagnitude > TurnInputThreshold && BankAhead(direction, surfaceY))
+                        _verticalVelocity = SwimClimbSpeed;
+                    else if (jumping)
+                        _verticalVelocity = Mathf.Max(_verticalVelocity, _config.JumpLaunchSpeed * 0.55f);
+                }
             }
             else
             {
@@ -349,7 +367,7 @@ namespace Chopper.Player
             if (blocking) topSpeed *= _config.BlockMoveMultiplier;
             Vector3 targetVelocity = direction * topSpeed;
             float rate = direction.sqrMagnitude > TurnInputThreshold ? _config.PlayerAcceleration : _config.PlayerDeceleration;
-            if (swimming) rate *= 0.5f;
+            if (swimming) rate *= Time.time < _mantleUntil ? 1.1f : 0.85f;
             _horizontalVelocity = Vector3.MoveTowards(_horizontalVelocity, targetVelocity, rate * Time.deltaTime);
             // A roll overrides everything for its short duration: a fast dash that eases out at the end.
             if (rolling)
@@ -383,7 +401,8 @@ namespace Chopper.Player
             else if (direction.sqrMagnitude > TurnInputThreshold)
             {
                 Quaternion target = Quaternion.LookRotation(direction, Vector3.up);
-                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, _config.PlayerTurnSpeed * Time.deltaTime);
+                float turn = _config.PlayerTurnSpeed * (swimming ? 0.42f : 0.62f);
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turn * Time.deltaTime);
             }
         }
 
@@ -410,12 +429,14 @@ namespace Chopper.Player
         private const float RainSoakThreshold = 0.3f;
 
         // A bank block just ahead (past the capsule's front) that is above the feet but low enough to pull up onto.
-        private bool BankAhead(Vector3 direction, float surfaceY)
+        private bool BankAhead(Vector3 direction, float surfaceY) => LedgeAhead(direction, surfaceY, SwimClimbMaxAboveSurface);
+
+        private bool LedgeAhead(Vector3 direction, float surfaceY, float maxAboveSurface)
         {
-            if (Chopper.World.Voxel.VoxelColumns.Current == null) return false;
-            Vector3 ahead = transform.position + direction.normalized * (_controller.radius + 0.3f);
+            if (Chopper.World.Voxel.VoxelColumns.Current == null || direction.sqrMagnitude < 0.01f) return false;
+            Vector3 ahead = transform.position + direction.normalized * (_controller.radius + 0.45f);
             float top = WorldGround.HeightAt(ahead);
-            return top > transform.position.y + _controller.stepOffset && top <= surfaceY + SwimClimbMaxAboveSurface;
+            return top > transform.position.y + _controller.stepOffset && top <= surfaceY + maxAboveSurface;
         }
 
         // True when the terrain under the feet is steeper than the controller may climb; downhill is the flat

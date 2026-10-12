@@ -170,6 +170,10 @@ namespace Chopper.UI
                 _branding.Add(title.gameObject);
             }
 
+            Text tagline = UiKit.Label(_canvas.transform, "Drop into the pond. Your axe and clothes are on the shore.", 22, TextAnchor.MiddleCenter, UiKit.Accent);
+            UiKit.Place(tagline.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 78f), new Vector2(1100f, 36f));
+            _branding.Add(tagline.gameObject);
+
             // The build version in a corner, so testers can tell which build they are running.
             Text version = UiKit.Label(_canvas.transform, "v" + Application.version, 16, TextAnchor.LowerRight, UiKit.Dim);
             UiKit.Place(version.rectTransform, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-18f, 12f), new Vector2(300f, 24f));
@@ -224,32 +228,39 @@ namespace Chopper.UI
             UiKit.Place(back, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 90f), FooterButtonSize);
         }
 
-        // Sky gradient, a pale far ridge of pines in the mist, a dark near ridge, and a vignette.
+        // Dawn over block mountains and a pond, in the colours of concept 2.0. The old screen was a dark dusk.
         private static Texture2D BackdropTexture()
         {
             const int width = 960;
             const int height = 540;
             var pixels = new Color[width * height];
-            var skyTop = new Color(0.035f, 0.05f, 0.06f);
-            var skyLow = new Color(0.20f, 0.22f, 0.20f);
-            var far = new Color(0.10f, 0.13f, 0.12f);
-            var near = new Color(0.025f, 0.035f, 0.03f);
-            float[] farLine = TreeLine(width, 0.30f, 0.10f, 11, 0.6f);
-            float[] nearLine = TreeLine(width, 0.18f, 0.14f, 29, 1f);
+            var skyTop = new Color(0.55f, 0.72f, 0.86f);
+            var skyLow = new Color(0.96f, 0.78f, 0.52f);
+            var mist = new Color(0.78f, 0.82f, 0.84f);
+            var farPeak = new Color(0.72f, 0.78f, 0.82f);
+            var snow = new Color(0.93f, 0.95f, 0.96f);
+            var nearPine = new Color(0.16f, 0.28f, 0.14f);
+            var water = new Color(0.28f, 0.48f, 0.62f);
+            float[] peaks = PeakLine(width);
+            float[] pines = TreeLine(width, 0.16f, 0.20f, 29, 1.15f);
             for (int y = 0; y < height; y++)
             {
                 float v = y / (float)(height - 1);
                 for (int x = 0; x < width; x++)
                 {
                     float u = x / (float)(width - 1);
-                    Color c = Color.Lerp(skyLow, skyTop, Mathf.SmoothStep(0.15f, 1f, v));
-                    // Mist pools low behind the far ridge.
-                    c = Color.Lerp(c, skyLow * 1.15f, Mathf.Clamp01(1f - Mathf.Abs(v - 0.33f) * 6f) * 0.35f);
-                    if (v < farLine[x]) c = Color.Lerp(far, skyLow, Mathf.Clamp01((v - 0.12f) * 1.6f) * 0.35f);
-                    if (v < nearLine[x]) c = near;
-                    float dx = (u - 0.5f) * 1.6f;
-                    float dy = (v - 0.55f) * 1.2f;
-                    c *= Mathf.Lerp(1f, 0.45f, Mathf.Clamp01(dx * dx + dy * dy));
+                    Color c = Color.Lerp(skyLow, skyTop, Mathf.SmoothStep(0.2f, 1f, v));
+                    c = Color.Lerp(c, mist, Mathf.Clamp01(1f - Mathf.Abs(v - 0.42f) * 5f) * 0.45f);
+                    if (v < peaks[x])
+                    {
+                        float snowLine = peaks[x] - 0.06f;
+                        c = v > snowLine ? snow : farPeak;
+                        c = Color.Lerp(c, mist, 0.25f);
+                    }
+                    if (v < 0.14f) c = Color.Lerp(water, skyLow, v / 0.14f);
+                    if (v < pines[x] && v > 0.05f) c = nearPine;
+                    float sun = Mathf.Clamp01(1f - Vector2.Distance(new Vector2(u, v), new Vector2(0.72f, 0.62f)) * 7f);
+                    c = Color.Lerp(c, new Color(1f, 0.92f, 0.7f), sun * 0.55f);
                     c.a = 1f;
                     pixels[y * width + x] = c;
                 }
@@ -258,6 +269,23 @@ namespace Chopper.UI
             texture.SetPixels(pixels);
             texture.Apply();
             return texture;
+        }
+
+        // Stepped mountain tops across the horizon (0 to 1 of the screen).
+        private static float[] PeakLine(int width)
+        {
+            var line = new float[width];
+            for (int x = 0; x < width; x++)
+            {
+                float u = x / (float)width;
+                float n = Mathf.PerlinNoise(u * 2.2f, 4.2f);
+                float stepped = Mathf.Round(n * 7f) / 7f;
+                float peak = 0.34f + stepped * 0.16f;
+                if (Mathf.Abs(u - 0.28f) < 0.08f) peak += 0.08f;
+                if (Mathf.Abs(u - 0.62f) < 0.1f) peak += 0.12f;
+                line[x] = peak;
+            }
+            return line;
         }
 
         // Height (0 to 1 of the screen) of a ridge covered in pointed pine crowns at each column.

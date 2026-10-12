@@ -79,7 +79,8 @@ namespace Chopper.Player
         private void Update()
         {
             if (!IsOwner || _interact == null) return;
-            if (!UiState.GameplayBlocked && InteractPressed() && TryPickUp()) { }
+            if (!UiState.GameplayBlocked && InteractPressed() && TryTakeGear()) { }
+            else if (!UiState.GameplayBlocked && InteractPressed() && TryPickUp()) { }
             else if (!UiState.GameplayBlocked && InteractPressed())
             {
                 Sign sign = Sign.Nearest(transform.position);
@@ -152,6 +153,21 @@ namespace Chopper.Player
         // walking over it; a wood pile is emptied straight into the arms. No holds.
         // A press that picks something by hand (a plant or a branch), for the bend down (PlayerAnimator).
         public event System.Action Gathered;
+
+        private bool TryTakeGear()
+        {
+            if (GroundItem.GearInReach(transform.position) == null) return false;
+            Gathered?.Invoke();
+            TakeGearServerRpc();
+            return true;
+        }
+
+        [ServerRpc]
+        private void TakeGearServerRpc()
+        {
+            GroundItem gear = GroundItem.GearInReach(transform.position);
+            if (gear != null) gear.ServerTryTake(this);
+        }
 
         private bool TryPickUp()
         {

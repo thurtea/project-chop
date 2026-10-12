@@ -58,7 +58,7 @@ namespace Chopper.Player
         // The top of the locomotion blend (the sprint loop's speed in CharacterSetup); faster than this, the loop plays
         // faster so the feet keep pace.
         private const float TopBlendSpeed = 8.7f;
-        private const float SpeedSmoothing = 12f;
+        private const float SpeedSmoothing = 6.5f;
         private const float GroundCheckHeight = 0.3f;
         private const float GroundCheckDistance = 0.55f;
         private const float MinFootstepSpeed = 0.7f;

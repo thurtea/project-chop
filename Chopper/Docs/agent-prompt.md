@@ -44,7 +44,7 @@ Still open, in this order:
 1. Whatever the report card says. Blank rows stay blank. Do not run the user's playtest for them. Do compile when a C# change needs it.
 2. Website gallery only from the user's screenshots (HW-6), cropped to 1600 x 900 in Website/images/. Do not restore the old pictures.
 3. Art-project ChopperCheck expects 12 skinned meshes and the FBX has 13; do not mark it done. W2-05 needs a reviewer who is not the builder.
-4. W9-04 dome and W9-05 mining combo are written, unproven. Dropped axes and outfits are already saved (`GearRecord`). Raids on forest bases are still later. Only after the report card has no FAIL.
+4. W9-04 dome and W9-05 mining combo are written, unproven. W9-07: dawn title, interact to take the shore axe and outfit, jump climbs a bank, wrapped character light. The body mesh is still the W8-14 sculpt. Dropped axes and outfits are already saved (`GearRecord`). Raids are still later.
 
 Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. Git. No gh CLI. Tools/homework.ps1 runs every check (see Homework.md).
 Constraints: no AI image-to-3D meshes. Do not remodel Chopper from scratch. Do not replace the live Animator controller (swap motions only). Mesh read/write stays on. Do not run PieceBuilder.BuildAll. Work on main. No commits, pushes, deletions, deploys or paid services without explicit approval. One Unity project at a time.

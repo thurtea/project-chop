@@ -4260,13 +4260,21 @@ namespace Chopper.Networking
                 {
                     Vector3 to = target - wood.transform.position;
                     to.y = 0f;
-                    if (to.magnitude < 0.5f) break;
+                    if (to.magnitude < 1.1f) break;
                     float yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
                     cam.SnapYaw(yaw);
                     InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up });
                     yield return null;
                 }
                 if (piece == 0) yield return Shot(folder, "arrival_2_on_the_bank");
+                float pressUntil = Time.time + 0.35f;
+                while (Time.time < pressUntil)
+                {
+                    InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.West));
+                    yield return null;
+                }
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                yield return new WaitForSeconds(0.35f);
             }
             InputSystem.QueueStateEvent(pad, new GamepadState());
             InputSystem.RemoveDevice(pad);

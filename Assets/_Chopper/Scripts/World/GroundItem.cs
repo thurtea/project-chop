@@ -95,6 +95,8 @@ namespace Chopper.World
                 return;
             }
             if (Time.time < _readyAt) return;
+            // The axe and the outfit wait for interact. Everything else is taken by walking over it.
+            if (Kind == GroundItemKind.Axe || Kind == GroundItemKind.Outfit) return;
             Vector3 at = transform.position;
             foreach (PlayerWood player in PlayerWood.Active)
             {
@@ -114,6 +116,44 @@ namespace Chopper.World
                     return;
                 }
             }
+        }
+
+        public const float GearPickupRadius = 2.2f;
+
+        // The nearest axe or outfit the player could take, within reach (flat). Null if none.
+        public static GroundItem GearInReach(Vector3 position)
+        {
+            GroundItem best = null;
+            float bestSqr = GearPickupRadius * GearPickupRadius;
+            foreach (GroundItem item in _all)
+            {
+                if (item == null) continue;
+                if (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit) continue;
+                if (Time.time < item._readyAt) continue;
+                Vector3 offset = item.transform.position - position;
+                if (Mathf.Abs(offset.y) > MaxHeightGap) continue;
+                offset.y = 0f;
+                if (offset.sqrMagnitude > bestSqr) continue;
+                bestSqr = offset.sqrMagnitude;
+                best = item;
+            }
+            return best;
+        }
+
+        // Server only. Interact on the shore kit (or gear left where someone fell).
+        public bool ServerTryTake(PlayerWood player)
+        {
+            if (!IsServerInitialized || player == null || Time.time < _readyAt) return false;
+            if (Kind != GroundItemKind.Axe && Kind != GroundItemKind.Outfit) return false;
+            Vector3 offset = player.transform.position - transform.position;
+            if (Mathf.Abs(offset.y) > MaxHeightGap) return false;
+            offset.y = 0f;
+            if (offset.sqrMagnitude > GearPickupRadius * GearPickupRadius) return false;
+            int taken = ServerGive(player);
+            if (taken <= 0) return false;
+            _amount.Value -= taken;
+            if (_amount.Value <= 0) ServerManager.Despawn(gameObject);
+            return true;
         }
 
         // Hands as much as the player has room for; returns how much was taken.
