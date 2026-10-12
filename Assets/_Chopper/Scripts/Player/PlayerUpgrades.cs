@@ -36,6 +36,9 @@ namespace Chopper.Player
         private readonly SyncVar<int> _stones = new SyncVar<int>();
         private readonly SyncVar<int> _armourKits = new SyncVar<int>();
         private readonly SyncVar<bool> _armoured = new SyncVar<bool>();
+        // The everyday outfit (shirt, vest, belt; W9-01, user 2026-10-12): a new player wakes in the pond without it and
+        // picks it up on the shore; a fallen player leaves it where they fell.
+        private readonly SyncVar<bool> _dressed = new SyncVar<bool>();
 
         // Raised on every client when this player puts the armour on (or a save loads it).
         public event System.Action OutfitChanged;
@@ -62,6 +65,7 @@ namespace Chopper.Player
         public int Stones => _stones.Value;
         public int ArmourKits => _armourKits.Value;
         public bool Armoured => _armoured.Value;
+        public bool Dressed => _dressed.Value;
         public bool HasStone(Element element) => ElementBuffRules.HasStone(_stones.Value, element);
         public int WardLevel(Element element) => EssenceRules.Get(_wards.Value, element);
         // Share of damage from enemies of this element that the player's ward takes away.
@@ -89,6 +93,7 @@ namespace Chopper.Player
             _wards.OnChange += OnLevelChanged;
             _stones.OnChange += OnStonesChanged;
             _armoured.OnChange += OnArmouredChanged;
+            _dressed.OnChange += OnDressedChanged;
             OutfitChanged?.Invoke();
         }
 
@@ -102,7 +107,17 @@ namespace Chopper.Player
             _wards.OnChange -= OnLevelChanged;
             _stones.OnChange -= OnStonesChanged;
             _armoured.OnChange -= OnArmouredChanged;
+            _dressed.OnChange -= OnDressedChanged;
         }
+
+        private void OnDressedChanged(bool previous, bool next, bool asServer)
+        {
+            if (asServer != IsServerInitialized) return;
+            OutfitChanged?.Invoke();
+        }
+
+        // Server only. Puts the outfit on (picked up) or takes it off (dropped where the player fell).
+        public void ServerSetDressed(bool dressed) => _dressed.Value = dressed;
 
         private void OnArmouredChanged(bool previous, bool next, bool asServer)
         {
@@ -137,6 +152,8 @@ namespace Chopper.Player
         {
             _armourKits.Value = Mathf.Clamp(kits, 0, MaxArmourKits);
             _armoured.Value = armoured;
+            // A saved player comes back in their outfit.
+            _dressed.Value = true;
         }
 
         private void OnStonesChanged(int previous, int next, bool asServer)

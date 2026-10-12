@@ -110,6 +110,9 @@ namespace Chopper.World
         {
             PlayerAxe axe = player.GetComponent<PlayerAxe>();
             if (axe != null) axe.ServerSetHasAxe(true);
+            // The practice yard skips the arrival drop (W9-01): dressed from the start.
+            PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
+            if (upgrades != null) upgrades.ServerSetDressed(true);
             PlayerFishing fishing = player.GetComponent<PlayerFishing>();
             if (fishing != null && fishing.Rod <= 0) fishing.ServerSetGear(1, 1);
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();

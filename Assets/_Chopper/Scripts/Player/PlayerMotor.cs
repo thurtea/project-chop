@@ -237,7 +237,9 @@ namespace Chopper.Player
                 _airborne = true;
                 return;
             }
-            if (_airborne && !_fallIgnored)
+            // A landing in water never hurts (the arrival drop can reach the pond floor in one slow frame).
+            bool intoWater = WaterSystem.DepthAt(transform.position, out _) >= WaterSystem.WadeDepth;
+            if (_airborne && !_fallIgnored && !intoWater)
             {
                 float height = _fallTopY - y;
                 if (FallRules.Damage(height, 100) > 0) FallServerRpc(height);
@@ -284,6 +286,9 @@ namespace Chopper.Player
             bool guardUp = _combat != null && _combat.GuardRaised;
             _inputDirection = direction;
             float waterDepth = WaterSystem.DepthAt(transform.position, out float surfaceY);
+            // Only in the water, not anywhere over it: the arrival drop (W9-01) falls 22 m into the pond, and over deep
+            // water the swim buoyancy used to catch the player in mid air and lower them slowly.
+            if (waterDepth > 0f && transform.position.y > surfaceY + WaterSystem.SurfaceReach) waterDepth = 0f;
             bool swimming = waterDepth >= WaterSystem.SwimDepth;
             bool wading = !swimming && waterDepth >= WaterSystem.WadeDepth;
             _swimming = swimming;

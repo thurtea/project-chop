@@ -361,14 +361,34 @@ namespace Chopper.Networking
                 Application.Quit(1);
                 yield break;
             }
+            // Where the player first appeared, before the arrival drop (W9-01) has run its course.
+            Vector3 firstSeen = PlayerWood.Local.transform.position;
             yield return new WaitForSeconds(2f);
 
             PlayerWood wood = PlayerWood.Local;
             PlayerInventory inventory = wood.GetComponent<PlayerInventory>();
             GameUi ui = UnityEngine.Object.FindAnyObjectByType<GameUi>();
 
-            Debug.Log($"[Shot] player starts at {wood.transform.position}");
+            Debug.Log($"[Shot] player starts at {wood.transform.position} (first seen at {firstSeen:F1})");
+            bool arrivalTour = Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperArrival") >= 0;
+            // Every other tour tests something else: give the outfit and the axe that a player picks up on the shore.
+            if (!arrivalTour && !TutorialSession.Active && wood.IsServerInitialized)
+            {
+                wood.GetComponent<PlayerUpgrades>().ServerSetDressed(true);
+                PlayerAxe startAxe = wood.GetComponent<PlayerAxe>();
+                if (!startAxe.HasAxe) startAxe.ServerResetTool();
+            }
             yield return Shot(folder, "1_day_hud");
+
+            // Arrival (-chopperArrival, W9-01): the player falls into the hub pond with no outfit and no axe, swims to
+            // the bank, picks both up on the shore; then falls in a fight and leaves both where they fell, and arrives
+            // again in the pond empty-handed. Logs "[Arrival] RESULT".
+            if (arrivalTour)
+            {
+                yield return ArrivalTour(folder, wood, ui, firstSeen);
+                Application.Quit(0);
+                yield break;
+            }
 
             // Fly tour: the developer console, free flight high over the land, a crypt by teleport, landing again,
             // fabric bushes and herbs up close, and the bandage at the workbench.
@@ -4172,6 +4192,86 @@ namespace Chopper.Networking
             Debug.Log($"[Plants] workbench {benchResult}, campfire {fireResult}, voxel meshes {voxelMeshes}");
             bool pass = herbOk && torchOk && voxelMeshes >= 12;
             Debug.Log("[Plants] RESULT " + (pass ? "PASS" : "FAIL"));
+        }
+
+        private static IEnumerator ArrivalTour(string folder, PlayerWood wood, GameUi ui, Vector3 firstSeen)
+        {
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            if (WeatherSystem.Instance != null) WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            ui.DebugShow(0);
+            GameUi.HudHidden = true;
+            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
+            PlayerUpgrades upgrades = wood.GetComponent<PlayerUpgrades>();
+            PlayerMotor motor = wood.GetComponent<PlayerMotor>();
+            float water = Chopper.World.Generation.WorldGen.WaterHeight;
+            bool droppedIn = firstSeen.y > water + 10f;
+            bool startedBare = !axe.HasAxe && !upgrades.Dressed;
+            int kitPieces = 0;
+            foreach (GroundItem item in GroundItem.All)
+                if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit)) kitPieces++;
+            Debug.Log($"[Arrival] first seen at {firstSeen:F1} (water {water:F2}), dropped in {droppedIn}; no outfit and no axe {startedBare}; kit pieces on the ground {kitPieces}");
+            PlayerCamera cam = wood.GetComponent<PlayerCamera>();
+            cam.DebugSetDistance(7f);
+            cam.DebugSetPitch(12f);
+            yield return new WaitForSeconds(1f);
+            yield return Shot(folder, "arrival_1_in_the_pond");
+
+            // Swim to the kit and walk over both pieces.
+            Gamepad pad = InputSystem.AddDevice<Gamepad>();
+            float start = Time.time;
+            for (int piece = 0; piece < 2; piece++)
+            {
+                Vector3 target = WorldStart.KitSpot(piece);
+                while (Time.time - start < 45f)
+                {
+                    Vector3 to = target - wood.transform.position;
+                    to.y = 0f;
+                    if (to.magnitude < 0.5f) break;
+                    float yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
+                    cam.SnapYaw(yaw);
+                    InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up });
+                    yield return null;
+                }
+                if (piece == 0) yield return Shot(folder, "arrival_2_on_the_bank");
+            }
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            InputSystem.RemoveDevice(pad);
+            yield return new WaitForSeconds(1f);
+            bool equipped = axe.HasAxe && upgrades.Dressed;
+            Debug.Log($"[Arrival] reached the kit in {Time.time - start:F1} s, swimming {motor.IsSwimming}; axe {axe.HasAxe} (durability {axe.Durability}), outfit {upgrades.Dressed}");
+            cam.SnapYaw(wood.transform.eulerAngles.y + 160f);
+            cam.DebugSetDistance(3.4f);
+            yield return new WaitForSeconds(0.8f);
+            yield return Shot(folder, "arrival_3_dressed");
+
+            // A fall: the axe and the outfit stay where the player fell, and they arrive in the pond again.
+            Vector3 fellAt = wood.transform.position;
+            PlayerHealth health = wood.GetComponent<PlayerHealth>();
+            health.ServerFall(200f);
+            yield return new WaitForSeconds(0.5f);
+            int left = 0;
+            foreach (GroundItem item in GroundItem.All)
+            {
+                if (item == null || (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit)) continue;
+                Vector3 off = item.transform.position - fellAt;
+                off.y = 0f;
+                if (off.magnitude < 3f) left++;
+            }
+            bool fell = health.IsDown;
+            health.ServerRespawnNow();
+            // The move reaches the owner by a TargetRpc; still far up in the drop after a quarter second.
+            yield return new WaitForSeconds(0.25f);
+            Vector3 again = wood.transform.position;
+            bool backInAir = again.y > water + 10f;
+            bool bareAgain = !axe.HasAxe && !upgrades.Dressed;
+            Debug.Log($"[Arrival] fell {fell}; gear left where they fell {left} of 2; arrives again at {again:F1}, in the air over the pond {backInAir}, empty-handed {bareAgain}");
+            yield return new WaitForSeconds(2.5f);
+            yield return Shot(folder, "arrival_4_back_in_the_pond");
+
+            bool pass = droppedIn && startedBare && kitPieces >= 2 && equipped && fell && left == 2 && backInAir && bareAgain;
+            Debug.Log("[Arrival] RESULT " + (pass ? "PASS" : "FAIL"));
         }
 
         // Renderers that can block a close-up: trees, rocks, bushes, props, players. Grass tufts (small) and terrain

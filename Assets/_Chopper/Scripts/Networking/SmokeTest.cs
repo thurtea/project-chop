@@ -100,7 +100,17 @@ namespace Chopper.Networking
 
             Check(!hut.IsRepaired, "the hut starts broken");
             PlayerFishing startRod = wood.GetComponent<PlayerFishing>();
-            Check(axe.HasAxe && axe.Durability == config.AxeDurability, "players start with a new axe");
+            // W9-01 (user, 2026-10-12): players arrive in the pond with no axe and no outfit; both lie on the bank.
+            PlayerUpgrades startUpgrades = wood.GetComponent<PlayerUpgrades>();
+            Check(!axe.HasAxe && !startUpgrades.Dressed, "players arrive with no axe and no outfit");
+            int kitPieces = 0;
+            foreach (GroundItem item in GroundItem.All)
+                if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit)) kitPieces++;
+            Check(kitPieces >= 2, $"the start kit lies on the pond bank ({kitPieces} pieces)");
+            // The rest of the run uses them, as if picked up on the shore.
+            axe.ServerResetTool();
+            startUpgrades.ServerSetDressed(true);
+            Check(axe.HasAxe && axe.Durability == config.AxeDurability, "the axe from the shore is new");
             Check(startRod != null && startRod.Rod >= 1 && startRod.CanFish, "players start with a fishing rod");
             Check(Workbench.All.Count >= 1 && Sign.Guide != null, "the house has a workbench and the yard a notice board");
             Check(SharedChest.Instance != null && Bed.InReach(Workbench.All[0].transform.position) == null, "the hut has the shared chest; the bed is away from the bench");
@@ -849,6 +859,9 @@ namespace Chopper.Networking
             yield return new WaitForSeconds(0.3f);
             Check(wood.Carried == 7, "walking back and pressing interact takes the wood back");
             Check(WoodPile.Nearest(fellAt) == null, "the empty pile is gone");
+            // W9-01: the axe and the outfit were left there too, and walking back picks them up again.
+            Check(wood.GetComponent<PlayerAxe>().HasAxe && wood.GetComponent<PlayerUpgrades>().Dressed,
+                "walking back picks the dropped axe and outfit up again");
             wood.ServerTakeAll();
 
             // Sturdy gear from crypt iron lets the player live through one.

@@ -84,14 +84,32 @@ namespace Chopper.Player
         {
             base.OnStartServer();
             _serverNextSwingTime = 0f;
-            ServerResetTool();
+            // W9-01 (user, 2026-10-12): a new player wakes in the pond with empty hands; the axe lies on the shore with
+            // the outfit (WorldStart). A saved player gets theirs back from ServerLoadWear.
+            _durability.Value = _config.AxeDurability;
+            ServerSetHasAxe(false);
         }
 
-        // Server only. A new axe in the hand (joining, and the game over restart).
+        // Server only. A new axe in the hand.
         public void ServerResetTool()
         {
             _durability.Value = _config.AxeDurability;
             ServerSetHasAxe(true);
+        }
+
+        // Server only. An axe picked up from the ground, as worn as it was when it was dropped.
+        public void ServerPickUp(int durability)
+        {
+            _durability.Value = Mathf.Clamp(durability, 1, _config.AxeDurability);
+            ServerSetHasAxe(true);
+        }
+
+        // Server only. The axe leaves the hand to lie where the player fell; returns how worn it is, for the pickup.
+        public int ServerDrop()
+        {
+            int durability = _durability.Value;
+            ServerSetHasAxe(false);
+            return durability;
         }
 
         // Server only. Loading a saved player: how worn the axe was (0 is new, as in older saves).

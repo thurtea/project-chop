@@ -42,7 +42,8 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 ## 4. Checklist
 
 ### A. Character and movement (first minute)
-- [ ] You start unarmoured: ginger hair, beard, plaid shirt, patched vest, the bear-head axe.
+- [ ] You arrive by falling from the sky into the hub pond, bare-chested in trousers and boots, with no axe.
+- [ ] Swim to the bank toward the house and climb out. The outfit (plaid shirt, patched vest, belt) and the bear-head axe lie on the bank: walk over them to put them on.
 - [ ] Walk, run, sprint, crouch: blocky and firm, no floppy limbs.
 - [ ] Jump, then double jump in the air. A third press in the air does nothing.
 - [ ] Roll (Left Alt).

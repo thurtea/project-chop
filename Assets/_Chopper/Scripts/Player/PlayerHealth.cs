@@ -162,10 +162,29 @@ namespace Chopper.Player
             int carried = wood != null ? wood.ServerTakeAll() : 0;
             _droppedWood.Value = carried > 0;
             if (carried > 0 && EnemyDirector.Instance != null) EnemyDirector.Instance.ServerDropWood(transform.position, carried);
+            // W9-01 (user, 2026-10-12): the axe and the outfit stay there too; the player arrives again in the pond
+            // without them and comes back for them. Upgrades and the armour are the player's own and stay.
+            ServerDropGear();
             _down.Value = true;
             _lives.Value = LivesRules.AfterFall(_lives.Value, _config.FiniteLives);
             _respawnAt = Time.time + _config.PlayerRespawnSeconds;
             if (LivesRules.IsOut(_lives.Value, _config.FiniteLives) && EnemyDirector.Instance != null) EnemyDirector.Instance.ServerCheckAllPlayersOut();
+        }
+
+        private void ServerDropGear()
+        {
+            EnemyDirector director = EnemyDirector.Instance;
+            if (director == null || Chopper.World.TutorialSession.Active) return;
+            Vector3 at = transform.position;
+            PlayerAxe axe = GetComponent<PlayerAxe>();
+            if (axe != null && axe.HasAxe)
+                director.ServerDropItem(Chopper.World.GroundItemKind.Axe, axe.ServerDrop(), at, at + transform.right);
+            PlayerUpgrades upgrades = GetComponent<PlayerUpgrades>();
+            if (upgrades != null && upgrades.Dressed)
+            {
+                upgrades.ServerSetDressed(false);
+                director.ServerDropItem(Chopper.World.GroundItemKind.Outfit, 1, at, at - transform.right);
+            }
         }
 
         // Server only. Loading a saved player: their health when the world was saved (full if they were down).
@@ -202,10 +221,18 @@ namespace Chopper.Player
         private void ServerRespawn()
         {
             Vector3 position = Vector3.zero;
-            // Beside the bed once the hut is repaired, otherwise where the game started.
-            bool outside = Hut.Instance == null || !Hut.Instance.IsRepaired;
-            PlayerSpawnPoint point = PlayerSpawnPoint.Pick(outside, outside ? Random.Range(0, 100000) : ObjectId);
-            if (point != null) position = point.transform.position;
+            if (!Chopper.World.TutorialSession.Active && Chopper.World.Generation.WorldSession.Gen != null)
+            {
+                // W9-01: back the way everyone arrives, falling into the hub pond.
+                position = Chopper.World.WorldStart.DropPoint((int)(ObjectId % 4));
+            }
+            else
+            {
+                // The practice yard: beside the bed once the hut is repaired, otherwise where the game started.
+                bool outside = Hut.Instance == null || !Hut.Instance.IsRepaired;
+                PlayerSpawnPoint point = PlayerSpawnPoint.Pick(outside, outside ? Random.Range(0, 100000) : ObjectId);
+                if (point != null) position = point.transform.position;
+            }
 
             _health.Value = _config.PlayerMaxHealth;
             _down.Value = false;

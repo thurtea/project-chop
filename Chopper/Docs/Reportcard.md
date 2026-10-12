@@ -20,6 +20,8 @@ Status values: `PASS`, `FAIL`, `SKIP`, or for decisions the answer itself (for e
 | HW-7 | Rebuild and checks (blender, player, ZoneSeal, editmode, build, tour Mine, tour House) |  |  |  |
 | HW-8 | Minimap and ring peaks |  |  |  |
 | HW-9 | Gather motion |  |  |  |
+| HW-10 | Arrival tour: [Arrival] RESULT |  |  |  |
+| HW-11 | The new start, played |  |  |  |
 
 ## History
 

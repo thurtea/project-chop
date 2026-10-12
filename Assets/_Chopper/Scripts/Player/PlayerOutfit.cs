@@ -10,9 +10,13 @@ namespace Chopper.Player
     {
         private static readonly string[] ArmourParts = { "chopper_helmet", "chopper_chainmail", "chopper_bracers", "chopper_shield" };
         private const string Hair = "chopper_hair";
+        // The everyday outfit (W9-01): shown once it is picked up on the shore (PlayerUpgrades.Dressed). Without it
+        // Chopper wears his trousers and boots only.
+        private static readonly string[] OutfitParts = { "chopper_shirt", "chopper_vest", "chopper_belt" };
 
         private readonly List<Renderer> _armour = new List<Renderer>();
         private readonly List<Renderer> _hair = new List<Renderer>();
+        private readonly List<Renderer> _outfit = new List<Renderer>();
         private PlayerUpgrades _upgrades;
 
         public bool ShowsArmour { get; private set; }
@@ -24,6 +28,7 @@ namespace Chopper.Player
             {
                 if (IsArmour(renderer.transform)) _armour.Add(renderer);
                 else if (renderer.gameObject.name == Hair) _hair.Add(renderer);
+                else if (System.Array.IndexOf(OutfitParts, renderer.gameObject.name) >= 0) _outfit.Add(renderer);
             }
         }
 
@@ -43,6 +48,8 @@ namespace Chopper.Player
             ShowsArmour = _upgrades != null && _upgrades.Armoured;
             foreach (Renderer renderer in _armour) if (renderer != null) renderer.enabled = ShowsArmour;
             foreach (Renderer renderer in _hair) if (renderer != null) renderer.enabled = !ShowsArmour;
+            bool dressed = _upgrades == null || _upgrades.Dressed;
+            foreach (Renderer renderer in _outfit) if (renderer != null) renderer.enabled = dressed;
         }
 
         // A mounted prop (the shield) keeps its mesh on a child, so the part's name may be on a parent.

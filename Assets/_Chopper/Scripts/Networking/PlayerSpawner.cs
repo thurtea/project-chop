@@ -125,11 +125,39 @@ namespace Chopper.Networking
                 Debug.LogWarning("[PlayerSpawner] No PlayerSpawnPoint in the loaded scenes; spawning at the origin.");
             }
 
+            // W9-01 (user, 2026-10-12): outside the practice yard every player arrives by falling into the hub pond,
+            // facing the hut, with no outfit and no axe; their kit lies on the bank toward the hut.
+            bool dropIn = !TutorialSession.Active && Chopper.World.Generation.WorldSession.Gen != null;
+            if (dropIn)
+            {
+                position = WorldStart.DropPoint(_arrivals);
+                Vector3 toHut = -new Vector3(position.x, 0f, position.z);
+                rotation = toHut.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toHut.normalized, Vector3.up) : Quaternion.identity;
+                _arrivals++;
+            }
+
             SpawnWorld(scene);
 
             NetworkObject player = _networkManager.GetPooledInstantiated(_playerPrefab, position, rotation, true);
             _networkManager.ServerManager.Spawn(player, conn, scene);
-            Debug.Log($"[PlayerSpawner] Spawned player for client {conn.ClientId}.");
+            Debug.Log($"[PlayerSpawner] Spawned player for client {conn.ClientId}{(dropIn ? $", dropping into the pond from {position:F1}" : "")}.");
+            if (dropIn) DropStartKit(player);
+        }
+
+        private int _arrivals;
+
+        // One outfit and one axe per arriving player, on the pond bank toward the hut. Whoever has neither picks them up
+        // by walking over them (GroundItem); a player who loads dressed from a save simply leaves them for others.
+        private static void DropStartKit(NetworkObject player)
+        {
+            Chopper.Enemies.EnemyDirector director = Chopper.Enemies.EnemyDirector.Instance;
+            if (director == null) return;
+            Chopper.Player.PlayerAxe axe = player.GetComponent<Chopper.Player.PlayerAxe>();
+            int durability = axe != null ? axe.MaxDurability : 1;
+            Vector3 outfitAt = WorldStart.KitSpot(0);
+            Vector3 axeAt = WorldStart.KitSpot(1);
+            director.ServerDropItem(GroundItemKind.Outfit, 1, outfitAt, outfitAt);
+            director.ServerDropItem(GroundItemKind.Axe, durability, axeAt, axeAt);
         }
     }
 }

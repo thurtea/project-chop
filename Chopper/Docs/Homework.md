@@ -78,3 +78,15 @@ Pick a healing herb or a plant (E next to it).
 - Look for: Chopper crouches, reaches down with the right hand in front of the foot, lifts the hand to the chest and stands up. Blocky, with no floppy motion-capture look.
 - Report: PASS or FAIL and the video time.
 
+### HW-10 Arrival tour (after HW-7, which builds the game with this code)
+```powershell
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Arrival     # expect: [Arrival] RESULT PASS
+```
+- Look for: the three `[Arrival]` lines (dropped in, no outfit and no axe, kit on the ground; reached the kit, axe and outfit True; fell, gear left 2 of 2, arrives again in the air over the pond, empty-handed) and the four `arrival_*` shots in the shots folder.
+- Report: the printed lines, and whether the shots look right (in the pond, on the bank by the kit, dressed with the axe, back in the pond).
+
+### HW-11 The new start, played (look and feel)
+Host a new world in the new build.
+- Look for: you fall from the sky into the hub pond, bare-chested in trousers and boots with no axe; you swim to the bank toward the hut and climb out; the outfit bundle (red, brown) and the axe lie on the bank; walking over them puts the outfit on and the axe in the hand. Then, with god mode off, die (type `night` and `spawn 5`, or stand where a big tree falls): your axe and outfit lie where you fell, you fall into the pond again, and walking back picks them up.
+- Report: PASS or FAIL per step, and video times. Also say if the drop height (22 m) or the kit spot feels wrong.
+

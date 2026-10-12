@@ -11,7 +11,10 @@ namespace Chopper.World
     {
         Wood = 0,
         Herb = 1,
-        Fiber = 2
+        Fiber = 2,
+        // W9-01: a player's axe (amount = its durability) and outfit, on the pond bank at the start or where they fell.
+        Axe = 3,
+        Outfit = 4
     }
 
     // Something lying on the ground, picked up by walking over it, the way Valheim does it: pressing interact on a
@@ -71,7 +74,8 @@ namespace Chopper.World
             _amount.Value = Mathf.Max(1, amount);
             _from.Value = from;
             _readyAt = Time.time + ReadySeconds;
-            _expiresAt = Time.time + LifetimeSeconds;
+            // A player's own gear never rots away: it waits on the bank or where they fell.
+            _expiresAt = kind == GroundItemKind.Axe || kind == GroundItemKind.Outfit ? float.MaxValue : Time.time + LifetimeSeconds;
         }
 
         private void Update()
@@ -122,6 +126,21 @@ namespace Chopper.World
                     if (moved > 0) player.ServerAddWood(moved);
                     return moved;
                 }
+                case GroundItemKind.Axe:
+                {
+                    // Only into empty hands; the axe comes back as worn as it was.
+                    PlayerAxe axe = player.GetComponent<PlayerAxe>();
+                    if (axe == null || axe.HasAxe) return 0;
+                    axe.ServerPickUp(amount);
+                    return amount;
+                }
+                case GroundItemKind.Outfit:
+                {
+                    PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
+                    if (upgrades == null || upgrades.Dressed) return 0;
+                    upgrades.ServerSetDressed(true);
+                    return amount;
+                }
                 case GroundItemKind.Herb:
                 {
                     PlayerInventory inventory = player.GetComponent<PlayerInventory>();
@@ -168,6 +187,11 @@ namespace Chopper.World
                 view.AddComponent<MeshRenderer>().sharedMaterial = _woodMaterial;
                 view.transform.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             }
+            else if (Kind == GroundItemKind.Axe || Kind == GroundItemKind.Outfit)
+            {
+                view = BuildGearView(Kind);
+                if (view == null) return;
+            }
             else
             {
                 GameObject model = Kind == GroundItemKind.Herb ? _herbModel : _fiberModel;
@@ -183,6 +207,45 @@ namespace Chopper.World
             view.transform.SetParent(transform, false);
             _view = view.transform;
             _shownAt = Time.time;
+        }
+
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+
+        // Block models from primitives and the character's gear material (in every build, takes a tint): the axe lying
+        // flat (haft and head), or the outfit as a folded bundle (plaid shirt, vest on top, belt across).
+        private static GameObject BuildGearView(GroundItemKind kind)
+        {
+            CharacterCatalog catalog = Resources.Load<CharacterCatalog>("CharacterCatalog");
+            Material material = catalog != null ? catalog.GearMaterial : null;
+            if (material == null) return null;
+            var root = new GameObject(kind == GroundItemKind.Axe ? "AxeOnGround" : "OutfitOnGround");
+            void Block(Vector3 position, Vector3 size, Color tint)
+            {
+                GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Destroy(go.GetComponent<Collider>());
+                go.transform.SetParent(root.transform, false);
+                go.transform.localPosition = position;
+                go.transform.localScale = size;
+                var renderer = go.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial = material;
+                var block = new MaterialPropertyBlock();
+                block.SetColor(BaseColorId, tint);
+                renderer.SetPropertyBlock(block);
+            }
+            if (kind == GroundItemKind.Axe)
+            {
+                Block(new Vector3(0f, 0.04f, 0f), new Vector3(0.07f, 0.07f, 0.85f), new Color(0.55f, 0.34f, 0.17f));
+                Block(new Vector3(0.09f, 0.05f, 0.36f), new Vector3(0.22f, 0.05f, 0.16f), new Color(0.32f, 0.33f, 0.36f));
+                Block(new Vector3(0.21f, 0.05f, 0.36f), new Vector3(0.04f, 0.055f, 0.2f), new Color(0.72f, 0.74f, 0.77f));
+            }
+            else
+            {
+                Block(new Vector3(0f, 0.06f, 0f), new Vector3(0.5f, 0.12f, 0.36f), new Color(0.7f, 0.12f, 0.1f));
+                Block(new Vector3(0f, 0.15f, 0f), new Vector3(0.44f, 0.07f, 0.3f), new Color(0.52f, 0.33f, 0.18f));
+                Block(new Vector3(0f, 0.2f, 0f), new Vector3(0.48f, 0.03f, 0.07f), new Color(0.33f, 0.2f, 0.11f));
+            }
+            root.transform.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            return root;
         }
 
         // The little hop from where it was knocked loose to where it lies.

@@ -13,6 +13,8 @@ namespace Chopper.World
         public const float WadeDepth = 0.18f;
         // Body height that stays under the surface while swimming (feet this far below the surface).
         public const float SwimFloatDepth = 1.05f;
+        // Feet higher than this over the surface are in the air, not in the water (a fall or a jump over a pond).
+        public const float SurfaceReach = 0.3f;
         public const float WadeSpeedMultiplier = 0.82f;
 
         // Water depth over the terrain at this position, and the surface height. Zero when dry.
@@ -44,7 +46,7 @@ namespace Chopper.World
             return best;
         }
 
-        public static bool IsSwimming(Vector3 position) => DepthAt(position, out _) >= SwimDepth;
+        public static bool IsSwimming(Vector3 position) => DepthAt(position, out float surface) >= SwimDepth && position.y <= surface + SurfaceReach;
 
         public static bool IsWading(Vector3 position)
         {
