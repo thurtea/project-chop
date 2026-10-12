@@ -73,10 +73,11 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 ### E. Plants, torch and campfire
 - [ ] Healing herbs are small yellow voxel flowers on a green clump (tell me if they should be a stronger yellow).
 - [ ] At night (`night`), take the torch (2): a lit voxel torch in the hand.
-- [ ] Build a campfire with the hammer (6): logs and stones, with flames.
+- [ ] Build a campfire with the hammer (6) in a forest: logs and stones, with flames.
 
 ### F. Building with the hammer (6)
-- [ ] Place a workbench first; pieces need one nearby.
+- [ ] In the hub the hammer refuses every piece: "The hub stays as it is: build in the forests".
+- [ ] Go through a pass into a forest. Place a workbench first; pieces need one nearby.
 - [ ] A floor on flat grass sits flush on the blocks.
 - [ ] A floor over a half-block step is allowed and sits on the higher step.
 - [ ] Over a bigger step the ghost turns red (too steep).

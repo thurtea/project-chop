@@ -41,6 +41,8 @@ namespace Chopper.World.Saving
         public int[] FelledTrees = new int[0];
         public bool FirstLargeTreeFelled;
         public List<PileRecord> Piles = new List<PileRecord>();
+        // W9-02: axes and outfits lying on the ground (start kits on the bank, gear left where a player fell).
+        public List<GearRecord> Gear = new List<GearRecord>();
 
         public List<int> AwakeCrypts = new List<int>();
         public List<GuardianRecord> Guardians = new List<GuardianRecord>();
@@ -88,6 +90,14 @@ namespace Chopper.World.Saving
     {
         public Vector3 Position;
         public int Element;
+    }
+
+    [Serializable]
+    public class GearRecord
+    {
+        public Vector3 Position;
+        public int Kind;     // GroundItemKind.Axe or GroundItemKind.Outfit
+        public int Amount;   // the axe's durability; 1 for an outfit
     }
 
     [Serializable]
@@ -142,6 +152,9 @@ namespace Chopper.World.Saving
         // The armoured outfit: kits carried and whether it is worn (missing in older saves: unarmoured, no kits).
         public int ArmourKits;
         public bool Armoured;
+        // W9-02: the everyday outfit and the axe left where the player fell (false in older saves: dressed, axe in hand).
+        public bool Undressed;
+        public bool AxeDropped;
         // Fishing: rod and lure levels, the fish carried (one count per kind), and the old packed int for the first four.
         public int Rod;
         public int Lure;

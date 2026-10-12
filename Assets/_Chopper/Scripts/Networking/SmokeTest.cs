@@ -54,6 +54,8 @@ namespace Chopper.Networking
             // A saved game's axe is handed back quietly in the first seconds after spawning (PlayerAxe), so wait
             // until a real pickup would open the How to play screen.
             yield return new WaitForSeconds(4.5f);
+            // The building checks run in the hub (W9-03 keeps players from building there; the tours check that rule).
+            Chopper.World.Building.BuildManager.DebugAllowHubBuilding = true;
             yield return IntroFlow();
             yield return CheckAnimator();
             yield return CheckSurvival();

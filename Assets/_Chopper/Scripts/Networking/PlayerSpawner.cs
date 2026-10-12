@@ -152,10 +152,24 @@ namespace Chopper.Networking
         {
             Chopper.Enemies.EnemyDirector director = Chopper.Enemies.EnemyDirector.Instance;
             if (director == null) return;
-            Chopper.Player.PlayerAxe axe = player.GetComponent<Chopper.Player.PlayerAxe>();
-            int durability = axe != null ? axe.MaxDurability : 1;
             Vector3 outfitAt = WorldStart.KitSpot(0);
             Vector3 axeAt = WorldStart.KitSpot(1);
+            // One kit per player still without an outfit: an unused kit left on the bank (a saved player came back
+            // dressed, or rejoined) is enough, so kits do not pile up over many joins.
+            int spare = 0;
+            foreach (GroundItem item in GroundItem.All)
+            {
+                if (item == null || item.Kind != GroundItemKind.Outfit) continue;
+                Vector3 off = item.transform.position - outfitAt;
+                off.y = 0f;
+                if (off.magnitude < 4f) spare++;
+            }
+            int bare = 0;
+            foreach (Chopper.Player.PlayerUpgrades someone in UnityEngine.Object.FindObjectsByType<Chopper.Player.PlayerUpgrades>(FindObjectsSortMode.None))
+                if (!someone.Dressed) bare++;
+            if (spare >= bare) return;
+            Chopper.Player.PlayerAxe axe = player.GetComponent<Chopper.Player.PlayerAxe>();
+            int durability = axe != null ? axe.MaxDurability : 1;
             director.ServerDropItem(GroundItemKind.Outfit, 1, outfitAt, outfitAt);
             director.ServerDropItem(GroundItemKind.Axe, durability, axeAt, axeAt);
         }

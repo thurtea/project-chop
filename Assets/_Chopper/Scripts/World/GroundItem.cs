@@ -78,6 +78,9 @@ namespace Chopper.World
             _expiresAt = kind == GroundItemKind.Axe || kind == GroundItemKind.Outfit ? float.MaxValue : Time.time + LifetimeSeconds;
         }
 
+        // Server only. Gone at once (the world load replaces the fresh start kits with the saved gear).
+        public void ServerRemove() => ServerManager.Despawn(gameObject);
+
         private void Update()
         {
             if (IsServerInitialized) ServerTick();

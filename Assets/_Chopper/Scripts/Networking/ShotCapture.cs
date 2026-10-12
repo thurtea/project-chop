@@ -378,6 +378,8 @@ namespace Chopper.Networking
                 PlayerAxe startAxe = wood.GetComponent<PlayerAxe>();
                 if (!startAxe.HasAxe) startAxe.ServerResetTool();
             }
+            // The tours build in the hub to test building itself (W9-03 keeps players from building there).
+            BuildManager.DebugAllowHubBuilding = true;
             yield return Shot(folder, "1_day_hud");
 
             // Arrival (-chopperArrival, W9-01): the player falls into the hub pond with no outfit and no axe, swims to
@@ -931,6 +933,7 @@ namespace Chopper.Networking
                     bool flatOk = false, halfOk = true, steepOk = true;
                     int steepSeen = 0, halfSeen = 0;
                     PlaceResult benchResult = PlaceResult.BadKind;
+                    bool hubRefused = false;
                     // The meadow for the flat and half-block cells, then hillier ground until a steeper cell turns up.
                     foreach (Vector2 buildSpot in new[] { new Vector2(40f, 40f), new Vector2(-60f, 20f), new Vector2(60f, 92f), new Vector2(-92f, 60f), new Vector2(92f, -60f) })
                     {
@@ -941,6 +944,14 @@ namespace Chopper.Networking
                     Vector3 me = wood.transform.position;
                     Vector3 benchAt = me + Vector3.right * 2.5f;
                     benchAt.y = build != null ? build.OnBlockTop(benchKind, benchAt, 0f) : benchAt.y;
+                    if (buildSpot.x == 40f && build != null)
+                    {
+                        // W9-03: with the rule on, the hub is not built on.
+                        BuildManager.DebugAllowHubBuilding = false;
+                        hubRefused = build.Check(wood.gameObject, benchKind, benchAt, 0f) == PlaceResult.HubProtected;
+                        BuildManager.DebugAllowHubBuilding = true;
+                        Debug.Log($"[BlockGround] building in the hub refused: {hubRefused}");
+                    }
                     PlaceResult benchHere = build != null ? build.ServerPlace(wood.gameObject, benchKind, benchAt, 0f) : PlaceResult.BadKind;
                     if (buildSpot.x == 40f) benchResult = benchHere;
                     for (int dz = -2; dz <= 2 && floorDef != null; dz++)
@@ -990,7 +1001,7 @@ namespace Chopper.Networking
                         }
                     }
                     }
-                    buildOk = benchResult == PlaceResult.Ok && flatOk && halfOk && steepOk && steepSeen > 0;
+                    buildOk = benchResult == PlaceResult.Ok && flatOk && halfOk && steepOk && steepSeen > 0 && hubRefused;
                     Debug.Log($"[BlockGround] building: workbench {benchResult}; flat cell {flat}; half-block cells {halfSeen} ({half}); steeper cells {steepSeen} ({steep})");
                     yield return Shot(folder, "blocks_build");
                 }

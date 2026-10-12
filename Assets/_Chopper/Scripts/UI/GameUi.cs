@@ -877,6 +877,7 @@ namespace Chopper.UI
                 case PlaceResult.NoWorkbench: return chosen.DisplayName + "\nNeeds a workbench nearby";
                 case PlaceResult.CannotAfford: return chosen.DisplayName + "\nNot enough wood";
                 case PlaceResult.Unstable: return chosen.DisplayName + "\nToo far from the ground";
+                case PlaceResult.HubProtected: return chosen.DisplayName + "\nThe hub stays as it is: build in the forests";
                 default: return chosen.DisplayName;
             }
         }

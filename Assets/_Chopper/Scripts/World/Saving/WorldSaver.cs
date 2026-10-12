@@ -182,6 +182,11 @@ namespace Chopper.World.Saving
             {
                 if (pile != null && pile.Amount > 0) save.Piles.Add(new PileRecord { Position = pile.transform.position, Amount = pile.Amount });
             }
+            foreach (GroundItem item in GroundItem.All)
+            {
+                if (item == null || (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit)) continue;
+                save.Gear.Add(new GearRecord { Position = item.transform.position, Kind = (int)item.Kind, Amount = item.Amount });
+            }
 
             CryptManager crypts = CryptManager.Instance;
             save.AwakeCrypts.AddRange(crypts.AwakeCrypts);
@@ -202,7 +207,11 @@ namespace Chopper.World.Saving
             PlayerHealth health = player.GetComponent<PlayerHealth>();
             if (health != null) record.Health = health.IsDown ? 0 : health.Health;
             PlayerAxe axe = player.GetComponent<PlayerAxe>();
-            if (axe != null) record.AxeWear = axe.Wear;
+            if (axe != null)
+            {
+                record.AxeWear = axe.Wear;
+                record.AxeDropped = !axe.HasAxe;
+            }
             PlayerWood wood = player.GetComponent<PlayerWood>();
             if (wood != null) record.Wood = wood.Carried;
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();
@@ -227,6 +236,7 @@ namespace Chopper.World.Saving
                 record.Stones = upgrades.Stones;
                 record.ArmourKits = upgrades.ArmourKits;
                 record.Armoured = upgrades.Armoured;
+                record.Undressed = !upgrades.Dressed;
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();
             if (boons != null) record.Boons = boons.Packed;
@@ -280,6 +290,14 @@ namespace Chopper.World.Saving
                 director.ServerSpawn((Element)sapling.Element, (TreeSize)Mathf.Clamp(sapling.Size, 0, 2), sapling.Boss, sapling.Position, age);
             }
             foreach (PileRecord pile in save.Piles) director.ServerDropWood(pile.Position, pile.Amount);
+            // The fresh world's start kits make way for the saved gear (kits included), so nothing doubles up.
+            foreach (GroundItem item in new List<GroundItem>(GroundItem.All))
+                if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit)) item.ServerRemove();
+            foreach (GearRecord gear in save.Gear)
+            {
+                var kind = (GroundItemKind)gear.Kind;
+                if (kind == GroundItemKind.Axe || kind == GroundItemKind.Outfit) director.ServerDropItem(kind, gear.Amount, gear.Position, gear.Position);
+            }
 
             var looted = new List<(int, string)>();
             foreach (LootRecord loot in save.Looted) looted.Add((loot.Chest, loot.Player));
@@ -335,6 +353,7 @@ namespace Chopper.World.Saving
                 upgrades.ServerLoadWards(record.Wards);
                 upgrades.ServerLoadStones(record.Stones);
                 upgrades.ServerLoadOutfit(record.ArmourKits, record.Armoured);
+                if (record.Undressed) upgrades.ServerSetDressed(false);
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();
             if (boons != null) boons.ServerLoad(record.Boons);
@@ -348,7 +367,11 @@ namespace Chopper.World.Saving
             PlayerMining mining = player.GetComponent<PlayerMining>();
             if (mining != null) mining.ServerLoad(record.FindCounts, record.FindRecords);
             PlayerAxe axe = player.GetComponent<PlayerAxe>();
-            if (axe != null) axe.ServerLoadWear(record.AxeWear);
+            if (axe != null)
+            {
+                axe.ServerLoadWear(record.AxeWear);
+                if (record.AxeDropped) axe.ServerSetHasAxe(false);
+            }
             PlayerHealth health = player.GetComponent<PlayerHealth>();
             if (health != null) health.ServerLoadHealth(record.Health);
             if (crypt != null && record.Position != Vector3.zero) crypt.ServerTeleport(OnTheGround(record.Position) + Vector3.up * 0.2f, player.transform.eulerAngles.y);

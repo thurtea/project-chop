@@ -81,6 +81,7 @@ Pick a healing herb or a plant (E next to it).
 ### HW-10 Arrival tour (after HW-7, which builds the game with this code)
 ```powershell
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Arrival     # expect: [Arrival] RESULT PASS
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour BlockGround # expect: [BlockGround] RESULT PASS, with "building in the hub refused: True"
 ```
 - Look for: the three `[Arrival]` lines (dropped in, no outfit and no axe, kit on the ground; reached the kit, axe and outfit True; fell, gear left 2 of 2, arrives again in the air over the pond, empty-handed) and the four `arrival_*` shots in the shots folder.
 - Report: the printed lines, and whether the shots look right (in the pond, on the bank by the kit, dressed with the axe, back in the pond).
@@ -88,5 +89,6 @@ pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Arrival     # expect:
 ### HW-11 The new start, played (look and feel)
 Host a new world in the new build.
 - Look for: you fall from the sky into the hub pond, bare-chested in trousers and boots with no axe; you swim to the bank toward the hut and climb out; the outfit bundle (red, brown) and the axe lie on the bank; walking over them puts the outfit on and the axe in the hand. Then, with god mode off, die (type `night` and `spawn 5`, or stand where a big tree falls): your axe and outfit lie where you fell, you fall into the pond again, and walking back picks them up.
+- Also: take the hammer (6) in the hub: every piece should be refused with "The hub stays as it is: build in the forests"; in a forest building works as before (W9-03).
 - Report: PASS or FAIL per step, and video times. Also say if the drop height (22 m) or the kit spot feels wrong.
 

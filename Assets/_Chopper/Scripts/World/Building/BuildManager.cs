@@ -20,7 +20,8 @@ namespace Chopper.World.Building
         public int Health;
     }
 
-    public enum PlaceResult { Ok, BadKind, TooFar, NoWorkbench, CannotAfford, Overlaps, Floating, TooSteep, Full, Unstable }
+    // HubProtected (W9-03): the hub and its hut stay as they are; players build in the four forests.
+    public enum PlaceResult { Ok, BadKind, TooFar, NoWorkbench, CannotAfford, Overlaps, Floating, TooSteep, Full, Unstable, HubProtected }
 
     // Every building piece in the world, server owned (one entry per piece in a SyncList, so a piece costs a few bytes
     // and no network object). Every peer, the server included, keeps a copy of each piece's model in the scene from
@@ -31,6 +32,9 @@ namespace Chopper.World.Building
     public class BuildManager : NetworkBehaviour
     {
         [SerializeField] private GameConfig _config;
+
+        // Tours and the smoke test build in the hub to test building itself; they lift the hub rule with this.
+        public static bool DebugAllowHubBuilding;
         [SerializeField] private PieceCatalog _catalog;
 
         private readonly SyncList<PieceState> _pieces = new SyncList<PieceState>();
@@ -142,6 +146,8 @@ namespace Chopper.World.Building
             if (_pieces.Count >= _config.MaxPieces) return PlaceResult.Full;
             // Not underground (the crypts) and within reach.
             if (position.y < -50f || player == null || !BuildRules.InRange(player.transform.position, position, _config.BuildRange)) return PlaceResult.TooFar;
+            // W9-03 (user, 2026-10-12): the hut is static and the hub is not built on; bases go up in the four forests.
+            if (!DebugAllowHubBuilding && ZoneMap.ElementAt(position, _config.HubRadius) == Element.Neutral) return PlaceResult.HubProtected;
             if (!definition.IsWorkbench && !Workbench.AnyWithin(position, _config.BuildWorkbenchRadius) && !BuiltWorkbenchWithin(position))
                 return PlaceResult.NoWorkbench;
             if (PlayerItems.Get(player, (int)ItemKind.Wood) < definition.WoodCost || PlayerItems.Get(player, (int)ItemKind.Fiber) < definition.FiberCost)
