@@ -184,6 +184,14 @@ namespace Chopper.Enemies
 
             Hut hut = Hut.Instance;
             if (hut == null) return;
+            BuildManager pieces = BuildManager.Instance;
+            if (pieces != null && pieces.ServerRaidTarget(transform.position, out Vector3 raid))
+            {
+                agent.stoppingDistance = 1.2f;
+                agent.SetDestination(raid);
+                SetChargeSpeed(raid);
+                return;
+            }
             // To the nearest wall of the house: the room itself is off the NavMesh.
             Vector3 wall = hut.ClosestWallPoint(transform.position);
             agent.stoppingDistance = Mathf.Max(0.5f, HutWallReach - 0.6f);

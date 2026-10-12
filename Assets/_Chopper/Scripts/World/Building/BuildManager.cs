@@ -380,7 +380,7 @@ namespace Chopper.World.Building
                 if (position.y < box.min.y - 2f || position.y > box.max.y + 1f) continue;
                 Vector3 flat = new Vector3(position.x, box.center.y, position.z);
                 float distance = Vector3.Distance(flat, box.ClosestPoint(flat));
-                if (distance < best)
+                if (distance < best && !Protects(_pieces[i].Position))
                 {
                     best = distance;
                     id = _pieces[i].Id;
@@ -395,6 +395,39 @@ namespace Chopper.World.Building
             foreach (PieceState state in _pieces)
                 records.Add(new PieceRecord { Kind = state.Kind, Position = state.Position, Yaw = state.Yaw, Health = state.Health });
             return records;
+        }
+
+        public const float RaidRadius = 90f;
+
+        // Server only. The nearest player-built piece in a forest, outside any dome, within radius. Night raids walk to it.
+        public bool ServerRaidTarget(Vector3 from, out Vector3 position)
+        {
+            position = default;
+            float best = RaidRadius * RaidRadius;
+            bool found = false;
+            for (int i = 0; i < _pieces.Count; i++)
+            {
+                if (Protects(_pieces[i].Position)) continue;
+                if (_config != null && Chopper.World.ZoneMap.ElementAt(_pieces[i].Position, _config.HubRadius) == Element.Neutral) continue;
+                Vector3 offset = _pieces[i].Position - from;
+                offset.y = 0f;
+                if (offset.sqrMagnitude >= best) continue;
+                best = offset.sqrMagnitude;
+                position = _pieces[i].Position;
+                found = true;
+            }
+            return found;
+        }
+
+        public bool ServerHasRaidTarget()
+        {
+            for (int i = 0; i < _pieces.Count; i++)
+            {
+                if (Protects(_pieces[i].Position)) continue;
+                if (_config != null && Chopper.World.ZoneMap.ElementAt(_pieces[i].Position, _config.HubRadius) == Element.Neutral) continue;
+                return true;
+            }
+            return false;
         }
 
         // Server only. A dome stone places a ward in a forest. The hub is refused and the stone is kept.

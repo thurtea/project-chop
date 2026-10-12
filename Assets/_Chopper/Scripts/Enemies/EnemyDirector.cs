@@ -394,7 +394,10 @@ namespace Chopper.Enemies
                 boss.ServerActivate();
             }
             _nightDominant = NightRules.RollDominant(_rng, CountSleepingByElement());
-            ServerAnnounce(_pendingBosses.Count > 0 ? "Night has fallen and the boss tree has awoken!" : NightRules.DescribeTheme(_nightDominant, _nightShare));
+            string night = _pendingBosses.Count > 0 ? "Night has fallen and the boss tree has awoken!" : NightRules.DescribeTheme(_nightDominant, _nightShare);
+            if (Chopper.World.Building.BuildManager.Instance != null && Chopper.World.Building.BuildManager.Instance.ServerHasRaidTarget())
+                night += " They are coming for what you built in the forest.";
+            ServerAnnounce(night);
             _pendingBosses.Clear();
         }
 
