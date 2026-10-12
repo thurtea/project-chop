@@ -23,7 +23,11 @@ Shared record of work packages, owners, decisions and evidence. Updated by the m
 | W2-02 | Rest-pose FBX export; Run, Attack_1, Attack_2, HitReact, Death; Shield_Back checked; helmet skinned | rigger-animator | W1 (helmet: W2-01) | FBX node transforms equal the A-pose bind; 7 takes; per-take checks (loop, feet, prop clipping); Shield_Back pose clip-checked | done |
 | W2-03 | Avatar from bind pose; textured URP material path; stronger Unity checks; Play-mode test | unity-engineer | W2-01, W2-02 for final run | Avatar reference = bind pose plus real T-pose; mesh-against-mesh prop clipping; axe orientation; FBX tris and unit scale; Play-mode run of all clips | done |
 | W2-04 | Painted atlas detail: face, plaid, stitching, patches, leather, chainmail, wood, knotwork, shield emblem | texture-artist | W2-01 | 2048 atlas PNG, detail in texture not geometry, renders compared with concepts | partial |
-| W2-05 | Independent review of Week 2 | qa-reviewer | W2-01 to W2-04 | Reruns all checks, own probes, visual comparison | pending |
+| W2-05 | Independent review of Week 2 | qa-reviewer (not the builder) | W2-01 to W2-04 | Reruns all checks, own probes, visual comparison; outputs in `Art/Review/W2-05/`; Unity check runs only after W4-07 is out of Unity | done: review complete, verdict partial (see Evidence log) |
+| W2-06 | Fix atlas colour space: bake writes sRGB; shaders stop decoding the atlas twice | manager | W2-05 Phase 1 | Atlas equals sRGB encoding of the old values; `check_assets` 95/0; both shaders patched; live and art Unity show ginger hair and peach skin | done |
+| W2-07 | Attack_1 and Attack_2 axe passes through the beard and face (up to 31 mm, Attack_2 frame 15); `check_rig` does not test attack takes | rigger-animator | W2-05 | Per-take clip probe 0 verts on every take | pending |
+| W2-08 | Per-face UV cells: 64% of the atlas is gutter, dark seams show in Unity, cannot be hand-painted. Needs connected islands before real hand-painted detail | blender-modeler | W2-05 | Islands per part, gutter bleed gone at gameplay distance | pending (needed for concept detail) |
+| W2-09 | `ChopperCheck.BakeProxies` renders and re-enables hidden meshes; screenshot test only counts colours | unity-engineer | W2-05 | Screenshots show each prefab as shipped | pending |
 
 ## Week 3
 
@@ -44,6 +48,43 @@ The character pipeline in the production brief is done. Do not rebuild Chopper f
 | W4-03 | Live player uses the Chopper body | unity-engineer | W2-03 | `Player.prefab` instances `chopper.fbx` with a humanoid avatar; hair on, helmet and elite meshes off; existing animator and gameplay axe stay | done |
 | W4-04 | Felled trees leave the voxel stump | unity-engineer | W4-01 | `TreeManager` spawns `prop_stump_voxel` scaled to the trunk; capsule blocks the player | done |
 | W4-05 | Grass and bushes lean away from the player | unity-engineer | W4-02 | Carpet push is stronger; 700 decorative bushes sit under `GrassField` with the herbs | done |
+| W4-06 | Play check: walk the live player through grass and bushes | unity-engineer | W4-05 | Hosted World scene, real Player.prefab; screenshots still / mid-walk / after spring-back under `Logs/chopper_play/`; logged lean > 0 near the player and about 0 after; 0 exceptions from GrassField, HerbManager, or the grass shader | done |
+| W4-07 | `chopper_axe` in the player's hand, `chopper_shield` stowed on `Shield_Back` | unity-engineer | W4-06 | Done through the editor builder (survives Rebuild Network Scenes); PlayerAxe, buffs `_axeHead`, torch, and pickaxe refs valid; builder log `Exiting batchmode successfully`, 0 `error CS`; Play screenshots at gameplay distance (idle and mid-chop) viewed | done |
+
+## Week 6: starting Chopper to concept 1.5 (no armour)
+
+| ID | Package | Owner | Depends on | Acceptance check | Status |
+|---|---|---|---|---|---|
+| W6-01 | Bear-head axe `chopper_axe_bear` (concept 1.5): single blade, carved haft, bear head, 1,000 tris or fewer, M_Chopper_Gear, same grip frame as `chopper_axe` | blender-modeler | user decision | Check script PASS; renders next to concept 1.5; FBX in `Art/Export/` | done |
+| W6-02 | Base look without armour: bracers split out of `chopper_belt` into `chopper_bracers`; no hole or gap with chainmail, bracers, and helmet hidden (red shirt hem, trousers, plaid cuffs visible) | blender-modeler | user decision | `check_assets`/`check_rig` all PASS; render of the base look vs concept 1.5 | done |
+| W6-03 | UV islands per part (W2-08) and a painted atlas to concept 1.5: plaid, patchwork vest with stitches and lacing, crossbelt and buckles, belt buckle, face and beard, bear axe wood carving | blender-modeler or texture-artist | W6-01, W6-02 | No gutter seams at gameplay distance; side by side with concept 1.5 | in progress (also: V-spade beard, chunkier bear axe) |
+| W6-04 | Live player wears the base look and the bear-head axe; shield mount kept but hidden until equipped | unity-engineer | W6-01..03 | Player.prefab via the builder; Play screenshots | pending |
+
+## Week 7 (end): Valheim look pass
+
+| ID | Package | Status |
+|---|---|---|
+| W7-01 | Pixel textures everywhere: one uniform texel size, nearest filtering, no smooth gradients; voxel props move from flat vertex colour to pixel texture where it reads better | pending |
+| W7-02 | Atmosphere: volumetric-style fog, sun shafts, colour grading, AO, bloom; dusk and night presets; weather hooks | pending |
+| W7-03 | Motion: wind on pines, bushes, and tufts; torch and campfire flicker | pending |
+
+## Next: world look to match concept 1 (requested by the user 2026-10-11; not started, plan after W4-06, W4-07 and W2-05 close)
+
+The user wants the whole world, not only the character, to read like `chopper-3D-concept-1.jpg`. These are placeholders until the manager writes the plan with the user. A paid Unity asset (Cube World, Voxel Play, Cube Country, and similar) is the user's call and needs explicit approval. World systems stay; only their look changes.
+
+| ID | Package | Status |
+|---|---|---|
+| W5-01 | Concept-1 world audit: in-game screenshots next to the concept, gap list (ground, grass, terrain and mountains, water, sky and clouds, sun, paths, buildings) | done: `Logs/chopper_play/world_audit/W5-01_audit.md`, 14 shots, 0 errors; found every voxel prop tipped 90 deg |
+| W5-02a | Stand voxel pines, rock, stump, campfire props upright (prefabs carry a +90 X root override from the FBX import); Unity-side builder fix | done |
+| W5-02b | Lighting and post toward concept 1 (warmer sun, softer sky, haze); reversible | done |
+| W5-02c | Pixel textures on terrain layers | dropped: terrain becomes voxel blocks (W5-08) |
+| W5-05 | Voxel world kit `build_world_kit.py`: longhouse (replaces hub cabin, same footprint), torch post, grass tufts x3, bushes x2, clouds x3, block sun, path stones, optional mountain chunk; M_World vertex colour, same export settings as the pine | in progress (blender world-kit modeler) |
+| W5-06 | Swap the kit into the live world (cabin, torches, ferns to bushes, grass carpet to tufts, sky clouds and sun) through the editor builders | pending (after W5-02a and W5-05) |
+| W5-07 | Mountains: voxel look. Option A: shader-only blocky rock (no save break). Option B: terraced heights in WorldGen (save-version bump, needs user approval) | Option B approved by the user (saves do not matter); folded into W5-08 |
+| W5-08 | Voxel terrain: WorldGen heights rendered as block-column chunk meshes (grass-top dirt sides, stone, sand, snow), stepped mountains, block water, colliders; design first, then build | design done and approved (`Logs/chopper_play/world_audit/W5-08_voxel_terrain_design.md`); build steps 1-4 in progress, step 5+ after manager review |
+| W5-02 | Voxel grass tufts and ground block look (grass top over dirt sides) | pending |
+| W5-03 | Stepped voxel mountains and terrain edges | pending |
+| W5-04 | Water, sky, blocky clouds and sun, fog and mood | pending |
 
 The W2-00 notes are the Week 1 review risks. W2-01 to W2-03 closed them. Do not treat them as open work.
 
@@ -57,11 +98,21 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 
 ## Decisions
 
-- 2026-10-11: New Unity project lives in `Chopper/` inside this repo, on branch `rebuild/chopper-assets`. The old project at the repo root is left untouched; removing it needs the user's approval.
+- 2026-10-11: New Unity project lives in `Chopper/` inside this repo. `rebuild/chopper-assets` was fast-forwarded into `main` and the extra branch was deleted. The Unity project at the repo root stays; removing it needs the user's approval.
 - 2026-10-11: The canonical axe is the double-headed axe of concept 1.7 (as the brief says). The single-bladed bear-head axe in concepts 3 and 1.5 is not modeled for now.
 - 2026-10-11: "By hand in Blender" is done through Blender Python with explicit geometry, not AI image-to-3D.
 
 - 2026-10-11 (Week 2 start): One 2048 x 2048 atlas shared by all modules and gear; materials stay M_Chopper and M_Chopper_Gear (both sampling the atlas). Final look uses the atlas, not vertex colours. Capsule radius stays 0.37 and axe blades stay front and back until the user decides.
+
+- 2026-10-11 (live integration): The shield goes on the player stowed on `Shield_Back`, not `Shield_L`. The live left hand holds the torch, and no Block or EquipShield clip exists yet. Move it to the forearm only when combat asks for blocking.
+
+- 2026-10-11 (user): The starting Chopper matches concept 1.5 as closely as possible, without armour. Armour is obtained in game: the horned skull helmet, chainmail skirt, shield, and leather bracers are not worn at start (the Elite plate and pauldrons stay armour too). Base look: ginger hair, beard, plaid shirt to the wrist, patchwork leather vest with lacing, crossbelt, belt and buckle, trousers with the red shirt hem, boots. This replaces the earlier "shield stowed on the back" choice for the live player.
+- 2026-10-11 (user): Chopper holds the single-bladed bear-head axe of concept 1.5. This replaces the concept-1.7 double axe decision. `chopper_axe` stays in the files, unused.
+- 2026-10-11 (user): The world should look like concept 1 (W5).
+
+- 2026-10-11 (user): Existing saves do not matter. The whole live world is redone in the concept art style; concepts 1 (world), 1.5 and 2 (character), 4 (tree) are the reference. The current cabin goes and so do the current mountains. Terrain becomes voxel blocks (grass-top dirt, stone, sand, stepped mountains). World generation may change for this; a save-version bump is fine. World systems keep their gameplay (gathering, building, combat, fishing, networking) and only their look and terrain shape change.
+
+- 2026-10-11 (user): Final visual target is a mix of Valheim and Minecraft. Read as: Minecraft shapes (blocks, stepped terrain, voxel props, concept art) with Valheim-style rendering: low-res pixel textures with point (nearest) filtering and uniform texel size, heavy atmosphere (distance fog and haze, warm sun with cool shadows, bloom, colour grading, ambient occlusion), and motion (wind on trees and grass, fire flicker, dramatic dusk and night). A Valheim look pass on the assets comes at the end (W7).
 
 ## Open issues
 
@@ -89,3 +140,13 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 - W4-03 (2026-10-11): `UseChopperPlayer` rebuilt `Player.prefab` on `chopper.fbx` (humanoid, scale 1, controller height 1.8). Worker look: hair on, helmet, plate, and pauldrons off. Existing animator kept. Log: `Player prefab rebuilt with the Chopper model`, then `Exiting batchmode successfully`.
 - W4-04 (2026-10-11): `WireStump` set `TreeManager._stumpPrefab` to `prop_stump_voxel` (capsule 0.75 m, scaled to trunk width). Log: `felled trees use prop_stump_voxel`, then `Exiting batchmode successfully`.
 - W4-05 (2026-10-11): Player grass push radius 1.25 m. `M_GrassCarpet` `_PushStrength` 1.15. `HerbManager` scatters 700 decorative bushes and adds `GrassField` on the plant root so herbs, ferns, and bushes lean. Not played in the editor.
+- W4-06 (2026-10-11): Dev player (`BuildTools.BuildDevPlayer`, 0 `error CS`) run with `-chopperHost -chopperFoliageWalk` (new tour in `ShotCapture.cs`). `Logs/chopper_play/job1_foliage_run2.log`: 1,100 GrassField plants, 700 bushes; mid-walk max lean 27.3-28.4 deg on the 2 bushes in reach; 0.0 deg from 0.25 s after passing; 0 errors; `RESULT PASS`; 84 fps average. Screenshots `Logs/chopper_play/foliage2/`: grass parts at the feet; bush lean is hard to see from the gameplay camera. Manager viewed `foliage_b_mid_walk.png` and checked the log. Not checked: treants as pushers, a joining client, night.
+- W4-07 (2026-10-11): `CharacterSetup.AttachChopperGear` (runs inside `BuildPlayerPrefab`, so a rebuild keeps it). Axe at `RightHand/AxeGrip/chopper_axe`; AxeGrip sits exactly on Weapon_R (0.0 cm, 0.0 deg), because `PlayerAxe` rotates `_axePivot.parent` every frame and `GuardPose` looks up `AxeGrip`. The live FBX uses `bakeAxisConversion`, so mounts carry a 180 deg Y turn (`BakedSocketTurn`). Shield on `Shield_Back` with a local offset of 0.148 m: gap to the back 16.8 cm before, 2.0 cm after. `job2_builder3.log`: 0 `error CS`, `Exiting batchmode successfully now!`. Play: `old woodsman axe visible False`, 0 errors. Manager viewed `gear/gear_back_right.png`: shield flat on the back, axe in the right fist. Side effects: `PlayerAnimator.controller` rewritten by the existing builder with the same content; `DefaultPrefabObjects.asset` order changed (builds from before and after will not join each other). Open: the carry pose holds the blades vertical; `GuardPose` and the back holster look up `hand_r` and `spine_03`, which this rig lacks (inert, as before); a charged-axe buff tints the whole atlas axe; the camera can reach the shield when collision pulls it in to 0.87 m.
+- W2-05 Phase 1 (2026-10-11, independent reviewer): `check_assets` 95/0 and `check_rig` 128/0 reproduced. Probes in `Art/Review/W2-05/`. FAIL: the atlas stored linear values in an sRGB PNG, and the shader decoded it again, so Chopper rendered near black and red in both Unity projects (also visible in the live screenshots). Other findings: Attack_2 axe 31 mm into the face; per-face UV cells (64% gutter, hard to hand-paint); Unity proxy screenshots re-enable hidden meshes; atlas renders stale; helmet horns are stubs with no skull; Elite pauldrons are flat slabs.
+- W2-06 (2026-10-11, manager): `uv_atlas.py` now encodes to sRGB before writing; rebaked atlas matches sRGB(old) within 1.2/255 mean; `check_assets` 95 PASS, 0 FAIL. Removed `tex = SRGBToLinear(tex)` from both `ChopperVertexColorLit.shader` copies. Atlas copied to both Unity projects (md5 d3e12569...).
+- W2-05 final (2026-10-11, independent reviewer): Unity `ChopperCheck.RunChecks` without -nographics: `SUMMARY: 101 PASS, 0 FAIL`, 0 `error CS` (`Art/Review/W2-05/unity_check.log`; the script exits via `EditorApplication.Exit`, so no batchmode line). After W2-06 the atlas probe error on hair, beard, head and body is 0.000; hair (0.80, 0.36, 0.10), skin (0.93, 0.66, 0.52). Verdict: atlas colour and textured material path PASS after the fix. Partial or open: attack clipping (W2-07), Shield_Back float in the art rig (the live mount compensates, 2.0 cm), UV layout (W2-08), proxy screenshots (W2-09), stale `atlas_*.png` renders, weak helmet horns and no skull, flat Elite pauldrons, axe haft too dark. Manager checked the SUMMARY lines and viewed `unity_idle_three_quarter.png`.
+- W4-07 colour recheck (2026-10-11): dev player rebuilt (0 `error CS`), `Logs/chopper_play/gear_colorfix/`, `foliage_colorfix/`: 0 errors, foliage `RESULT PASS`. Manager viewed `gear_front_right.png`: ginger hair and beard, peach skin, red sleeves, brown vest, gray chainmail, shield on the back. Props unchanged; the campfire was not in frame.
+- W5-01 (2026-10-11): dev build 0 `error CS`; `-chopperWorldAudit` tour `[Audit] RESULT done, errors during the tour 0`. Audit `Logs/chopper_play/world_audit/W5-01_audit.md` with an 11-item change list. Items 1-4 need no generation change and break no saves. Mountains (item 8) change `WorldGen` heights, which needs a save-version bump and the user's approval. Paid assets: Voxel Play would replace terrain, generation, saves and sync; prop packs help only props. Perf 2.6-5.6 ms average at 2560x1440. Manager viewed `02_meadow_pines.png` and confirmed `prop_pine_Earth.prefab` root rotation x=0.7071 w=0.7071: every pine lies on its side with the dirt pad standing up.
+- W6-01/W6-02 (2026-10-11): `build_axe_bear` (696 tris, 0.905 m, blade on +X like `chopper_axe`'s front blade, same grip frame: check_rig grip offset 0.0 mm, haft dot 0.9999). `chopper_bracers` (336 tris) split from `chopper_belt`; sleeves now reach the wrist. Base look plus bear axe 9,970 tris; height 1.8000 m. `check_assets` 115 PASS, 0 FAIL; `check_rig` 137 PASS, 0 FAIL (manager checked both SUMMARY lines). Renders `base_look_*.png`, `axe_bear_*.png` (vertex colour), viewed by the manager. New rerun step: `blender -b -P Art/Scripts/render_base_look.py`. Unity not run: `ChopperCheck` expects 12 skinned meshes and the FBX now has 13 (W6-04).
+- W5-02a (2026-10-11): cause: `ChopperMeadowSwap.PropPrefab` saved the FBX root (+90 X) as the prefab root, and `TreeManager`/`FallingTree` overwrite the root rotation with yaw only. Fix: plain root with the model as a child; `TintKey` keeps existing pine names; campfire log tilt 78 to 12 deg (`MeadowBuilder`). `CheckOrientation`: `RESULT FAIL (13 props not upright)` before, `RESULT PASS (0 props not upright)` after. Pines 3.25 m upright, base at 0.00; stump collider vertical. Manager viewed `world_audit_after/shots_02b2/09_high_hub_overview.png`. Open: the zone tint colours the dirt pad; pine bounds are 0.18 m off the root on X. Not rerun: foliage walk, gear look, enemy NavMesh tour, client join.
+- W5-02b (2026-10-11): `DayNightCycle.cs` (saturation -12, bloom 0.30, warmer sun, cooler ambient, thicker atmosphere), `ZonePalette.cs` hub fog 0.0060, `Chopper_Lighting.asset` contrast 8, `PC_Renderer.asset` SSAO radius 0.6. Old values logged in the report and in code comments. Frame time: hut 5.6 to 5.1 ms, others unchanged.

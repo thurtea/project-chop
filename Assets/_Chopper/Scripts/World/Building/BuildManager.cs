@@ -236,14 +236,8 @@ namespace Chopper.World.Building
 
         public static float GroundAt(Vector3 position, out Vector3 normal)
         {
-            normal = Vector3.up;
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return position.y;
-            Vector3 local = position - terrain.transform.position;
-            TerrainData data = terrain.terrainData;
-            if (data != null && data.size.x > 0f && data.size.z > 0f)
-                normal = data.GetInterpolatedNormal(local.x / data.size.x, local.z / data.size.z);
-            return terrain.SampleHeight(position) + terrain.transform.position.y;
+            normal = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.NormalAt(position) : Vector3.up;
+            return Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(position) : position.y;
         }
 
         // ---------- Server ----------

@@ -688,6 +688,34 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Foliage walk (-chopperFoliageWalk): the player stands in a patch of grass carpet with decorative bushes, then a
+            // virtual stick walks him straight through it. Pictures standing still, mid-walk, and a second after passing,
+            // with the bushes' lean measured at each. Logs "[Foliage] RESULT PASS" or "FAIL".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFoliageWalk") >= 0)
+            {
+                yield return FoliageWalk(folder, wood, ui);
+                Application.Quit();
+                yield break;
+            }
+
+            // World audit (-chopperWorldAudit): wide pictures of the world for comparing against the concept art, from
+            // the gameplay camera and from free vantage points, plus frame times. Logs "[Audit] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperWorldAudit") >= 0)
+            {
+                yield return WorldAudit(folder, wood, ui);
+                Application.Quit(0);
+                yield break;
+            }
+
+            // Gear look (-chopperGearLook): the held Chopper axe and the shield on the back at third person distance,
+            // then one chop into a tree. Logs where the axe and shield sit against the body.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperGearLook") >= 0)
+            {
+                yield return GearLook(folder, wood, ui);
+                Application.Quit();
+                yield break;
+            }
+
             // Grass check: does it lean away from a player standing in it? (-chopperGrassTest)
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperGrassTest") >= 0)
             {
@@ -2258,8 +2286,7 @@ namespace Chopper.Networking
                 ui.DebugShow(0); yield return Shot(folder, "combat_1b_block_front");
                 wood.GetComponent<PlayerCamera>().SnapYaw(0f);
                 wood.GetComponent<PlayerCombat>().DebugSetBlocking(false);
-                Terrain ground = Terrain.activeTerrain;
-                Vector3 OnGround(float x, float z) => new Vector3(x, ground.SampleHeight(new Vector3(x, 0f, z)) + ground.transform.position.y, z);
+                Vector3 OnGround(float x, float z) => new Vector3(x, WorldGround.HeightAt(x, z), z);
                 // Saplings (they are not removed by day) in each element, so the model of every element can be checked.
                 Element[] looks = { Element.Water, Element.Fire, Element.Earth, Element.Wind };
                 for (int i = 0; i < looks.Length; i++) EnemyDirector.Instance.ServerSpawn(looks[i], TreeSize.Medium, false, OnGround(-6f + i * 4f, 50f));
@@ -2660,14 +2687,14 @@ namespace Chopper.Networking
             yield return Shot(folder, "fly_3_high_over_the_hut");
 
             Vector3 below = high;
-            Terrain terrain = Terrain.activeTerrain;
-            below.y = terrain.SampleHeight(below) + terrain.transform.position.y - 3f;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            below.y = Chopper.World.WorldGround.HeightAt(below) - 3f;
             wood.transform.position = below;
             yield return new WaitForSeconds(0.3f);
             ui.DebugConsole("fly");
             ui.DebugShow(0);
             yield return new WaitForSeconds(2f);
-            float ground = terrain.SampleHeight(wood.transform.position) + terrain.transform.position.y;
+            float ground = Chopper.World.WorldGround.HeightAt(wood.transform.position);
             float height = wood.transform.position.y - ground;
             Debug.Log($"[Fly] {(!tools.Flying && !motor.IsFlying && Mathf.Abs(height) < 0.6f ? "PASS" : "FAIL")} landing from inside the hill puts the player on the ground ({height:F2} m above it)");
 
@@ -2766,14 +2793,14 @@ namespace Chopper.Networking
             PlayerWood wood = PlayerWood.Local;
             var controller = wood.GetComponent<CharacterController>();
             var validator = wood.GetComponent<PlayerMovementValidator>();
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             Vector2 direction = (to - from).normalized;
             float yaw = Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg;
             float length = Vector2.Distance(from, to);
             for (float d = 0f; d < length; d += speed * Time.deltaTime)
             {
                 Vector2 p = from + direction * d;
-                float y = terrain.SampleHeight(new Vector3(p.x, 0f, p.y)) + terrain.transform.position.y + 0.3f;
+                float y = Chopper.World.WorldGround.HeightAt(new Vector3(p.x, 0f, p.y)) + 0.3f;
                 validator.ServerNotifyTeleport(new Vector3(p.x, y, p.y));
                 controller.enabled = false;
                 wood.transform.SetPositionAndRotation(new Vector3(p.x, y, p.y), Quaternion.Euler(0f, yaw, 0f));
@@ -2786,7 +2813,7 @@ namespace Chopper.Networking
         // Flat, dry ground near the hut (within reach of its workbench is not needed: the tour builds its own).
         private static Vector3 FlatSpot()
         {
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             for (float radius = 26f; radius < 60f; radius += 3f)
             {
                 for (float angle = 0f; angle < 360f; angle += 20f)
@@ -2796,7 +2823,7 @@ namespace Chopper.Networking
                     for (int x = -4; x <= 6; x += 2)
                     for (int z = -6; z <= 5; z += 2)
                     {
-                        float h = terrain.SampleHeight(center + new Vector3(x, 0f, z)) + terrain.transform.position.y;
+                        float h = Chopper.World.WorldGround.HeightAt(center + new Vector3(x, 0f, z));
                         low = Mathf.Min(low, h);
                         high = Mathf.Max(high, h);
                     }
@@ -2807,7 +2834,7 @@ namespace Chopper.Networking
                     return center;
                 }
             }
-            return new Vector3(30f, terrain.SampleHeight(new Vector3(30f, 0f, 0f)) + terrain.transform.position.y, 0f);
+            return new Vector3(30f, Chopper.World.WorldGround.HeightAt(new Vector3(30f, 0f, 0f)), 0f);
         }
 
         private static bool HasSolid(Vector3 center)
@@ -2835,11 +2862,602 @@ namespace Chopper.Networking
             foreach (Treant t in new System.Collections.Generic.List<Treant>(Treant.All)) t.ServerDespawn();
         }
 
+        // Counts errors and exceptions while a tour runs, and those that name the foliage code.
+        private sealed class ErrorWatch
+        {
+            public int Errors;
+            public int Foliage;
+
+            public void OnLog(string condition, string trace, LogType type)
+            {
+                if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+                Errors++;
+                string all = condition + "\n" + trace;
+                if (all.Contains("GrassField") || all.Contains("HerbManager") || all.Contains("Grass")) Foliage++;
+            }
+        }
+
+        private static float PrivateFloat(object target, string field)
+        {
+            if (target == null) return float.NaN;
+            var info = target.GetType().GetField(field, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            return info != null && info.GetValue(target) is float value ? value : float.NaN;
+        }
+
+        private static float _foliageMidLean;
+
+        private static IEnumerator FoliageWalk(string folder, PlayerWood wood, GameUi ui)
+        {
+            var watch = new ErrorWatch();
+            Application.logMessageReceived += watch.OnLog;
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            if (WeatherSystem.Instance != null) WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            GameUi.HudHidden = true;
+            ui.DebugShow(0);
+
+            GrassField field = UnityEngine.Object.FindAnyObjectByType<GrassField>();
+            for (float waited = 0f; field == null && waited < 20f; waited += Time.deltaTime)
+            {
+                yield return null;
+                field = UnityEngine.Object.FindAnyObjectByType<GrassField>();
+            }
+            if (field == null)
+            {
+                Debug.Log("[Foliage] RESULT FAIL: no GrassField in the world");
+                Application.logMessageReceived -= watch.OnLog;
+                yield break;
+            }
+            var bushes = new List<Transform>();
+            foreach (Transform child in field.transform) if (child.name.StartsWith("Bush_")) bushes.Add(child);
+            GrassCarpet carpet = GrassCarpet.Instance;
+            float pushStrength = float.NaN;
+            if (carpet != null)
+            {
+                var materialField = typeof(GrassCarpet).GetField("_material", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                if (materialField?.GetValue(carpet) is Material carpetMaterial && carpetMaterial.HasProperty("_PushStrength"))
+                    pushStrength = carpetMaterial.GetFloat("_PushStrength");
+            }
+            float playerRadius = float.NaN;
+            foreach (GrassPushers.Pusher pusher in GrassPushers.All) if (pusher.Transform == wood.transform) playerRadius = pusher.Radius;
+            Debug.Log($"[Foliage] GrassField plants {field.transform.childCount}, decorative bushes {bushes.Count}, pushers {GrassPushers.All.Count}, " +
+                      $"grass carpet {(carpet != null ? "on" : "missing")} _PushStrength {pushStrength:F2}, player push radius {playerRadius:F2} m " +
+                      $"(carpet reach {playerRadius + 0.5f:F2} m, GrassField reach {playerRadius + PrivateFloat(field, "_pushRadiusPadding"):F2} m), " +
+                      $"max bend {PrivateFloat(field, "_maxBendDegrees"):F0} deg, bend speed {PrivateFloat(field, "_bendSpeed"):F1}/s, recover speed {PrivateFloat(field, "_recoverSpeed"):F1}/s");
+
+            // The densest knot of bushes standing in thick grass, in the open: no tree within 9 m (trunks and
+            // canopies block the camera and the walk) and flat ground along the walk.
+            var treePositions = new List<Vector3>();
+            TreeDatabase treeDb = TreeManager.Instance != null ? TreeManager.Instance.Database : null;
+            if (treeDb != null) for (int i = 0; i < treeDb.Count; i++) treePositions.Add(treeDb.Get(i).Position);
+            bool Open(Vector3 p)
+            {
+                foreach (Vector3 tp in treePositions)
+                {
+                    float dx = tp.x - p.x, dz = tp.z - p.z;
+                    if (dx * dx + dz * dz < 9f * 9f) return false;
+                }
+                if (WorldGround.Exists)
+                {
+                    float h = WorldGround.HeightAt(p);
+                    for (int k = 0; k < 8; k++)
+                    {
+                        Vector3 q = p + Quaternion.Euler(0f, k * 45f, 0f) * Vector3.forward * 6f;
+                        if (Mathf.Abs(WorldGround.HeightAt(q) - h) > 1.2f) return false;
+                    }
+                }
+                return true;
+            }
+            Transform best = null;
+            int bestCount = -1;
+            foreach (Transform b in bushes)
+            {
+                if (carpet != null && carpet.DensityAt(b.position.x, b.position.z) < 0.5f) continue;
+                if (!Open(b.position)) continue;
+                int n = 0;
+                foreach (Transform o in bushes)
+                {
+                    Vector3 d = o.position - b.position;
+                    d.y = 0f;
+                    if (d.sqrMagnitude < 2.5f * 2.5f) n++;
+                }
+                if (n > bestCount) { bestCount = n; best = b; }
+            }
+            if (best == null)
+            {
+                Debug.Log("[Foliage] RESULT FAIL: no bush stands in grass");
+                Application.logMessageReceived -= watch.OnLog;
+                yield break;
+            }
+            Vector3 center = Vector3.zero;
+            int centerCount = 0;
+            foreach (Transform o in bushes)
+            {
+                Vector3 d = o.position - best.position;
+                d.y = 0f;
+                if (d.sqrMagnitude < 2.5f * 2.5f) { center += o.position; centerCount++; }
+            }
+            center /= Mathf.Max(1, centerCount);
+            // The walking line through the knot that passes closest to the most bushes.
+            float walkYaw = 0f;
+            int bestLine = -1;
+            for (int turn = 0; turn < 8; turn++)
+            {
+                Vector3 dir = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
+                int n = 0;
+                foreach (Transform o in bushes)
+                {
+                    Vector3 d = o.position - center;
+                    d.y = 0f;
+                    float along = Vector3.Dot(d, dir);
+                    if (Mathf.Abs(along) > 4f) continue;
+                    if ((d - dir * along).magnitude < 1f) n++;
+                }
+                if (n > bestLine) { bestLine = n; walkYaw = turn * 45f; }
+            }
+            Vector3 walkDir = Quaternion.Euler(0f, walkYaw, 0f) * Vector3.forward;
+            Debug.Log($"[Foliage] patch at {center:F1}: {centerCount} bushes within 2.5 m, grass density {(carpet != null ? carpet.DensityAt(center.x, center.z) : -1f):F2}, " +
+                      $"walking yaw {walkYaw:F0} past {bestLine} bushes within 1 m of the line");
+
+            (int count, float maxLean) Lean(IEnumerable<Transform> set, Vector3 at, float radius)
+            {
+                int count = 0;
+                float max = 0f;
+                foreach (Transform t in set)
+                {
+                    Vector3 d = t.position - at;
+                    d.y = 0f;
+                    if (d.magnitude > radius) continue;
+                    count++;
+                    max = Mathf.Max(max, Vector3.Angle(t.up, Vector3.up));
+                }
+                return (count, max);
+            }
+            float MaxLeanOf(List<Transform> set)
+            {
+                float max = 0f;
+                foreach (Transform t in set) max = Mathf.Max(max, Vector3.Angle(t.up, Vector3.up));
+                return max;
+            }
+            var plants = new List<Transform>();
+            foreach (Transform child in field.transform) plants.Add(child);
+            void Report(string label)
+            {
+                Vector3 at = wood.transform.position;
+                var near = Lean(bushes, at, 1.25f);
+                var nearAll = Lean(plants, at, 1.25f);
+                var patch = Lean(bushes, center, 3f);
+                Debug.Log($"[Foliage] {label}: player at {at:F2} (along the line {Vector3.Dot(at - center, walkDir):F2} m), " +
+                          $"bushes within 1.25 m {near.count} max lean {near.maxLean:F1} deg, all GrassField plants within 1.25 m {nearAll.count} max lean {nearAll.maxLean:F1} deg, " +
+                          $"patch bushes within 3 m of its center {patch.count} max lean {patch.maxLean:F1} deg");
+            }
+
+            PlayerCamera camera = wood.GetComponent<PlayerCamera>();
+            float cameraYaw = walkYaw + 60f;
+            void Frame()
+            {
+                camera.SnapYaw(cameraYaw);
+                camera.DebugSetDistance(4.5f);
+                camera.DebugSetPitch(35f);
+            }
+
+            // (a) Standing still in the patch.
+            Vector3 still = center - walkDir * 0.3f;
+            yield return TeleportLocalPlayer(new Vector2(still.x, still.z), walkYaw);
+            Frame();
+            yield return new WaitForSeconds(2.5f);
+            Frame();
+            yield return new WaitForSeconds(0.3f);
+            Report("a_still");
+            ui.DebugShow(0);
+            yield return Shot(folder, "foliage_a_still");
+
+            // Back to the start of the line; the patch springs back.
+            Vector3 start = center - walkDir * 4.5f;
+            yield return TeleportLocalPlayer(new Vector2(start.x, start.z), walkYaw);
+            Frame();
+            yield return new WaitForSeconds(2f);
+            Report("before_walk");
+
+            // (b) Walking through: the stick points along the line in the camera's frame.
+            Gamepad pad = InputSystem.AddDevice<Gamepad>();
+            float rel = (walkYaw - cameraYaw) * Mathf.Deg2Rad;
+            Vector2 stick = new Vector2(Mathf.Sin(rel), Mathf.Cos(rel));
+            var frameTimes = new List<float>();
+            List<Transform> passed = null;
+            float walkStart = Time.time;
+            while (Time.time - walkStart < 12f)
+            {
+                InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = stick });
+                camera.SnapYaw(cameraYaw);
+                yield return null;
+                frameTimes.Add(Time.unscaledDeltaTime * 1000f);
+                float along = Vector3.Dot(wood.transform.position - center, walkDir);
+                if (passed == null && along >= -0.1f)
+                {
+                    Report("b_mid_walk");
+                    passed = new List<Transform>();
+                    foreach (Transform b in bushes)
+                    {
+                        Vector3 d = b.position - wood.transform.position;
+                        d.y = 0f;
+                        if (d.magnitude <= 1.25f + PrivateFloat(field, "_pushRadiusPadding")) passed.Add(b);
+                    }
+                    ui.DebugShow(0);
+                    yield return QuickShot(folder, "foliage_b_mid_walk");
+                    _foliageMidLean = MaxLeanOf(passed);
+                    Debug.Log($"[Foliage] b_mid_walk picture taken, {passed.Count} bushes inside the lean reach, their max lean {_foliageMidLean:F1} deg");
+                }
+                if (along >= 3.5f) break;
+            }
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            float walked = Time.time - walkStart;
+            Vector3 flat = wood.transform.position - start;
+            flat.y = 0f;
+            Debug.Log($"[Foliage] walked {flat.magnitude:F2} m in {walked:F2} s ({flat.magnitude / Mathf.Max(0.01f, walked):F2} m/s), heading off the line {Vector3.Angle(flat, walkDir):F1} deg");
+            if (passed == null)
+            {
+                passed = new List<Transform>();
+                Debug.Log("[Foliage] the player never reached the patch center");
+            }
+
+            // (c) Spring back: the bushes passed through, measured every quarter second.
+            float released = Time.time;
+            while (Time.time - released < 1.25f)
+            {
+                camera.SnapYaw(cameraYaw);
+                yield return new WaitForSeconds(0.25f);
+                Debug.Log($"[Foliage] {Time.time - released:F2} s after passing: passed bushes max lean {MaxLeanOf(passed):F1} deg");
+            }
+            Report("c_after");
+            float afterLean = MaxLeanOf(passed);
+            Debug.Log($"[Foliage] c_after: the {passed.Count} bushes passed through, max lean {afterLean:F1} deg");
+            ui.DebugShow(0);
+            yield return Shot(folder, "foliage_c_after");
+            InputSystem.RemoveDevice(pad);
+
+            frameTimes.Sort();
+            float sum = 0f;
+            foreach (float f in frameTimes) sum += f;
+            float avg = sum / Mathf.Max(1, frameTimes.Count);
+            float p95 = frameTimes.Count > 0 ? frameTimes[Mathf.Clamp(Mathf.FloorToInt(frameTimes.Count * 0.95f), 0, frameTimes.Count - 1)] : 0f;
+            Debug.Log($"[Foliage] walk frames {frameTimes.Count}, average {avg:F1} ms ({1000f / Mathf.Max(0.01f, avg):F0} fps), p95 {p95:F1} ms");
+
+            Application.logMessageReceived -= watch.OnLog;
+            bool pass = passed.Count > 0 && _foliageMidLean > 1f && afterLean < 1f && watch.Foliage == 0;
+            Debug.Log($"[Foliage] errors during the tour {watch.Errors}, naming grass or herbs {watch.Foliage}");
+            Debug.Log($"[Foliage] RESULT {(pass ? "PASS" : "FAIL")} (bushes in reach mid-walk {passed.Count}, max lean after passing {afterLean:F1} deg, max lean mid-walk {_foliageMidLean:F1} deg, foliage errors {watch.Foliage})");
+        }
+
+        private static IEnumerator GearLook(string folder, PlayerWood wood, GameUi ui)
+        {
+            var watch = new ErrorWatch();
+            Application.logMessageReceived += watch.OnLog;
+            Application.runInBackground = true;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            if (WeatherSystem.Instance != null) WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            GameUi.HudHidden = true;
+            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
+            axe.ServerSetHasAxe(true);
+            yield return TeleportLocalPlayer(new Vector2(0f, 40f), 0f);
+            yield return new WaitForSeconds(3f);
+            if (!axe.IsDrawn)
+            {
+                axe.RequestToggleDrawn();
+                yield return new WaitForSeconds(1.2f);
+            }
+            ui.DebugShow(0);
+
+            Transform Find(string name)
+            {
+                foreach (Transform t in wood.GetComponentsInChildren<Transform>(true)) if (t.name == name) return t;
+                return null;
+            }
+            Transform grip = Find("AxeGrip"), axeMesh = Find("chopper_axe"), shield = Find("chopper_shield"), socket = Find("Weapon_R");
+            Transform oldAxe = Find("Axe");
+            PlayerCamera camera = wood.GetComponent<PlayerCamera>();
+            Camera eye = Camera.main;
+            void GearReport(string label)
+            {
+                Transform body = wood.transform;
+                float height = 0f;
+                foreach (SkinnedMeshRenderer skin in wood.GetComponentsInChildren<SkinnedMeshRenderer>())
+                    if (skin.enabled && skin.gameObject.activeInHierarchy) height = Mathf.Max(height, skin.bounds.max.y - body.position.y);
+                string axeText = "no chopper_axe";
+                if (axeMesh != null && grip != null)
+                {
+                    Renderer r = axeMesh.GetComponent<Renderer>();
+                    MeshFilter mf = axeMesh.GetComponent<MeshFilter>();
+                    Vector3 size = mf != null && mf.sharedMesh != null ? Vector3.Scale(mf.sharedMesh.bounds.size, axeMesh.lossyScale) : Vector3.zero;
+                    HeldItemFrame frame = grip.GetComponent<HeldItemFrame>();
+                    Vector3 head = frame != null ? body.InverseTransformDirection(grip.rotation * frame.Head) : Vector3.zero;
+                    Vector3 edge = frame != null ? body.InverseTransformDirection(grip.rotation * frame.Edge) : Vector3.zero;
+                    axeText = $"axe parent {grip.parent.name}/{grip.name}/{axeMesh.name}, enabled {r != null && r.enabled && axeMesh.gameObject.activeInHierarchy}, " +
+                              $"mesh size {size:F2} m, grip at hand {(grip.position - grip.parent.position).magnitude * 100f:F1} cm, " +
+                              $"grip to Weapon_R {(socket != null ? (grip.position - socket.position).magnitude * 100f : -1f):F1} cm, angle to Weapon_R {(socket != null ? Quaternion.Angle(grip.rotation, socket.rotation) : -1f):F1} deg, " +
+                              $"head dir in body {head:F2}, blade dir in body {edge:F2}, axe center in body {body.InverseTransformPoint(r.bounds.center):F2}";
+                }
+                string shieldText = "no chopper_shield";
+                if (shield != null)
+                {
+                    Renderer r = shield.GetComponent<Renderer>();
+                    Bounds b = r.bounds;
+                    shieldText = $"shield parent {shield.parent.name}, enabled {r.enabled && shield.gameObject.activeInHierarchy}, center in body {body.InverseTransformPoint(b.center):F2}, size {b.size:F2}, " +
+                                 $"camera to shield bounds {Mathf.Sqrt(b.SqrDistance(eye.transform.position)):F2} m (inside {b.Contains(eye.transform.position)}), near clip {eye.nearClipPlane:F2}";
+                }
+                bool oldVisible = oldAxe != null && oldAxe.gameObject.activeInHierarchy && oldAxe.GetComponentInChildren<Renderer>() != null && oldAxe.GetComponentInChildren<Renderer>().enabled;
+                Debug.Log($"[Gear] {label}: body height {height:F2} m, camera distance {(eye.transform.position - body.position - Vector3.up * 1.5f).magnitude:F2} m, drawn {axe.IsDrawn}; {axeText}; {shieldText}; old woodsman axe visible {oldVisible}");
+            }
+
+            (string name, float yaw)[] views = { ("gear_back_right", 315f), ("gear_right", 270f), ("gear_front_right", 220f), ("gear_back", 0f) };
+            foreach (var view in views)
+            {
+                camera.SnapYaw(view.yaw);
+                yield return new WaitForSeconds(0.9f);
+                GearReport(view.name);
+                ui.DebugShow(0);
+                yield return Shot(folder, view.name);
+            }
+            // Close from the right, to judge the grip.
+            camera.SnapYaw(250f);
+            camera.DebugSetDistance(1.8f);
+            yield return new WaitForSeconds(0.9f);
+            GearReport("gear_close_right");
+            ui.DebugShow(0);
+            yield return Shot(folder, "gear_close_right");
+
+            // A tree standing alone (so nothing blocks the camera), the player in reach of it, then chops seen from
+            // two sides at play distance.
+            Vector2 chopSpot = Vector2.zero;
+            float chopYaw = 0f;
+            bool found = false;
+            TreeDatabase gearTrees = TreeManager.Instance.Database;
+            var order = new List<(float clear, int id)>();
+            for (int i = 0; i < gearTrees.Count; i++)
+            {
+                Vector3 p = gearTrees.Get(i).Position;
+                if (p.magnitude > 150f) continue;
+                float nearest = float.MaxValue;
+                for (int j = 0; j < gearTrees.Count; j++)
+                {
+                    if (j == i) continue;
+                    Vector3 q = gearTrees.Get(j).Position;
+                    nearest = Mathf.Min(nearest, new Vector2(q.x - p.x, q.z - p.z).magnitude);
+                }
+                order.Add((nearest, i));
+            }
+            order.Sort((x, y) => y.clear.CompareTo(x.clear));
+            for (int k = 0; k < order.Count && k < 40 && !found; k++)
+            {
+                if (TreeManager.Instance.IsFelledOnClient(order[k].id)) continue;
+                Vector3 p = gearTrees.Get(order[k].id).Position;
+                for (int turn = 0; turn < 8 && !found; turn++)
+                {
+                    Vector3 aim = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
+                    foreach (float back in new[] { 1.8f, 2.2f, 1.5f })
+                    {
+                        Vector3 stand = p - aim * back;
+                        if (!TreeManager.Instance.ServerFindTree(new Vector3(stand.x, p.y, stand.z), aim, out int hit, out _) || hit != order[k].id) continue;
+                        chopSpot = new Vector2(stand.x, stand.z);
+                        chopYaw = turn * 45f;
+                        found = true;
+                        Debug.Log($"[Gear] lone tree {order[k].id} at {p:F1}, nearest other tree {order[k].clear:F1} m");
+                        break;
+                    }
+                }
+            }
+            Debug.Log($"[Gear] tree found {found} at {chopSpot} facing {chopYaw}");
+            yield return TeleportLocalPlayer(chopSpot, chopYaw);
+            float[] chopViews = { chopYaw - 90f, chopYaw + 90f };
+            for (int v = 0; v < chopViews.Length; v++)
+            {
+                camera.DebugSetDistance(3.4f);
+                camera.SnapYaw(chopViews[v]);
+                yield return new WaitForSeconds(1.5f);
+                camera.SnapYaw(chopViews[v]);
+                Time.timeScale = 0.1f;
+                bool swung = axe.TrySwing();
+                Debug.Log($"[Gear] chop {v} swung {swung}, camera yaw {chopViews[v]:F0}");
+                for (int i = 0; i < 6; i++)
+                {
+                    yield return new WaitForSeconds(0.05f);
+                    if (i == 3) GearReport($"gear_chop{v}_3");
+                    ui.DebugShow(0);
+                    yield return QuickShot(folder, $"gear_chop{v}_{i}");
+                }
+                Time.timeScale = 1f;
+                yield return new WaitForSeconds(1.2f);
+            }
+            Time.timeScale = 1f;
+            yield return new WaitForSeconds(1f);
+            Application.logMessageReceived -= watch.OnLog;
+            Debug.Log($"[Gear] errors during the tour {watch.Errors}");
+            Debug.Log("[Gear] done");
+        }
+
+        // The world audit: the gameplay camera at a few typical places, free cameras from higher up, dusk and night, the
+        // ground and the sky, with frame times measured uncapped at three of the places.
+        private static IEnumerator WorldAudit(string folder, PlayerWood wood, GameUi ui)
+        {
+            var watch = new ErrorWatch();
+            Application.logMessageReceived += watch.OnLog;
+            Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerAxe>().ServerSetHasAxe(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            if (WeatherSystem.Instance != null) WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.35f);
+            foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = -1;
+            PlayerCamera cam = PlayerCamera.Local;
+            float Ground(float x, float z) => WorldGround.HeightAt(x, z);
+            Vector3 hut = Hut.Instance.transform.position;
+            Debug.Log($"[Audit] hut at {hut}, hut yaw {Hut.Instance.transform.eulerAngles.y:F0}, pond at {gen.PondCenter}, camera far {Camera.main.farClipPlane:F0} m, fog {RenderSettings.fog} {RenderSettings.fogMode} density {RenderSettings.fogDensity:F4} start {RenderSettings.fogStartDistance:F0} end {RenderSettings.fogEndDistance:F0}, skybox {(RenderSettings.skybox != null ? RenderSettings.skybox.name + " / " + RenderSettings.skybox.shader.name : "none")}, sun {(RenderSettings.sun != null ? RenderSettings.sun.name : "none")}");
+            var pipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            if (pipeline != null) Debug.Log($"[Audit] pipeline {pipeline.name}: msaa {pipeline.msaaSampleCount}, render scale {pipeline.renderScale:F2}, shadows {pipeline.mainLightShadowmapResolution} px to {pipeline.shadowDistance:F0} m, hdr {pipeline.supportsHDR}, screen {Screen.width}x{Screen.height}");
+            foreach (var volume in UnityEngine.Object.FindObjectsByType<UnityEngine.Rendering.Volume>(FindObjectsInactive.Exclude))
+            {
+                string parts = "";
+                if (volume.sharedProfile != null) foreach (var c in volume.sharedProfile.components) parts += (c.active ? "" : "(off)") + c.GetType().Name + " ";
+                Debug.Log($"[Audit] volume {volume.name} global {volume.isGlobal} weight {volume.weight:F2} profile {(volume.sharedProfile != null ? volume.sharedProfile.name : "none")}: {parts}");
+            }
+            yield return new WaitForSeconds(4f);
+
+            // Gameplay camera stops: position, yaw, pitch, camera distance.
+            Vector2 pondView = gen.PondCenter + (gen.PondCenter.sqrMagnitude > 1f ? gen.PondCenter.normalized : Vector2.right) * 22f;
+            float pondYaw = Mathf.Atan2(gen.PondCenter.x - pondView.x, gen.PondCenter.y - pondView.y) * Mathf.Rad2Deg;
+            (string name, Vector2 at, float yaw, float pitch, float distance)[] stops =
+            {
+                ("01_concept_framing_hut", new Vector2(hut.x - 9f, hut.z + 16f), 150f, 8f, 4.5f),
+                ("02_meadow_pines", new Vector2(70f, -45f), 120f, 6f, 5f),
+                ("03_near_water_pond", pondView, pondYaw, 12f, 5f),
+                ("04_toward_mountains", new Vector2(0f, 70f), 0f, -8f, 5f),
+                ("05_terrain_edge_beach", new Vector2(0f, 232f), 0f, 6f, 5f),
+                ("06_deep_forest_earth", new Vector2(175f, 10f), 90f, 6f, 5f),
+                ("07_ground_closeup", new Vector2(30f, 30f), 45f, 55f, 2.5f),
+                ("08_sky_up", new Vector2(30f, 30f), 135f, -20f, 3f),
+            };
+            foreach (var stop in stops)
+            {
+                yield return TeleportLocalPlayer(stop.at, stop.yaw);
+                cam.DebugSetDistance(stop.distance);
+                cam.DebugSetPitch(stop.pitch);
+                cam.SnapYaw(stop.yaw);
+                ui.DebugShow(0);
+                yield return new WaitForSeconds(2f);
+                yield return Shot(folder, stop.name);
+                if (stop.name.StartsWith("01") || stop.name.StartsWith("02") || stop.name.StartsWith("05"))
+                    yield return MeasureFrames("audit " + stop.name, 4f);
+            }
+
+            // Props up close: the hub tree nearest a meadow spot standing, falling and as a stump, then a yard campfire.
+            TreeView standing = null;
+            Vector3 meadow = new Vector3(40f, 0f, 40f);
+            foreach (TreeView v in UnityEngine.Object.FindObjectsByType<TreeView>(FindObjectsInactive.Exclude))
+                if (standing == null || (v.transform.position - meadow).sqrMagnitude < (standing.transform.position - meadow).sqrMagnitude) standing = v;
+            if (standing != null)
+            {
+                int treeId = standing.TreeId;
+                Vector3 trunk = standing.transform.position;
+                Renderer[] parts = standing.GetComponentsInChildren<Renderer>();
+                Bounds tree = parts[0].bounds;
+                foreach (Renderer r in parts) tree.Encapsulate(r.bounds);
+                Debug.Log($"[Audit] tree {treeId} at {trunk:F1}: {tree.size.x:F2} x {tree.size.y:F2} x {tree.size.z:F2} m, bottom {tree.min.y - trunk.y:F2} m from its base, scale {standing.transform.localScale.x:F2}, root yaw {standing.transform.eulerAngles:F0}");
+                Vector2 stand = new Vector2(trunk.x, trunk.z - 7f);
+                yield return TeleportLocalPlayer(stand, 0f);
+                cam.DebugSetDistance(4f);
+                cam.DebugSetPitch(4f);
+                cam.SnapYaw(0f);
+                ui.DebugShow(0);
+                yield return new WaitForSeconds(1.5f);
+                yield return Shot(folder, "15_tree_upright_close");
+                // Chop it down: hits until it falls, a picture mid fall, then the stump and the fallen trunk.
+                bool down = false;
+                for (int hit = 0; hit < 40 && !down; hit++)
+                {
+                    TreeManager.Instance.ServerHitTree(treeId, wood, Vector3.forward, true, 4f);
+                    yield return new WaitForSeconds(0.15f);
+                    down = true;
+                    foreach (TreeView v in UnityEngine.Object.FindObjectsByType<TreeView>(FindObjectsInactive.Exclude)) if (v.TreeId == treeId) down = false;
+                }
+                Debug.Log($"[Audit] tree {treeId} felled {down}");
+                yield return new WaitForSeconds(0.9f);
+                yield return QuickShot(folder, "16_tree_falling");
+                yield return new WaitForSeconds(3f);
+                yield return Shot(folder, "17_stump_and_fallen");
+                foreach (Transform t in UnityEngine.Object.FindAnyObjectByType<TreeManager>().GetComponentsInChildren<Transform>())
+                {
+                    if (t.name != "Stump" || (t.position - trunk).sqrMagnitude > 1f) continue;
+                    Renderer[] stumpParts = t.GetComponentsInChildren<Renderer>();
+                    if (stumpParts.Length == 0) continue;
+                    Bounds sb = stumpParts[0].bounds;
+                    foreach (Renderer r in stumpParts) sb.Encapsulate(r.bounds);
+                    var capsule = t.GetComponent<CapsuleCollider>();
+                    Debug.Log($"[Audit] stump {sb.size.x:F2} x {sb.size.y:F2} x {sb.size.z:F2} m, bottom {sb.min.y - trunk.y:F2} m, collider {(capsule != null ? $"world height axis {(capsule.direction == 1 ? t.up : capsule.direction == 0 ? t.right : t.forward):F2}" : "none")}");
+                }
+            }
+            if (Campfire.All.Count > 0)
+            {
+                // The pond fire stands in the open (the yard fires sit against the hut); viewed from the hut's side.
+                Vector3 fire = Campfire.All[Campfire.All.Count > 2 ? 2 : 0].transform.position;
+                Vector2 toHut = new Vector2(-fire.x, -fire.z).normalized;
+                Vector2 standAt = new Vector2(fire.x, fire.z) + toHut * 2.6f;
+                float fireYaw = Mathf.Atan2(-toHut.x, -toHut.y) * Mathf.Rad2Deg;
+                yield return TeleportLocalPlayer(standAt, fireYaw);
+                cam.DebugSetDistance(2.4f);
+                cam.DebugSetPitch(38f);
+                cam.SnapYaw(fireYaw + 30f);
+                ui.DebugShow(0);
+                yield return new WaitForSeconds(1.5f);
+                yield return Shot(folder, "18_campfire_close");
+            }
+
+            // Free cameras from higher up: the player stands below (the grass and trees follow the camera and player).
+            (string name, Vector2 feet, Vector3 eye, Vector3 look)[] high =
+            {
+                ("09_high_hub_overview", new Vector2(0f, -40f), new Vector3(0f, 0f, -70f) + Vector3.up * 38f, new Vector3(0f, 0f, 40f)),
+                ("10_high_ring_and_forest", new Vector2(90f, 90f), new Vector3(80f, 0f, 80f) + Vector3.up * 30f, new Vector3(200f, 10f, 200f)),
+                ("11_high_shore_to_sea", new Vector2(0f, 200f), new Vector3(0f, 0f, 190f) + Vector3.up * 25f, new Vector3(0f, -10f, 320f)),
+                ("12_eye_level_valley", new Vector2(-60f, 20f), new Vector3(-55f, 0f, 20f) + Vector3.up * 3f, new Vector3(-160f, 15f, 20f)),
+            };
+            foreach (var view in high)
+            {
+                yield return TeleportLocalPlayer(view.feet, 0f);
+                Vector3 eye = view.eye;
+                eye.y += Ground(eye.x, eye.z);
+                Vector3 look = view.look;
+                look.y += Ground(look.x, look.z);
+                yield return FreeShot(folder, view.name, eye, look);
+            }
+
+            // Dusk and night at the hut, gameplay camera.
+            (string name, DayPhase phase, float fraction)[] times =
+            {
+                ("13_dusk_hut", DayPhase.Dusk, 0.5f),
+                ("14_night_hut", DayPhase.Night, 0.3f),
+            };
+            foreach (var time in times)
+            {
+                DayNightCycle.Instance.ServerDebugSetClock(time.phase, time.fraction);
+                yield return TeleportLocalPlayer(new Vector2(hut.x - 9f, hut.z + 16f), 150f);
+                cam.DebugSetDistance(4.5f);
+                cam.DebugSetPitch(8f);
+                foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
+                ui.DebugShow(0);
+                yield return new WaitForSeconds(2.5f);
+                yield return Shot(folder, time.name);
+            }
+            yield return MeasureFrames("audit night at hut", 4f);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.35f);
+            Application.logMessageReceived -= watch.OnLog;
+            Debug.Log($"[Audit] RESULT done, errors during the tour {watch.Errors}");
+        }
+
+        // A picture from a free camera: the player's camera rig is paused, the camera placed and aimed, then restored.
+        private static IEnumerator FreeShot(string folder, string name, Vector3 eye, Vector3 look)
+        {
+            PlayerCamera rig = PlayerCamera.Local;
+            Camera view = Camera.main;
+            rig.enabled = false;
+            view.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(look - eye));
+            yield return new WaitForSeconds(2f);
+            view.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(look - eye));
+            yield return Shot(folder, name);
+            Debug.Log($"[Audit] {name} eye {eye:F0} look {look:F0}");
+            rig.enabled = true;
+        }
+
         private static IEnumerator TeleportLocalPlayer(Vector2 position, float yaw)
         {
             PlayerWood wood = PlayerWood.Local;
-            Terrain terrain = Terrain.activeTerrain;
-            float y = terrain.SampleHeight(new Vector3(position.x, 0f, position.y)) + terrain.transform.position.y + 0.3f;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            float y = Chopper.World.WorldGround.HeightAt(new Vector3(position.x, 0f, position.y)) + 0.3f;
             var controller = wood.GetComponent<CharacterController>();
             // The server speed check would snap a sudden jump like this back, so it is told about the teleport first.
             wood.GetComponent<PlayerMovementValidator>().ServerNotifyTeleport(new Vector3(position.x, y, position.y));

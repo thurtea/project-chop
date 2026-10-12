@@ -15,28 +15,36 @@ FILES = [os.path.join(ART, "Blender", "chopper_character.blend"),
 REPORT = os.path.join(ART, "Renders", "check_report.txt")
 
 CHAR = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-        "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
-        "chopper_plate", "chopper_pauldrons"]
+        "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots",
+        "chopper_helmet", "chopper_plate", "chopper_pauldrons"]
 ELITE_ONLY = ["chopper_plate", "chopper_pauldrons"]
-PROPS = ["chopper_axe", "chopper_shield"]
+PROPS = ["chopper_axe", "chopper_axe_bear", "chopper_shield"]
+LOADOUT = ["chopper_axe", "chopper_shield"]          # Worker / Warrior / Elite lineups as before
+# Base look (W6-02, concept 1.5 without armour): no helmet, chainmail, bracers, plate, pauldrons
+ARMOUR = ["chopper_helmet", "chopper_chainmail", "chopper_bracers", "chopper_plate", "chopper_pauldrons"]
+BASE = [n for n in CHAR if n not in ARMOUR]
 ALLOWED_MATS = {"chopper_character.blend": {"M_Chopper", "M_Chopper_Gear"},
                  "chopper_props.blend": {"M_Chopper_Gear"}}
 
 BUDGETS = [
-    ("body+head+shirt+vest+belt+chainmail+boots",
-     ["chopper_body", "chopper_head", "chopper_shirt", "chopper_vest", "chopper_belt",
+    ("body+head+shirt+vest+belt+bracers+chainmail+boots",
+     ["chopper_body", "chopper_head", "chopper_shirt", "chopper_vest", "chopper_belt", "chopper_bracers",
       "chopper_chainmail", "chopper_boots"], 4000, 8000),
     ("beard", ["chopper_beard"], 1000, 3000),
     ("hair", ["chopper_hair"], 1000, 3000),
     ("axe", ["chopper_axe"], 300, 1000),
+    ("bear-head axe", ["chopper_axe_bear"], 300, 1000),
+    ("bracers", ["chopper_bracers"], 50, 600),
     ("shield", ["chopper_shield"], 500, 1500),
     ("helmet", ["chopper_helmet"], 1000, 3000),
     ("Worker + axe + shield",
-     [n for n in CHAR if n not in ("chopper_helmet", *ELITE_ONLY)] + PROPS, 8000, 15000),
+     [n for n in CHAR if n not in ("chopper_helmet", *ELITE_ONLY)] + LOADOUT, 8000, 15000),
     ("Warrior (helmet, no hair) + axe + shield",
-     [n for n in CHAR if n not in ("chopper_hair", *ELITE_ONLY)] + PROPS, 8000, 15000),
+     [n for n in CHAR if n not in ("chopper_hair", *ELITE_ONLY)] + LOADOUT, 8000, 15000),
     ("Elite (plate and pauldrons, no leather vest, no hair) + axe + shield",
-     [n for n in CHAR if n not in ("chopper_hair", "chopper_vest")] + PROPS, 8000, 15000),
+     [n for n in CHAR if n not in ("chopper_hair", "chopper_vest")] + LOADOUT, 8000, 15000),
+    ("Base look (no armour) + bear-head axe: %s" % "+".join(n[8:] for n in BASE),
+     BASE + ["chopper_axe_bear"], 6000, 15000),
 ]
 
 lines = []
@@ -176,6 +184,57 @@ def winding_report(ob):
     return len(islands), bad_edges, neg_islands, inward
 
 
+UV_TRIS = {}      # object -> [(uv triangle 3x2, frozenset of its vertex indices)]
+DENSITY = {}
+
+
+def uv_stats(ob, uv):
+    """Collect UV triangles for the atlas-wide overlap test; report islands and texel density.
+
+    An island = faces joined by an edge whose two UV endpoints are the same on both faces."""
+    me = ob.data
+    me.calc_loop_triangles()
+    world = uva = 0.0
+    tris = []
+    for t in me.loop_triangles:
+        vs = [me.vertices[i].co for i in t.vertices]
+        world += (vs[1] - vs[0]).cross(vs[2] - vs[0]).length * 0.5
+        u = [tuple(uv.data[li].uv) for li in t.loops]
+        uva += abs((u[1][0] - u[0][0]) * (u[2][1] - u[0][1]) - (u[2][0] - u[0][0]) * (u[1][1] - u[0][1])) * 0.5
+        tris.append((u, frozenset(t.vertices)))
+    UV_TRIS[ob.name] = tris
+    parent = list(range(len(me.polygons)))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+    seen = {}
+    for p in me.polygons:
+        lis = list(p.loop_indices)
+        for k in range(len(lis)):
+            l0, l1 = lis[k], lis[(k + 1) % len(lis)]
+            v0, v1 = me.loops[l0].vertex_index, me.loops[l1].vertex_index
+            key = (min(v0, v1), max(v0, v1))
+            uvk = {v0: tuple(round(c, 6) for c in uv.data[l0].uv), v1: tuple(round(c, 6) for c in uv.data[l1].uv)}
+            if key in seen:
+                q, other = seen[key]
+                if other == uvk:
+                    ra, rb = find(p.index), find(q)
+                    if ra != rb:
+                        parent[ra] = rb
+            else:
+                seen[key] = (p.index, uvk)
+    n_isl = len({find(i) for i in range(len(me.polygons))})
+    dens = 2048 * (uva / world) ** 0.5 if world > 0 else 0.0
+    DENSITY[ob.name] = dens
+    out(f"    uv layout  : {n_isl} islands for {len(me.polygons)} faces "
+        f"({len(me.polygons) / max(1, n_isl):.1f} faces per island), texel density {dens:.0f} px/m")
+    check(f"{ob.name} UVs are connected islands, not one cell per face ({len(me.polygons) / max(1, n_isl):.1f} faces per island)",
+          len(me.polygons) / max(1, n_isl) >= 2.0)
+
+
 tri_by_name = {}
 bounds = {}
 
@@ -239,6 +298,7 @@ for path in FILES:
             check(f"{name} has one UV layer inside 0-1",
                   len(ob.data.uv_layers) == 1 and inside,
                   "layers=%d u %.3f..%.3f v %.3f..%.3f" % (len(ob.data.uv_layers), min(us), max(us), min(vs), max(vs)))
+            uv_stats(ob, uv)
     if base.startswith("chopper_character") and "chopper_body" in bpy.data.objects:
         # detector self-test: a scratch copy of the body with the trouser legs turned inside
         # out (the W1-03 defect) must be caught; the copy is discarded, nothing is saved
@@ -286,13 +346,129 @@ if "chopper_axe" in bounds:
     lo, hi = bounds["chopper_axe"]
     check(f"axe length {hi.z - lo.z:.3f} m about 0.85 (0.80-0.90)", 0.80 <= hi.z - lo.z <= 0.90)
     check("axe origin on the haft (grip point inside haft range)", lo.z < 0 < hi.z)
+if "chopper_axe_bear" in bounds:
+    lo, hi = bounds["chopper_axe_bear"]
+    dims = hi - lo
+    check(f"bear axe length {dims.z:.3f} m in 0.85-0.95", 0.85 <= dims.z <= 0.95)
+    # grip convention = chopper_axe: origin at the grip on the haft, haft along +Z (head up),
+    # blade on +X (the side of chopper_axe's +X blade), poll on -X, thickness along Y
+    check("bear axe origin on the haft (grip point inside haft range)", lo.z < 0 < hi.z)
+    check(f"bear axe: haft along Z (longest), thickness along Y (shortest): dims {dims.x:.3f} x {dims.y:.3f} x {dims.z:.3f}",
+          dims.z > dims.x > dims.y)
+    check(f"bear axe head at +Z (top {hi.z:.3f} > {-lo.z:.3f} below the grip)", hi.z > 2 * -lo.z)
+    check(f"bear axe single blade on +X (x {lo.x:.3f}..{hi.x:.3f}: blade reach > 0.15, poll < 0.10)",
+          hi.x > 0.15 and -0.10 < lo.x < 0 and hi.x > 2 * -lo.x)
+    if "chopper_axe" in bounds:
+        check("chopper_axe has a +X blade (the side the bear axe's blade matches)", bounds["chopper_axe"][1].x > 0.15)
+
+    def grip_section(name):
+        bpy.ops.wm.open_mainfile(filepath=FILES[1])
+        # cross-section of the haft at the grip point (z = 0): rays from four sides toward the Z axis
+        me = bpy.data.objects[name].data
+        tree = BVHTree.FromPolygons([v.co for v in me.vertices], [tuple(p.vertices) for p in me.polygons])
+        hit = {}
+        for k, d in (("x+", Vector((1, 0, 0))), ("x-", Vector((-1, 0, 0))), ("y+", Vector((0, 1, 0))),
+                     ("y-", Vector((0, -1, 0)))):
+            loc = tree.ray_cast(d * 0.2, -d)[0]
+            hit[k] = loc.dot(d) * (1 if k[1] == "+" else -1) if loc is not None else float("nan")
+        return ((hit["x+"] + hit["x-"]) / 2, (hit["y+"] + hit["y-"]) / 2,
+                (hit["x+"] - hit["x-"]) / 2, (hit["y+"] - hit["y-"]) / 2)
+    ga, gb = grip_section("chopper_axe"), grip_section("chopper_axe_bear")
+    check("bear axe haft section at the grip point (z 0) centred on the Z axis like chopper_axe: centre (%.4f, %.4f) "
+          "vs (%.4f, %.4f), half size %.4f x %.4f vs %.4f x %.4f" % (gb[0], gb[1], ga[0], ga[1], gb[2], gb[3], ga[2], ga[3]),
+          abs(gb[0]) < 1e-3 and abs(gb[1]) < 1e-3 and abs(gb[2] - ga[2]) < 0.005 and abs(gb[3] - ga[3]) < 0.005)
 if "chopper_shield" in bounds:
     lo, hi = bounds["chopper_shield"]
     d = hi - lo
     check(f"shield height {d.z:.3f} m about 0.95 (0.90-1.00)", 0.90 <= d.z <= 1.00)
     check(f"shield width {d.x:.3f} m about 0.65 (0.62-0.70, incl. rim)", 0.62 <= d.x <= 0.70)
 
+out("")
+out("UV ATLAS (all objects of both files share one 2048 atlas)")
+out("-" * 72)
+
+
+def atlas_overlaps(size=2048):
+    """Rasterise every UV triangle at atlas resolution; count pixel centres strictly inside
+    triangles of two objects, or of one object where the two triangles share no edge."""
+    import numpy as np
+    owner = np.full(size * size, -1, dtype=np.int64)
+    tri_sets = {}
+    cover = np.zeros(size * size, dtype=bool)
+    cross = inner = 0
+    names = sorted(UV_TRIS)
+    for oi, name in enumerate(names):
+        for ti, (u, vset) in enumerate(UV_TRIS[name]):
+            key = oi * 10_000_000 + ti
+            tri_sets[key] = vset
+            a = np.array(u) * size
+            x0, y0 = np.maximum(np.floor(a.min(axis=0)).astype(int), 0)
+            x1, y1 = np.minimum(np.ceil(a.max(axis=0)).astype(int), size - 1)
+            if x1 < x0 or y1 < y0:
+                continue
+            gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+            (ax, ay), (bx, by), (cx, cy) = a
+            den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+            if abs(den) < 1e-12:
+                continue
+            w0 = ((by - cy) * (gx - cx) + (cx - bx) * (gy - cy)) / den
+            w1 = ((cy - ay) * (gx - cx) + (ax - cx) * (gy - cy)) / den
+            w2 = 1 - w0 - w1
+            ins = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
+            st = (w0 > 2e-3) & (w1 > 2e-3) & (w2 > 2e-3)
+            ys, xs = np.nonzero(ins)
+            cover[(y0 + ys) * size + x0 + xs] = True
+            ys, xs = np.nonzero(st)
+            px = (y0 + ys) * size + x0 + xs
+            prev = owner[px]
+            for pv in np.unique(prev[prev >= 0]):
+                if pv // 10_000_000 != oi:
+                    cross += int((prev == pv).sum())
+                elif len(tri_sets[int(pv)] & vset) < 2:
+                    inner += int((prev == pv).sum())
+            owner[px] = key
+    return cross, inner, cover
+
+
+cross, inner, cover = atlas_overlaps()
+check(f"atlas: no UV overlap between objects ({cross} px)", cross == 0)
+check(f"atlas: no UV overlap inside an object ({inner} px)", inner == 0)
+for name in sorted(DENSITY, key=lambda n: -DENSITY[n]):
+    out(f"  density {name:18s} {DENSITY[name]:6.1f} px/m")
+# pixel art (W6-03): one atlas texel = one painted pixel, the same size on every part
+for name in sorted(DENSITY, key=lambda n: -DENSITY[n]):
+    out(f"  texel {name:18s} {100.0 / DENSITY[name]:5.2f} cm per painted pixel")
+base_parts = [n for n in BASE if n in DENSITY and n != "chopper_head"]
+cm = {n: 100.0 / DENSITY[n] for n in base_parts}
+check("pixel size uniform on the base look (excluding the face): %.2f..%.2f cm, required 1.5-2.0 cm and "
+      "within 10 %%" % (min(cm.values()), max(cm.values())),
+      1.5 <= min(cm.values()) and max(cm.values()) <= 2.0 and max(cm.values()) <= 1.10 * min(cm.values()))
+check("face pixels as fine or finer than the body (head %.2f cm, body %.2f cm)"
+      % (100.0 / DENSITY["chopper_head"], 100.0 / DENSITY["chopper_body"]),
+      DENSITY["chopper_head"] >= DENSITY["chopper_body"])
+
 atlas = os.path.join(ART, "Textures", "chopper_atlas.png")
+if os.path.isfile(atlas):
+    import numpy as np
+    img = bpy.data.images.load(atlas)
+    img.colorspace_settings.name = "Non-Color"            # raw 8-bit values
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)[:, :3]
+    sz = img.size[0]
+    bpy.data.images.remove(img)
+    m = cover.reshape(2048, 2048)
+    ring = m.copy()
+    for _ in range(8):                                     # 8 px around every island
+        g = ring.copy()
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            g |= np.roll(np.roll(ring, dy, 0), dx, 1)
+        ring = g
+    ring &= ~m
+    gutter = np.array([0.0134, 0.0100, 0.0086])
+    gutter = np.where(gutter <= 0.0031308, gutter * 12.92, 1.055 * gutter ** (1 / 2.4) - 0.055)
+    is_gutter = (np.abs(px - gutter).max(axis=1) < 1.5 / 255).reshape(sz, sz)
+    bad = int((is_gutter & ring).sum())
+    check(f"atlas: 8 px edge padding around every island carries the island colour, not the gutter "
+          f"({bad} of {int(ring.sum())} padding px are gutter colour)", sz == 2048 and bad <= 0.001 * ring.sum())
 check("atlas PNG exists at Art/Textures/chopper_atlas.png", os.path.isfile(atlas),
       "%d bytes" % (os.path.getsize(atlas) if os.path.isfile(atlas) else 0))
 

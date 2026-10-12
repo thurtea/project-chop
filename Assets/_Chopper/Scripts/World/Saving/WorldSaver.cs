@@ -355,9 +355,9 @@ namespace Chopper.World.Saving
         // onto the ground. Crypt floors are far below the land and are left alone.
         private static Vector3 OnTheGround(Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null || position.y < -100f) return position;
-            float ground = terrain.SampleHeight(position) + terrain.transform.position.y;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (!hasGround || position.y < -100f) return position;
+            float ground = Chopper.World.WorldGround.HeightAt(position);
             if (position.y < ground) position.y = ground;
             return position;
         }

@@ -163,47 +163,57 @@ def build_head(mat):
     return mb.finish(mat)
 
 
+def vest_front(z0, z1):
+    """Largest front depth of the vest (incl. the 14 mm crossbelt) over z0..z1."""
+    zs = [z0 + (z1 - z0) * k / 8 for k in range(9)]
+    return max(interp(VEST, z, 2) for z in zs) + 0.014
+
+
 def build_beard(mat):
-    """Solid block beard (jaw wrap, cheeks, spade, tip) with voxel chunks on top."""
+    """Voxel V-spade beard (concept 1.5): full at the jaw and cheeks, stepping in to a point at
+    mid-chest, with a separate moustache bar and drooping ends proud of it. Every layer below
+    the chin keeps its back face BEARD_CLEAR in front of the vest and crossbelt so the beard does
+    not touch the chest in rest, Idle and Walk (it is skinned 100% to Head)."""
     mb = L.MeshBuilder("chopper_beard")
     G, D = PAL["ginger"], PAL["ginger_dark"]
+    M = MOUSTACHE
 
-    def blk(x0, x1, y0, y1, z0, z1, c, b=0.014):
+    def blk(x0, x1, y0, y1, z0, z1, c, b=0.012):
         mb.box(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (x1 - x0, y1 - y0, z1 - z0), b, color=c)
 
-    blk(-0.205, 0.205, -0.265, -0.03, 1.30, 1.445, G)       # jaw wrap under the chin
-    blk(-0.20, 0.20, -0.252, -0.15, 1.43, 1.50, D)          # cheek / chin plate
+    # chin and jaw (over the lower head; the head is behind, so these can be deep)
+    blk(-0.20, 0.20, -0.255, -0.13, 1.425, 1.50, G)          # chin plate
     for s in (-1, 1):
         x0, x1 = sorted((s * 0.125, s * 0.205))
-        blk(x0, x1, -0.245, -0.02, 1.43, 1.585, G)          # cheek sides rising to the ears
+        blk(x0, x1, -0.245, -0.02, 1.43, 1.585, G)           # cheek sides rising to the ears
         x0, x1 = sorted((s * 0.178, s * 0.213))
-        blk(x0, x1, -0.13, 0.03, 1.52, 1.665, D, 0.01)       # sideburn into the hair
-    blk(-0.15, 0.15, -0.27, -0.07, 1.265, 1.31, D)          # spade, stepped narrower
-    blk(-0.115, 0.115, -0.266, -0.08, 1.225, 1.27, G)
-    blk(-0.07, 0.07, -0.258, -0.10, 1.18, 1.23, D)          # lower tip
-    # voxel chunks proud of the surface (texture-scale lumps that read in silhouette)
-    chunks = [(-0.15, 1.335, 0.07, 0.06), (-0.05, 1.365, 0.06, 0.05), (0.06, 1.335, 0.07, 0.07),
-              (0.155, 1.37, 0.06, 0.05), (-0.10, 1.272, 0.07, 0.05), (0.10, 1.265, 0.06, 0.05),
-              (0.0, 1.29, 0.06, 0.05), (-0.165, 1.47, 0.05, 0.06), (0.165, 1.47, 0.05, 0.06),
-              (0.03, 1.205, 0.05, 0.035)]
-    for i, (x, z, w, h) in enumerate(chunks):
-        y = -0.265 if z < 1.43 else -0.252
-        if z < 1.30:
-            y = -0.27
-        mb.box((x, y - 0.004, z), (w, 0.022, h), 0.006, color=G if i % 2 else D)
+        blk(x0, x1, -0.13, 0.03, 1.52, 1.665, D, 0.01)        # sideburn into the hair
+    # the V: layers hang in front of the chest, each narrower than the one above
+    front = -0.268
+    layers = [(1.375, 1.425, 0.195), (1.325, 1.375, 0.168), (1.275, 1.325, 0.138),
+              (1.225, 1.275, 0.108), (1.180, 1.225, 0.078), (1.145, 1.180, 0.050),
+              (1.115, 1.145, 0.024)]
+    for i, (z0, z1, hw) in enumerate(layers):
+        back = -(vest_front(z0 - 0.01, z1 + 0.01) + BEARD_CLEAR)
+        blk(-hw, hw, front + 0.002 * i, back, z0, z1 + 0.004, G if i % 2 == 0 else D)
+    # darker strand blocks proud of the front, stepping down the V
+    chunks = [(-0.14, 1.40, 0.05), (0.0, 1.405, 0.06), (0.14, 1.40, 0.05),
+              (-0.075, 1.35, 0.05), (0.075, 1.35, 0.05),
+              (-0.10, 1.30, 0.04), (0.035, 1.30, 0.05),
+              (-0.035, 1.25, 0.045), (0.065, 1.25, 0.035),
+              (0.0, 1.20, 0.04)]
+    for i, (x, z, w) in enumerate(chunks):
+        mb.box((x, front - 0.008, z), (w, 0.02, 0.04), 0.006, color=D if i % 2 == 0 else G)
+    # moustache: separate darker bar over the mouth with ends drooping proud of the beard
+    mb.box((0, -0.228, 1.522), (0.25, 0.05, 0.042), 0.01, color=M)
     for s in (-1, 1):
-        for y, z in ((-0.18, 1.40), (-0.09, 1.34)):
-            mb.box((s * 0.208, y, z), (0.022, 0.07, 0.06), 0.006, color=D)
-        # moustache ends drooping into the beard
-        mb.box((s * 0.105, -0.207, 1.49), (0.055, 0.048, 0.075), 0.01, color=D)
-    mb.box((0, -0.209, 1.522), (0.235, 0.05, 0.042), 0.01, color=D)       # moustache bar
-    # braided tip with a steel bead
-    for z, wdt, ang in ((1.165, 0.07, 8), (1.095, 0.058, -8)):
-        rot = Matrix.Rotation(math.radians(ang), 3, "Y")
-        mb.box((0, -0.19, z), (wdt, 0.06, 0.05), 0.01, rot=rot, color=G)
-    mb.cylinder((0, -0.19, 1.13), Z, 0.038, 0.035, color=PAL["steel"], cs=3, bevel=0.006)
-    mb.box((0, -0.19, 1.055), (0.045, 0.045, 0.04), 0.01, color=D)
+        mb.box((s * 0.105, -0.262, 1.485), (0.058, 0.03, 0.08), 0.008, color=M)
+        mb.box((s * 0.125, -0.279, 1.44), (0.04, 0.02, 0.06), 0.006, color=M)
     return mb.finish(mat)
+
+
+MOUSTACHE = (0.88, 0.44, 0.13)   # lighter ginger so the moustache reads apart from the beard
+BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~5 deg in Walk)
 
 
 def build_hair(mat):
@@ -250,15 +260,17 @@ def build_shirt(mat):
              color_fn=lambda p: PAL["shirt_dark"] if p.z < 0.56 or p.z > 1.385 else None)
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
-        sleeve = [(-0.06, 0.072, 0.078)] + [r for r in ARM if -0.04 < r[0] <= 0.29]
+        # full-length plaid sleeve (concept 1.5): the forearm is covered to the wrist, so the
+        # base look without bracers shows no bare forearm and no gap at the hand
+        sleeve = [(-0.06, 0.072, 0.078)] + [r for r in ARM if -0.04 < r[0] <= 0.54]
         rings = arm_rings(s, sleeve, off=0.010, bevel=0.025)
-        # rolled cuff just below the elbow
-        for t, extra in ((0.30, 0.016), (0.31, 0.030), (0.37, 0.030), (0.38, 0.012)):
+        # buttoned cuff at the wrist, ending where the hand starts (t 0.60)
+        for t, extra in ((0.556, 0.016), (0.562, 0.020), (0.585, 0.020), (0.592, 0.012)):
             hw = L_interp_arm(t, 1) + extra
             hd = L_interp_arm(t, 2) + extra
             rings.append((S + d * t, u, v, hw, hd, 0.025))
         mb.tube(rings, cs=2, cap0=False, cap1=False, color=PAL["shirt"],
-                color_fn=lambda p, S=S, d=d: PAL["shirt_dark"] if (p - S).dot(d) > 0.295 else None)
+                color_fn=lambda p, S=S, d=d: PAL["shirt_dark"] if (p - S).dot(d) > 0.553 else None)
     return mb.finish(mat)
 
 
@@ -319,12 +331,18 @@ def build_belt(mat):
     mb.box((0.075, -0.205, 0.755), (0.06, 0.016, 0.16), 0.006, color=PAL["leather_dark"])
     # side pouch tab (character left)
     mb.box((0.215, -0.15, 0.80), (0.08, 0.04, 0.10), 0.01, color=PAL["vest"])
-    # leather bracers with steel rims on the forearms
+    return mb.finish(mat)
+
+
+def build_bracers(mat):
+    """Leather bracers with steel rims on the forearms (armour module, off in the base look).
+    They sit over the full-length shirt sleeve (sleeve +10 mm, bracer +15..22 mm)."""
+    mb = L.MeshBuilder("chopper_bracers")
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
         rings = []
-        for t, extra in ((0.42, 0.006), (0.425, 0.022), (0.445, 0.022), (0.45, 0.013),
-                         (0.525, 0.013), (0.53, 0.022), (0.55, 0.022), (0.555, 0.006)):
+        for t, extra in ((0.42, 0.013), (0.425, 0.022), (0.445, 0.022), (0.45, 0.015),
+                         (0.525, 0.015), (0.53, 0.022), (0.55, 0.022), (0.555, 0.013)):
             rings.append((S + d * t, u, v, L_interp_arm(t, 1) + extra, L_interp_arm(t, 2) + extra, 0.02))
         mb.tube(rings, cs=2, cap0=False, cap1=False, color=PAL["vest"],
                 color_fn=lambda p, S=S, d=d: PAL["steel_dark"]
@@ -462,7 +480,7 @@ def main():
     m_chop = L.make_material("M_Chopper", (0.8, 0.8, 0.8))
     m_gear = L.make_material("M_Chopper_Gear", (0.6, 0.6, 0.6))
     for fn in (build_body, build_head, build_beard, build_hair, build_shirt, build_vest,
-               build_belt, build_chainmail, build_boots):
+               build_belt, build_bracers, build_chainmail, build_boots):
         ob = fn(m_chop)
         print(f"built {ob.name}: {L.tri_count(ob)} tris")
     for fn in (build_helmet, build_plate, build_pauldrons):

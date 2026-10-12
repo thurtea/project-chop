@@ -82,7 +82,7 @@ Shader "Chopper/VertexColorLit"
                 half3 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 vc = SRGBToLinear(vc);
-                tex = SRGBToLinear(tex);
+                // The atlas is imported as sRGB, so the sampler already returns linear colour.
                 #endif
                 half3 albedo = _BaseColor.rgb * (_UseAtlas > 0.5 ? tex : vc);
 

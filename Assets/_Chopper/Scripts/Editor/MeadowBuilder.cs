@@ -282,7 +282,12 @@ namespace Chopper.Editor
                         i * 60f, 0.85f, false, 0f);
                     if (piece == null) continue;
                     piece.name = "Log";
-                    piece.transform.localRotation = Quaternion.Euler(0f, i * 60f, 78f);
+                    // The voxel log lies along X (build_meadow.py), unlike the upright cylinder below: a small tilt
+                    // about Z lifts one end so the three cross over the embers. (78 degrees, meant for the cylinder,
+                    // stood these nearly upright and half under the ground.) Then sit it back on the ground, centered.
+                    piece.transform.localRotation = Quaternion.Euler(0f, i * 60f, 12f);
+                    Bounds turned = WorldBounds(piece);
+                    piece.transform.position += new Vector3(-turned.center.x, 0.02f + i * 0.05f - turned.min.y, -turned.center.z);
                 }
             }
             else

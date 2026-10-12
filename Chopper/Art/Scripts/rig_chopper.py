@@ -24,7 +24,8 @@ SRC = os.path.join(ART, "Blender", "chopper_character.blend")
 OUT = os.path.join(ART, "Blender", "chopper_rigged.blend")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+         "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots",
+         "chopper_helmet",
          "chopper_plate", "chopper_pauldrons"]
 RIG = "chopper_rig"
 SOCKETS = ("Weapon_R", "Shield_L", "Shield_Back")
@@ -321,6 +322,8 @@ def classify(obj_name, centroid, bbox_min, bbox_max):
         return ("arm", side)
     if obj_name == "chopper_shirt":
         return "torso" if abs(centroid.x) < 0.02 else ("arm", side)
+    if obj_name == "chopper_bracers":
+        return ("arm", side)
     if obj_name == "chopper_belt":
         return ("arm", side) if abs(centroid.x) > 0.4 else "torso"
     if obj_name == "chopper_pauldrons":

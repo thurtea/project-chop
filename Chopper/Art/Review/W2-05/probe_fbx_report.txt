@@ -1,0 +1,50 @@
+chopper.fbx bytes=1974044 raw-string hits {b'Video': 0, b'Texture': 0, b'concept': 0, b'.jpg': 0, b'.png': 0, b'Image': 0, b'RelativeFilename': 0, b'Content': 0}
+chopper_axe.fbx bytes=35788 raw-string hits {b'Video': 0, b'Texture': 0, b'concept': 0, b'.jpg': 0, b'.png': 0, b'Image': 0, b'RelativeFilename': 0, b'Content': 0}
+chopper_shield.fbx bytes=44236 raw-string hits {b'Video': 0, b'Texture': 0, b'concept': 0, b'.jpg': 0, b'.png': 0, b'Image': 0, b'RelativeFilename': 0, b'Content': 0}
+images after import: []
+textures after import: []
+armature chopper_rig bones=25
+bone names: ['Chest', 'Head', 'Hips', 'LeftFoot', 'LeftHand', 'LeftLowerArm', 'LeftLowerLeg', 'LeftShoulder', 'LeftToes', 'LeftUpperArm', 'LeftUpperLeg', 'Neck', 'RightFoot', 'RightHand', 'RightLowerArm', 'RightLowerLeg', 'RightShoulder', 'RightToes', 'RightUpperArm', 'RightUpperLeg', 'Shield_Back', 'Shield_L', 'Spine', 'UpperChest', 'Weapon_R']
+leaf/_end bones: []
+actions:
+  chopper_rig|Attack_1                     frames 1-25
+  chopper_rig|Attack_2                     frames 1-25
+  chopper_rig|Death                        frames 1-37
+  chopper_rig|HitReact                     frames 1-16
+  chopper_rig|Idle                         frames 1-61
+  chopper_rig|Run                          frames 1-21
+  chopper_rig|Walk                         frames 1-31
+
+per-mesh tris:
+  chopper_beard          tris= 1864 uvlayers=1 u 0.011..0.329 v 0.261..0.489 inside=True mats=['M_Chopper']
+  chopper_belt           tris=  648 uvlayers=1 u 0.351..0.539 v 0.012..0.238 inside=True mats=['M_Chopper']
+  chopper_body           tris= 1994 uvlayers=1 u 0.011..0.379 v 0.512..0.988 inside=True mats=['M_Chopper']
+  chopper_boots          tris= 1192 uvlayers=1 u 0.511..0.739 v 0.511..0.649 inside=True mats=['M_Chopper']
+  chopper_chainmail      tris=  250 uvlayers=1 u 0.013..0.327 v 0.013..0.237 inside=True mats=['M_Chopper']
+  chopper_hair           tris= 1980 uvlayers=1 u 0.351..0.659 v 0.261..0.489 inside=True mats=['M_Chopper']
+  chopper_head           tris=  404 uvlayers=1 u 0.683..0.987 v 0.262..0.488 inside=True mats=['M_Chopper']
+  chopper_helmet         tris= 1324 uvlayers=1 u 0.561..0.739 v 0.011..0.239 inside=True mats=['M_Chopper_Gear']
+  chopper_pauldrons      tris=  240 uvlayers=1 u 0.401..0.489 v 0.763..0.987 inside=True mats=['M_Chopper_Gear']
+  chopper_plate          tris=  384 uvlayers=1 u 0.401..0.489 v 0.512..0.738 inside=True mats=['M_Chopper_Gear']
+  chopper_shirt          tris=  840 uvlayers=1 u 0.511..0.739 v 0.672..0.988 inside=True mats=['M_Chopper']
+  chopper_vest           tris=  496 uvlayers=1 u 0.762..0.988 v 0.673..0.987 inside=True mats=['M_Chopper']
+  chopper_axe            tris=  986 uvlayers=1 u 0.761..0.989 v 0.511..0.649 (from chopper_axe.fbx)
+  chopper_shield         tris= 1330 uvlayers=1 u 0.761..0.989 v 0.011..0.239 (from chopper_shield.fbx)
+images after props import: []
+
+helmet 1324 (1000-3000) -> True
+axe 986 (<=1000) -> True
+Warrior body (helmet, vest, no hair) 9012; +axe+shield 11328 (8000-15000) -> True
+Elite +axe+shield 11456
+Worker (hair, vest, no weapons) 9668
+
+height (body/head/hair/boots, rest) 1.8000 m, minZ -0.0000 maxZ 1.8000
+helmet top Z 1.7650
+rest LeftUpperArm head (0.3, 0.0, 1.27) tail (0.51, -0.042, 1.06): 44.4 deg below horizontal
+armature object rotation (-0.0, 0.0, 0.0) scale (1.0, 1.0, 1.0)
+
+sockets: ['Shield_L', 'Weapon_R', 'Shield_Back']
+Shield_Back bone world head (0.0, 0.46, 1.12)
+bone matrix * prop object-space: shield verts world Y 0.354..0.641 mean 0.534, Z 0.558..1.532
+  penetrating shield verts per body mesh: {'chopper_beard': 0, 'chopper_belt': 0, 'chopper_body': 0, 'chopper_chainmail': 0, 'chopper_hair': 0, 'chopper_head': 0, 'chopper_helmet': 0, 'chopper_pauldrons': 0, 'chopper_plate': 0, 'chopper_shirt': 0, 'chopper_vest': 0} total 0 of 688
+  min shield-to-torso distance 0.1448 m

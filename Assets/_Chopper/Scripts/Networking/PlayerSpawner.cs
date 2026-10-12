@@ -116,8 +116,8 @@ namespace Chopper.Networking
                     float angle = Random.value * Mathf.PI * 2f;
                     float distance = Random.Range(GroupSpreadMin, GroupSpreadMax);
                     position = _anchorPosition + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance;
-                    Terrain terrain = Terrain.activeTerrain;
-                    if (terrain != null) position.y = terrain.SampleHeight(position) + terrain.transform.position.y + 0.3f;
+                    bool hasGround = Chopper.World.WorldGround.Exists;
+                    if (hasGround) position.y = Chopper.World.WorldGround.HeightAt(position) + 0.3f;
                 }
             }
             else

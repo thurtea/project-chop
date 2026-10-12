@@ -930,7 +930,10 @@ namespace Chopper.Editor
                 }
             }
 
-            AttachAxe(model.transform, playerRoot.transform, result);
+            // Chopper holds his own double-headed axe (the art project's chopper_axe on the Weapon_R socket) and carries
+            // his shield stowed on the back (Shield_Back), so the left hand stays free for the torch.
+            if (!chopper || !AttachChopperGear(model.transform, playerRoot.transform, result))
+                AttachAxe(model.transform, playerRoot.transform, result);
             AttachPickaxe(model.transform, result);
             result.TorchVisual = AttachTorch(model.transform, playerRoot.transform);
             return result;
@@ -967,6 +970,189 @@ namespace Chopper.Editor
             Transform grip = AttachHeld(model, axePrefab, MeasureAxe(axePrefab), "AxeGrip", "Axe", out Renderer renderer);
             result.AxeGrip = grip != null ? grip : playerRoot;
             result.AxeRenderer = renderer;
+        }
+
+        // ---------- Chopper's own axe and shield ----------
+
+        public const string ChopperAxePath = "Assets/_Chopper/Art/Character/chopper_axe.fbx";
+        public const string ChopperShieldPath = "Assets/_Chopper/Art/Character/chopper_shield.fbx";
+        private const string ChopperGearMaterialPath = "Assets/_Chopper/Materials/Character/M_Chopper_Gear.mat";
+        // The Blender exports in the art project, copied in when they are newer.
+        private const string ArtExportFolder = "Chopper/Art/Export";
+        // How far the stowed shield's board should sit off the back (meters).
+        private const float ShieldBackGap = 0.02f;
+
+        // Copies a prop FBX from the art project's exports when it is missing or different, and imports it like the body:
+        // axis conversion not baked, as in the art project (ChopperImport), scale 1, mesh
+        // read/write on (the checks sample vertices), no imported materials (the atlas material is assigned here).
+        private static GameObject PrepareChopperProp(string assetPath)
+        {
+            string source = Path.Combine(ArtExportFolder, Path.GetFileName(assetPath));
+            if (File.Exists(source) && (!File.Exists(assetPath) || !File.ReadAllBytes(source).SequenceEqual(File.ReadAllBytes(assetPath))))
+            {
+                File.Copy(source, assetPath, true);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                Debug.Log($"[CharacterSetup] Copied {source} to {assetPath}.");
+            }
+            var importer = AssetImporter.GetAtPath(assetPath) as ModelImporter;
+            if (importer == null) return null;
+            importer.globalScale = 1f;
+            importer.useFileScale = true;
+            importer.bakeAxisConversion = false;
+            importer.isReadable = true;
+            importer.importAnimation = false;
+            importer.animationType = ModelImporterAnimationType.None;
+            importer.importCameras = false;
+            importer.importLights = false;
+            importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<GameObject>(assetPath);
+        }
+
+        // An art project prop on a socket. In the art project the rig and props are imported without baking the axis
+        // conversion and the prop's -90 X root turn is reset to identity (ChopperImport.AttachProp). The live chopper.fbx
+        // bakes the conversion, which leaves every socket frame turned 180 degrees about its own Y against the frame the
+        // rig script designed (measured on Shield_Back: its Y points at the body as designed, its Z points down instead of
+        // up). So the root turn is reset and that half turn is put back on the mount. Position 0, scale 1.
+        public static readonly Quaternion BakedSocketTurn = Quaternion.Euler(0f, 180f, 0f);
+
+        private static GameObject MountProp(GameObject prop, Transform parent, string name, Material material)
+        {
+            var item = (GameObject)PrefabUtility.InstantiatePrefab(prop, parent);
+            item.name = name;
+            Transform t = item.transform;
+            Quaternion imported = prop.transform.localRotation;
+            Debug.Log($"[CharacterSetup] {name} under {parent.name}: imported root rot {imported.eulerAngles}, scale {prop.transform.localScale}, children {t.childCount}; " +
+                      $"socket world rot {parent.rotation.eulerAngles}, model-space position {parent.root.InverseTransformPoint(parent.position):F3}; mount rot set to {BakedSocketTurn.eulerAngles}.");
+            t.localPosition = Vector3.zero;
+            t.localRotation = BakedSocketTurn;
+            t.localScale = Vector3.one;
+            foreach (Transform child in t)
+            {
+                if (child.GetComponent<MeshFilter>() == null) continue;
+                child.localPosition = Vector3.zero;
+                child.localRotation = Quaternion.identity;
+                child.localScale = Vector3.one;
+            }
+            foreach (Renderer renderer in item.GetComponentsInChildren<Renderer>(true)) renderer.sharedMaterial = material;
+            return item;
+        }
+
+        private static bool AttachChopperGear(Transform model, Transform playerRoot, Result result)
+        {
+            GameObject axeProp = PrepareChopperProp(ChopperAxePath);
+            GameObject shieldProp = PrepareChopperProp(ChopperShieldPath);
+            var gear = AssetDatabase.LoadAssetAtPath<Material>(ChopperGearMaterialPath);
+            Transform hand = FindDeep(model, RightHand) ?? FindDeep(model, "RightHand");
+            Transform socket = hand != null ? FindDeep(hand, "Weapon_R") : null;
+            if (axeProp == null || hand == null || socket == null)
+            {
+                Debug.LogWarning($"[CharacterSetup] chopper_axe ({axeProp != null}), the right hand ({hand != null}) or Weapon_R ({socket != null}) missing; using the old axe.");
+                return false;
+            }
+
+            // The grip is a direct child of the hand (PlayerAxe treats the grip's parent as the hand, GuardPose looks the
+            // grip up by name under it) and sits exactly on the Weapon_R socket, so the axe hangs as the socket says.
+            var grip = new GameObject("AxeGrip");
+            grip.transform.SetParent(hand, false);
+            grip.transform.SetPositionAndRotation(socket.position, socket.rotation);
+            grip.transform.localScale = Vector3.one;
+            GameObject axe = MountProp(axeProp, grip.transform, "chopper_axe", gear);
+
+            // Head and edge in the grip's space, from the mesh: the haft is the longest axis, the head the far end from
+            // the grip (the socket is the grip centre), the blades the wider of the other two axes.
+            MeshFilter filter = axe.GetComponentInChildren<MeshFilter>();
+            Bounds b = filter.sharedMesh.bounds;
+            Vector3 size = b.size;
+            int haft = size.x >= size.y && size.x >= size.z ? 0 : (size.y >= size.z ? 1 : 2);
+            int blade = Enumerable.Range(0, 3).Where(i => i != haft).OrderByDescending(i => size[i]).First();
+            Vector3 head = Vector3.zero, edge = Vector3.zero;
+            head[haft] = Mathf.Abs(b.max[haft]) >= Mathf.Abs(b.min[haft]) ? 1f : -1f;
+            edge[blade] = 1f;
+            Matrix4x4 toGrip = grip.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+            HeldItemFrame frame = grip.AddComponent<HeldItemFrame>();
+            frame.Head = toGrip.MultiplyVector(head).normalized;
+            frame.Edge = toGrip.MultiplyVector(edge).normalized;
+            Debug.Log($"[CharacterSetup] chopper_axe mesh size {size:F3} m, bounds min {b.min:F3} max {b.max:F3}; grip {Vector3.Distance(grip.transform.position, hand.position) * 100f:F1} cm from the hand, " +
+                      $"head along {frame.Head:F2}, blades along {frame.Edge:F2} (grip space); haft in model space {model.InverseTransformDirection(grip.transform.rotation * frame.Head):F2}.");
+            result.AxeGrip = grip.transform;
+            result.AxeRenderer = axe.GetComponentInChildren<Renderer>();
+
+            Transform back = FindDeep(model, "Shield_Back");
+            if (shieldProp == null || back == null)
+            {
+                Debug.LogWarning($"[CharacterSetup] chopper_shield ({shieldProp != null}) or Shield_Back ({back != null}) missing; no shield on the back.");
+                return true;
+            }
+            GameObject shield = MountProp(shieldProp, back, "chopper_shield", gear);
+            // The socket leaves the board floating off the back; it is moved toward the body (on the mount, not the
+            // bone) to sit ShieldBackGap off it.
+            Bounds shieldBounds = shield.GetComponentInChildren<Renderer>().bounds;
+            Debug.Log($"[CharacterSetup] chopper_shield bounds center in model space {model.InverseTransformPoint(shieldBounds.center):F3}, size {shieldBounds.size:F3}; " +
+                      $"axe bounds center {model.InverseTransformPoint(axe.GetComponentInChildren<Renderer>().bounds.center):F3}, size {axe.GetComponentInChildren<Renderer>().bounds.size:F3}; " +
+                      $"right hand at {model.InverseTransformPoint(hand.position):F3}.");
+            float before = ShieldGap(model, shield);
+            if (!float.IsNaN(before))
+            {
+                Vector3 towardBody = shield.transform.up;
+                shield.transform.localPosition = back.InverseTransformVector(towardBody * (before - ShieldBackGap));
+                float after = ShieldGap(model, shield);
+                Debug.Log($"[CharacterSetup] chopper_shield on Shield_Back: gap to the back before {before * 100f:F1} cm, after {after * 100f:F1} cm (mount local position {shield.transform.localPosition:F3}).");
+            }
+            else Debug.LogWarning("[CharacterSetup] chopper_shield: could not measure the gap to the back (no body surface in front of the board).");
+            return true;
+        }
+
+        // The smallest distance toward the body from a shield vertex to the body surface in front of it, in the
+        // bind pose (negative when the board is inside the body). Only visible body renderers count.
+        private static float ShieldGap(Transform model, GameObject shield)
+        {
+            // The board's +Y points at the body (rig_chopper.py, Shield_Back).
+            Vector3 dir = shield.transform.up;
+            var triangles = new List<Vector3>();
+            foreach (SkinnedMeshRenderer skin in model.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (!skin.enabled || skin.sharedMesh == null) continue;
+                var baked = new Mesh();
+                skin.BakeMesh(baked, true);
+                Vector3[] v = baked.vertices;
+                int[] tris = baked.triangles;
+                Matrix4x4 m = Matrix4x4.TRS(skin.transform.position, skin.transform.rotation, Vector3.one);
+                for (int i = 0; i < tris.Length; i++) triangles.Add(m.MultiplyPoint3x4(v[tris[i]]));
+                Object.DestroyImmediate(baked);
+            }
+            const float lead = 0.5f;
+            float best = float.PositiveInfinity;
+            foreach (MeshFilter filter in shield.GetComponentsInChildren<MeshFilter>())
+            {
+                Matrix4x4 m = filter.transform.localToWorldMatrix;
+                foreach (Vector3 local in filter.sharedMesh.vertices)
+                {
+                    Vector3 origin = m.MultiplyPoint3x4(local) - dir * lead;
+                    for (int i = 0; i + 2 < triangles.Count; i += 3)
+                    {
+                        if (RayTriangle(origin, dir, triangles[i], triangles[i + 1], triangles[i + 2], out float t) && t - lead < best) best = t - lead;
+                    }
+                }
+            }
+            return float.IsPositiveInfinity(best) ? float.NaN : best;
+        }
+
+        private static bool RayTriangle(Vector3 origin, Vector3 dir, Vector3 a, Vector3 b, Vector3 c, out float t)
+        {
+            t = 0f;
+            Vector3 e1 = b - a, e2 = c - a, p = Vector3.Cross(dir, e2);
+            float det = Vector3.Dot(e1, p);
+            if (Mathf.Abs(det) < 1e-9f) return false;
+            float inv = 1f / det;
+            Vector3 s = origin - a;
+            float u = Vector3.Dot(s, p) * inv;
+            if (u < 0f || u > 1f) return false;
+            Vector3 q = Vector3.Cross(s, e1);
+            float w = Vector3.Dot(dir, q) * inv;
+            if (w < 0f || u + w > 1f) return false;
+            t = Vector3.Dot(e2, q) * inv;
+            return t >= 0f;
         }
 
         // The pickaxe in the same fist, off until a vein is struck (PlayerMining).

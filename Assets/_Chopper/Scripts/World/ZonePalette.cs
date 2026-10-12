@@ -59,7 +59,8 @@ namespace Chopper.World
                 case Element.Fire: return 0.0060f;
                 case Element.Earth: return 0.0062f;
                 case Element.Wind: return 0.0040f;
-                default: return 0.0045f;
+                // W5-02b Valheim depth haze (was 0.0045): distance fog over the hub.
+                default: return 0.0060f;
             }
         }
 

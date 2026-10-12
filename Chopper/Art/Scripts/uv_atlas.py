@@ -3,18 +3,36 @@
 Run:  blender -b -P uv_atlas.py
 In:   Art/Blender/chopper_character.blend, chopper_props.blend
 Out:  those files (one UVMap layer each, no image packed into the blend),
-      Art/Textures/chopper_atlas.png, Art/Textures/atlas_tiles.txt
+      Art/Textures/chopper_atlas.png, Art/Textures/atlas_tiles.txt (UV report)
 
-Each mesh occupies its own tile so islands from different objects cannot overlap.
-Inside a tile, faces are packed on a grid (deterministic, no operator dependency).
-The PNG is the gray-box vertex colours, then a light detail pass per tile
-(plaid, stitching, chainmail, wood, steel). Geometry is unchanged.
+Layout (W6-03, replaces the per-polygon grid cells of W2-01):
+  * islands: every connected mesh part is split into sides by growing regions of faces whose
+    normals stay within ISLAND_ANGLE of the seed face (front, back and sides of a tube, the
+    faces of a block). Each island is projected flat onto the plane of its mean normal, so an
+    island is connected and keeps its proportions.
+  * density: pixel art. One atlas texel is one painted pixel of atlas_paint.texel_m() metres
+    (1.6 cm on the character, 1.2 cm on the face front and the bear axe), the same on every
+    part, so it reads crisply with point filtering. The atlas keeps its 2048 size; most of it
+    is free room for later gear.
+  * packing: the islands of one part are packed together with a small inner gap, the parts
+    are skyline-packed with a PART_GAP gutter. All objects of both files share the one atlas,
+    so islands of different objects never overlap.
+  * edges: texels cut by an island edge are painted from their own triangle (conservative
+    raster), then every island is grown outward by DILATE px by copying its edge texels, so
+    neither point sampling nor mip levels pull in the dark gutter.
+Paint: atlas_paint.detail(), in object space. The PNG is linear paint encoded to sRGB
+(Blender and Unity read 8-bit PNGs as sRGB).
 """
 import math
 import os
+import sys
 
 import bpy
-import bmesh
+import numpy as np
+from mathutils import Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from atlas_paint import TEXEL_M, detail, loop_color, texel_m  # noqa: E402
 
 ART = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 CHAR = os.path.join(ART, "Blender", "chopper_character.blend")
@@ -23,277 +41,427 @@ TEX = os.path.join(ART, "Textures")
 ATLAS = os.path.join(TEX, "chopper_atlas.png")
 TILES_TXT = os.path.join(TEX, "atlas_tiles.txt")
 SIZE = 2048
+MARGIN = 10              # px kept free at the atlas border
+PART_GAP = 16            # px between parts (each side grows DILATE px into it)
+INNER_GAP = 4            # px between the islands of one part (same surface, they pad into each other)
+DILATE = 8               # px of edge padding grown out of every island
+ISLAND_ANGLE = 50.0      # deg from the seed face normal
+ISLAND_COS = math.cos(math.radians(ISLAND_ANGLE))
 
-# (u0, v0, u1, v1) in 0-1. Margins between tiles are empty.
-TILES = {
-    "chopper_body": (0.01, 0.51, 0.38, 0.99),
-    "chopper_plate": (0.40, 0.51, 0.49, 0.74),
-    "chopper_pauldrons": (0.40, 0.76, 0.49, 0.99),
-    "chopper_shirt": (0.51, 0.67, 0.74, 0.99),
-    "chopper_vest": (0.76, 0.67, 0.99, 0.99),
-    "chopper_boots": (0.51, 0.51, 0.74, 0.65),
-    "chopper_beard": (0.01, 0.26, 0.33, 0.49),
-    "chopper_hair": (0.35, 0.26, 0.66, 0.49),
-    "chopper_head": (0.68, 0.26, 0.99, 0.49),
-    "chopper_chainmail": (0.01, 0.01, 0.33, 0.24),
-    "chopper_belt": (0.35, 0.01, 0.54, 0.24),
-    "chopper_helmet": (0.56, 0.01, 0.74, 0.24),
-    "chopper_axe": (0.76, 0.51, 0.99, 0.65),
-    "chopper_shield": (0.76, 0.01, 0.99, 0.24),
-}
-
-# Detail is painted in object space inside bake(), not as a tile overlay.
+CHAR_OBJECTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
+                "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots",
+                "chopper_helmet", "chopper_plate", "chopper_pauldrons"]
+PROP_OBJECTS = ["chopper_axe", "chopper_axe_bear", "chopper_shield"]
+OBJ_INDEX = {n: i for i, n in enumerate(CHAR_OBJECTS + PROP_OBJECTS)}
 
 
+def density_mult(name, normal, centre):
+    """Island density relative to D = 1 / TEXEL_M: one atlas texel = one painted pixel of
+    texel_m() metres (pixel art, read with point filtering)."""
+    return TEXEL_M / texel_m(name, normal, centre)
 
-def unwrap(ob):
+
+# ------------------------------------------------------------------ islands
+def island_normal(polys, isl):
+    n = Vector()
+    for f in isl:
+        n += polys[f].normal * polys[f].area
+    return n.normalized() if n.length > 1e-12 else polys[isl[0]].normal.copy()
+
+
+def mesh_islands(ob):
+    """Per connected part: [(faces, mean normal, centre)] for each side island."""
     me = ob.data
-    tile = TILES[ob.name]
-    u0, v0, u1, v1 = tile
-    if "UVMap" in me.uv_layers:
-        me.uv_layers.remove(me.uv_layers["UVMap"])
-    uv_layer = me.uv_layers.new(name="UVMap")
-    polys = list(me.polygons)
-    n = max(1, len(polys))
-    cols = max(1, math.ceil(math.sqrt(n)))
-    rows = max(1, math.ceil(n / cols))
-    du = (u1 - u0) / cols
-    dv = (v1 - v0) / rows
-    inset = 0.12
-    for i, p in enumerate(polys):
-        c, r = i % cols, i // cols
-        a = u0 + c * du + du * inset
-        b = v0 + r * dv + dv * inset
-        c2 = u0 + (c + 1) * du - du * inset
-        d2 = v0 + (r + 1) * dv - dv * inset
-        center = p.center
-        # order loops around the face so the quad stays non-overlapping
-        loops = list(p.loop_indices)
-        coords = []
-        for li in loops:
-            vi = me.loops[li].vertex_index
-            co = me.vertices[vi].co
-            coords.append((li, co.x - center.x, co.y - center.y, co.z - center.z))
-        # project onto the face plane using the two largest axes of the normal
-        nx, ny, nz = abs(p.normal.x), abs(p.normal.y), abs(p.normal.z)
-        if nx >= ny and nx >= nz:
-            ax, ay = 1, 2
-        elif ny >= nz:
-            ax, ay = 0, 2
-        else:
-            ax, ay = 0, 1
-        pts = [(t[1 + ax], t[1 + ay], t[0]) for t in coords]
-        xs = [p2[0] for p2 in pts]
-        ys = [p2[1] for p2 in pts]
-        minx, maxx = min(xs), max(xs)
-        miny, maxy = min(ys), max(ys)
-        sx = max(maxx - minx, 1e-8)
-        sy = max(maxy - miny, 1e-8)
-        for x, y, li in pts:
-            u = a + (x - minx) / sx * (c2 - a)
-            v = b + (y - miny) / sy * (d2 - b)
-            uv_layer.data[li].uv = (u, v)
-    me.uv_layers.active = uv_layer
-    return n
+    polys = me.polygons
+    edge_faces = {}
+    for p in polys:
+        for ek in p.edge_keys:
+            edge_faces.setdefault(ek, []).append(p.index)
+    nbrs = [set() for _ in polys]
+    for fl in edge_faces.values():
+        for a in fl:
+            for b in fl:
+                if a != b:
+                    nbrs[a].add(b)
+    part_of = [-1] * len(polys)
+    parts = []
+    for f in range(len(polys)):
+        if part_of[f] >= 0:
+            continue
+        stack, comp = [f], []
+        part_of[f] = len(parts)
+        while stack:
+            a = stack.pop()
+            comp.append(a)
+            for b in nbrs[a]:
+                if part_of[b] < 0:
+                    part_of[b] = len(parts)
+                    stack.append(b)
+        parts.append(comp)
+    out = []
+    for comp in parts:
+        left = set(comp)
+        islands = []
+        for seed in sorted(comp, key=lambda f: (-polys[f].area, f)):
+            if seed not in left:
+                continue
+            n0 = polys[seed].normal.copy()
+            isl, stack = [seed], [seed]
+            left.discard(seed)
+            while stack:
+                a = stack.pop()
+                for b in sorted(nbrs[a]):
+                    if b in left and polys[b].normal.dot(n0) > ISLAND_COS:
+                        left.discard(b)
+                        isl.append(b)
+                        stack.append(b)
+            islands.append(isl)
+        # fold tiny leftovers (block corner triangles) into a touching island they face
+        merged = True
+        while merged:
+            merged = False
+            for k, isl in enumerate(islands):
+                if len(islands) < 2 or len(isl) > 2 or sum(polys[f].area for f in isl) > 2e-4:
+                    continue
+                best, bd = None, 0.3
+                for j, other in enumerate(islands):
+                    if j == k or not any(b in other for f in isl for b in nbrs[f]):
+                        continue
+                    no = island_normal(polys, other)
+                    d = min(polys[f].normal.dot(no) for f in isl)
+                    if d > bd:
+                        best, bd = j, d
+                if best is not None:
+                    islands[best] = islands[best] + isl
+                    islands.pop(k)
+                    merged = True
+                    break
+        out.append([(isl, island_normal(polys, isl),
+                     sum((polys[f].center for f in isl), Vector()) / len(isl)) for isl in islands])
+    return out
 
 
-def loop_color(me, li):
-    attr = me.color_attributes.get("Col")
-    if attr is None:
-        return (0.6, 0.6, 0.6)
-    c = attr.data[li].color
-    return (c[0], c[1], c[2])
+def project(ob, isl, n):
+    """Loop index -> (x, y) in metres on the island plane, longest axis along x, min at 0."""
+    me = ob.data
+    up = Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((0, 1, 0))
+    u = up.cross(n).normalized()
+    v = n.cross(u).normalized()
+    pts = {}
+    for f in isl:
+        for li in me.polygons[f].loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            pts[li] = (co.dot(u), co.dot(v))
+    xs = np.array(list(pts.values()))
+    c = xs.mean(axis=0)
+    ca, sa = 1.0, 0.0
+    if len(xs) > 2:
+        # keep the texel grid on world up / horizontal (painted rows stay level); only a long
+        # strip running diagonally (the A-pose arms) is turned to run along its own axis
+        w, vecs = np.linalg.eigh(np.cov((xs - c).T))
+        ax = vecs[:, int(np.argmax(w))]
+        ang = math.degrees(math.atan2(ax[1], ax[0])) % 90.0
+        off = min(ang, 90.0 - ang)
+        if off > 20.0 and max(w) > 4.0 * max(min(w), 1e-12):
+            ca, sa = ax[0], ax[1]
+    out = {li: ((x - c[0]) * ca + (y - c[1]) * sa, -(x - c[0]) * sa + (y - c[1]) * ca)
+           for li, (x, y) in pts.items()}
+    mnx = min(p[0] for p in out.values())
+    mny = min(p[1] for p in out.values())
+    return {li: (x - mnx, y - mny) for li, (x, y) in out.items()}
 
 
-def bary(px, py, a, b, c):
-    den = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
-    if abs(den) < 1e-12:
+def collect(path, names, layout):
+    bpy.ops.wm.open_mainfile(filepath=path)
+    for name in names:
+        ob = bpy.data.objects[name]
+        for part in mesh_islands(ob):
+            isls = []
+            for isl, n, c in part:
+                uv = project(ob, isl, n)
+                isls.append(dict(faces=isl, uv=uv, w=max(p[0] for p in uv.values()),
+                                 h=max(p[1] for p in uv.values()), mult=density_mult(name, n, c)))
+            layout.append(dict(obj=name, islands=isls))
+
+
+# ------------------------------------------------------------------ packing
+def skyline(rects, width, gap):
+    """Bottom-left skyline packing of rects [(w, h)] px into `width` (tallest first).
+    Returns positions and the height used. Each rect reserves `gap` px to its right and top."""
+    order = sorted(range(len(rects)), key=lambda i: (-rects[i][1], -rects[i][0], i))
+    sky = [(0, 0, width + gap)]               # segments (x, y, w) along the top of the packed area
+    pos = [None] * len(rects)
+    top = 0
+    for i in order:
+        w, h = rects[i][0] + gap, rects[i][1] + gap
+        best = None
+        for k in range(len(sky)):
+            x = sky[k][0]
+            if x + w > width + gap:
+                break
+            y, span, j = 0, 0, k
+            while span < w and j < len(sky):
+                y = max(y, sky[j][1])
+                span = sky[j][0] + sky[j][2] - x
+                j += 1
+            if span < w:
+                continue
+            if best is None or (y + h, x) < (best[0] + h, best[1]):
+                best = (y, x)
+        if best is None:
+            return None, 1e9
+        y, x = best
+        pos[i] = (x, y)
+        top = max(top, y + h - gap)
+        new = []
+        for sx, sy, sw in sky:
+            e = sx + sw
+            if e <= x or sx >= x + w:
+                new.append((sx, sy, sw))
+                continue
+            if sx < x:
+                new.append((sx, sy, x - sx))
+            if e > x + w:
+                new.append((x + w, sy, e - x - w))
+        new.append((x, y + h, w))
+        new.sort()
+        merged = []
+        for seg in new:
+            if merged and merged[-1][1] == seg[1] and merged[-1][0] + merged[-1][2] == seg[0]:
+                merged[-1] = (merged[-1][0], seg[1], merged[-1][2] + seg[2])
+            else:
+                merged.append(seg)
+        sky = merged
+    return pos, top
+
+
+def pack(layout, D):
+    """Place every island at density D; returns the atlas height used (px), None if too wide."""
+    usable = SIZE - 2 * MARGIN
+    for part in layout:
+        rects = [(max(1, math.ceil(i["w"] * D * i["mult"])), max(1, math.ceil(i["h"] * D * i["mult"])))
+                 for i in part["islands"]]
+        area = sum((w + INNER_GAP) * (h + INNER_GAP) for w, h in rects)
+        width = max(max(w for w, h in rects), int(math.sqrt(area) * 1.15))
+        if width > usable:
+            return None
+        pos, hgt = skyline(rects, width, INNER_GAP)
+        if pos is None:
+            return None
+        part["sub"] = pos
+        part["rect"] = (max(p[0] + r[0] for p, r in zip(pos, rects)), hgt)
+    pos, total = skyline([p["rect"] for p in layout], usable, PART_GAP)
+    if pos is None:
         return None
-    w0 = ((b[1] - c[1]) * (px - c[0]) + (c[0] - b[0]) * (py - c[1])) / den
-    w1 = ((c[1] - a[1]) * (px - c[0]) + (a[0] - c[0]) * (py - c[1])) / den
-    w2 = 1.0 - w0 - w1
-    if w0 < -0.001 or w1 < -0.001 or w2 < -0.001:
-        return None
-    return w0, w1, w2
+    for part, (x, y) in zip(layout, pos):
+        part["at"] = (MARGIN + x, MARGIN + y)
+    return total
 
 
-def mix(rgb, tint, k):
-    return tuple(rgb[i] * (1 - k) + tint[i] * k for i in range(3))
+def fit(layout):
+    """Fixed density: one texel per TEXEL_M metres (pixel art). Fails if it does not fit."""
+    D = 1.0 / TEXEL_M
+    t = pack(layout, D)
+    if t is None or t > SIZE - 2 * MARGIN:
+        raise SystemExit("atlas does not fit at %.1f cm per texel" % (100 * TEXEL_M))
+    return D
 
 
-def dark(rgb, k):
-    return tuple(c * k for c in rgb)
+PART_CENTRE = {}     # (object, polygon index) -> centre of its connected part
 
 
-def detail(name, p, n, rgb):
-    """Paint in object space so the colour lands on the face that owns this point.
-
-    Vertex colours in the mesh are linear. Wood is redder than it is green; steel is gray.
-    """
-    x, y, z = p.x, p.y, p.z
-    if name == "chopper_shirt":
-        if int(x * 22) % 4 == 0 or int(z * 22) % 4 == 0:
-            return dark(rgb, 0.45)
-        if int(x * 22) % 4 == 2:
-            return (min(1, rgb[0] * 1.05), rgb[1] * 0.55, rgb[2] * 0.4)
-    elif name in ("chopper_vest", "chopper_belt", "chopper_boots"):
-        if abs((z * 36) - round(z * 36)) < 0.08:
-            return dark(rgb, 0.62)
-        # a gray patch on the vest's front
-        if name == "chopper_vest" and n.y < -0.4 and -0.06 < x < 0.08 and 1.05 < z < 1.18:
-            return (0.55, 0.55, 0.55)
-    elif name == "chopper_chainmail":
-        if (int(x * 45) + int(z * 45)) % 2 == 0:
-            return dark(rgb, 0.72)
-    elif name == "chopper_head" and n.y < -0.35:
-        eye = 1.54 < z < 1.62 and (0.045 < abs(x) < 0.11)
-        brow = 1.63 < z < 1.68 and abs(x) < 0.14
-        if eye:
-            return (0.12, 0.42, 0.16)
-        if brow:
-            return dark(rgb, 0.35)
-    elif name in ("chopper_plate", "chopper_pauldrons"):
-        if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
-            return dark(rgb, 0.62)
-    elif name == "chopper_helmet" and n.y < -0.35 and abs(x) < 0.12 and 1.48 < z < 1.66:
-        # skull sockets on the front plate
-        socket = 1.56 < z < 1.64 and 0.03 < abs(x) < 0.08
-        if socket:
-            return (0.12, 0.12, 0.13)
-    elif name == "chopper_axe":
-        on_blade = abs(x) > 0.06 and z > 0.40 and abs(n.y) > 0.5
-        if on_blade and (int(x * 40) + int(z * 40)) % 5 == 0:
-            return dark(rgb, 0.55)
-        if abs(x) < 0.03 and z < 0.15 and int(z * 30) % 3 == 0:
-            return dark(rgb, 0.7)  # grip wraps
-    elif name == "chopper_shield" and abs(n.y) > 0.5 and rgb[0] > rgb[1] > rgb[2] and rgb[0] > 0.15:
-        if int(x * 18) % 3 == 0:
-            rgb = dark(rgb, 0.82)  # plank seams
-        if abs(x) < 0.28 and -0.42 < z < 0.36:
-            # axe above the boss, two pines below it (concept 1.5)
-            if abs(x) < 0.015 and 0.08 < z < 0.30:
-                return (0.72, 0.74, 0.76)
-            if 0.16 < z < 0.26 and 0.015 < abs(x) < 0.09:
-                return (0.62, 0.64, 0.66)
-            trunk = abs(abs(x) - 0.12) < 0.012 and -0.34 < z < -0.22
-            def pine(cx):
-                half = (-0.08 - z) * 0.45
-                return -0.32 < z < -0.08 and abs(x - cx) < half
-            if trunk or pine(-0.12) or pine(0.12):
-                return (0.12, 0.45, 0.14)
-        return rgb
-    elif name in ("chopper_body", "chopper_hair", "chopper_beard"):
-        return rgb
-    return rgb
+def apply_uvs(names, layout, D):
+    for name in names:
+        me = bpy.data.objects[name].data
+        while len(me.uv_layers):
+            me.uv_layers.remove(me.uv_layers[0])
+        me.uv_layers.new(name="UVMap")
+        me.uv_layers.active = me.uv_layers["UVMap"]
+    for part in layout:
+        if part["obj"] not in names:
+            continue
+        uvl = bpy.data.objects[part["obj"]].data.uv_layers["UVMap"].data
+        ox, oy = part["at"]
+        me = bpy.data.objects[part["obj"]].data
+        fs = [f for isl in part["islands"] for f in isl["faces"]]
+        pc = sum((me.polygons[f].center for f in fs), Vector()) / len(fs)
+        for f in fs:
+            PART_CENTRE[(part["obj"], f)] = pc
+        for isl, (sx, sy) in zip(part["islands"], part["sub"]):
+            k = D * isl["mult"]
+            for li, (x, y) in isl["uv"].items():
+                uvl[li].uv = ((ox + sx + x * k) / SIZE, (oy + sy + y * k) / SIZE)
 
 
-def bake(obs, buf, owners):
-    """Raster vertex colours, then world-space detail. owners[pixel] records the mesh."""
-    overlaps = []
+# ------------------------------------------------------------------ bake
+TRI_VERTS = {}
+TRI_OWNER = np.full(SIZE * SIZE, -1, dtype=np.int64)
+CLAIM = np.zeros(SIZE * SIZE, dtype=np.int8)     # 2 = texel centre inside a triangle, 1 = edge texel
+
+
+def shares_edge(k1, k2):
+    """Two triangles of one object that share an edge (a split quad or neighbours)."""
+    if k1 // 10_000_000 != k2 // 10_000_000:
+        return False
+    return len(TRI_VERTS.get(k1, set()) & TRI_VERTS.get(k2, set())) >= 2
+
+
+def bake(obs, buf, island_px, overlaps):
+    """Raster vertex colour + object-space paint into buf (linear RGBA rows, one per pixel).
+
+    A pixel centre strictly inside triangles of two objects, or inside two triangles of one
+    object that do not share an edge, is recorded as an overlap."""
+    tri_owner = TRI_OWNER        # shared by both files, so props are tested against the character
     for ob in obs:
+        oid = OBJ_INDEX[ob.name]
         me = ob.data
         uv = me.uv_layers.active.data
         me.calc_loop_triangles()
         for tri in me.loop_triangles:
             loops = list(tri.loops)
-            uvs = [tuple(uv[li].uv) for li in loops]
+            uvs = np.array([tuple(uv[li].uv) for li in loops]) * SIZE
+            key = oid * 10_000_000 + tri.index
+            TRI_VERTS[key] = set(tri.vertices)
+            x0, y0 = np.floor(uvs.min(axis=0)).astype(int)
+            x1, y1 = np.ceil(uvs.max(axis=0)).astype(int)
+            x0, y0, x1, y1 = max(0, x0), max(0, y0), min(SIZE - 1, x1), min(SIZE - 1, y1)
+            if x1 < x0 or y1 < y0:
+                continue
+            gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+            (ax, ay), (bx, by), (cx, cy) = uvs
+            den = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+            if abs(den) < 1e-12:
+                continue
+            w0 = ((by - cy) * (gx - cx) + (cx - bx) * (gy - cy)) / den
+            w1 = ((cy - ay) * (gx - cx) + (ax - cx) * (gy - cy)) / den
+            w2 = 1.0 - w0 - w1
+            # conservative: every texel whose centre is within 0.75 px of the triangle is painted
+            # from the triangle (clamped barycentrics), so slivers and texels cut by an island
+            # edge carry their own colour under point filtering; centre-inside texels win
+            area2 = abs(den)
+            hts = [area2 / max(1e-9, math.dist(uvs[1], uvs[2])), area2 / max(1e-9, math.dist(uvs[0], uvs[2])),
+                   area2 / max(1e-9, math.dist(uvs[0], uvs[1]))]
+            dist_out = np.minimum(np.minimum(w0 * hts[0], w1 * hts[1]), w2 * hts[2])
+            inside = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
+            near = dist_out >= -0.75
+            strict = (w0 > 2e-3) & (w1 > 2e-3) & (w2 > 2e-3)
             cols = [loop_color(me, li) for li in loops]
             cos = [me.vertices[me.loops[li].vertex_index].co for li in loops]
-            xs = [u[0] * (SIZE - 1) for u in uvs]
-            ys = [u[1] * (SIZE - 1) for u in uvs]
-            minx, maxx = int(math.floor(min(xs))), int(math.ceil(max(xs)))
-            miny, maxy = int(math.floor(min(ys))), int(math.ceil(max(ys)))
-            minx, maxx = max(0, minx), min(SIZE - 1, maxx)
-            miny, maxy = max(0, miny), min(SIZE - 1, maxy)
             nrm = tri.normal
-            for y in range(miny, maxy + 1):
-                for x in range(minx, maxx + 1):
-                    w = bary(x + 0.5, y + 0.5, (xs[0], ys[0]), (xs[1], ys[1]), (xs[2], ys[2]))
-                    if w is None:
-                        continue
-                    i = (y * SIZE + x) * 4
-                    prev = owners[y * SIZE + x]
-                    if prev and prev != ob.name:
-                        overlaps.append((ob.name, prev))
-                    owners[y * SIZE + x] = ob.name
-                    r = w[0] * cols[0][0] + w[1] * cols[1][0] + w[2] * cols[2][0]
-                    g = w[0] * cols[0][1] + w[1] * cols[1][1] + w[2] * cols[2][1]
-                    b = w[0] * cols[0][2] + w[1] * cols[1][2] + w[2] * cols[2][2]
-                    p = w[0] * cos[0] + w[1] * cos[1] + w[2] * cos[2]
-                    r, g, b = detail(ob.name, p, nrm, (r, g, b))
-                    buf[i] = r
-                    buf[i + 1] = g
-                    buf[i + 2] = b
-                    buf[i + 3] = 1.0
-    return overlaps
+            pc = PART_CENTRE.get((ob.name, tri.polygon_index), Vector())
+            for yy, xx in zip(*np.nonzero(near)):
+                px = (y0 + yy) * SIZE + (x0 + xx)
+                a, b, c = max(0.0, float(w0[yy, xx])), max(0.0, float(w1[yy, xx])), max(0.0, float(w2[yy, xx]))
+                t = a + b + c
+                a, b, c = a / t, b / t, c / t
+                level = 2 if inside[yy, xx] else 1
+                if level < CLAIM[px] or (level == 1 and CLAIM[px] == 1):
+                    continue
+                CLAIM[px] = level
+                if strict[yy, xx]:
+                    prev = tri_owner[px]
+                    if prev >= 0 and prev != key and not shares_edge(int(prev), key):
+                        overlaps.append((int(prev) // 10_000_000, oid))
+                    tri_owner[px] = key
+                island_px[px] = 1
+                rgb = tuple(a * cols[0][i] + b * cols[1][i] + c * cols[2][i] for i in range(3))
+                p = cos[0] * a + cos[1] * b + cos[2] * c
+                r, g, bl = detail(ob.name, p, nrm, rgb, pc)
+                buf[px, 0], buf[px, 1], buf[px, 2] = r, g, bl
+
+
+def dilate(buf, filled, steps):
+    """Grow every filled region outward by `steps` px, copying one neighbouring texel (edge
+    neighbours first, then diagonals), so the padding repeats the edge pixels exactly."""
+    img = buf.reshape(SIZE, SIZE, 4)
+    m = filled.reshape(SIZE, SIZE).astype(bool)
+    for _ in range(steps):
+        new = m.copy()
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)):
+            sm = np.roll(np.roll(m, dy, 0), dx, 1)
+            take = sm & ~new
+            if take.any():
+                img[take] = np.roll(np.roll(img, dy, 0), dx, 1)[take]
+                new |= take
+        m = new
+    return m
 
 
 def texel_density(ob):
+    """Mean texel density in px per metre: SIZE * sqrt(UV area / surface area)."""
     me = ob.data
     uv = me.uv_layers.active.data
     me.calc_loop_triangles()
-    world = 0.0
-    uv_area = 0.0
+    world = uv_area = 0.0
     for tri in me.loop_triangles:
         vs = [me.vertices[i].co for i in tri.vertices]
         world += (vs[1] - vs[0]).cross(vs[2] - vs[0]).length * 0.5
         uvs = [uv[li].uv for li in tri.loops]
         uv_area += abs((uvs[1].x - uvs[0].x) * (uvs[2].y - uvs[0].y) -
                        (uvs[2].x - uvs[0].x) * (uvs[1].y - uvs[0].y)) * 0.5
-    if uv_area < 1e-12:
-        return 0.0
-    return math.sqrt(world / uv_area) * SIZE
+    return SIZE * math.sqrt(uv_area / world) if world > 0 else 0.0
 
 
-def process(path, names, buf, owners, report):
+def process(path, names, layout, D, buf, island_px, overlaps, report):
     bpy.ops.wm.open_mainfile(filepath=path)
     for img in list(bpy.data.images):
         if img.name not in ("Render Result", "Viewer Node"):
             bpy.data.images.remove(img)
-    densities = []
-    obs = []
-    for name in names:
-        ob = bpy.data.objects[name]
-        n = unwrap(ob)
-        densities.append((name, texel_density(ob), n))
-        obs.append(ob)
-        report.append("%s faces=%d density=%.1f px/m tile=%s" % (name, n, densities[-1][1], TILES[name]))
-    overlaps = bake(obs, buf, owners)
-    report.append("%s overlaps=%d" % (os.path.basename(path), len(set(overlaps))))
-    # drop any image the bake did not create; UVs stay on the meshes
-    for img in list(bpy.data.images):
-        if img.name not in ("Render Result", "Viewer Node"):
-            bpy.data.images.remove(img)
+    apply_uvs(names, layout, D)
+    obs = [bpy.data.objects[n] for n in names]
+    for ob in obs:
+        parts = [p for p in layout if p["obj"] == ob.name]
+        d = texel_density(ob)
+        report.append("%-18s faces=%4d parts=%3d islands=%4d density=%5.1f px/m = %.2f cm per texel"
+                      % (ob.name, len(ob.data.polygons), len(parts),
+                         sum(len(p["islands"]) for p in parts), d, 100.0 / d))
+    bake(obs, buf, island_px, overlaps)
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=path)
-    return densities
+
+
+def linear_to_srgb(a):
+    a = np.clip(a, 0.0, 1.0)
+    return np.where(a <= 0.0031308, a * 12.92, 1.055 * np.power(a, 1.0 / 2.4) - 0.055)
 
 
 def main():
     os.makedirs(TEX, exist_ok=True)
-    buf = [0.12, 0.10, 0.09, 1.0] * (SIZE * SIZE)
-    owners = [""] * (SIZE * SIZE)
-    report = ["Chopper atlas UV report", "size %d" % SIZE]
-    char = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-            "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
-            "chopper_plate", "chopper_pauldrons"]
-    process(CHAR, char, buf, owners, report)
-    process(PROPS, ["chopper_axe", "chopper_shield"], buf, owners, report)
+    layout = []
+    collect(CHAR, CHAR_OBJECTS, layout)
+    collect(PROPS, PROP_OBJECTS, layout)
+    D = fit(layout)
+    report = ["Chopper atlas UV report",
+              "size %d, pixel art: one texel = %.1f cm (%.1f px/m), finer on the face front and the bear axe "
+              "(atlas_paint.texel_m); part gap %d px, inner gap %d px, edge padding %d px (copied edge texels)"
+              % (SIZE, 100 * TEXEL_M, D, PART_GAP, INNER_GAP, DILATE)]
+    # the gutter keeps the old dark colour; the edge padding covers it next to every island
+    buf = np.tile(np.array([0.0134, 0.0100, 0.0086, 1.0]), (SIZE * SIZE, 1))
+    island_px = np.zeros(SIZE * SIZE, dtype=np.int8)
+    overlaps = []
+    process(CHAR, CHAR_OBJECTS, layout, D, buf, island_px, overlaps, report)
+    process(PROPS, PROP_OBJECTS, layout, D, buf, island_px, overlaps, report)
+    padded = dilate(buf, island_px, DILATE)
+    report.append("coverage: islands %.1f %%, islands plus padding %.1f %%"
+                  % (100.0 * island_px.mean(), 100.0 * padded.mean()))
+    cross = sum(1 for a, b in overlaps if a != b)
+    inner = sum(1 for a, b in overlaps if a == b)
+    report.append("overlapping pixels: between objects %d, inside one object %d" % (cross, inner))
+    rgb = linear_to_srgb(buf[:, :3])
+    out = np.concatenate([rgb, np.ones((SIZE * SIZE, 1))], axis=1).astype(np.float32)
     img = bpy.data.images.new("chopper_atlas", SIZE, SIZE, alpha=False)
-    img.pixels.foreach_set(buf) if False else img.pixels.foreach_set([float(x) for x in buf])
+    img.pixels.foreach_set(out.ravel())
     img.filepath_raw = ATLAS
     img.file_format = "PNG"
     img.save()
     bpy.data.images.remove(img)
-    dens = [line for line in report if "density=" in line]
     report.append("wrote " + ATLAS)
     text = "\n".join(report) + "\n"
     with open(TILES_TXT, "w", encoding="utf-8") as fh:
         fh.write(text)
     print(text)
-    if any("overlaps=" in line and not line.endswith("overlaps=0") for line in report):
-        raise SystemExit("UV tiles overlap")
-    print("densities", len(dens))
+    if cross or inner:
+        raise SystemExit("UV islands overlap")
 
 
 if __name__ == "__main__":

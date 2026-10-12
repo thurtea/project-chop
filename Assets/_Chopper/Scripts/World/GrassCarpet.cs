@@ -49,7 +49,6 @@ namespace Chopper.World
         private Color32[] _pixels;
         private int _mapWidth;
         private int _mapHeight;
-        private Terrain _terrain;
         private static readonly int PushersId = Shader.PropertyToID("_GrassPushers");
         private static readonly int PusherCountId = Shader.PropertyToID("_GrassPusherCount");
         private static readonly int MapId = Shader.PropertyToID("_GrassMap");
@@ -99,8 +98,7 @@ namespace Chopper.World
         private bool Ready()
         {
             if (_material == null || _map == null) return false;
-            if (_terrain == null) _terrain = Terrain.activeTerrain;
-            if (_terrain == null) return false;
+            if (!WorldGround.Exists) return false;
             if (_mesh == null) _mesh = BuildClumpMesh(_seed);
             if (_farMesh == null) _farMesh = BuildClumpMesh(_seed, 10, 2, 1.7f);
             if (_pixels == null)
@@ -234,7 +232,6 @@ namespace Chopper.World
             var matrices = new List<Matrix4x4>(candidates);
             float originX = cx * _cellSize;
             float originZ = cz * _cellSize;
-            float terrainY = _terrain.transform.position.y;
             float minY = float.MaxValue;
             float maxY = float.MinValue;
 
@@ -250,7 +247,7 @@ namespace Chopper.World
                 Color map = Sample(x, z);
                 if (roll >= map.r) continue;
 
-                float y = _terrain.SampleHeight(new Vector3(x, 0f, z)) + terrainY - 0.04f;
+                float y = WorldGround.HeightAt(x, z) - 0.04f;
                 // A: height, 0 is half the base height and 1 is one and a half times it.
                 float tall = size * (0.5f + map.a);
                 Quaternion rotation = Quaternion.Euler(tiltX, yaw, tiltZ);

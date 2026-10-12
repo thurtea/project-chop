@@ -28,16 +28,22 @@ namespace Chopper.World
         private const float NightSkyExposure = 0.08f;
         private const float DayExposure = 0.45f;
         private const float NightExposure = 0.15f;
-        private const float DaySaturation = -8f;
+        // W5-02b Valheim grade (was -8): muted, slightly desaturated greens.
+        private const float DaySaturation = -12f;
         private const float NightSaturation = -18f;
-        private const float DayBloom = 0.22f;
+        // W5-02b Valheim grade (was 0.22): a softer glow on the sunlit side.
+        private const float DayBloom = 0.30f;
         private const float NightBloom = 0.85f;
-        private static readonly Color SunriseColor = new Color(1f, 0.66f, 0.42f);
-        private static readonly Color NoonColor = new Color(1f, 0.93f, 0.80f);
+        // W5-02b Valheim grade (was 1, 0.66, 0.42): a warmer, more golden low sun.
+        private static readonly Color SunriseColor = new Color(1f, 0.60f, 0.34f);
+        // W5-02b concept 1 look (was 1, 0.93, 0.80): a warmer sun.
+        private static readonly Color NoonColor = new Color(1f, 0.90f, 0.74f);
         private static readonly Color MoonColor = new Color(0.50f, 0.62f, 1f);
         private static readonly Color NightFilter = new Color(0.66f, 0.76f, 1f);
-        private static readonly Color LightingSky = new Color(0.62f, 0.68f, 0.78f);
-        private static readonly Color LightingEquator = new Color(0.68f, 0.69f, 0.60f);
+        // W5-02b Valheim grade (was 0.62, 0.68, 0.78): cooler sky fill, so shadows read blue against the warm sun.
+        private static readonly Color LightingSky = new Color(0.56f, 0.65f, 0.82f);
+        // W5-02b Valheim grade (was 0.68, 0.69, 0.60): a cool horizon fill for blue shade.
+        private static readonly Color LightingEquator = new Color(0.60f, 0.66f, 0.72f);
         private static readonly Color LightingGround = new Color(0.42f, 0.40f, 0.30f);
         private static readonly Color NightSky = new Color(0.26f, 0.34f, 0.58f);
         private static readonly Color NightEquator = new Color(0.20f, 0.26f, 0.42f);
@@ -259,9 +265,11 @@ namespace Chopper.World
             {
                 if (_skyRuntime.HasProperty(ExposureId)) _skyRuntime.SetFloat(ExposureId, Mathf.Lerp(1.3f, NightSkyExposure, d) * weather.Sky);
                 // A thicker atmosphere at a low sun paints the long orange horizon of morning and evening.
-                if (_skyRuntime.HasProperty(AtmosphereId)) _skyRuntime.SetFloat(AtmosphereId, Mathf.Lerp(0.95f, 1.5f, lowSun));
+                // W5-02b concept 1 look: noon thickness 1.1 (was 0.95) for a paler, hazier horizon.
+                if (_skyRuntime.HasProperty(AtmosphereId)) _skyRuntime.SetFloat(AtmosphereId, Mathf.Lerp(1.1f, 1.5f, lowSun));
                 // An overcast sky loses its blue and its warm low sun tint and turns flat grey.
-                Color tint = Color.Lerp(new Color(0.46f, 0.50f, 0.55f), new Color(0.52f, 0.47f, 0.44f), lowSun);
+                // W5-02b concept 1 look: high sun tint 0.50, 0.52, 0.54 (was 0.46, 0.50, 0.55), a softer, less saturated blue.
+                Color tint = Color.Lerp(new Color(0.50f, 0.52f, 0.54f), new Color(0.52f, 0.47f, 0.44f), lowSun);
                 if (_skyRuntime.HasProperty(SkyTintId)) _skyRuntime.SetColor(SkyTintId, Color.Lerp(tint, OvercastSky, weather.Overcast));
                 if (_skyRuntime.HasProperty(GroundColorId)) _skyRuntime.SetColor(GroundColorId, Color.Lerp(SeaHorizon, SeaHorizon * 0.15f, d));
                 if (_skyRuntime.HasProperty(SunSizeId)) _skyRuntime.SetFloat(SunSizeId, Mathf.Lerp(0.035f, 0.05f, lowSun));

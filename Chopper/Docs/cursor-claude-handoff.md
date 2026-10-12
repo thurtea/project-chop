@@ -8,7 +8,7 @@ Week 1 is done and independently reviewed (`W1-06`). The user said "Go" for Week
 
 Claude's open choices, still in force:
 
-- Do not commit. Branch is `rebuild/chopper-assets`. Everything Week 1 and Week 2 is untracked or uncommitted.
+- Work on `main`. `rebuild/chopper-assets` was fast-forwarded into `main` and deleted on 2026-10-11. Do not open another branch.
 - Capsule radius stays 0.37 m.
 - Axe blades stay front and back (concept 1.7), not sideways.
 - Do not delete the old Unity project at the repo root.
@@ -145,4 +145,13 @@ The live world grows the voxel pine, places the voxel rock, leaves the voxel stu
 
 ## User still has to approve
 
-Commit to `rebuild/chopper-assets`. Narrower capsule. Axe blades turned sideways. Deleting the old project at the repo root.
+Narrower capsule. Axe blades turned sideways. Deleting the Unity project at the repo root.
+
+## Claude Code session, 2026-10-11 evening
+
+- W4-06 done: a dev player with the `-chopperFoliageWalk` tour (`ShotCapture.cs`) walked through grass and bushes. Mid-walk lean 27-28 deg, back to 0.0 deg within 0.25 s, 0 errors, `RESULT PASS`. Logs and shots are in `Logs/chopper_play/`. Bush lean is hard to see from the gameplay camera.
+- W4-07 done: `CharacterSetup.AttachChopperGear` mounts `chopper_axe` at `RightHand/AxeGrip` (placed on Weapon_R) and `chopper_shield` on `Shield_Back` with a 0.148 m local offset (2.0 cm gap). It runs inside `BuildPlayerPrefab`, so a rebuild keeps it. The live FBX uses `bakeAxisConversion`, so the mounts carry a 180 deg Y turn. `DefaultPrefabObjects.asset` order changed, so older builds will not join newer ones.
+- W2-06 done: the atlas was stored linear and the shader decoded it a second time, so Chopper rendered black and red in Unity. `uv_atlas.py` now writes sRGB, and both shader copies no longer call `SRGBToLinear` on the atlas. Live and art Unity now show the intended colours.
+- W2-05 done by an independent reviewer: 95/0, 128/0, 101/0 reproduced. Findings are on the task board as W2-07 (axe through the face in Attack_2), W2-08 (per-face UV layout), and W2-09 (proxy screenshots).
+- Next, requested by the user: the world look should match concept 1 (W5-01 to W5-04). A paid Unity asset needs the user's approval.
+- Nothing committed.

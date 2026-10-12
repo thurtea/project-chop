@@ -111,6 +111,98 @@ def build_axe(mat):
     return mb.finish(mat, recalc=True)
 
 
+# ------------------------------------------------------------------ bear-head axe (concept 1.5)
+def block(mb, lo, hi, color):
+    """Plain axis-aligned box, 12 tris (outward winding)."""
+    (x0, y0, z0), (x1, y1, z1) = lo, hi
+    c = Vector(((x0 + x1) / 2, (y0 + y1) / 2, z0))
+    rings = [(c, X, Y, (x1 - x0) / 2, (y1 - y0) / 2, 0.0),
+             (c + Z * (z1 - z0), X, Y, (x1 - x0) / 2, (y1 - y0) / 2, 0.0)]
+    return mb.tube(rings, cs=0, color=color)
+
+
+def bear_blade_outline():
+    """Single bearded blade on +X, (x, z). Starts at the top of the eye, runs out along the
+    top edge to the upper spike, down the convex cutting edge to the beard tip, then back up
+    the beard's underside to the bottom of the eye."""
+    return [(0.040, 0.622), (0.100, 0.645), (0.165, 0.680), (0.222, 0.738),   # top edge -> spike
+            (0.252, 0.676), (0.270, 0.610), (0.276, 0.535), (0.268, 0.460),   # cutting edge
+            (0.246, 0.395), (0.212, 0.345), (0.170, 0.318),                     # beard tip
+            (0.138, 0.356), (0.106, 0.412), (0.074, 0.462), (0.040, 0.498)]    # beard underside
+
+
+# warm carved wood (concept 1.5 haft is lighter and warmer than the double axe's)
+BEAR_WOOD = (0.72, 0.42, 0.19)
+BEAR_CARVE = (0.42, 0.22, 0.09)
+BEAR_HEAD = (0.80, 0.50, 0.23)
+EDGE_IDX = range(3, 11)   # outline edges j -> j+1 that form the cutting edge (lighter steel)
+
+
+def build_axe_bear(mat):
+    """Bear-head axe, concept 1.5. Same frame as chopper_axe: origin = right-hand grip point,
+    haft along local +Z (toward the head), blade on local +X (the side chopper_axe's +X blade
+    faces), poll on -X, thickness along Y."""
+    mb = L.MeshBuilder("chopper_axe_bear")
+    bm = mb.bm
+    # haft: octagonal, warm wood, short dark wrap and iron cap at the butt
+    # (the grip stays as thin as chopper_axe's inside the fist, z -0.15..0.15)
+    haft = [(-0.170, 0.019), (-0.160, 0.023), (-0.100, 0.023), (-0.094, 0.020),
+            (0.150, 0.021), (0.230, 0.033), (0.640, 0.033)]     # carved section 1.375x the old 0.024
+    # above the grip the section is a regular octagon (bevel = hw * (2 - sqrt 2)) so the
+    # carved spiral stands proud by the same amount all the way round
+    rings = [(Vector((0, 0, z)), X, Y, hw, hw, 0.007 if z < 0.2 else hw * (2 - math.sqrt(2)))
+             for z, hw in haft]
+    mb.tube(rings, cs=1, cap0=True, cap1=True, color=BEAR_WOOD,
+            color_fn=lambda p: PAL["leather_dark"] if p.z < -0.095 else None)
+    # carved spiral band: a raised helical strip, 2 turns over z 0.20..0.47
+    n, turns, z0, z1, r = 24, 2.0, 0.25, 0.47, 0.0350
+    pts, nrms = [], []
+    for i in range(n + 1):
+        a = 2 * math.pi * turns * i / n
+        pts.append((r * math.cos(a), r * math.sin(a), z0 + (z1 - z0) * i / n))
+        nrms.append((math.cos(a), math.sin(a), 0.0))
+    srings = []
+    for i in range(n + 1):
+        p = Vector(pts[i])
+        t = (Vector(pts[min(i + 1, n)]) - Vector(pts[max(i - 1, 0)])).normalized()
+        v = Vector(nrms[i])
+        v = (v - t * v.dot(t)).normalized()
+        u = v.cross(t)
+        srings.append((p, u, v, 0.008, 0.0045, 0.0))
+    mb.tube(srings, cs=0, color=BEAR_CARVE)
+    # iron eye around the haft, squared poll on the back (-X), top cap under the bear
+    mb.box((0, 0, 0.56), (0.092, 0.080, 0.13), 0.006, color=PAL["steel_dark"])
+    block(mb, (-0.088, -0.030, 0.512), (-0.044, 0.030, 0.608), PAL["steel_dark"])
+    block(mb, (-0.098, -0.034, 0.505), (-0.086, 0.034, 0.615), PAL["steel"])   # poll face
+    # blade: dark iron face, lighter steel cutting edge
+    outline = bear_blade_outline()
+    faces = plate(mb, outline, 0.004, 0.011, 0.012, PAL["steel_dark"])
+    segs = [(Vector(outline[j]), Vector(outline[j + 1])) for j in EDGE_IDX]
+
+    def near_edge(f):
+        c = f.calc_center_median()
+        q = Vector((c.x, c.z))
+        for a, b in segs:
+            ab = b - a
+            t = max(0.0, min(1.0, (q - a).dot(ab) / ab.length_squared))
+            if (q - (a + ab * t)).length < 0.016:
+                return True
+        return False
+    mb.paint([f for f in faces if near_edge(f)], PAL["steel"])
+    # carved bear head on the top end of the haft, looking out over the blade (+X)
+    W, WD = BEAR_HEAD, BEAR_CARVE
+    mb.box((0, 0, 0.678), (0.096, 0.086, 0.080), 0.008, color=W)                 # skull
+    mb.box((0.060, 0, 0.666), (0.040, 0.056, 0.046), 0.006, color=W)             # snout
+    block(mb, (0.080, -0.014, 0.671), (0.090, 0.014, 0.687), WD)                 # nose
+    block(mb, (0.042, -0.032, 0.694), (0.050, -0.014, 0.704), WD)                # eyes
+    block(mb, (0.042, 0.014, 0.694), (0.050, 0.032, 0.704), WD)
+    for s in (-1, 1):
+        block(mb, (-0.026, s * 0.044 - 0.013, 0.718), (0.004, s * 0.044 + 0.013, 0.742), W)   # ears
+    block(mb, (-0.054, -0.034, 0.642), (-0.046, 0.034, 0.706), WD)              # mane ridge at the back
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    return mb.finish(mat)
+
+
 # ------------------------------------------------------------------ shield
 SH_W = 0.65
 SH_TOP = 0.40
@@ -233,7 +325,7 @@ def build_shield(mat):
 def main():
     L.reset_scene()
     m_gear = L.make_material("M_Chopper_Gear", (0.6, 0.6, 0.6))
-    for fn in (build_axe, build_shield):
+    for fn in (build_axe, build_axe_bear, build_shield):
         ob = fn(m_gear)
         print(f"built {ob.name}: {L.tri_count(ob)} tris, dims {tuple(round(d, 3) for d in ob.dimensions)}")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)

@@ -223,8 +223,8 @@ namespace Chopper.UI
             }
             Vector3 p = local.transform.position;
             string where = CryptWorld.IsUnderground(p) ? "underground" : ZoneMap.ElementAt(p, _config != null ? _config.HubRadius : 40f) + " zone";
-            Terrain terrain = Terrain.activeTerrain;
-            string ground = terrain != null ? $", ground {terrain.SampleHeight(p) + terrain.transform.position.y:F1}" : string.Empty;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            string ground = hasGround ? $", ground {Chopper.World.WorldGround.HeightAt(p):F1}" : string.Empty;
             Print($"x {p.x:F1}  y {p.y:F1}  z {p.z:F1}  ({where}{ground})");
         }
 
@@ -282,8 +282,8 @@ namespace Chopper.UI
 
         private static Vector3 OnGround(Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain != null) position.y = terrain.SampleHeight(position) + terrain.transform.position.y + TeleportClearance;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (hasGround) position.y = Chopper.World.WorldGround.HeightAt(position) + TeleportClearance;
             return position;
         }
 

@@ -16,7 +16,7 @@ Already done, do not redo:
 - Names chopper_body, chopper_axe, and so on. No reference images in the export.
 - Atlas chopper_atlas.png. Materials M_Chopper and M_Chopper_Gear, plus M_Pine and M_World. Shader Chopper/VertexColorLit.
 - Humanoid armature with Weapon_R, Shield_L, Shield_Back. Clips Idle, Walk, Run, Attack_1, Attack_2, HitReact, Death in the art project. Capsule radius on the art prefab stays 0.37 m. Axe blades stay front and back, about 0.85 m, with almost no triangle room left.
-- Art Unity project: repo folder Chopper/, Unity 6000.5.10f1 URP. Prefabs under Chopper/Assets/Game/. Branch rebuild/chopper-assets.
+- Art Unity project: repo folder Chopper/, Unity 6000.5.10f1 URP. Prefabs under Chopper/Assets/Game/. The only branch is main.
 - Live game: Unity project at the repo root, E:\Projects\project-chop. The old project stays. Do not delete it.
 - Live trees and rocks are the voxel pine and rock (ChopperMeadowSwap). Campfire uses the voxel rock and log. Felled trees spawn prop_stump_voxel scaled to the trunk (TreeManager._stumpPrefab).
 - Live player prefab Assets/_Chopper/Prefabs/Player/Player.prefab instances chopper.fbx with a humanoid avatar. Existing gameplay clips stay on that avatar. Scale 1, controller height 1.8 m, radius 0.5 m. Worker look: hair on, helmet, plate, and pauldrons off. Gameplay axe and torch parent to RightHand/Weapon_R and LeftHand.
@@ -31,7 +31,7 @@ Still open:
 
 Sources: Chopper/Docs/cursor-claude-handoff.md is the status record. Concepts in the repo are visual reference only: chopper-3D-concept-3.jpg (Worker), 1.5 (Warrior), 1.8 (Elite), 1.7 (axe), 1 (mood), 4 (voxel tree).
 Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Git. No gh CLI.
-Constraints: Do not generate final meshes with AI image-to-3D. Do not remodel Chopper. Do not replace the live Animator controller. Mesh read/write stays on. No Block or EquipShield clip until combat asks. No commits to main, no pushes, no deletions, no paid services without explicit approval. Unity batch on one project at a time. Import may use -nographics. Screenshot checks must not. Trust the log line "Exiting batchmode successfully", not the shell exit code.
+Constraints: Do not generate final meshes with AI image-to-3D. Do not remodel Chopper. Do not replace the live Animator controller. Mesh read/write stays on. No Block or EquipShield clip until combat asks. Work on main. Do not open another branch. No commits, pushes, deletions, or paid services without explicit approval. Unity batch on one project at a time. Import may use -nographics. Screenshot checks must not. Trust the log line "Exiting batchmode successfully", not the shell exit code.
 </project_brief>
 
 <manager_contract>

@@ -19,9 +19,9 @@ namespace Chopper.World
         public static float DepthAt(Vector3 position, out float surfaceY)
         {
             surfaceY = 0f;
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             // The crypts lie under the land, ponds included: no water down there.
-            if (terrain == null || Chopper.World.Generation.CryptWorld.IsUnderground(position)) return 0f;
+            if (!hasGround || Chopper.World.Generation.CryptWorld.IsUnderground(position)) return 0f;
 
             float best = 0f;
             for (int i = 0; i < WaterSurface.All.Count; i++)
@@ -33,7 +33,7 @@ namespace Chopper.World
                 float distanceSqr = dx * dx + dz * dz;
                 if (distanceSqr > water.Radius * water.Radius || distanceSqr < water.InnerRadius * water.InnerRadius) continue;
 
-                float ground = terrain.SampleHeight(position) + terrain.transform.position.y;
+                float ground = Chopper.World.WorldGround.HeightAt(position);
                 float depth = water.SurfaceY - ground;
                 if (depth > best)
                 {

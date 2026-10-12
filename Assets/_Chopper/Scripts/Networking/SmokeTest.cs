@@ -508,8 +508,8 @@ namespace Chopper.Networking
         // Moves the local player (client authoritative), telling the server movement check first.
         private static void TeleportPlayer(PlayerWood wood, Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            position.y = terrain.SampleHeight(position) + terrain.transform.position.y + 0.3f;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            position.y = Chopper.World.WorldGround.HeightAt(position) + 0.3f;
             wood.GetComponent<PlayerMovementValidator>().ServerNotifyTeleport(position);
             var controller = wood.GetComponent<CharacterController>();
             controller.enabled = false;
@@ -1230,7 +1230,7 @@ namespace Chopper.Networking
             Check(inventory.Iron == 5 && inventory.Shards == 3 && inventory.Fabric == 2 && upgrades.SturdyLevel == 2 && wood.Carried == 6,
                 $"loading gives the player their things back ({inventory.Iron} iron, Sturdy {upgrades.SturdyLevel}, {wood.Carried} wood)");
             Check(EnemyDirector.CountSaplings() == read.Saplings.Count, $"loading plants the saved saplings ({EnemyDirector.CountSaplings()})");
-            Check(WoodPile.Nearest(new Vector3(pileAt.x, Terrain.activeTerrain.SampleHeight(pileAt) + Terrain.activeTerrain.transform.position.y, pileAt.z)) != null,
+            Check(WoodPile.Nearest(new Vector3(pileAt.x, Chopper.World.WorldGround.HeightAt(pileAt), pileAt.z)) != null,
                 "loading puts the wood pile back");
 
             // Leave the rest of the run as it was.
@@ -1355,8 +1355,8 @@ namespace Chopper.Networking
                 $"a flying player hovers and is not snapped back ({Vector3.Distance(tools.transform.position, high):F2} m off)");
             tools.Execute(DevCommand.Fly, 0);
             yield return new WaitForSeconds(3f);
-            Terrain terrain = Terrain.activeTerrain;
-            float above = tools.transform.position.y - terrain.SampleHeight(tools.transform.position) - terrain.transform.position.y;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            float above = tools.transform.position.y - Chopper.World.WorldGround.HeightAt(tools.transform.position);
             // It may land on a rock or a stump, so only check that it came down from the 25 m it was flying at.
             Check(!tools.Flying && above < 3f, $"after flying the player falls back to the ground ({above:F1} m above it)");
             TeleportPlayer(PlayerWood.Local, new Vector3(0f, 0f, 7.5f));
@@ -1546,8 +1546,8 @@ namespace Chopper.Networking
 
         private static float GroundY(Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            return terrain != null ? terrain.SampleHeight(position) + terrain.transform.position.y : position.y;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            return hasGround ? Chopper.World.WorldGround.HeightAt(position) : position.y;
         }
 
         private static void ClearTreants()

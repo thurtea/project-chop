@@ -1,7 +1,7 @@
 """Verify the exported Chopper FBX files and render the rig review images.
 
 Run:  blender -b --factory-startup -P check_rig.py
-In:   Art/Export/chopper.fbx, chopper_axe.fbx, chopper_shield.fbx (imported, nothing else read)
+In:   Art/Export/chopper.fbx, chopper_axe.fbx, chopper_axe_bear.fbx, chopper_shield.fbx (imported, nothing else read)
 Out:  Art/Renders/rig_check_report.txt and Art/Renders/rig_*.png
 
 Everything is measured on the IMPORTED data in an empty scene (what a game engine sees),
@@ -21,11 +21,13 @@ EXPORT = os.path.join(ART, "Export")
 RENDERS = os.path.join(ART, "Renders")
 CHAR_FBX = os.path.join(EXPORT, "chopper.fbx")
 AXE_FBX = os.path.join(EXPORT, "chopper_axe.fbx")
+BEAR_FBX = os.path.join(EXPORT, "chopper_axe_bear.fbx")
 SHIELD_FBX = os.path.join(EXPORT, "chopper_shield.fbx")
 REPORT = os.path.join(RENDERS, "rig_check_report.txt")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+         "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots",
+         "chopper_helmet",
          "chopper_plate", "chopper_pauldrons"]
 HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
             "LeftShoulder", "LeftUpperArm", "LeftLowerArm", "LeftHand",
@@ -197,7 +199,7 @@ def main():
     os.makedirs(RENDERS, exist_ok=True)
     log("Chopper rig / FBX check report")
     log("=" * 72)
-    for p in (CHAR_FBX, AXE_FBX, SHIELD_FBX):
+    for p in (CHAR_FBX, AXE_FBX, BEAR_FBX, SHIELD_FBX):
         check(os.path.isfile(p), "file exists: %s (%d bytes)" % (os.path.relpath(p, ART),
                                                                 os.path.getsize(p) if os.path.isfile(p) else 0))
 
@@ -474,7 +476,8 @@ def main():
     log("")
     log("PROPS")
     log("-" * 72)
-    expected = {"chopper_axe": (AXE_FBX, (-0.160, 0.692)), "chopper_shield": (SHIELD_FBX, (-0.562, 0.412))}
+    expected = {"chopper_axe": (AXE_FBX, (-0.160, 0.692)), "chopper_axe_bear": (BEAR_FBX, (-0.170, 0.742)),
+                "chopper_shield": (SHIELD_FBX, (-0.562, 0.412))}
     prop_objs = {}
     for name, (path, zr) in expected.items():
         before = set(bpy.data.objects)
@@ -496,12 +499,41 @@ def main():
                   "%s origin preserved (world bounds z %.3f..%.3f, expected %.3f..%.3f)" % (name, lo.z, hi.z, *zr))
             prop_objs[name] = ob
     axe, shield = prop_objs.get("chopper_axe"), prop_objs.get("chopper_shield")
+    bear = prop_objs.get("chopper_axe_bear")
 
     # ---------------- props on sockets (identity local transform), clipping
     log("")
     log("PROPS ON SOCKETS (identity local transform relative to the socket bone)")
     attach(axe, rig, "Weapon_R")
+    attach(bear, rig, "Weapon_R")
     attach(shield, rig, "Shield_L")
+    # grip convention (W6-01): on the same socket, the bear axe's haft and blade must point
+    # where chopper_axe's haft and +X ("front", outward) blade point
+    rig.data.pose_position = "REST"
+    bpy.context.view_layer.update()
+
+    def head_blade(ob):
+        mw = ob.matrix_world
+        pts = [mw @ v.co for v in ob.data.vertices]
+        grip = mw.to_translation()
+        hz = mw.to_3x3() @ Vector((0, 0, 1))
+        hx = mw.to_3x3() @ Vector((1, 0, 0))
+        # haft centre line: centroid of the haft vertices 0.15..0.40 above the grip (axis, not the head)
+        loc = [mw.inverted() @ p for p in pts]
+        hv = [p for p, q in zip(pts, loc) if 0.15 <= q.z <= 0.40 and abs(q.x) < 0.03 and abs(q.y) < 0.03]
+        hc = sum(hv, Vector()) / max(1, len(hv))
+        blade = [p for p in pts if (p - grip).dot(hx) > 0.10]
+        bc = sum(blade, Vector()) / max(1, len(blade))
+        return grip, hz, (hc - grip).normalized(), (bc - grip).normalized(), len(blade)
+    g_a, z_a, head_a, _, _ = head_blade(axe)
+    g_b, z_b, head_b, blade_b, nb = head_blade(bear)
+    x_a = axe.matrix_world.to_3x3() @ Vector((1, 0, 0))
+    perp = (blade_b - z_a * blade_b.dot(z_a)).normalized()
+    check((g_a - g_b).length < 1e-4 and head_a.dot(head_b) > 0.999 and perp.dot(x_a) > 0.9 and nb > 0,
+          "rest: chopper_axe_bear grips like chopper_axe on Weapon_R: grip offset %.1f mm, haft direction "
+          "dot %.4f, blade (perpendicular to the haft) vs chopper_axe +X blade dot %.3f, world blade dir "
+          "(%.2f %.2f %.2f)" % (1000 * (g_a - g_b).length, head_a.dot(head_b), perp.dot(x_a), *perp))
+    rig.data.pose_position = "POSE"
     body_like = [meshes[n] for n in PARTS]
     sh_local = [v.co.copy() for v in shield.data.vertices]
     # the shield hand grip sits inside the closed left hand: allowed only against the left
@@ -518,7 +550,7 @@ def main():
     # forearm + bracer surface (left): body faces dominated by LeftLowerArm, plus the left bracer
     lfore_set = {v.index for v in body.data.vertices if dominant_group(body, v) == "LeftLowerArm"}
     fore_faces = [p.index for p in body.data.polygons if all(vi in lfore_set for vi in p.vertices)]
-    belt = meshes["chopper_belt"]
+    belt = meshes["chopper_bracers"]
     bracer_faces = [p.index for p in belt.data.polygons
                     if all(dominant_group(belt, belt.data.vertices[vi]) in ("LeftLowerArm", "LeftHand")
                            for vi in p.vertices)]
@@ -563,6 +595,9 @@ def main():
     hand_faces = {p.index for p in body.data.polygons if all(vi in hand_set for vi in p.vertices)}
     in_fist = lambda ob, fi, i: (ob == body and fi in hand_faces  # noqa: E731
                                  and -0.15 < ax_local[i].z < 0.15)
+    bear_local = [v.co.copy() for v in bear.data.vertices]
+    in_fist_b = lambda ob, fi, i: (ob == body and fi in hand_faces  # noqa: E731
+                                   and -0.15 < bear_local[i].z < 0.15)
 
     def prop_pass(label, frames, take):
         if take:
@@ -570,6 +605,7 @@ def main():
         else:
             rig.data.pose_position = "REST"
         worst_s, worst_a, cnt_s, cnt_a, axe_hand = 0.0, 0.0, 0, 0, True
+        worst_b, cnt_b = 0.0, 0
         gaps, grip_in = [], True
         for f in frames:
             sc.frame_set(f)
@@ -584,6 +620,10 @@ def main():
             c, w = penetration(ap, body_like, local=ax_local, allow=in_fist)
             cnt_a += c
             worst_a = max(worst_a, w)
+            bp = [bear.matrix_world @ c for c in bear_local]
+            c, w = penetration(bp, body_like, allow=in_fist_b)
+            cnt_b += c
+            worst_b = max(worst_b, w)
             lo_h, hi_h = hand_box(rhand)
             grip = axe.matrix_world.to_translation()
             axe_hand &= inside(grip, lo_h, hi_h)
@@ -607,6 +647,8 @@ def main():
         check(cnt_a == 0, "%s: axe clear of body and clothing outside the fist (penetrating verts %d, deepest %.1f mm)"
               % (label, cnt_a, 1000 * worst_a))
         check(axe_hand, "%s: axe grip point inside the right-hand bounds" % label)
+        check(cnt_b == 0, "%s: bear axe clear of body and clothing outside the fist (penetrating verts %d, "
+              "deepest %.1f mm)" % (label, cnt_b, 1000 * worst_b))
         for k, (z0, z1, n) in sorted(DIAG.items()):
             log("    axe contact with %s: %d vertex hits, axe local z %.3f..%.3f" % (k, n, z0, z1))
         DIAG.clear()
@@ -642,7 +684,13 @@ def main():
     log("CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)")
     layering_checks(rig, meshes)
 
+    # ---------------- beard against the chest (W6-03: the V spade hangs in front of the vest)
+    log("")
+    log("BEARD CLEARANCE (beard vertices vs vest, shirt and body)")
+    beard_clearance(rig, meshes)
+
     # ---------------- renders
+    bear.hide_render = True          # the rig review renders keep the double axe
     passing = render_all(rig, meshes, axe, shield)
     log("")
     log("RENDERS (Workbench 1024 px, from the imported FBX): %s" % ", ".join(sorted(passing)))
@@ -786,6 +834,44 @@ def layering_checks(rig, meshes):
                     worst, worst_f = w, f
             check(total == 0, "%s: %s on %d frames (surface samples outside: %d, worst %.1f mm at frame %s)"
                   % (take, label, len(frames), total, 1000 * worst, worst_f))
+
+
+def beard_clearance(rig, meshes):
+    """Signed distance of every beard vertex to the nearest vest/shirt/body face (negative =
+    inside). Required: nothing inside and at least 3 mm of air on every sampled frame."""
+    sc = bpy.context.scene
+    beard = meshes["chopper_beard"]
+    others = [meshes[n] for n in ("chopper_vest", "chopper_shirt", "chopper_body")]
+    for take, frames in (("rest", [1]), ("Idle", range(1, 62, 3)), ("Walk", range(1, 32)),
+                         ("Run (info)", range(1, 22, 2))):
+        if take == "rest":
+            rig.data.pose_position = "REST"
+        else:
+            rig.data.pose_position = "POSE"
+            set_action(rig, take.split()[0])
+        worst, worst_f, worst_o = 1e9, None, None
+        for f in frames:
+            sc.frame_set(f)
+            bp = eval_points(beard)[0]
+            for ob in others:
+                pts, polys = eval_points(ob)
+                tree = BVHTree.FromPolygons(pts, polys)
+                for p in bp:
+                    hit = tree.find_nearest(p, 0.08)
+                    if hit[0] is None:
+                        continue
+                    loc, nrm, fi, dist = hit
+                    sgn = (p - loc).dot(nrm)
+                    d = dist if sgn >= 0 or -sgn < 0.8 * dist else -dist
+                    if d < worst:
+                        worst, worst_f, worst_o = d, f, ob.name
+        rig.data.pose_position = "POSE"
+        msg = ("%s: beard clear of vest, shirt and body on %d frames (closest %.1f mm to %s at frame %s)"
+               % (take, len(frames), 1000 * worst, worst_o, worst_f))
+        if take.endswith("(info)"):
+            log("  [INFO] " + msg)
+        else:
+            check(worst >= 0.003, msg)
 
 
 # ------------------------------------------------------------------ renders

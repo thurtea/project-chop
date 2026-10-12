@@ -189,8 +189,8 @@ namespace Chopper.World
         private static Vector3 Ground(Vector2 at)
         {
             var p = new Vector3(at.x, 0f, at.y);
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain != null) p.y = terrain.SampleHeight(p) + terrain.transform.position.y;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (hasGround) p.y = Chopper.World.WorldGround.HeightAt(p);
             return p;
         }
     }

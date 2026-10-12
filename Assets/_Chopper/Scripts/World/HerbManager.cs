@@ -88,8 +88,8 @@ namespace Chopper.World
         private static void AddPositions(List<Vector3> list, int seed, int count)
         {
             var rng = new System.Random(seed ^ Chopper.World.Generation.WorldSession.Seed);
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain != null)
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (hasGround)
             {
                 int target = list.Count + count;
                 for (int tries = 0; tries < count * 40 && list.Count < target; tries++)
@@ -97,13 +97,13 @@ namespace Chopper.World
                     float angle = (float)rng.NextDouble() * Mathf.PI * 2f;
                     float radius = Mathf.Lerp(MinRadius, MaxRadius, Mathf.Sqrt((float)rng.NextDouble()));
                     var p = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-                    p.y = terrain.SampleHeight(p) + terrain.transform.position.y;
+                    p.y = Chopper.World.WorldGround.HeightAt(p);
                     if (WaterSystem.DepthAt(p, out _) > 0.05f) continue;
                     // Not on the mountains between the zones: their tops cannot be reached.
                     if (Chopper.World.Generation.WorldSession.Gen != null && Chopper.World.Generation.WorldSession.Gen.MountainWeight(p.x, p.z) > 0.2f) continue;
 
-                    float dx = terrain.SampleHeight(p + Vector3.right * 2f) - terrain.SampleHeight(p - Vector3.right * 2f);
-                    float dz = terrain.SampleHeight(p + Vector3.forward * 2f) - terrain.SampleHeight(p - Vector3.forward * 2f);
+                    float dx = Chopper.World.WorldGround.HeightAt(p + Vector3.right * 2f) - Chopper.World.WorldGround.HeightAt(p - Vector3.right * 2f);
+                    float dz = Chopper.World.WorldGround.HeightAt(p + Vector3.forward * 2f) - Chopper.World.WorldGround.HeightAt(p - Vector3.forward * 2f);
                     if (Mathf.Atan(Mathf.Sqrt(dx * dx + dz * dz) / 4f) * Mathf.Rad2Deg > MaxSlopeDegrees) continue;
                     list.Add(p);
                 }

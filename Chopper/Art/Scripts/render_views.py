@@ -18,7 +18,7 @@ PROPS = os.path.join(ART, "Blender", "chopper_props.blend")
 OUT = os.path.join(ART, "Renders")
 
 CHAR_PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-              "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots"]
+              "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots"]
 
 
 def setup_scene(scene):

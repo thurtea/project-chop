@@ -177,8 +177,8 @@ namespace Chopper.Enemies
             float angle = (float)_rng.NextDouble() * Mathf.PI * 2f;
             float distance = Mathf.Lerp(DropMinRadius, Mathf.Max(DropMinRadius, radius), (float)_rng.NextDouble());
             Vector3 p = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance;
-            Terrain terrain = Terrain.activeTerrain;
-            p.y = terrain != null ? terrain.SampleHeight(p) + terrain.transform.position.y : center.y;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            p.y = hasGround ? Chopper.World.WorldGround.HeightAt(p) : center.y;
             return p;
         }
 
@@ -224,10 +224,10 @@ namespace Chopper.Enemies
             Vector3 flat = toward - source;
             flat.y = 0f;
             Vector3 position = source + (flat.sqrMagnitude > 0.01f ? flat.normalized * Mathf.Min(DropHop, flat.magnitude * 0.5f) : Vector3.zero);
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain != null && !Chopper.World.Generation.CryptWorld.IsUnderground(position))
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (hasGround && !Chopper.World.Generation.CryptWorld.IsUnderground(position))
             {
-                position.y = terrain.SampleHeight(position) + terrain.transform.position.y;
+                position.y = Chopper.World.WorldGround.HeightAt(position);
             }
             NetworkObject nob = NetworkManager.GetPooledInstantiated(_groundItemPrefab, position, Quaternion.identity, true);
             nob.GetComponent<Chopper.World.GroundItem>().ServerSetup(kind, amount, source + Vector3.up * 0.4f);
@@ -240,11 +240,11 @@ namespace Chopper.Enemies
         public void ServerDropWood(Vector3 position, int amount)
         {
             if (_woodPilePrefab == null || amount <= 0) return;
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             // On the land the pile settles on the ground; in a crypt it stays on the floor where the player fell.
-            if (terrain != null && !Chopper.World.Generation.CryptWorld.IsUnderground(position))
+            if (hasGround && !Chopper.World.Generation.CryptWorld.IsUnderground(position))
             {
-                position.y = terrain.SampleHeight(position) + terrain.transform.position.y;
+                position.y = Chopper.World.WorldGround.HeightAt(position);
             }
             NetworkObject nob = NetworkManager.GetPooledInstantiated(_woodPilePrefab, position, Quaternion.Euler(0f, (float)_rng.NextDouble() * 360f, 0f), true);
             nob.GetComponent<Chopper.World.WoodPile>().ServerSetAmount(amount);
@@ -283,8 +283,8 @@ namespace Chopper.Enemies
         public Treant ServerWakeWarden(Vector3 position, Element element)
         {
             if (Warden != null) return null;
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain != null) position.y = terrain.SampleHeight(position) + terrain.transform.position.y;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (hasGround) position.y = Chopper.World.WorldGround.HeightAt(position);
             Treant warden = ServerSpawn(element, TreeSize.Large, true, position);
             float health = ZoneBossRules.Health(_config.WardenHealth, _config.WardenHealthPerExtraPlayer, PlayerCount);
             warden.ServerMakeWarden(position, _config.WardenLeashRadius, health);
@@ -302,12 +302,12 @@ namespace Chopper.Enemies
             if (warden != Warden) return;
             int count = ZoneBossRules.GuardsFor(phase, PlayerCount);
             TreeSize size = phase >= 3 ? TreeSize.Small : TreeSize.Medium;
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             for (int i = 0; i < count; i++)
             {
                 float angle = (i + (float)_rng.NextDouble() * 0.5f) / count * Mathf.PI * 2f;
                 Vector3 at = warden.transform.position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 6f;
-                if (terrain != null) at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+                if (hasGround) at.y = Chopper.World.WorldGround.HeightAt(at);
                 Treant guard = ServerSpawn(warden.Element, size, false, at);
                 guard.ServerLeash(warden.Home, warden.LeashRadius);
                 if (guard.ServerActivate()) _wardenGuards.Add(guard);

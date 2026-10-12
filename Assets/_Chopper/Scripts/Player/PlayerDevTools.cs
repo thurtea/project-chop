@@ -175,8 +175,8 @@ namespace Chopper.Player
                 float angle = Random.value * Mathf.PI * 2f;
                 float distance = Random.Range(SpawnRingMin, SpawnRingMax);
                 Vector3 p = transform.position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * distance;
-                Terrain terrain = Terrain.activeTerrain;
-                if (terrain != null) p.y = terrain.SampleHeight(p) + terrain.transform.position.y;
+                bool hasGround = Chopper.World.WorldGround.Exists;
+                if (hasGround) p.y = Chopper.World.WorldGround.HeightAt(p);
 
                 Element element = (Element)Random.Range(0, 5);
                 TreeSize size = (TreeSize)Random.Range(0, 3);

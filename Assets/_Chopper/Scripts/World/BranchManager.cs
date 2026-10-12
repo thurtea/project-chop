@@ -67,8 +67,8 @@ namespace Chopper.World
             var list = new List<Vector3>();
             // Each world drops its branches in its own places.
             var rng = new System.Random(Seed ^ Chopper.World.Generation.WorldSession.Seed);
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain != null)
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            if (hasGround)
             {
                 for (int tries = 0; tries < Count * 40 && list.Count < Count; tries++)
                 {
@@ -92,12 +92,12 @@ namespace Chopper.World
                         radius = Mathf.Lerp(MinRadius, MaxRadius, Mathf.Sqrt((float)rng.NextDouble()));
                     }
                     var p = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-                    p.y = terrain.SampleHeight(p) + terrain.transform.position.y;
+                    p.y = Chopper.World.WorldGround.HeightAt(p);
                     if (WaterSystem.DepthAt(p, out _) > 0.02f) continue;
                     // Not on the mountains between the zones: their tops cannot be reached.
                     if (Chopper.World.Generation.WorldSession.Gen != null && Chopper.World.Generation.WorldSession.Gen.MountainWeight(p.x, p.z) > 0.2f) continue;
-                    float dx = terrain.SampleHeight(p + Vector3.right * 1.5f) - terrain.SampleHeight(p - Vector3.right * 1.5f);
-                    float dz = terrain.SampleHeight(p + Vector3.forward * 1.5f) - terrain.SampleHeight(p - Vector3.forward * 1.5f);
+                    float dx = Chopper.World.WorldGround.HeightAt(p + Vector3.right * 1.5f) - Chopper.World.WorldGround.HeightAt(p - Vector3.right * 1.5f);
+                    float dz = Chopper.World.WorldGround.HeightAt(p + Vector3.forward * 1.5f) - Chopper.World.WorldGround.HeightAt(p - Vector3.forward * 1.5f);
                     if (Mathf.Atan(Mathf.Sqrt(dx * dx + dz * dz) / 3f) * Mathf.Rad2Deg > MaxSlopeDegrees) continue;
                     list.Add(p);
                 }
@@ -115,15 +115,13 @@ namespace Chopper.World
 
             _meshes = new Mesh[4];
             for (int m = 0; m < _meshes.Length; m++) _meshes[m] = BuildBranchMesh(Seed + m);
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             for (int i = 0; i < _positions.Length; i++)
             {
                 var view = new GameObject("Branch_" + i);
                 view.transform.SetParent(root, false);
                 // Lie along the slope so the stick does not float on hillsides.
-                Vector3 normal = terrain != null ? terrain.terrainData.GetInterpolatedNormal(
-                    (_positions[i].x - terrain.transform.position.x) / terrain.terrainData.size.x,
-                    (_positions[i].z - terrain.transform.position.z) / terrain.terrainData.size.z) : Vector3.up;
+                Vector3 normal = hasGround ? WorldGround.NormalAt(_positions[i]) : Vector3.up;
                 Quaternion tilt = Quaternion.FromToRotation(Vector3.up, normal);
                 view.transform.SetPositionAndRotation(_positions[i], tilt * Quaternion.Euler(0f, (i * 137) % 360, 0f));
                 view.AddComponent<MeshFilter>().sharedMesh = _meshes[i % _meshes.Length];

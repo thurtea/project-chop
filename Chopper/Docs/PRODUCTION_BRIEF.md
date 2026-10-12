@@ -1,6 +1,6 @@
 # Chopper character and props: production brief
 
-Status: v1, 2026-10-11. Owner: manager. Branch: `rebuild/chopper-assets`.
+Status: v1, 2026-10-11. Owner: manager. Branch: `main`.
 
 ## Concept sources
 

@@ -50,18 +50,13 @@ namespace Chopper.UI
         // Paints the base map. Returns false if there is no terrain yet.
         public bool Build(GameConfig config)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return false;
+            HeightSnapshot snap = WorldGround.Snapshot();
+            if (snap == null) return false;
 
-            TerrainData data = terrain.terrainData;
-            Vector2 min = new Vector2(terrain.transform.position.x, terrain.transform.position.z);
-            float size = data.size.x;
+            Vector2 min = snap.Min;
+            float size = snap.Size;
             Min = min;
             Size = size;
-            float baseY = terrain.transform.position.y;
-            float heightScale = data.size.y;
-            int hmRes = data.heightmapResolution;
-            float[,] heightmap = data.GetHeights(0, 0, hmRes, hmRes);
             Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
             float hubRadius = config.HubRadius;
             float cell = size / Resolution;
@@ -81,18 +76,7 @@ namespace Chopper.UI
                 waterY[i] = water.SurfaceY;
             }
 
-            float HeightAt(float wx, float wz)
-            {
-                float u = Mathf.Clamp01((wx - min.x) / size) * (hmRes - 1);
-                float v = Mathf.Clamp01((wz - min.y) / size) * (hmRes - 1);
-                int x0 = Mathf.Min((int)u, hmRes - 2);
-                int z0 = Mathf.Min((int)v, hmRes - 2);
-                float fx = u - x0;
-                float fz = v - z0;
-                float a = Mathf.Lerp(heightmap[z0, x0], heightmap[z0, x0 + 1], fx);
-                float b = Mathf.Lerp(heightmap[z0 + 1, x0], heightmap[z0 + 1, x0 + 1], fx);
-                return Mathf.Lerp(a, b, fz) * heightScale + baseY;
-            }
+            float HeightAt(float wx, float wz) => snap.HeightAt(wx, wz);
 
             float DepthAt(float wx, float wz, float ground)
             {

@@ -1,4 +1,5 @@
-"""Export chopper.fbx (rig + skinned modules + takes), chopper_axe.fbx, chopper_shield.fbx.
+"""Export chopper.fbx (rig + skinned modules + takes), chopper_axe.fbx, chopper_axe_bear.fbx,
+chopper_shield.fbx.
 
 Run:  blender -b -P export_fbx.py
 In:   Art/Blender/chopper_rigged.blend, Art/Blender/chopper_props.blend (read only)
@@ -23,7 +24,8 @@ PROPS = os.path.join(ART, "Blender", "chopper_props.blend")
 EXPORT = os.path.join(ART, "Export")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
-         "chopper_vest", "chopper_belt", "chopper_chainmail", "chopper_boots", "chopper_helmet",
+         "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots",
+         "chopper_helmet",
          "chopper_plate", "chopper_pauldrons"]
 
 COMMON = dict(
@@ -104,7 +106,7 @@ def main():
     print("exported", out, os.path.getsize(out), "bytes")
 
     bpy.ops.wm.open_mainfile(filepath=PROPS)
-    for name in ("chopper_axe", "chopper_shield"):
+    for name in ("chopper_axe", "chopper_axe_bear", "chopper_shield"):
         select_only([name])
         out = os.path.join(EXPORT, name + ".fbx")
         bpy.ops.export_scene.fbx(filepath=out, **PROP_SETTINGS)

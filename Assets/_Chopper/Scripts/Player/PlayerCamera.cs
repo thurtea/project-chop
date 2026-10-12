@@ -223,11 +223,11 @@ namespace Chopper.Player
             float distance = Mathf.Min(_distance, _collisionDistance);
             Vector3 position = pivot + backward * distance;
 
-            Terrain terrain = Terrain.activeTerrain;
+            bool hasGround = Chopper.World.WorldGround.Exists;
             // Inside a crypt the land is far overhead; the walls and ceiling stop the camera instead.
-            if (terrain != null && !Chopper.World.Generation.CryptWorld.IsUnderground(_smoothedPivot))
+            if (hasGround && !Chopper.World.Generation.CryptWorld.IsUnderground(_smoothedPivot))
             {
-                float minY = terrain.SampleHeight(position) + terrain.transform.position.y + MinHeightAboveTerrain;
+                float minY = Chopper.World.WorldGround.HeightAt(position) + MinHeightAboveTerrain;
                 if (position.y < minY) position.y = minY;
                 // Nobody dives, so the camera never goes under the water either: looking up while swimming swung it
                 // below the surface, where the pond turned into a grey wall.

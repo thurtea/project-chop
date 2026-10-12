@@ -156,8 +156,8 @@ namespace Chopper.World.Generation
 
         private void PlaceCampfire(Transform root, Vector2 at)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            float y = terrain != null ? terrain.SampleHeight(new Vector3(at.x, 0f, at.y)) + terrain.transform.position.y : 0f;
+            bool hasGround = Chopper.World.WorldGround.Exists;
+            float y = hasGround ? Chopper.World.WorldGround.HeightAt(new Vector3(at.x, 0f, at.y)) : 0f;
             Instantiate(_assets.Campfire, new Vector3(at.x, y, at.y), Quaternion.Euler(0f, at.x * 37f % 360f, 0f), root);
         }
 

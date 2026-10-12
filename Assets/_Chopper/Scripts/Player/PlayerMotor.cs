@@ -389,18 +389,12 @@ namespace Chopper.Player
         private bool OnSteepGround(out Vector3 downhill)
         {
             downhill = Vector3.zero;
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return false;
-            Vector3 local = transform.position - terrain.transform.position;
-            TerrainData data = terrain.terrainData;
-            float u = local.x / data.size.x;
-            float v = local.z / data.size.z;
-            if (u < 0f || u > 1f || v < 0f || v > 1f) return false;
-            // Only on the terrain itself: above it (on a rock or a log) or below it (in a crypt) there is no slope.
-            float ground = terrain.SampleHeight(transform.position) + terrain.transform.position.y;
+            if (!WorldGround.Exists || !WorldGround.Covers(transform.position)) return false;
+            // Only on the ground itself: above it (on a rock or a log) or below it (in a crypt) there is no slope.
+            float ground = WorldGround.HeightAt(transform.position);
             if (Mathf.Abs(transform.position.y - ground) > SteepProbeLength) return false;
-            if (data.GetSteepness(u, v) <= _controller.slopeLimit + 2f) return false;
-            Vector3 normal = data.GetInterpolatedNormal(u, v);
+            if (WorldGround.SteepnessAt(transform.position) <= _controller.slopeLimit + 2f) return false;
+            Vector3 normal = WorldGround.NormalAt(transform.position);
             downhill = new Vector3(normal.x, 0f, normal.z).normalized;
             return downhill != Vector3.zero;
         }
@@ -450,11 +444,10 @@ namespace Chopper.Player
             _verticalVelocity = 0f;
             _horizontalVelocity = Vector3.zero;
             Vector3 position = transform.position;
-            Terrain terrain = Terrain.activeTerrain;
             // Underground (the crypts) the land is far overhead, so only lift the player out of the hill above ground.
-            if (terrain != null && !Chopper.World.Generation.CryptWorld.IsUnderground(position))
+            if (WorldGround.Exists && !Chopper.World.Generation.CryptWorld.IsUnderground(position))
             {
-                float ground = terrain.SampleHeight(position) + terrain.transform.position.y + LandingClearance;
+                float ground = WorldGround.HeightAt(position) + LandingClearance;
                 if (position.y < ground) transform.position = new Vector3(position.x, ground, position.z);
             }
             _controller.enabled = true;
