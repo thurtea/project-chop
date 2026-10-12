@@ -48,30 +48,22 @@ namespace Chopper.World.Generation
             var gen = new WorldGen(seed, _config != null ? _config.HubRadius : 110f);
             bool graphics = SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null;
 
-            var heights = new float[WorldGen.HeightmapResolution, WorldGen.HeightmapResolution];
-            Parallel.For(0, WorldGen.HeightmapResolution, zi => gen.FillHeightRow(zi, heights));
-            float[,,] alpha = null;
             Color32[] grass = null;
-            // A server without a screen (headless smoke tests, a future dedicated server) needs no paint or grass.
+            // A server without a screen (headless smoke tests, a future dedicated server) needs no grass.
+            // W5-08 step 13: the Unity Terrain is gone. The block columns are the only ground.
             if (graphics)
             {
-                alpha = new float[WorldGen.AlphamapResolution, WorldGen.AlphamapResolution, WorldGen.LayerCount];
-                Parallel.For(0, WorldGen.AlphamapResolution, zi => gen.FillAlphaRow(zi, alpha));
                 grass = new Color32[WorldGen.GrassMapResolution * WorldGen.GrassMapResolution];
                 Parallel.For(0, WorldGen.GrassMapResolution, zi => gen.FillGrassRow(zi, grass));
             }
             long fields = total.ElapsedMilliseconds;
 
-            Terrain terrain = BuildTerrain(heights, alpha);
-            // W5-08 step 5: the block columns are the ground on every peer (a headless server too, for its NavMesh
-            // and the players it moves). Built before anything below asks WorldGround for a height.
             var columns = Chopper.World.Voxel.VoxelColumns.Build(gen);
             Chopper.World.Voxel.VoxelColumns.Current = columns;
             var chunkWatch = Stopwatch.StartNew();
-            int blockTris = Chopper.World.Voxel.VoxelWorld.Present(columns, transform, terrain, graphics);
+            int blockTris = Chopper.World.Voxel.VoxelWorld.Present(columns, transform, null, graphics);
             Debug.Log($"[Voxel] CRC {columns.Crc:X8} triangles {blockTris} columns in {columns.BuildMilliseconds} ms, " +
-                      $"chunks and colliders in {chunkWatch.ElapsedMilliseconds} ms. " +
-                      (blockTris > 0 ? "Block colliders are the ground, Terrain collider off." : "No blocks, Terrain kept."));
+                      $"chunks and colliders in {chunkWatch.ElapsedMilliseconds} ms. No Terrain.");
             BuildWater(gen);
             if (graphics) Chopper.World.BlockSky.Build(transform);
             BuildBoundary();
@@ -180,39 +172,6 @@ namespace Chopper.World.Generation
             bool hasGround = Chopper.World.WorldGround.Exists;
             float y = hasGround ? Chopper.World.WorldGround.HeightAt(new Vector3(at.x, 0f, at.y)) : 0f;
             Instantiate(_assets.Campfire, new Vector3(at.x, y, at.y), Quaternion.Euler(0f, at.x * 37f % 360f, 0f), root);
-        }
-
-        // ---------- Terrain ----------
-
-        private Terrain BuildTerrain(float[,] heights, float[,,] alpha)
-        {
-            var data = new TerrainData
-            {
-                heightmapResolution = WorldGen.HeightmapResolution,
-                alphamapResolution = WorldGen.AlphamapResolution,
-                size = new Vector3(WorldGen.TerrainSize, WorldGen.TerrainMaxHeight, WorldGen.TerrainSize)
-            };
-            data.SetHeights(0, 0, heights);
-            if (alpha != null && _assets.TerrainLayers != null && _assets.TerrainLayers.Length == WorldGen.LayerCount)
-            {
-                data.terrainLayers = _assets.TerrainLayers;
-                data.SetAlphamaps(0, 0, alpha);
-            }
-
-            GameObject go = Terrain.CreateTerrainGameObject(data);
-            go.name = "Terrain";
-            go.transform.SetParent(transform, false);
-            go.transform.position = new Vector3(-WorldGen.HalfSize, WorldGen.TerrainBaseY, -WorldGen.HalfSize);
-            var terrain = go.GetComponent<Terrain>();
-            terrain.reflectionProbeUsage = ReflectionProbeUsage.Off;
-            if (_assets.TerrainMaterial != null) terrain.materialTemplate = _assets.TerrainMaterial;
-            // Hills must not shadow the valleys: at a low sun that left whole forests as dark slabs.
-            terrain.shadowCastingMode = ShadowCastingMode.Off;
-            // A finer level of detail than the default 5, so distant ledges and gullies keep their shape (2 cost too much
-            // in the hub, where the whole mountain ring is in view).
-            terrain.heightmapPixelError = 3f;
-            go.isStatic = true;
-            return terrain;
         }
 
         // ---------- Water ----------

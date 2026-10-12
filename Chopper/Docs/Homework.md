@@ -61,7 +61,7 @@ Close the Unity editor, then run these in order and paste each printed line set:
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 blender                  # expect: check_assets SUMMARY 137 PASS, 0 FAIL; check_rig SUMMARY ... 0 FAIL (new Gather take)
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 player                   # expect: Exiting batchmode successfully now!
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 unity VoxelChecks.ZoneSeal   # expect: [ZoneSeal] RESULT PASS (the ring now has peaks)
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode                 # expect: EditMode: Passed - total 294, passed 294, failed 0
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode                 # expect: EditMode: Passed - total 295, passed 295, failed 0
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build                    # expect: error CS lines: 0 and Build Finished, Result: Success
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Mine                # expect: [Mine] RESULT PASS (out by the ladder)
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour House               # expect: [House] RESULT PASS, and three "[House] nav" lines each saying PathComplete
@@ -70,7 +70,7 @@ pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour House               #
 
 ### HW-8 Minimap and ring peaks (look)
 In the new build, open the map (M) and walk to the hub's edge.
-- Look for: the map shows the block terraces (stepped shading), grey stone and white snow on the mountains, sand at the water; from the hub, the mountain ring has separate stepped peaks with snow tops instead of one even wall.
+- Look for: the map shows the block terraces (stepped shading), grey stone and white snow on the mountains, sand at the water; from the hub, the mountain ring has separate stepped peaks with snow tops instead of one even wall. Out past the beach, eight separate peaks stand in the sea (two per forest), stone with snow tops, not one more wall.
 - Report: PASS or FAIL, and a screenshot path for each.
 
 ### HW-9 Gather motion (look)

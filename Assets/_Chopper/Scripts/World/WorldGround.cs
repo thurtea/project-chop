@@ -2,25 +2,19 @@ using UnityEngine;
 
 namespace Chopper.World
 {
-    // The one place gameplay asks "where is the ground here?" (W5-08 step 1). Every height, normal and steepness query
-    // goes through this facade instead of Terrain.activeTerrain, so the land underneath can change from the Unity
-    // Terrain to the block world (W5-08 step 5) without touching the callers. For now it reads the Terrain exactly the
-    // way the callers did (SampleHeight plus the terrain's base, the terrain's own smoothed normal and steepness).
-    // Step 5: heights come from the block columns (the top of the block the position stands over), because the chunk
-    // colliders are what players walk on now. Normal, steepness and the map snapshot still read the smooth Terrain:
-    // they describe the hill, and every block top would say "flat".
+    // The one place gameplay asks "where is the ground here?" (W5-08). Heights, normals and the map square come
+    // from the block columns. The Unity Terrain object is gone (step 13).
     public static class WorldGround
     {
         // True once the world's land has been built.
-        public static bool Exists => Voxel.VoxelColumns.Current != null || Terrain.activeTerrain != null;
+        public static bool Exists => Voxel.VoxelColumns.Current != null;
 
         // Height of the ground (world Y) under a position, or the position's own Y if there is no land yet.
         public static float HeightAt(Vector3 position)
         {
             Voxel.VoxelColumns columns = Voxel.VoxelColumns.Current;
             if (columns != null && columns.TryTopAt(position.x, position.z, out float top)) return top;
-            Terrain terrain = Terrain.activeTerrain;
-            return terrain != null ? terrain.SampleHeight(position) + terrain.transform.position.y : position.y;
+            return position.y;
         }
 
         public static float HeightAt(float x, float z) => HeightAt(new Vector3(x, 0f, z));
@@ -46,50 +40,38 @@ namespace Chopper.World
             return highest >= lowest;
         }
 
-        // True when a position lies over the land (inside its square), not out past its edge.
+        // True when a position lies over the block table, not out past its edge.
         public static bool Covers(Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return false;
-            Vector2 uv = UV(terrain, position);
-            return uv.x >= 0f && uv.x <= 1f && uv.y >= 0f && uv.y <= 1f;
+            Voxel.VoxelColumns columns = Voxel.VoxelColumns.Current;
+            return columns != null && columns.TryTopAt(position.x, position.z, out _);
         }
 
-        // The ground's smoothed up direction under a position (straight up off the land or before it exists).
+        // Up direction from the block tops one metre either side (straight up off the land or on a flat top).
         public static Vector3 NormalAt(Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return Vector3.up;
-            Vector2 uv = UV(terrain, position);
-            return terrain.terrainData.GetInterpolatedNormal(uv.x, uv.y);
+            if (Voxel.VoxelColumns.Current == null) return Vector3.up;
+            float h = HeightAt(position);
+            float dx = HeightAt(position + Vector3.right) - h;
+            float dz = HeightAt(position + Vector3.forward) - h;
+            Vector3 normal = new Vector3(-dx, 1f, -dz);
+            return normal.sqrMagnitude > 0.01f ? normal.normalized : Vector3.up;
         }
 
-        // The ground's smoothed steepness under a position, in degrees (0 off the land).
+        // Steepness under a position, in degrees (0 off the land).
         public static float SteepnessAt(Vector3 position)
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return 0f;
-            Vector2 uv = UV(terrain, position);
-            return terrain.terrainData.GetSteepness(uv.x, uv.y);
+            if (Voxel.VoxelColumns.Current == null) return 0f;
+            return Mathf.Acos(Mathf.Clamp(NormalAt(position).y, -1f, 1f)) * Mathf.Rad2Deg;
         }
 
-        // A copy of the land's heights that worker threads may read (the minimap paints its rows in parallel).
+        // The map's square. Heights are read from the columns, not from a stored heightmap.
         public static HeightSnapshot Snapshot()
         {
-            Terrain terrain = Terrain.activeTerrain;
-            if (terrain == null) return null;
-            TerrainData data = terrain.terrainData;
-            int res = data.heightmapResolution;
-            return new HeightSnapshot(data.GetHeights(0, 0, res, res), res,
-                new Vector2(terrain.transform.position.x, terrain.transform.position.z), data.size.x,
-                terrain.transform.position.y, data.size.y);
-        }
-
-        private static Vector2 UV(Terrain terrain, Vector3 position)
-        {
-            Vector3 local = position - terrain.transform.position;
-            Vector3 size = terrain.terrainData.size;
-            return new Vector2(local.x / size.x, local.z / size.z);
+            if (Voxel.VoxelColumns.Current == null) return null;
+            return new HeightSnapshot(null, 2,
+                new Vector2(-Generation.WorldGen.HalfSize, -Generation.WorldGen.HalfSize), Generation.WorldGen.TerrainSize,
+                0f, 1f);
         }
     }
 
@@ -116,6 +98,7 @@ namespace Chopper.World
 
         public float HeightAt(float wx, float wz)
         {
+            if (_heights == null) return 0f;
             float u = Mathf.Clamp01((wx - Min.x) / Size) * (_res - 1);
             float v = Mathf.Clamp01((wz - Min.y) / Size) * (_res - 1);
             int x0 = Mathf.Min((int)u, _res - 2);

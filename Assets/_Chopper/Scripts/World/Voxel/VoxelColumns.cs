@@ -81,7 +81,8 @@ namespace Chopper.World.Voxel
             float radius = Mathf.Sqrt(x * x + z * z);
             if (height < WorldGen.WaterHeight + 0.25f) return BlockType.Sand;
             if (radius > WorldGen.BeachStartRadius && radius < WorldGen.CoastEndRadius && height < 1.2f) return BlockType.Sand;
-            if (gen.MountainWeight(x, z) > 0.35f) return height > WorldGen.SnowLine ? BlockType.Snow : BlockType.Stone;
+            if (gen.MountainWeight(x, z) > 0.35f || gen.BackdropWeight(x, z) > 0.45f)
+                return height > WorldGen.SnowLine ? BlockType.Snow : BlockType.Stone;
             if (gen.PathWeight(x, z) > 0.6f || WorldGen.TerraceStairs(x, z)) return BlockType.Path;
             return BlockType.Grass;
         }

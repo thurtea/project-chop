@@ -104,6 +104,11 @@ namespace Chopper.World.Generation
         public const float MountainStep = 4.5f;
         // Peaks on the ring crest rise up to this much above it (two risers), most of them less.
         public const float RingPeakHeight = 9f;
+        // Separate peaks standing in the sea past the beach, two per forest, off the ridges and off the
+        // 30-degree samples TheEdgeOfTheWorldIsUnderTheSea checks at radius 305.
+        public const int BackdropPeaks = 8;
+        public const float BackdropInnerRadius = 270f;
+        public const float BackdropOuterRadius = 286f;
         // Block tops above this are snow: only the ridge tops (up to 27 m); the 18 m ring crest stays stone (concept 2.0 caps the tips).
         public const float SnowLine = 22f;
         // How much of the wall follows the ledges (the rest stays the plain slope, so ledges tilt a little).
@@ -361,6 +366,56 @@ namespace Chopper.World.Generation
             // two neighbouring columns differ by the ground's own half-block wobble (a shelf) or by a full riser that
             // a double jump plus the step cannot clear (VoxelChecks.ZoneSeal). Stacked blocks, as in concept 2.0.
             return Mathf.Round((wall + crag - gully + crest + rubble) / MountainStep) * MountainStep;
+        }
+
+        // Center of one backdrop peak. Even indexes sit on the inner ring, odd indexes on the outer.
+        public static void BackdropCenter(int index, out float x, out float z)
+        {
+            float angle = (22.5f + index * 45f) * Mathf.Deg2Rad;
+            float radius = index % 2 == 0 ? BackdropInnerRadius : BackdropOuterRadius;
+            x = Mathf.Cos(angle) * radius;
+            z = Mathf.Sin(angle) * radius;
+        }
+
+        // 1 at a backdrop peak's middle, 0 off its foot. The minimap paints those columns as stone and snow.
+        public float BackdropWeight(float x, float z)
+        {
+            float r = Mathf.Sqrt(x * x + z * z);
+            if (r < BackdropInnerRadius - 20f || r > BackdropOuterRadius + 16f) return 0f;
+            float best = 0f;
+            for (int i = 0; i < BackdropPeaks; i++)
+            {
+                BackdropCenter(i, out float cx, out float cz);
+                float dx = x - cx;
+                float dz = z - cz;
+                float foot = i % 2 == 0 ? 16f : 12f;
+                float d = Mathf.Sqrt(dx * dx + dz * dz);
+                if (d >= foot) continue;
+                float t = 1f - d / foot;
+                if (t > best) best = t;
+            }
+            return best;
+        }
+
+        // Added on top of the sea floor, in mountain risers, so each peak is a stack of blocks with a snow cap.
+        private float BackdropHeight(float x, float z, float r)
+        {
+            if (r < BackdropInnerRadius - 20f || r > BackdropOuterRadius + 16f) return 0f;
+            float best = 0f;
+            for (int i = 0; i < BackdropPeaks; i++)
+            {
+                BackdropCenter(i, out float cx, out float cz);
+                float dx = x - cx;
+                float dz = z - cz;
+                float foot = i % 2 == 0 ? 16f : 12f;
+                float d = Mathf.Sqrt(dx * dx + dz * dz);
+                if (d >= foot) continue;
+                float t = 1f - d / foot;
+                float peak = (i % 2 == 0 ? 45f : 36f) * t * t;
+                if (peak > best) best = peak;
+            }
+            if (best <= 0f) return 0f;
+            return Mathf.Round(best / MountainStep) * MountainStep;
         }
 
         // Shifts a 0 to 1 wall profile by up to offset in the middle of the wall, never at its foot or crest.
@@ -791,6 +846,8 @@ namespace Chopper.World.Generation
             height = Mathf.Lerp(height, SeaFloorHeight, Smooth(CoastStartRadius, CoastEndRadius, r));
             // After the coast, so the ridges run on into the sea and nobody swims round them.
             height += MountainHeight(x, z, r);
+            // After the coast as well: the sea would otherwise flatten the backdrop peaks.
+            height += BackdropHeight(x, z, r);
             height += MoundHeight * (1f - Smooth(MoundFlatRadius, MoundEndRadius, r));
             height += TerraceRaise(x, z);
             // Each mine's notch: the slope cut back to a flat pad for the portal and the ground in front of it.

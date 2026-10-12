@@ -47,7 +47,12 @@ namespace Chopper.World.Saving
             {
                 if (!File.Exists(path)) return null;
                 WorldSave save = JsonUtility.FromJson<WorldSave>(File.ReadAllText(path));
-                return save != null && save.Version >= 1 ? save : null;
+                if (save == null || save.Version < WorldSave.CurrentVersion)
+                {
+                    if (save != null) Debug.Log($"[Save] {path} is version {save.Version}; the game wants {WorldSave.CurrentVersion}. Left unloaded.");
+                    return null;
+                }
+                return save;
             }
             catch (Exception e)
             {

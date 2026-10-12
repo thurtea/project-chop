@@ -95,6 +95,20 @@ namespace Chopper.Tests.EditMode
         }
 
         [Test]
+        public void BackdropPeaksStandInTheSea()
+        {
+            var gen = new WorldGen(31, HubRadius);
+            for (int i = 0; i < WorldGen.BackdropPeaks; i++)
+            {
+                WorldGen.BackdropCenter(i, out float x, out float z);
+                float radius = Mathf.Sqrt(x * x + z * z);
+                Assert.Greater(radius, WorldGen.BeachEndRadius, $"backdrop peak {i} is still on the island");
+                Assert.Greater(gen.HeightAt(x, z), WorldGen.SnowLine, $"backdrop peak {i} has no snow cap");
+                Assert.Greater(gen.BackdropWeight(x, z), 0.9f, $"backdrop peak {i} is not at its own center");
+            }
+        }
+
+        [Test]
         public void TheEdgeOfTheWorldIsUnderTheSea()
         {
             var gen = new WorldGen(31, HubRadius);

@@ -10,7 +10,8 @@ namespace Chopper.World.Saving
     [Serializable]
     public class WorldSave
     {
-        public const int CurrentVersion = 1;
+        // 2: the Unity Terrain is gone and the ground is the block columns (W5-08 step 13). Older files are not loaded.
+        public const int CurrentVersion = 2;
 
         public int Version = CurrentVersion;
         public string Name = "World";

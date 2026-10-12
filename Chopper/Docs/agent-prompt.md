@@ -32,23 +32,19 @@ Project: Chopper, a live Unity game (repo root) plus the Chopper art project (Ch
 Audience: a solo developer. Art must read clearly at third-person gameplay distance.
 Look: concept 2.0 for everything (Minecraft shapes, Valheim-style light and motion). The movement is blocky, with no ragdoll and no motion capture on the base layer.
 
-Already done, do not redo (proof in TASKBOARD.md):
-- Character pipeline (Chopper/Art/Scripts): build_chopper, build_props, uv_atlas, rig_chopper, animate_chopper, export_fbx, check_assets (137 PASS), check_rig (207 PASS). Concept 2.0 armour: skull helmet with stepped bone horns, blocky beard, scale-row chainmail (W8-14). Own takes for every base-layer state, three axe chops, and the fishing takes FishWait, FishCast, FishFight and FishCatch (W8-15). The fishing rod sits on AxeGrip along HeldItemFrame.Head. Gathering is still a library clip.
-- Live player: starts unarmoured; a boss tree's armour kit adds the helmet, chainmail, bracers and shield. Double jump; stepOffset 0.65; no sliding on block tops; swimmers climb out onto banks.
-- Hub house: an 18 m x 12 m hall restyled to the concept hut (posts on stone, plank-course roof, crossed gable ends, ridge dormer, cross-gable porch). Floors, stairs and basement walls show inside (Hut.DressCabin).
-- Block world (W5-08 steps 1-10): chunk colliders on every peer; the Terrain collider is off; WorldGround reads the block tops; trees and rocks sit on block tops; the NavMesh is baked from the chunks; water at -0.75 (halfway between block tops); mountains in 4.5 m risers (ring 20 m, ridges 28 m), sealed (VoxelChecks.ZoneSeal); building on block tops with the half-block footprint rule; grass lip colour fixed (sRGB).
-- Herb, campfire piece and held torch are voxel; the sky has block clouds and a block sun; the water is flat concept blue.
+Already done, do not redo (proof in TASKBOARD.md). Written in code and waiting on the report card counts as done for building; do not rewrite it:
+- Character pipeline through W8-15. Gathering has its own Gather take (W8-16), wired, unproven in play (HW-9).
+- Live player: unarmoured start, armour kit from boss trees, double jump, stepOffset 0.65, no sliding on block tops.
+- Hub house dressed (Hut.DressCabin). Enemy paths out: KeepOut is off, stair obstacles are off, each flight has a NavMeshLink (W8-17). House tour must log PathComplete from basement, main floor and loft (HW-7).
+- Block world through W5-08 step 12 (minimap from columns) and the ring peaks. Backdrop: eight separate snow-capped peaks in the sea (WorldGen.BackdropHeight). Step 13: no Unity Terrain object; WorldGround reads only the columns; saves are version 2 and older files stay unloaded.
+- W9-01 arrival drop and W9-02 death drops the axe and outfit. W9-03: no building in the hub (PlaceResult.HubProtected) unless BuildManager.DebugAllowHubBuilding. The mine ladder prompt already prefers the ladder; the old "spent vein" shot was the tour teleport.
 - Playtest guide: Chopper/Docs/playtest-windows.md.
 
 Still open, in this order:
-1. Whatever the report card says (HW-1 to HW-6, after the user's playtest).
-2. Mine ladder exit: the interact prompt picks the spent vein beside the exit spot instead of the ladder (step9_mine_shots/mine_ladder_prompt.png).
-3. An enemy woken inside the hall has only a partial path out (the door is not linked on the NavMesh).
-4. Gathering: replace the library clip with an own take (animate_chopper.py), as was done for fishing.
-5. W5-08 step 11 (hub plateau checks), step 12 (minimap from the columns), step 13 (save version 2, remove the dead Terrain; separate commit).
-6. Mountains read as a wall more than as separate peaks; backdrop peaks outside the island are not built.
-7. Website gallery: only from the user's screenshots (HW-6), cropped to 1600 x 900 in Website/images/. Do not restore the old pictures.
-8. Art-project ChopperCheck expects 12 skinned meshes and the FBX has 13; do not mark it done. W2-05 needs a reviewer who is not the builder.
+1. Whatever the report card says. Blank rows stay blank. Do not run the user's playtest for them. Do compile when a C# change needs it.
+2. Website gallery only from the user's screenshots (HW-6), cropped to 1600 x 900 in Website/images/. Do not restore the old pictures.
+3. Art-project ChopperCheck expects 12 skinned meshes and the FBX has 13; do not mark it done. W2-05 needs a reviewer who is not the builder.
+4. W9-04 dome, W9-05 mining combo, and dropped gear not saved with the world, only after the report card has no FAIL.
 
 Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. Git. No gh CLI. Tools/homework.ps1 runs every check (see Homework.md).
 Constraints: no AI image-to-3D meshes. Do not remodel Chopper from scratch. Do not replace the live Animator controller (swap motions only). Mesh read/write stays on. Do not run PieceBuilder.BuildAll. Work on main. No commits, pushes, deletions, deploys or paid services without explicit approval. One Unity project at a time.
