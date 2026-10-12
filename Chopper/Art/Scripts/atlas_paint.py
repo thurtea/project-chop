@@ -23,6 +23,7 @@ from chopper_lib import PAL  # noqa: E402
 TEXEL_M = 0.016          # character pixel (m)
 TEXEL_FINE = 0.012       # face front and bear axe
 MOUSTACHE = (0.88, 0.44, 0.13)                       # = build_chopper.MOUSTACHE
+HELM_BONE = (0.86, 0.80, 0.66)                       # = build_chopper.BONE
 BEAR_WOOD, BEAR_CARVE, BEAR_HEAD = (0.72, 0.42, 0.19), (0.42, 0.22, 0.09), (0.80, 0.50, 0.23)  # build_props
 SHOULDER_X, SHOULDER_Z = 0.30, 1.27                  # = build_chopper.SHOULDER
 
@@ -351,34 +352,37 @@ def paint_armour(name, p, n, rgb):
     """Armour and the unused double axe: kept sensible, not painted to the concept yet."""
     x, z = p.x, p.z
     if name == "chopper_chainmail":
-        # Interlocking rings, so the skirt is chain and not a flat blue-grey sheet.
-        u = x * 32.0
-        v = z * 32.0
-        fu = u - round(u)
-        fv = v - round(v)
-        d = fu * fu + fv * fv
-        if d < 0.06:
-            return (0.72, 0.74, 0.76)
-        if d < 0.13:
-            return (0.22, 0.24, 0.27)
-        return (0.42, 0.44, 0.48)
+        # Scale rows (concept 2.0), one row per geometric band of build_chainmail: a pale lower
+        # lip, dark seams between scales, and every other row offset by half a scale.
+        t = TEXEL_M
+        rows = (0.565, 0.61, 0.655, 0.70, 0.75, 0.80)
+        r = sum(1 for zr in rows if z >= zr) - 1
+        if r < 0 or r >= len(rows) - 1:
+            return S(52, 56, 64)
+        v = (z - rows[r]) / (rows[r + 1] - rows[r])
+        c = math.floor(side_coord(p, n) / t) + (r % 2) * 2
+        if v < 0.2:
+            return S(150, 156, 168) if c % 4 else S(104, 110, 122)
+        if c % 4 == 0 and v > 0.35:
+            return S(46, 50, 58)
+        return grain(S(98, 104, 118), p, t, 0.08)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)
     elif name == "chopper_bracers":
         if abs((z * 36) - round(z * 36)) < 0.08:
             return dark(rgb, 0.62)
-    elif name == "chopper_helmet" and n.y < -0.25 and abs(x) < 0.16 and 1.40 < z < 1.68:
-        # Skull on the face of the cap: sockets, nasal opening, a row of teeth.
-        bone = (0.78, 0.74, 0.66)
-        pit = (0.08, 0.08, 0.09)
-        if 1.54 < z < 1.63 and 0.035 < abs(x) < 0.095:
-            return pit
-        if 1.46 < z < 1.54 and abs(x) < 0.022:
-            return pit
-        if 1.40 < z < 1.46 and abs(x) < 0.09:
-            return bone if int(x * 70) % 2 == 0 else pit
-        return bone
+    elif name == "chopper_helmet":
+        # Geometry carries the skull, band, rivets and horn steps (build_helmet). Paint adds
+        # the teeth on the jaw block, dark sockets, and a little grain.
+        t = TEXEL_M
+        if near(rgb, HELM_BONE):
+            if n.y < -0.5 and z < 1.662 and abs(x) < 0.05:
+                return S(40, 34, 28) if math.floor(x / t) % 2 else S(226, 214, 186)
+            return grain(S(222, 208, 176), p, t, 0.08)
+        if near(rgb, PAL["steel_dark"]):
+            return S(26, 26, 30) if z > 1.66 and abs(x) < 0.07 and n.y < -0.5 else STEEL_DARK
+        return grain(rgb, p, t, 0.06)
     elif name == "chopper_axe":
         if abs(x) > 0.06 and z > 0.40 and abs(n.y) > 0.5 and (int(x * 40) + int(z * 40)) % 5 == 0:
             return dark(rgb, 0.55)

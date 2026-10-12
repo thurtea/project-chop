@@ -108,8 +108,10 @@ namespace Chopper.Editor
             Debug.Log("[Chopper] Player prefab, Boot and World rebuilt; scenes registered in Build Settings.");
         }
 
-        // The block terrain steps in half metres (VoxelColumns.Step), so the player steps up 0.55 m.
-        private const float PlayerStepOffset = 0.55f;
+        // The block terrain steps in half metres (VoxelColumns.Step). With a 0.5 m capsule radius a half-block edge
+        // meets the capsule at its equator, and 0.55 left players stuck on single steps once the blocks became the
+        // collider (W5-08 step 5, -chopperMoveTest). 0.65 clears one block plus the skin; two blocks still need a jump.
+        private const float PlayerStepOffset = 0.65f;
 
         [MenuItem("Chopper/Art/Use Chopper Player")]
                 public static void UseChopperPlayer()

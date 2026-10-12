@@ -225,7 +225,7 @@ namespace Chopper.World.Building
             for (int i = 0; i < count; i++)
             {
                 Collider hit = Hits[i];
-                if (hit == null || hit is TerrainCollider || hit is CharacterController) continue;
+                if (hit == null || Chopper.World.Voxel.VoxelWorld.IsGround(hit) || hit is CharacterController) continue;
                 if (hit.GetComponentInParent<PieceView>() != null) continue;
                 if (hit.GetComponentInParent<Chopper.Enemies.Treant>() != null) continue;
                 if (hit.GetComponentInParent<WaterSurface>() != null) continue;

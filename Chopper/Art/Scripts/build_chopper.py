@@ -187,31 +187,43 @@ def loft(mb, samples, cs, color):
 
 
 def build_beard(mat):
-    """One beard (concept 2.0): wide at the jaw, round, and down onto the upper chest.
-    Strand lines stay in the atlas. A straight tube, so the back stays clear of the vest."""
+    """Blocky beard (concept 2.0): a jaw mass and sideburns that sit on the face, a chunky
+    drooping moustache, and a stepped square spade down the chest with tufts on each step.
+    The spade is a straight tube: its back is one flat plane BEARD_CLEAR in front of the vest."""
     mb = L.MeshBuilder("chopper_beard")
     G, D = PAL["ginger"], PAL["ginger_dark"]
     clear = vest_front(1.08, 1.52) + BEARD_CLEAR
-    rows = []
-    for i in range(16):
-        t = i / 15.0
-        z = 1.14 + (1.50 - 1.14) * t
-        # Wide at the jaw, narrower where it rests on the chest. A sine peak in the middle read as a ball.
-        hw = 0.07 + 0.11 * (t ** 0.55)
-        hd = 0.016 + 0.010 * t
-        rows.append((z, hw, hd, -(clear + hd)))
-    mb.ztube(0, 0, rows, cs=6, bevel=0.02, color=G)
+    # jaw mass: back buried in the head, bottom above the collar; the front slopes from the
+    # spade at the chin back to the lip, so the side view has no shelf
+    back = 0.12
+    jaw = [(z, hw, (back - front) / 2, (back + front) / 2)
+           for z, hw, front in ((1.425, 0.196, -(clear + 0.040)), (1.47, 0.205, -(clear + 0.020)),
+                                (1.515, 0.200, -0.240))]
+    mb.ztube(0, 0, jaw, cs=3, bevel=0.06, color=G)
+    # sideburns from the jaw up to the brow (under the helmet band)
     for s in (-1, 1):
-        cheek = []
-        for i in range(8):
-            t = i / 7.0
-            z = 1.44 + 0.20 * t
-            r = 0.042 * (1.0 - 0.3 * t)
-            cheek.append((z, r, r * 0.8, s * (0.15 + 0.05 * t)))
-        # ztube x is the first arg; the side offset is x, dy shifts Y
-        mb.ztube(s * 0.16, -0.18, [(row[0], row[1], row[2]) for row in cheek], cs=3, bevel=0.01,
-                 color=D if s < 0 else G)
-    mb.box((0, -0.255, 1.505), (0.24, 0.045, 0.04), 0.008, color=MOUSTACHE)
+        mb.box((s * 0.195, -0.075, 1.555), (0.045, 0.19, 0.17), 0.012, color=D)
+    # stepped spade: (z bottom, z top, half width, half depth); each tier wider than the one below
+    tiers = [(1.17, 1.219, 0.060, 0.016), (1.219, 1.279, 0.105, 0.018),
+             (1.279, 1.339, 0.150, 0.020), (1.339, 1.455, 0.190, 0.023)]
+    rows = []
+    for k, (z0, z1, hw, hd) in enumerate(tiers):
+        z0 = z0 + (0.004 if k else 0.0)
+        rows.append((z0, hw, hd, -(clear + hd)))
+        rows.append((z1, hw, hd, -(clear + hd)))
+    mb.ztube(0, 0, rows, cs=2, bevel=0.012, color=G,
+             color_fn=lambda p: D if p.y < -(clear + 0.02) and any(abs(p.z - t[0]) < 0.012 for t in tiers) else None)
+    # tufts hanging from the outer corners of every tier (the jagged stepped edge)
+    for (z0, z1, hw, hd), col in zip(tiers, (G, D, G, D)):
+        for s in (-1, 1):
+            x = s * (hw - (0.030 if hw > 0.07 else 0.032))
+            tz = 0.045
+            mb.box((x, -(clear + hd), z0 - tz / 2 + 0.008), (0.05, 2 * hd, tz), 0.008, color=col)
+    # moustache: a block under the nose and two drooping ends
+    mb.box((0, -0.255, 1.508), (0.11, 0.07, 0.036), 0.008, color=MOUSTACHE)
+    for s in (-1, 1):
+        rot = Matrix.Rotation(s * math.radians(28), 3, "Y")
+        mb.box((s * 0.088, -0.258, 1.489), (0.10, 0.066, 0.034), 0.008, rot=rot, color=MOUSTACHE)
     return mb.finish(mat)
 
 
@@ -373,6 +385,16 @@ def build_chainmail(mat):
         extra.append(mb.bm.faces.new((vo[i][0], vo[i + 1][0], vi[i + 1][0], vi[i][0])))
         extra.append(mb.bm.faces.new((vo[i + 1][n - 1], vo[i][n - 1], vi[i][n - 1], vi[i + 1][n - 1])))
     mb.paint(extra, PAL["steel_dark"])
+    # overlapping scale rows on the outside (concept 2.0): each row flares out at its lower
+    # edge. Single outward bands; the inner shell above is what the layer checks test.
+    rows = [0.565, 0.61, 0.655, 0.70, 0.75, 0.80]
+    for z0, z1 in zip(rows, rows[1:]):
+        prof = [(z0, 0.010), (z0 + 0.006, 0.014), (z1, 0.002)]
+        rings = [(Vector((0, 0, z)), X, Y, interp(outer, z, 1) + o, interp(outer, z, 2) + o, 0.04)
+                 for z, o in prof]
+        slit = z1 <= split_below + 1e-6
+        mb.tube(rings, cs=2, gap=gap if slit else None, cap0=False, cap1=False, color=PAL["chain"],
+                skip=(lambda i: True) if slit else None)
     return mb.finish(mat, recalc=False)
 
 
@@ -406,43 +428,60 @@ def build_boots(mat):
     return mb.finish(mat)
 
 
+HELM = (0.40, 0.42, 0.45)        # dome steel, darker than the band
+BONE = (0.86, 0.80, 0.66)        # skull on the brow
+HORN = (0.70, 0.54, 0.33)        # horn segments, darker ring at each step, pale tip
+HORN_DARK = (0.48, 0.34, 0.19)
+HORN_TIP = (0.88, 0.80, 0.62)
+
+
+def horn_point(s, t):
+    """Horn centreline (cubic Bezier): out of the temple, out and up, tip curling in."""
+    p = [Vector((s * 0.15, -0.02, 1.70)), Vector((s * 0.36, -0.03, 1.68)),
+         Vector((s * 0.43, -0.05, 1.86)), Vector((s * 0.33, -0.07, 1.965))]
+    a = 1.0 - t
+    return p[0] * a ** 3 + p[1] * 3 * a * a * t + p[2] * 3 * a * t * t + p[3] * t ** 3
+
+
 def build_helmet(mat):
-    """Skull cap with a brow band, a nasal guard and two horns that rise above the head
-    (concept 2.0). The skull face is painted on the front. Hair stays at 1.80 m; the horns
-    are the highest point."""
+    """Steel dome that stops at the brow (the eyes show, concept 2.0), a riveted brow band, a
+    nasal guard, a bone skull on the front and two stepped bone horns that curl up and in.
+    Hair stays at 1.80 m; the horns are the highest point."""
     mb = L.MeshBuilder("chopper_helmet")
-    cap = []
-    for i in range(10):
-        t = i / 9.0
-        z = 1.46 + 0.30 * t
-        spread = math.sin(min(t * 1.15, 1.0) * math.pi) ** 0.65
-        hw = 0.05 + 0.155 * spread * (1.05 - 0.55 * t)
-        hd = 0.045 + 0.150 * spread * (1.0 - 0.4 * t)
-        cap.append((z, hw, hd, -0.07))
-    mb.ztube(0, 0, cap, cs=4, bevel=0.02, color=PAL["steel"])
-    # Skull plate over the eyes and nose, in front of the head cube.
-    mb.box((0, -0.235, 1.56), (0.30, 0.04, 0.26), 0.01, color=PAL["steel"])
+    dome = [(1.615, 0.205, 0.195), (1.68, 0.207, 0.197), (1.73, 0.193, 0.184), (1.77, 0.163, 0.155),
+            (1.80, 0.118, 0.112), (1.818, 0.060, 0.057)]
+    mb.ztube(0, 0, [(z, hw, hd, -0.01) for z, hw, hd in dome], cs=4, bevel=0.05, color=HELM)
+    # brow band and a raised crest from front to back
+    band = [(1.605, 0.214, 0.204), (1.612, 0.218, 0.208), (1.652, 0.218, 0.208), (1.660, 0.212, 0.202)]
+    mb.ztube(0, 0, [(z, hw, hd, -0.01) for z, hw, hd in band], cs=4, bevel=0.05, cap0=False, cap1=False,
+             color=PAL["steel"])
+    for x in (-0.15, -0.10, 0.10, 0.15):     # rivets on the flat front of the band (y -0.218)
+        mb.box((x, -0.222, 1.632), (0.022, 0.016, 0.022), 0.005, color=PAL["steel_dark"])
+    mb.box((0, -0.228, 1.565), (0.042, 0.026, 0.115), 0.008, color=PAL["steel"])     # nasal guard
+    # bone skull: cranium, cheek row with dark sockets and nose, jaw with teeth over the band
+    mb.box((0, -0.220, 1.715), (0.185, 0.080, 0.122), 0.024, color=BONE)
     for s in (-1, 1):
-        mb.box((s * 0.07, -0.258, 1.58), (0.075, 0.018, 0.055), 0.004, color=PAL["steel_dark"])
-    mb.box((0, -0.258, 1.50), (0.04, 0.02, 0.09), 0.004, color=PAL["steel_dark"])
-    # brow band and nasal guard, so the skull reads before the paint does
-    brow = []
-    for i in range(12):
-        t = i / 11.0
-        a = math.radians(-70 + 140 * t)
-        brow.append((Vector((0.195 * math.sin(a), -0.175 * math.cos(a), 1.60)), 0.028, 0.022))
-    loft(mb, brow, cs=2, color=PAL["steel_dark"])
-    mb.box((0, -0.210, 1.50), (0.045, 0.03, 0.16), 0.006, color=PAL["steel"])
+        mb.box((s * 0.044, -0.259, 1.703), (0.050, 0.012, 0.044), 0.004, color=PAL["steel_dark"])
+    mb.box((0, -0.259, 1.673), (0.022, 0.010, 0.020), 0.003, color=PAL["steel_dark"])
+    mb.box((0, -0.232, 1.646), (0.112, 0.050, 0.030), 0.008, color=BONE)
+    # horns: stepped blocks along the curve; each segment tapers, the next starts wider
+    n = 9
     for s in (-1, 1):
-        horn = []
-        for i in range(16):
-            t = i / 15.0
-            x = s * (0.15 + 0.30 * t)
-            y = -0.04 - 0.10 * math.sin(t * math.pi)
-            z = 1.62 + 0.36 * math.sin(t * math.pi * 0.5)
-            r = 0.048 * (1.0 - 0.70 * t)
-            horn.append((Vector((x, y, z)), r, r * 0.82))
-        loft(mb, horn, cs=3, color=PAL["steel_dark"])
+        for k in range(n):
+            t0, t1 = k / n, (k + 1) / n
+            c0, c1 = horn_point(s, t0), horn_point(s, min(1.0, t1 + 0.012))
+            w = (c1 - c0).normalized()
+            u, v, _ = L.basis(w, Y)
+            r0 = 0.056 * (1.0 - 0.72 * t0)
+            r1 = 0.056 * (1.0 - 0.72 * t1)
+            col = HORN_TIP if k >= n - 2 else HORN
+            cm = c0.lerp(c1, 0.22)
+            rings = [(c0, u, v, r0 * 0.90, r0 * 0.90, r0 * 0.25),
+                     (cm, u, v, r0, r0, r0 * 0.28),
+                     (c1, u, v, r1 * 0.88, r1 * 0.88, r1 * 0.25)]
+            _vr, faces = mb.tube(rings, cs=1, color=col)
+            if k < n - 2:
+                mb.paint(faces[:8], HORN_DARK)       # the narrow lip at the base of each step
     return mb.finish(mat)
 
 

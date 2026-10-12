@@ -6,14 +6,19 @@ namespace Chopper.World
     // goes through this facade instead of Terrain.activeTerrain, so the land underneath can change from the Unity
     // Terrain to the block world (W5-08 step 5) without touching the callers. For now it reads the Terrain exactly the
     // way the callers did (SampleHeight plus the terrain's base, the terrain's own smoothed normal and steepness).
+    // Step 5: heights come from the block columns (the top of the block the position stands over), because the chunk
+    // colliders are what players walk on now. Normal, steepness and the map snapshot still read the smooth Terrain:
+    // they describe the hill, and every block top would say "flat".
     public static class WorldGround
     {
         // True once the world's land has been built.
-        public static bool Exists => Terrain.activeTerrain != null;
+        public static bool Exists => Voxel.VoxelColumns.Current != null || Terrain.activeTerrain != null;
 
         // Height of the ground (world Y) under a position, or the position's own Y if there is no land yet.
         public static float HeightAt(Vector3 position)
         {
+            Voxel.VoxelColumns columns = Voxel.VoxelColumns.Current;
+            if (columns != null && columns.TryTopAt(position.x, position.z, out float top)) return top;
             Terrain terrain = Terrain.activeTerrain;
             return terrain != null ? terrain.SampleHeight(position) + terrain.transform.position.y : position.y;
         }

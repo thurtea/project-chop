@@ -32,6 +32,7 @@ namespace Chopper.World.Generation
         private void OnDestroy()
         {
             if (Instance == this) Instance = null;
+            if (_built) Chopper.World.Voxel.VoxelWorld.Forget();
         }
 
         private void Update()
@@ -62,13 +63,15 @@ namespace Chopper.World.Generation
             long fields = total.ElapsedMilliseconds;
 
             Terrain terrain = BuildTerrain(heights, alpha);
-            if (graphics)
-            {
-                var columns = Chopper.World.Voxel.VoxelColumns.Build(gen);
-                int blockTris = Chopper.World.Voxel.VoxelWorld.Present(columns, transform, terrain);
-                Debug.Log($"[Voxel] CRC {columns.Crc:X8} triangles {blockTris} columns in {columns.BuildMilliseconds} ms. " +
-                          (blockTris > 0 ? "Terrain paint hidden, collider kept." : "Terrain paint left on."));
-            }
+            // W5-08 step 5: the block columns are the ground on every peer (a headless server too, for its NavMesh
+            // and the players it moves). Built before anything below asks WorldGround for a height.
+            var columns = Chopper.World.Voxel.VoxelColumns.Build(gen);
+            Chopper.World.Voxel.VoxelColumns.Current = columns;
+            var chunkWatch = Stopwatch.StartNew();
+            int blockTris = Chopper.World.Voxel.VoxelWorld.Present(columns, transform, terrain, graphics);
+            Debug.Log($"[Voxel] CRC {columns.Crc:X8} triangles {blockTris} columns in {columns.BuildMilliseconds} ms, " +
+                      $"chunks and colliders in {chunkWatch.ElapsedMilliseconds} ms. " +
+                      (blockTris > 0 ? "Block colliders are the ground, Terrain collider off." : "No blocks, Terrain kept."));
             BuildWater(gen);
             if (graphics) Chopper.World.BlockSky.Build(transform);
             BuildBoundary();
@@ -78,6 +81,14 @@ namespace Chopper.World.Generation
             // under the fires, so both are worked out before the grass is built.
             List<TreeEntry> treeEntries = gen.GenerateTrees(_assets.SpeciesArrays(), _assets.TreeModelHeights);
             gen.PushTreesOffMines(treeEntries);
+            // Step 7: every trunk stands on the top of its block, not on the smooth hill between the steps.
+            for (int i = 0; i < treeEntries.Count; i++)
+            {
+                TreeEntry entry = treeEntries[i];
+                if (!columns.TryTopAt(entry.Position.x, entry.Position.z, out float top)) continue;
+                entry.Position.y = top;
+                treeEntries[i] = entry;
+            }
             List<Vector2> fires = CampfireSpots(gen, treeEntries);
             if (graphics)
             {
@@ -371,7 +382,7 @@ namespace Chopper.World.Generation
             {
                 GameObject model = _assets.RockModels[rock.Model];
                 if (model == null) continue;
-                var position = new Vector3(rock.Position.x, gen.HeightAt(rock.Position.x, rock.Position.y), rock.Position.y);
+                var position = new Vector3(rock.Position.x, Chopper.World.WorldGround.HeightAt(rock.Position.x, rock.Position.y), rock.Position.y);
                 // Rocks sit a little in the ground so they look settled.
                 GameObject placed = PlaceModel(model, root.transform, position, rock.Yaw, rock.Size, rock.Size * 0.12f);
                 AddRockCollider(placed);

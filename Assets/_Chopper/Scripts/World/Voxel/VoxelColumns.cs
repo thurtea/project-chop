@@ -5,11 +5,24 @@ using UnityEngine;
 namespace Chopper.World.Voxel
 {
     // One height and one top type per 1 m column, quantized to 0.5 m steps from WorldGen.
-    // The same seed produces the same table. The Unity Terrain is still the collider.
+    // The same seed produces the same table on every peer. Since W5-08 step 5 the chunk colliders are the ground
+    // and WorldGround reads its heights from Current.
     public sealed class VoxelColumns
     {
         public const int Resolution = 640;
         public const float Step = 0.5f;
+
+        // The table of the world that is loaded now (null before a world is built and after it unloads).
+        public static VoxelColumns Current { get; set; }
+
+        // Top of the column that holds a world position; false off the edge of the table.
+        public bool TryTopAt(float wx, float wz, out float top)
+        {
+            int x = Mathf.FloorToInt(wx + WorldGen.HalfSize);
+            int z = Mathf.FloorToInt(wz + WorldGen.HalfSize);
+            top = Inside(x, z) ? TopY(x, z) : 0f;
+            return Inside(x, z);
+        }
 
         readonly short[] _top;
         readonly byte[] _type;
