@@ -934,6 +934,7 @@ namespace Chopper.Networking
                     int steepSeen = 0, halfSeen = 0;
                     PlaceResult benchResult = PlaceResult.BadKind;
                     bool hubRefused = false;
+                    bool forestOpen = false;
                     // The meadow for the flat and half-block cells, then hillier ground until a steeper cell turns up.
                     foreach (Vector2 buildSpot in new[] { new Vector2(40f, 40f), new Vector2(-60f, 20f), new Vector2(60f, 92f), new Vector2(-92f, 60f), new Vector2(92f, -60f) })
                     {
@@ -946,11 +947,29 @@ namespace Chopper.Networking
                     benchAt.y = build != null ? build.OnBlockTop(benchKind, benchAt, 0f) : benchAt.y;
                     if (buildSpot.x == 40f && build != null)
                     {
-                        // W9-03: with the rule on, the hub is not built on.
+                        // W9-03: (40, 40) is inside the 110 m hub. With the rule on, that workbench is refused,
+                        // and the same check just past the earth pass is not.
                         BuildManager.DebugAllowHubBuilding = false;
                         hubRefused = build.Check(wood.gameObject, benchKind, benchAt, 0f) == PlaceResult.HubProtected;
-                        BuildManager.DebugAllowHubBuilding = true;
                         Debug.Log($"[BlockGround] building in the hub refused: {hubRefused}");
+                        Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+                        if (gen != null)
+                        {
+                            Vector2 gate = gen.ZoneGatePosition(Element.Earth);
+                            Vector2 outward = gate.sqrMagnitude > 1f ? gate.normalized : Vector2.right;
+                            Vector2 forest = gate + outward * 36f;
+                            yield return TeleportLocalPlayer(forest, 0f);
+                            yield return new WaitForSeconds(0.4f);
+                            Vector3 forestAt = wood.transform.position + Vector3.right * 2f;
+                            forestAt.y = build.OnBlockTop(benchKind, forestAt, 0f);
+                            PlaceResult forestResult = build.Check(wood.gameObject, benchKind, forestAt, 0f);
+                            forestOpen = forestResult != PlaceResult.HubProtected
+                                && ZoneMap.ElementAt(forestAt, gen.HubRadius) != Element.Neutral;
+                            Debug.Log($"[BlockGround] building in a forest allowed: {forestOpen} ({forestResult})");
+                        }
+                        BuildManager.DebugAllowHubBuilding = true;
+                        yield return TeleportLocalPlayer(buildSpot, 0f);
+                        yield return new WaitForSeconds(0.4f);
                     }
                     PlaceResult benchHere = build != null ? build.ServerPlace(wood.gameObject, benchKind, benchAt, 0f) : PlaceResult.BadKind;
                     if (buildSpot.x == 40f) benchResult = benchHere;
@@ -1001,7 +1020,7 @@ namespace Chopper.Networking
                         }
                     }
                     }
-                    buildOk = benchResult == PlaceResult.Ok && flatOk && halfOk && steepOk && steepSeen > 0 && hubRefused;
+                    buildOk = benchResult == PlaceResult.Ok && flatOk && halfOk && steepOk && steepSeen > 0 && hubRefused && forestOpen;
                     Debug.Log($"[BlockGround] building: workbench {benchResult}; flat cell {flat}; half-block cells {halfSeen} ({half}); steeper cells {steepSeen} ({steep})");
                     yield return Shot(folder, "blocks_build");
                 }

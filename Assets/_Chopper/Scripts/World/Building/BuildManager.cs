@@ -147,7 +147,7 @@ namespace Chopper.World.Building
             // Not underground (the crypts) and within reach.
             if (position.y < -50f || player == null || !BuildRules.InRange(player.transform.position, position, _config.BuildRange)) return PlaceResult.TooFar;
             // W9-03 (user, 2026-10-12): the hut is static and the hub is not built on; bases go up in the four forests.
-            if (!DebugAllowHubBuilding && ZoneMap.ElementAt(position, _config.HubRadius) == Element.Neutral) return PlaceResult.HubProtected;
+            if (!DebugAllowHubBuilding && Chopper.World.ZoneMap.ElementAt(position, _config.HubRadius) == Element.Neutral) return PlaceResult.HubProtected;
             if (!definition.IsWorkbench && !Workbench.AnyWithin(position, _config.BuildWorkbenchRadius) && !BuiltWorkbenchWithin(position))
                 return PlaceResult.NoWorkbench;
             if (PlayerItems.Get(player, (int)ItemKind.Wood) < definition.WoodCost || PlayerItems.Get(player, (int)ItemKind.Fiber) < definition.FiberCost)

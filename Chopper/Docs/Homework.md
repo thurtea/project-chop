@@ -81,7 +81,7 @@ Pick a healing herb or a plant (E next to it).
 ### HW-10 Arrival tour (after HW-7, which builds the game with this code)
 ```powershell
 pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Arrival     # expect: [Arrival] RESULT PASS
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour BlockGround # expect: [BlockGround] RESULT PASS, with "building in the hub refused: True"
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour BlockGround # expect: [BlockGround] RESULT PASS, with "building in the hub refused: True" and "building in a forest allowed: True"
 ```
 - Look for: the three `[Arrival]` lines (dropped in, no outfit and no axe, kit on the ground; reached the kit, axe and outfit True; fell, gear left 2 of 2, arrives again in the air over the pond, empty-handed) and the four `arrival_*` shots in the shots folder.
 - Report: the printed lines, and whether the shots look right (in the pond, on the bank by the kit, dressed with the axe, back in the pond).
