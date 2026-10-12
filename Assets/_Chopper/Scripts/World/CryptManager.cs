@@ -56,6 +56,9 @@ namespace Chopper.World
         }
 
         // Server only. Opens the nearest chest in reach for this player, once.
+        private readonly System.Random _lootRng = new System.Random();
+        private const double DomeStoneChance = 0.12;
+
         public bool ServerTryOpenChest(PlayerCrypt player)
         {
             int chest = CryptWorld.ChestInReach(player.transform.position);
@@ -74,6 +77,11 @@ namespace Chopper.World
             CryptChest loot = CryptWorld.Chests[chest].Chest;
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();
             if (inventory != null) inventory.ServerAddRelics(loot.Iron, loot.Shards);
+            if (_lootRng.NextDouble() < DomeStoneChance)
+            {
+                PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
+                if (upgrades != null) upgrades.ServerGrantDomeStone();
+            }
             player.ServerChestOpened(chest, loot.Iron, loot.Shards);
             return true;
         }

@@ -95,6 +95,9 @@ namespace Chopper.Core
         public const float GoodAt = 0.35f;
         // Seconds between strikes the server accepts.
         public const float StrikeCooldown = 0.75f;
+        // A combo is three strikes, each within this long of the last (one glint, 1.7 s, plus a little slack).
+        public const int ComboLength = 3;
+        public const float ComboWindow = 2.4f;
 
         // How bright a vein's crack is at a moment: a sharp peak once a period, dark most of the time.
         public static float Glint(float time, int vein)
@@ -127,6 +130,26 @@ namespace Chopper.Core
                 case StrikeQuality.Good: return 0.6f;
                 default: return 0.3f;
             }
+        }
+
+        // The next link in a combo. A late strike, or the first, starts again at 1.
+        public static int NextChain(int chain, float sinceLast, float window)
+        {
+            if (chain <= 0 || sinceLast > window) return 1;
+            return chain + 1;
+        }
+
+        // Links before the third barely count. The third strike in time pays for the set.
+        public static float ComboProgress(StrikeQuality quality, int chain)
+        {
+            float step = Progress(quality);
+            return chain > 0 && chain % ComboLength == 0 ? step * 3f : step * 0.35f;
+        }
+
+        public static string ComboWord(StrikeQuality quality, int chain)
+        {
+            if (chain > 0 && chain % ComboLength == 0) return "Combo";
+            return Word(quality);
         }
 
         public static bool Cracks(StrikeQuality quality, double roll) => quality == StrikeQuality.Rough && roll < RoughCrackChance;

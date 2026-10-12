@@ -23,6 +23,12 @@ namespace Chopper.World.Building
     // HubProtected (W9-03): the hub and its hut stay as they are; players build in the four forests.
     public enum PlaceResult { Ok, BadKind, TooFar, NoWorkbench, CannotAfford, Overlaps, Floating, TooSteep, Full, Unstable, HubProtected }
 
+    // One protective dome over a base in a forest (W9-04).
+    public struct DomeState
+    {
+        public Vector3 Position;
+    }
+
     // Every building piece in the world, server owned (one entry per piece in a SyncList, so a piece costs a few bytes
     // and no network object). Every peer, the server included, keeps a copy of each piece's model in the scene from
     // that list, so players walk on floors, enemies path round walls and the hammer can aim at them. The server checks
@@ -37,7 +43,12 @@ namespace Chopper.World.Building
         public static bool DebugAllowHubBuilding;
         [SerializeField] private PieceCatalog _catalog;
 
+        public const float DomeRadius = 12f;
+
         private readonly SyncList<PieceState> _pieces = new SyncList<PieceState>();
+        private readonly SyncList<DomeState> _domes = new SyncList<DomeState>();
+        private readonly List<GameObject> _domeViews = new List<GameObject>();
+        private static Mesh _domeMesh;
         private readonly Dictionary<int, PieceView> _views = new Dictionary<int, PieceView>();
         private readonly HashSet<int> _seen = new HashSet<int>();
         private readonly List<int> _gone = new List<int>();
@@ -66,6 +77,7 @@ namespace Chopper.World.Building
         {
             base.OnStartNetwork();
             _pieces.OnChange += OnPiecesChanged;
+            _domes.OnChange += OnDomesChanged;
             _dirty = true;
         }
 
@@ -73,7 +85,10 @@ namespace Chopper.World.Building
         {
             base.OnStopNetwork();
             _pieces.OnChange -= OnPiecesChanged;
+            _domes.OnChange -= OnDomesChanged;
         }
+
+        private void OnDomesChanged(SyncListOperation op, int index, DomeState previous, DomeState next, bool asServer) => _dirty = true;
 
         private void OnPiecesChanged(SyncListOperation op, int index, PieceState previous, PieceState next, bool asServer)
         {
@@ -89,6 +104,7 @@ namespace Chopper.World.Building
             if (!_dirty || !WorldSession.Ready) return;
             _dirty = false;
             Reconcile();
+            ShowDomes();
         }
 
         private void Reconcile()
@@ -335,6 +351,7 @@ namespace Chopper.World.Building
             int index = IndexOf(id);
             if (index < 0 || amount <= 0) return;
             PieceState state = _pieces[index];
+            if (Protects(state.Position)) return;
             state.Health -= amount;
             if (state.Health <= 0)
             {
@@ -378,6 +395,101 @@ namespace Chopper.World.Building
             foreach (PieceState state in _pieces)
                 records.Add(new PieceRecord { Kind = state.Kind, Position = state.Position, Yaw = state.Yaw, Health = state.Health });
             return records;
+        }
+
+        // Server only. A dome stone places a ward in a forest. The hub is refused and the stone is kept.
+        public bool ServerPlaceDome(Vector3 position)
+        {
+            if (_config != null && Chopper.World.ZoneMap.ElementAt(position, _config.HubRadius) == Element.Neutral) return false;
+            _domes.Add(new DomeState { Position = position });
+            return true;
+        }
+
+        public bool Protects(Vector3 position)
+        {
+            for (int i = 0; i < _domes.Count; i++)
+            {
+                Vector3 offset = position - _domes[i].Position;
+                offset.y = 0f;
+                if (offset.sqrMagnitude <= DomeRadius * DomeRadius && Mathf.Abs(position.y - _domes[i].Position.y) < 8f) return true;
+            }
+            return false;
+        }
+
+        public List<Vector3> ServerDomePositions()
+        {
+            var list = new List<Vector3>(_domes.Count);
+            for (int i = 0; i < _domes.Count; i++) list.Add(_domes[i].Position);
+            return list;
+        }
+
+        public void ServerLoadDomes(List<Vector3> positions)
+        {
+            _domes.Clear();
+            if (positions == null) return;
+            foreach (Vector3 position in positions) _domes.Add(new DomeState { Position = position });
+        }
+
+        private void ShowDomes()
+        {
+            while (_domeViews.Count < _domes.Count)
+            {
+                var view = new GameObject("Dome");
+                view.transform.SetParent(_root != null ? _root : transform, false);
+                var filter = view.AddComponent<MeshFilter>();
+                filter.sharedMesh = DomeMesh();
+                var renderer = view.AddComponent<MeshRenderer>();
+                Shader shader = Shader.Find("Chopper/Block");
+                if (shader != null)
+                {
+                    var material = new Material(shader);
+                    material.SetColor("_BaseColor", new Color(0.55f, 0.75f, 0.95f, 1f));
+                    renderer.sharedMaterial = material;
+                }
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                _domeViews.Add(view);
+            }
+            while (_domeViews.Count > _domes.Count)
+            {
+                int last = _domeViews.Count - 1;
+                if (_domeViews[last] != null) Destroy(_domeViews[last]);
+                _domeViews.RemoveAt(last);
+            }
+            for (int i = 0; i < _domes.Count; i++)
+            {
+                if (_domeViews[i] == null) continue;
+                _domeViews[i].transform.position = _domes[i].Position;
+            }
+        }
+
+        private static Mesh DomeMesh()
+        {
+            if (_domeMesh != null) return _domeMesh;
+            var verts = new List<Vector3>();
+            var tris = new List<int>();
+            const int spokes = 16;
+            for (int ring = 1; ring <= 3; ring++)
+            {
+                float y = ring * 1.6f;
+                float radius = DomeRadius * (1f - ring / 4f);
+                for (int i = 0; i < spokes; i++)
+                {
+                    float a0 = i * Mathf.PI * 2f / spokes;
+                    float a1 = (i + 1) * Mathf.PI * 2f / spokes;
+                    int v = verts.Count;
+                    verts.Add(new Vector3(Mathf.Cos(a0) * radius, y, Mathf.Sin(a0) * radius));
+                    verts.Add(new Vector3(Mathf.Cos(a1) * radius, y, Mathf.Sin(a1) * radius));
+                    verts.Add(new Vector3(Mathf.Cos(a0) * radius, y + 0.35f, Mathf.Sin(a0) * radius));
+                    verts.Add(new Vector3(Mathf.Cos(a1) * radius, y + 0.35f, Mathf.Sin(a1) * radius));
+                    tris.Add(v); tris.Add(v + 2); tris.Add(v + 1);
+                    tris.Add(v + 1); tris.Add(v + 2); tris.Add(v + 3);
+                }
+            }
+            _domeMesh = new Mesh { name = "DomeRings" };
+            _domeMesh.SetVertices(verts);
+            _domeMesh.SetTriangles(tris, 0);
+            _domeMesh.RecalculateNormals();
+            return _domeMesh;
         }
 
         // Server only. Loading a saved world: the saved pieces replace whatever stands.

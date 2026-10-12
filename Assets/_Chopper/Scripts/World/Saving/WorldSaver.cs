@@ -142,7 +142,11 @@ namespace Chopper.World.Saving
             save.Hut = new HutRecord { Repaired = hut.IsRepaired, RepairWood = hut.RepairWoodHave, Level = hut.Level, Health = hut.Health, WoodStore = hut.WoodStore };
             SharedChest storage = SharedChest.Instance;
             if (storage != null) save.Chest = storage.ServerCapture();
-            if (BuildManager.Instance != null) save.Pieces.AddRange(BuildManager.Instance.ServerCapture());
+            if (BuildManager.Instance != null)
+            {
+                save.Pieces.AddRange(BuildManager.Instance.ServerCapture());
+                save.Domes = BuildManager.Instance.ServerDomePositions();
+            }
 
             EnemyDirector director = EnemyDirector.Instance;
             save.TreesFelled = director.TreesFelledSinceBoss;
@@ -235,6 +239,7 @@ namespace Chopper.World.Saving
                 record.Wards = upgrades.WardsPacked;
                 record.Stones = upgrades.Stones;
                 record.ArmourKits = upgrades.ArmourKits;
+                record.DomeStones = upgrades.DomeStones;
                 record.Armoured = upgrades.Armoured;
                 record.Undressed = !upgrades.Dressed;
             }
@@ -273,7 +278,11 @@ namespace Chopper.World.Saving
             HutRecord hut = save.Hut ?? new HutRecord();
             Hut.Instance.ServerLoad(hut.Repaired, hut.RepairWood, hut.Level, hut.Health, hut.WoodStore);
             if (SharedChest.Instance != null) SharedChest.Instance.ServerLoad(save.Chest);
-            if (BuildManager.Instance != null) BuildManager.Instance.ServerLoad(save.Pieces);
+            if (BuildManager.Instance != null)
+            {
+                BuildManager.Instance.ServerLoad(save.Pieces);
+                BuildManager.Instance.ServerLoadDomes(save.Domes);
+            }
 
             EnemyDirector director = EnemyDirector.Instance;
             var pending = new List<(Vector3, Element)>();
@@ -353,6 +362,7 @@ namespace Chopper.World.Saving
                 upgrades.ServerLoadWards(record.Wards);
                 upgrades.ServerLoadStones(record.Stones);
                 upgrades.ServerLoadOutfit(record.ArmourKits, record.Armoured);
+                upgrades.ServerLoadDomeStones(record.DomeStones);
                 if (record.Undressed) upgrades.ServerSetDressed(false);
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();

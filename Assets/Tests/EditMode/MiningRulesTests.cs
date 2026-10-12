@@ -37,6 +37,12 @@ namespace Chopper.Tests.EditMode
             Assert.IsFalse(MiningRules.Cracks(StrikeQuality.Rough, 0.5));
             Assert.AreEqual("Clean", MiningRules.Word(StrikeQuality.Clean));
             Assert.AreEqual("Rough", MiningRules.Word(StrikeQuality.Rough));
+            Assert.AreEqual(1, MiningRules.NextChain(0, 0f, MiningRules.ComboWindow));
+            Assert.AreEqual(1, MiningRules.NextChain(2, MiningRules.ComboWindow + 0.1f, MiningRules.ComboWindow));
+            Assert.AreEqual(3, MiningRules.NextChain(2, MiningRules.GlintPeriod, MiningRules.ComboWindow));
+            Assert.AreEqual(3f, MiningRules.ComboProgress(StrikeQuality.Clean, 3), 0.001f);
+            Assert.Less(MiningRules.ComboProgress(StrikeQuality.Clean, 1), 0.5f);
+            Assert.AreEqual("Combo", MiningRules.ComboWord(StrikeQuality.Clean, 3));
         }
 
         [Test]

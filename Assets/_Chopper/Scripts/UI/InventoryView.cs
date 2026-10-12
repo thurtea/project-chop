@@ -521,6 +521,10 @@ namespace Chopper.UI
                     Description = upgrades.Armoured ? "You already wear the armour."
                         : $"From a felled boss tree. Puts on the helmet, chainmail, bracers and shield for good: {Mathf.RoundToInt(PlayerUpgrades.ArmouredReduction * 100f)}% less damage.",
                     Action = upgrades.Armoured ? null : "Put on", Use = upgrades.Armoured ? null : upgrades.RequestUseArmourKit });
+            if (upgrades != null && upgrades.DomeStones > 0)
+                _items.Add(new Item { Name = "Dome stone", Icon = HotbarIcons.Get("upgrade"), Tint = new Color(0.55f, 0.75f, 0.95f), Count = upgrades.DomeStones.ToString(),
+                    Description = "From a crypt chest. Place it in a forest: enemies cannot break what you built inside the dome. The hub refuses it.",
+                    Action = "Place", Use = upgrades.RequestPlaceDome });
             foreach (Element element in EssenceRules.Elements)
             {
                 int essence = inventory.Essence(element);

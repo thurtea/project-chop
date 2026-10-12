@@ -44,6 +44,8 @@ namespace Chopper.World.Saving
         public List<PileRecord> Piles = new List<PileRecord>();
         // W9-02: axes and outfits lying on the ground (start kits on the bank, gear left where a player fell).
         public List<GearRecord> Gear = new List<GearRecord>();
+        // Dome centres in the forests (W9-04). Missing in a save that has none.
+        public List<Vector3> Domes = new List<Vector3>();
 
         public List<int> AwakeCrypts = new List<int>();
         public List<GuardianRecord> Guardians = new List<GuardianRecord>();
@@ -152,6 +154,7 @@ namespace Chopper.World.Saving
         public int Stones;
         // The armoured outfit: kits carried and whether it is worn (missing in older saves: unarmoured, no kits).
         public int ArmourKits;
+        public int DomeStones;
         public bool Armoured;
         // W9-02: the everyday outfit and the axe left where the player fell (false in older saves: dressed, axe in hand).
         public bool Undressed;

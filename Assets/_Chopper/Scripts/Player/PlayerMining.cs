@@ -42,6 +42,10 @@ namespace Chopper.Player
         private int _serverStrikes;
         private int _serverClean;
         private float _serverNextStrike;
+        private int _chain;
+        private int _chainVein = -1;
+        private int _serverChain;
+        private float _serverChainAt = float.NegativeInfinity;
 
         public static PlayerMining Local { get; private set; }
 
@@ -203,7 +207,13 @@ namespace Chopper.Player
             }
             _nextStrikeAt = Time.time + MiningRules.StrikeCooldown;
             StrikeQuality quality = MiningRules.Judge(MiningRules.Glint(MiningClock.Now, vein), HasPickHead);
-            Cue(MiningRules.Word(quality), quality != StrikeQuality.Rough);
+            if (vein != _chainVein)
+            {
+                _chain = 0;
+                _chainVein = vein;
+            }
+            _chain = MiningRules.NextChain(_chain, Time.time - _lastStrikeAt, MiningRules.ComboWindow);
+            Cue(MiningRules.ComboWord(quality, _chain), quality != StrikeQuality.Rough);
             PlayStrike(quality);
             StrikeServerRpc(vein, (int)quality);
             return true;
@@ -245,7 +255,10 @@ namespace Chopper.Player
                 _serverProgress = 0f;
                 _serverStrikes = 0;
                 _serverClean = 0;
+                _serverChain = 0;
             }
+            _serverChain = MiningRules.NextChain(_serverChain, Time.time - _serverChainAt, MiningRules.ComboWindow);
+            _serverChainAt = Time.time;
             _serverStrikes++;
             if (quality == StrikeQuality.Clean) _serverClean++;
             if (MiningRules.Cracks(quality, _rng.NextDouble()))
@@ -255,7 +268,7 @@ namespace Chopper.Player
                 if (Owner.IsValid) ResultTargetRpc(Owner, vein, -1, 0f, false);
                 return -2;
             }
-            _serverProgress += MiningRules.Progress(quality);
+            _serverProgress += MiningRules.ComboProgress(quality, _serverChain);
             if (_serverProgress < MiningRules.FreeAt) return -1;
 
             float cleanShare = _serverClean / (float)Mathf.Max(1, _serverStrikes);

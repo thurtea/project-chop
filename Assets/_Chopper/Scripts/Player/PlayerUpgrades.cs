@@ -1,6 +1,7 @@
 using Chopper.Audio;
 using Chopper.Core;
 using Chopper.World;
+using Chopper.World.Building;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
@@ -24,6 +25,7 @@ namespace Chopper.Player
         // armour kit; using one puts on the helmet, chainmail, bracers and shield for good, and takes this much more off
         // every blow (on top of the armor level, within MaxArmorReduction).
         public const int MaxArmourKits = 9;
+        public const int MaxDomeStones = 3;
         public const float ArmouredReduction = 0.10f;
 
         private readonly SyncVar<int> _axeLevel = new SyncVar<int>();
@@ -35,6 +37,7 @@ namespace Chopper.Player
         // Element stones set in the axe (permanent enchantments, ElementBuffRules): one bit per element.
         private readonly SyncVar<int> _stones = new SyncVar<int>();
         private readonly SyncVar<int> _armourKits = new SyncVar<int>();
+        private readonly SyncVar<int> _domeStones = new SyncVar<int>();
         private readonly SyncVar<bool> _armoured = new SyncVar<bool>();
         // The everyday outfit (shirt, vest, belt; W9-01, user 2026-10-12): a new player wakes in the pond without it and
         // picks it up on the shore; a fallen player leaves it where they fell.
@@ -64,6 +67,7 @@ namespace Chopper.Player
         public int WardsPacked => _wards.Value;
         public int Stones => _stones.Value;
         public int ArmourKits => _armourKits.Value;
+        public int DomeStones => _domeStones.Value;
         public bool Armoured => _armoured.Value;
         public bool Dressed => _dressed.Value;
         public bool HasStone(Element element) => ElementBuffRules.HasStone(_stones.Value, element);
@@ -128,6 +132,24 @@ namespace Chopper.Player
 
         // Server only. A boss tree fell: one more armour kit to carry.
         public void ServerGrantArmourKit() => _armourKits.Value = Mathf.Min(MaxArmourKits, _armourKits.Value + 1);
+
+        public void ServerGrantDomeStone() => _domeStones.Value = Mathf.Min(MaxDomeStones, _domeStones.Value + 1);
+
+        public void ServerLoadDomeStones(int count) => _domeStones.Value = Mathf.Clamp(count, 0, MaxDomeStones);
+
+        // Called from the bag. Places a dome where the player stands, in a forest. A hub placement keeps the stone.
+        public void RequestPlaceDome()
+        {
+            if (IsOwner) PlaceDomeServerRpc();
+        }
+
+        [ServerRpc]
+        private void PlaceDomeServerRpc()
+        {
+            if (_domeStones.Value <= 0 || BuildManager.Instance == null) return;
+            if (!BuildManager.Instance.ServerPlaceDome(transform.position)) return;
+            _domeStones.Value--;
+        }
 
         // Called from the bag: put the armour on. Anywhere, once.
         public void RequestUseArmourKit()
@@ -344,6 +366,7 @@ namespace Chopper.Player
             _wards.Value = 0;
             _stones.Value = 0;
             _armourKits.Value = 0;
+            _domeStones.Value = 0;
             _armoured.Value = false;
         }
     }
