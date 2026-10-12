@@ -974,7 +974,8 @@ namespace Chopper.Editor
 
         // ---------- Chopper's own axe and shield ----------
 
-        public const string ChopperAxePath = "Assets/_Chopper/Art/Character/chopper_axe.fbx";
+        // The single-bladed bear-head axe of concept 1.5 (user, 2026-10-11). It mounts under the name chopper_axe.
+        public const string ChopperAxePath = "Assets/_Chopper/Art/Character/chopper_axe_bear.fbx";
         public const string ChopperShieldPath = "Assets/_Chopper/Art/Character/chopper_shield.fbx";
         private const string ChopperGearMaterialPath = "Assets/_Chopper/Materials/Character/M_Chopper_Gear.mat";
         // The Blender exports in the art project, copied in when they are newer.

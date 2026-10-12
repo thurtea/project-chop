@@ -1,9 +1,9 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (1961708 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32316 bytes)
-  [PASS] file exists: Export\chopper_axe_bear.fbx (30700 bytes)
-  [PASS] file exists: Export\chopper_shield.fbx (40604 bytes)
+  [PASS] file exists: Export\chopper.fbx (1957484 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32268 bytes)
+  [PASS] file exists: Export\chopper_axe_bear.fbx (30748 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (40556 bytes)
 
 RAW FBX: chopper.fbx
 ------------------------------------------------------------------------
@@ -51,7 +51,7 @@ IMPORTED chopper.fbx
   [PASS] chopper_vest parented to chopper_rig with an Armature modifier
 
 SKIN WEIGHTS (imported)
-  [PASS] chopper_beard       864 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_beard       736 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_belt        176 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_body       1036 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_boots       632 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
@@ -210,8 +210,8 @@ CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)
   [PASS] Walk: thighs inside the chainmail on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
 
 BEARD CLEARANCE (beard vertices vs vest, shirt and body)
-  [PASS] rest: beard clear of vest, shirt and body on 1 frames (closest 21.0 mm to chopper_vest at frame 1)
-  [PASS] Idle: beard clear of vest, shirt and body on 21 frames (closest 16.9 mm to chopper_vest at frame 16)
+  [PASS] rest: beard clear of vest, shirt and body on 1 frames (closest 25.1 mm to chopper_vest at frame 1)
+  [PASS] Idle: beard clear of vest, shirt and body on 21 frames (closest 23.8 mm to chopper_vest at frame 19)
   [PASS] Walk: beard clear of vest, shirt and body on 31 frames (closest 26.4 mm to chopper_vest at frame 7)
   [INFO] Run (info): beard clear of vest, shirt and body on 11 frames (closest 26.9 mm to chopper_vest at frame 1)
   passing frame used for rig_walk_passing_side: 9

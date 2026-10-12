@@ -419,6 +419,76 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Double jump (-chopperDoubleJump): a virtual pad's A makes one jump, then a jump and a second jump in the air,
+            // then a third press in the air that must do nothing. Logs the peak heights and "[DoubleJump] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperDoubleJump") >= 0)
+            {
+                Application.runInBackground = true;
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+                yield return new WaitForSeconds(4f);
+                ui.DebugShow(0);
+                yield return TeleportLocalPlayer(new Vector2(0f, 9f), 0f);
+                yield return new WaitForSeconds(1.5f);
+                PlayerMotor jumper = wood.GetComponent<PlayerMotor>();
+                PlayerStamina jumpStamina = wood.GetComponent<PlayerStamina>();
+                Gamepad jumpPad = InputSystem.AddDevice<Gamepad>();
+                yield return new WaitForSeconds(0.3f);
+                float baseY = wood.transform.position.y;
+                float peak = baseY;
+                IEnumerator Press()
+                {
+                    InputSystem.QueueStateEvent(jumpPad, new GamepadState().WithButton(GamepadButton.South));
+                    for (float t = 0f; t < 0.12f; t += Time.deltaTime) { peak = Mathf.Max(peak, wood.transform.position.y); yield return null; }
+                    InputSystem.QueueStateEvent(jumpPad, new GamepadState());
+                    for (float t = 0f; t < 0.3f; t += Time.deltaTime) { peak = Mathf.Max(peak, wood.transform.position.y); yield return null; }
+                }
+                IEnumerator Land()
+                {
+                    for (float t = 0f; t < 3f; t += Time.deltaTime)
+                    {
+                        peak = Mathf.Max(peak, wood.transform.position.y);
+                        if (t > 0.3f && wood.GetComponent<CharacterController>().isGrounded) break;
+                        yield return null;
+                    }
+                    yield return new WaitForSeconds(0.5f);
+                }
+
+                yield return Press();
+                yield return Land();
+                float single = peak - baseY;
+                int afterSingle = jumper.AirJumpCount;
+
+                baseY = wood.transform.position.y;
+                peak = baseY;
+                yield return Press();
+                yield return Press();
+                int afterDouble = jumper.AirJumpCount;
+                yield return Press();
+                int afterThird = jumper.AirJumpCount;
+                yield return Land();
+                float twice = peak - baseY;
+
+                baseY = wood.transform.position.y;
+                peak = baseY;
+                yield return Press();
+                yield return Press();
+                yield return Land();
+                float again = peak - baseY;
+                int afterAgain = jumper.AirJumpCount;
+                InputSystem.RemoveDevice(jumpPad);
+
+                Debug.Log($"[DoubleJump] single peak {single:F2} m, air jumps {afterSingle}");
+                Debug.Log($"[DoubleJump] double peak {twice:F2} m, air jumps {afterDouble}, after a third press {afterThird}");
+                Debug.Log($"[DoubleJump] after landing, double peak {again:F2} m, air jumps {afterAgain}, stamina {(jumpStamina != null ? jumpStamina.Current.ToString("F0") : "-")}");
+                bool jumpOk = single > 0.9f && single < 1.5f && afterSingle == 0
+                              && afterDouble == 1 && afterThird == 1 && twice > single + 0.7f
+                              && afterAgain == 2 && again > single + 0.7f;
+                Debug.Log("[DoubleJump] RESULT " + (jumpOk ? "PASS" : "FAIL"));
+                Application.Quit(jumpOk ? 0 : 1);
+                yield break;
+            }
+
             // Ground probe (-chopperGroundProbe): logs every renderer at the player's feet and the block colour there,
             // then takes the same view with the block chunks, the water and the terrain toggled, to find what draws the
             // dark ground.

@@ -50,13 +50,19 @@ Block columns, the palette, and the chunk mesh are in. On world build the terrai
 
 ## Still open, in this order
 
-1. Double jump, asked for on 2026-10-12. Not started. Add it on the live player motor. Do not rewrite the rest of movement.
+1. Bigger hub cabin (user, 2026-10-12): "ample size", two floors are fine. Then water to match concept 2.0. Website pictures last, after everything else is updated.
 2. W5-08 step 5: `WorldGround` reads the columns, chunk colliders, drop the Terrain collider, `stepOffset` 0.55, slide only when pushing into a riser taller than 1 m. Design: `Logs/chopper_play/world_audit/W5-08_voxel_terrain_design.md`. Then snap tree Y onto the block top (step 7), or the buried pines will float off the new surface. The blocks are now visible in Play (see below), so the Play look this step waited for is done.
 3. Workbench and campfire meshes, and the held torch. The yard torches, the standing torch piece, and the signs are voxel now.
 4. Clouds and the block sun. Healing herbs are still the old red flowers; there is no voxel herb in the world kit.
-5. Character polish toward concept 2.0 (user, 2026-10-12: "pretty rough and jagged looking"). Close-up `Website/images/creator.jpg`: dark grid lines on the vest, shirt, and boots are the per-face UV gutters (W2-08); the beard is a stepped block. Planned under W2-08, W6-03, and W3-03. The bear axe on the live player is still open. Do not restart W6-03 from scratch. Do not mark W2-05 done.
+5. Character: see "Character pass" below. Open: whether the starting look wears the chainmail, bracers and shield (concept 2.0) or earns them (2026-10-11 decision); the chainmail reads flat blue-grey; the carry pose holds the axe head down; the art-project Unity checks (`ChopperCheck`, 12 skinned meshes expected, the FBX has 13) were not rerun. Do not mark W2-05 done.
 6. User, 2026-10-12: concept 2.0 is the target for the ground, grass, foliage, sky, trees, and characters. Forests only change colour. Also seen in the tour: the block mountain faces show tall streaks (the shader's pixel jitter uses world XZ only, so vertical faces get one value per column), and the tufts read yellow next to the bright green ground.
 7. The night website picture is weak: the camera looks at the player's back against the dark cabin.
+
+## Character pass and double jump (2026-10-12, later)
+
+Double jump: `PlayerMotor` gives one air jump (same height and stamina as the first; back on landing). Tour `-chopperDoubleJump`, `Logs/chopper_play/double_jump.log` RESULT PASS: single peak 1.17 m, double 2.27 m (fall damage starts at 4 m), a third press in the air does nothing.
+
+The live player had never received the W6-03 work: it still used the 2026-10-11 18:13 `chopper.fbx` and the per-face atlas, which is where the dark grid lines came from. Also, every colour test in `atlas_paint.py` failed: the BYTE_COLOR vertex colours read back as linear (trousers 0.074, not 0.30), so legs painted as skin and buckles, crossbelt, soles, moustache and axe parts fell through. `near()` now converts the PAL value first. Vest patches are bigger with sparse stitches; boot cords are calmer; the beard is a compact spade ending at the collarbone (`build_chopper.build_beard`). Pipeline rerun: build_chopper, uv_atlas, rig_chopper, animate_chopper, export_fbx; `check_assets` 136 PASS 0 FAIL, `check_rig` 140 PASS 0 FAIL. Renders `base_look_*.png`. Live: `chopper.fbx` and `chopper_atlas.png` copied to `Assets/_Chopper/Art/Character/`, `ChopperAxePath` is now `chopper_axe_bear.fbx`, `UseChopperPlayer` (`Logs/chopper_play/w6_04_builder.log`, `Exiting batchmode successfully`). Gear tour `w6_04_gear.log`: bear axe on Weapon_R (0.0 cm, 0.0 deg), shield 2.0 cm off the back, 0 errors. The other concept JPGs at the repo root were deleted outside this work (only 2.0 remains); `render_base_look.py`'s side-by-side sheet needs `chopper-3D-concept-1.5.jpg` and fails without it.
 
 ## Block ground, voxel torches and signs, website pictures (2026-10-12, later)
 

@@ -36,6 +36,9 @@ namespace Chopper.Player
         private const float SteepSlideSpeed = GameConfig.SteepSlideSpeed;
         private const float SteepProbeLength = 0.6f;
 
+        // Double jump: one more jump in the air, as high as the first and for the same stamina. It comes back on landing.
+        private const int AirJumps = 1;
+
         private CharacterController _controller;
         private readonly SyncVar<bool> _crouchSync = new SyncVar<bool>();
         private bool _sprintToggled;
@@ -50,6 +53,7 @@ namespace Chopper.Player
         private PlayerDevTools _devTools;
         private PlayerFishing _fishing;
         private bool _flyingHere;
+        private int _airJumpsLeft;
         private Vector3 _flyVelocity;
         private Vector3 _rollDirection = Vector3.forward;
         private float _rollUntil;
@@ -81,6 +85,8 @@ namespace Chopper.Player
         public bool IsCrouching => IsOwner ? _crouching : _crouchSync.Value;
 
         public bool IsFlying => _devTools != null && _devTools.Flying;
+        // Air jumps made since spawn (the double jump tour checks it).
+        public int AirJumpCount { get; private set; }
 
         private void Awake()
         {
@@ -297,11 +303,20 @@ namespace Chopper.Player
                 else if (_controller.isGrounded)
                 {
                     if (_verticalVelocity < 0f) _verticalVelocity = -_config.PlayerGroundedStickSpeed;
+                    _airJumpsLeft = AirJumps;
                     // TryUse only runs when jump was pressed (short circuit), so stamina is not drained every frame.
                     if (!blocked && !rolling && !guardUp && JumpPressed() && (_stamina == null || _stamina.TryUse(_config.JumpStamina)))
                     {
-                        _verticalVelocity = Mathf.Sqrt(2f * _config.PlayerJumpHeight * _config.PlayerGravity);
+                        _verticalVelocity = _config.JumpLaunchSpeed;
                     }
+                }
+                else if (_airJumpsLeft > 0 && !blocked && !rolling && !guardUp && JumpPressed()
+                         && (_stamina == null || _stamina.TryUse(_config.JumpStamina)))
+                {
+                    // The second jump replaces the fall speed, so it lifts the same amount on the way up or down.
+                    _airJumpsLeft--;
+                    _verticalVelocity = _config.JumpLaunchSpeed;
+                    AirJumpCount++;
                 }
                 _verticalVelocity -= _config.PlayerGravity * Time.deltaTime;
             }

@@ -54,6 +54,9 @@ def S(r, g, b):
 
 
 def near(rgb, ref, tol=0.02):
+    """rgb is a vertex colour as read back (linear). ref is a PAL-style value as the build scripts write it; the
+    BYTE_COLOR attribute stores that as sRGB, so it reads back as its sRGB-to-linear value (0.30 -> 0.073)."""
+    ref = S(ref[0] * 255.0, ref[1] * 255.0, ref[2] * 255.0)
     return all(abs(a - b) < tol for a, b in zip(rgb, ref))
 
 
@@ -166,18 +169,19 @@ def paint_shirt(p, n, rgb, pc, t):
 
 def vest_panel(a, z, t):
     """Patchwork panel colour and whether this pixel lies on a panel seam (stitched)."""
-    row = math.floor(z / (7 * t))
-    shift = 3 if row % 2 else 0
-    col = math.floor((math.floor(a / t) + shift) / 6)
-    pa = (math.floor(a / t) + shift) % 6
-    pz = math.floor(z / t) % 7
+    # Concept 2.0: three or four big patches across the front, a few of them grey, sewn with sparse stitches.
+    row = math.floor(z / (10 * t))
+    shift = 5 if row % 2 else 0
+    col = math.floor((math.floor(a / t) + shift) / 11)
+    pa = (math.floor(a / t) + shift) % 11
+    pz = math.floor(z / t) % 10
     hsh = h3(col, row, 5)
-    if hsh < 0.18:
-        base = PATCH[0] if hsh < 0.10 else PATCH[1]
+    if hsh < 0.28:
+        base = PATCH[0] if hsh < 0.14 else PATCH[1]
     else:
         base = LEATHER[int(hsh * 97) % 3]
     seam = pa == 0 or pz == 0
-    return base, seam, (pa + pz) % 2 == 0
+    return base, seam, (pa if pz == 0 else pz) % 3 == 1
 
 
 def paint_vest(p, n, rgb, pc, t):
@@ -203,7 +207,7 @@ def paint_vest(p, n, rgb, pc, t):
     base, seam, dot = vest_panel(a, p.z, t)
     c = base
     if seam:
-        c = THREAD if dot else SEAM
+        c = mix(SEAM, THREAD, 0.6) if dot else SEAM
     # lacing up the front: dark slit and an X of light cord, counted in pixels
     if n.y < -0.5 and 0.87 < p.z < 1.32:
         ix = round(p.x / t)
@@ -301,8 +305,8 @@ def paint_boots(p, n, rgb, pc, t):
     i, j, k = cell(p, t)
     if near(rgb, PAL["boot_wrap"]):
         a = math.floor(side_coord(p, n) / t)
-        if (a + k) % 4 == 0 or (a - k) % 4 == 0:
-            return CORD                       # crossed binding on the wrap bands
+        if (a + k) % 7 == 0 or (a - k) % 7 == 0:
+            return mix(BOOT_WRAP, CORD, 0.6)  # crossed binding on the wrap bands
         return grain(BOOT_WRAP, p, t)
     return grain(BOOT, p, t, 0.06)
 

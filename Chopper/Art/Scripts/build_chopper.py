@@ -190,18 +190,17 @@ def build_beard(mat):
         blk(x0, x1, -0.13, 0.03, 1.52, 1.665, D, 0.01)        # sideburn into the hair
     # the V: layers hang in front of the chest, each narrower than the one above
     front = -0.268
-    layers = [(1.375, 1.425, 0.195), (1.325, 1.375, 0.168), (1.275, 1.325, 0.138),
-              (1.225, 1.275, 0.108), (1.180, 1.225, 0.078), (1.145, 1.180, 0.050),
-              (1.115, 1.145, 0.024)]
+    # Concept 2.0: a compact spade that ends at the collarbone, not mid-chest.
+    layers = [(1.375, 1.425, 0.195), (1.330, 1.375, 0.172), (1.290, 1.330, 0.140),
+              (1.255, 1.290, 0.100), (1.230, 1.255, 0.055)]
     for i, (z0, z1, hw) in enumerate(layers):
         back = -(vest_front(z0 - 0.01, z1 + 0.01) + BEARD_CLEAR)
         blk(-hw, hw, front + 0.002 * i, back, z0, z1 + 0.004, G if i % 2 == 0 else D)
     # darker strand blocks proud of the front, stepping down the V
     chunks = [(-0.14, 1.40, 0.05), (0.0, 1.405, 0.06), (0.14, 1.40, 0.05),
-              (-0.075, 1.35, 0.05), (0.075, 1.35, 0.05),
-              (-0.10, 1.30, 0.04), (0.035, 1.30, 0.05),
-              (-0.035, 1.25, 0.045), (0.065, 1.25, 0.035),
-              (0.0, 1.20, 0.04)]
+              (-0.075, 1.355, 0.05), (0.075, 1.355, 0.05),
+              (-0.04, 1.31, 0.05), (0.06, 1.31, 0.04),
+              (0.0, 1.265, 0.05)]
     for i, (x, z, w) in enumerate(chunks):
         mb.box((x, front - 0.008, z), (w, 0.02, 0.04), 0.006, color=D if i % 2 == 0 else G)
     # moustache: separate darker bar over the mouth with ends drooping proud of the beard

@@ -191,7 +191,7 @@ namespace Chopper.UI
             Hint(page, "Click a control, then press a key or mouse button. Esc cancels.", -86f);
             BindColumns(page, false, -120f);
             Hint(page, "Move: WASD or arrows. Look: mouse. Zoom: scroll wheel. Menu: Esc.", -452f);
-            Hint(page, "Hold Block and press Jump to dodge.", -478f);
+            Hint(page, "Jump again in the air to double jump. Hold Block and press Jump to dodge.", -478f);
             Button reset = UiKit.MakeButton(page, "Reset to defaults", new Vector2(340f, 44f), () => { Keybinds.ResetAll(); RefreshBinds(); }, 20);
             UiKit.Place(reset.GetComponent<RectTransform>(), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -516f), new Vector2(340f, 44f));
         }

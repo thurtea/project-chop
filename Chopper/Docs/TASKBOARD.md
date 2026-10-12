@@ -57,8 +57,8 @@ The character pipeline in the production brief is done. Do not rebuild Chopper f
 |---|---|---|---|---|---|
 | W6-01 | Bear-head axe `chopper_axe_bear` (concept 1.5): single blade, carved haft, bear head, 1,000 tris or fewer, M_Chopper_Gear, same grip frame as `chopper_axe` | blender-modeler | user decision | Check script PASS; renders next to concept 1.5; FBX in `Art/Export/` | done |
 | W6-02 | Base look without armour: bracers split out of `chopper_belt` into `chopper_bracers`; no hole or gap with chainmail, bracers, and helmet hidden (red shirt hem, trousers, plaid cuffs visible) | blender-modeler | user decision | `check_assets`/`check_rig` all PASS; render of the base look vs concept 1.5 | done |
-| W6-03 | UV islands per part (W2-08) and a painted atlas to concept 1.5: plaid, patchwork vest with stitches and lacing, crossbelt and buckles, belt buckle, face and beard, bear axe wood carving | blender-modeler or texture-artist | W6-01, W6-02 | No gutter seams at gameplay distance; side by side with concept 1.5 | in progress (also: V-spade beard, chunkier bear axe) |
-| W6-04 | Live player wears the base look and the bear-head axe; shield mount kept but hidden until equipped | unity-engineer | W6-01..03 | Player.prefab via the builder; Play screenshots | pending |
+| W6-03 | UV islands per part (W2-08) and a painted atlas to concept 1.5: plaid, patchwork vest with stitches and lacing, crossbelt and buckles, belt buckle, face and beard, bear axe wood carving | blender-modeler or texture-artist | W6-01, W6-02 | No gutter seams at gameplay distance; side by side with concept 1.5 | mostly done 2026-10-12: paint colour-match bug fixed (trousers, buckles, crossbelt, soles, moustache, axe parts now paint), bigger vest patches with sparse stitches, compact spade beard (concept 2.0); no gutter lines in Play (`w6_04_gear/`). Open: chunkier bear axe, chainmail reads flat blue-grey |
+| W6-04 | Live player wears the base look and the bear-head axe; shield mount kept but hidden until equipped | unity-engineer | W6-01..03 | Player.prefab via the builder; Play screenshots | partial 2026-10-12: new body FBX and atlas copied in, bear axe on Weapon_R (`CharacterSetup.ChopperAxePath`), `UseChopperPlayer` log `Exiting batchmode successfully`, gear tour 0 errors (`Logs/chopper_play/w6_04_gear.log`). Chainmail, bracers and the shield on the back are still shown: waiting on the user (concept 2.0 wears them, the 2026-10-11 decision says they are earned) |
 
 ## Week 7 (end): Valheim look pass
 
@@ -85,7 +85,7 @@ The user wants the whole world, not only the character, to read like `chopper-3D
 | W5-02 | Voxel grass tufts and ground block look (grass top over dirt sides) | tufts are the grass carpet (`cabin_play3.log` loads the carpet meshes). Ground blocks were already W5-08 steps 1-4 |
 | W5-03 | Stepped voxel mountains and terrain edges | pending |
 | W5-04 | Water, sky, blocky clouds and sun, fog and mood | pending |
-| W5-09 | Double jump on the live player motor (asked 2026-10-12) | not started |
+| W5-09 | Double jump on the live player motor (asked 2026-10-12) | done: one air jump, same height and stamina as the first, back on landing. `-chopperDoubleJump` tour `Logs/chopper_play/double_jump.log` RESULT PASS (single 1.17 m, double 2.27 m, a third press does nothing, works again after landing). Settings hint updated |
 
 The W2-00 notes are the Week 1 review risks. W2-01 to W2-03 closed them. Do not treat them as open work.
 
