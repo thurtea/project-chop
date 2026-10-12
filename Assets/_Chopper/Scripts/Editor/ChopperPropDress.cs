@@ -10,7 +10,7 @@ namespace Chopper.Editor
     // standing torch piece (Piece_Torch.prefab) and the hub notice board (World.unity) keep their components,
     // colliders, lights and flames; their old renderers are hidden and the voxel mesh goes under a child named
     // Voxel. The tutorial yard signs are built at runtime and load Resources/Props/prop_sign_voxel.
-    // The held torch is not changed.
+    // The held torch is dressed by DressHeldAndCampfire, from the same voxel torch as the yard.
     public static class ChopperPropDress
     {
         const string ArtFolder = "Assets/_Chopper/Art/World";
@@ -276,6 +276,131 @@ namespace Chopper.Editor
                 PrefabUtility.UnloadPrefabContents(root);
             }
             return made;
+        }
+
+        // The campfire building piece still showed the old pixel rocks. The world campfire already uses the voxel
+        // rock and log. This hides the piece's old meshes and puts the same ring under a child named Voxel.
+        // The torch in the player's hand gets the voxel torch, scaled to the old handle length. Flames and the light stay.
+        public static void DressHeldAndCampfire()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (mat == null) throw new FileNotFoundException("Missing M_World.");
+            bool fire = DressCampfirePiece(mat);
+            bool torch = DressHeldTorch(mat);
+            Debug.Log($"[ChopperProps] campfire piece voxel {fire}, held torch voxel {torch}");
+            Debug.Log("[ChopperProps] RESULT " + (fire && torch ? "PASS" : "FAIL"));
+        }
+
+        static bool DressCampfirePiece(Material mat)
+        {
+            const string path = "Assets/_Chopper/Prefabs/Building/Piece_Campfire.prefab";
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Transform old = root.transform.Find("Voxel");
+                if (old != null) Object.DestroyImmediate(old.gameObject);
+                foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+                    if (renderer is MeshRenderer) renderer.enabled = false;
+                var voxel = new GameObject("Voxel").transform;
+                voxel.SetParent(root.transform, false);
+                GameObject rock = ChopperMeadowSwap.MeadowModel("prop_rock_voxel");
+                GameObject log = ChopperMeadowSwap.MeadowModel("prop_log_voxel");
+                if (rock == null || log == null) return false;
+                const int stones = 9;
+                const float radius = 0.62f;
+                for (int i = 0; i < stones; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / stones;
+                    var at = new Vector3(Mathf.Cos(angle), 0.05f, Mathf.Sin(angle)) * radius;
+                    PlaceBit(rock, voxel, "Stone", at, Quaternion.Euler(0f, i * 47f, 0f), 0.3f + 0.06f * (i % 2), mat);
+                }
+                for (int i = 0; i < 3; i++)
+                {
+                    var piece = PlaceBit(log, voxel, "Log", new Vector3(0f, 0.16f + i * 0.05f, 0f), Quaternion.Euler(0f, i * 60f, 12f), 0.85f, mat);
+                    Bounds turned = WorldBounds(piece);
+                    piece.transform.position += new Vector3(-turned.center.x, 0.02f + i * 0.05f - turned.min.y, -turned.center.z);
+                }
+                int meshes = 0;
+                foreach (Renderer renderer in voxel.GetComponentsInChildren<Renderer>()) if (renderer.enabled) meshes++;
+                Debug.Log($"[ChopperProps] campfire piece meshes {meshes}");
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                return meshes >= 12;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+        }
+
+        static GameObject PlaceBit(GameObject model, Transform parent, string name, Vector3 at, Quaternion rotation, float scale, Material mat)
+        {
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(model, parent);
+            go.name = name;
+            go.transform.localPosition = at;
+            go.transform.localRotation = rotation;
+            go.transform.localScale = Vector3.one * scale;
+            foreach (Collider collider in go.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
+            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.sharedMaterial = mat;
+                renderer.enabled = true;
+            }
+            return go;
+        }
+
+        static Bounds WorldBounds(GameObject go)
+        {
+            var bounds = new Bounds(go.transform.position, Vector3.zero);
+            bool any = false;
+            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>())
+            {
+                if (!any) { bounds = renderer.bounds; any = true; }
+                else bounds.Encapsulate(renderer.bounds);
+            }
+            return bounds;
+        }
+
+        static bool DressHeldTorch(Material mat)
+        {
+            const string path = "Assets/_Chopper/Prefabs/Player/Player.prefab";
+            const float heldHeight = 0.41f;
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Transform torch = FindDeep(root.transform, "Torch");
+                if (torch == null) return false;
+                foreach (string part in new[] { "Handle", "Head", "BandLow", "BandHigh" })
+                {
+                    Transform bit = torch.Find(part);
+                    if (bit == null) continue;
+                    foreach (Renderer renderer in bit.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+                }
+                Transform old = torch.Find("Voxel");
+                if (old != null) Object.DestroyImmediate(old.gameObject);
+                var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(ArtFolder + "/prop_torch_voxel.fbx");
+                if (fbx == null) return false;
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(fbx, torch);
+                go.name = "Voxel";
+                Transform hold = go.transform.parent;
+                go.transform.SetParent(null, false);
+                float height = WorldBounds(go).size.y;
+                if (height > 0.05f) go.transform.localScale = Vector3.one * (heldHeight / height);
+                go.transform.SetParent(hold, false);
+                go.transform.localPosition = Vector3.zero;
+                foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>())
+                {
+                    renderer.sharedMaterial = mat;
+                    renderer.enabled = true;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+                Debug.Log($"[ChopperProps] held torch voxel height {height:F2} m scaled to {heldHeight:F2} m");
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                return height > 1.5f;
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
         }
 
         static Transform FindDeep(Transform root, string name)

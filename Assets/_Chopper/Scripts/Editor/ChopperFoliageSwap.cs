@@ -24,6 +24,7 @@ namespace Chopper.Editor
             string[] bushes = { "prop_bush_voxel_a", "prop_bush_voxel_b" };
             foreach (string name in tufts) CopyAndImport(name);
             foreach (string name in bushes) CopyAndImport(name);
+            CopyAndImport("prop_herb_voxel");
 
             Material world = ChopperMeadowSwap.MeadowModel("prop_rock_voxel") != null
                 ? AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat")
@@ -33,9 +34,12 @@ namespace Chopper.Editor
             foreach (string name in tufts) SaveUprightPrefab(name, null);
             GameObject bushA = SaveUprightPrefab(bushes[0], world);
             GameObject bushB = SaveUprightPrefab(bushes[1], world);
+            GameObject herb = SaveUprightPrefab("prop_herb_voxel", world);
             WireBushes(bushA, bushB);
+            WireHerb(herb);
             AssetDatabase.SaveAssets();
-            Debug.Log("[ChopperFoliage] grass tufts and voxel bushes wired. RESULT PASS");
+            Debug.Log("[ChopperFoliage] grass tufts, voxel bushes and the healing herb wired. RESULT PASS");
+            ChopperPropDress.DressHeldAndCampfire();
         }
 
         static void CopyAndImport(string name)
@@ -115,6 +119,40 @@ namespace Chopper.Editor
             {
                 PrefabUtility.UnloadPrefabContents(root);
             }
+        }
+
+        static void WireHerb(GameObject herb)
+        {
+            var root = PrefabUtility.LoadPrefabContents(DirectorPath);
+            try
+            {
+                var herbs = root.GetComponent<HerbManager>();
+                if (herbs == null) throw new FileNotFoundException("HerbManager on " + DirectorPath);
+                var so = new SerializedObject(herbs);
+                so.FindProperty("_model").objectReferenceValue = herb;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(root, DirectorPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(root);
+            }
+
+            const string groundPath = "Assets/_Chopper/Prefabs/World/GroundItem.prefab";
+            var ground = PrefabUtility.LoadPrefabContents(groundPath);
+            try
+            {
+                var item = ground.GetComponent<Chopper.World.GroundItem>();
+                var so = new SerializedObject(item);
+                so.FindProperty("_herbModel").objectReferenceValue = herb;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                PrefabUtility.SaveAsPrefabAsset(ground, groundPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(ground);
+            }
+            Debug.Log("[ChopperFoliage] herb prefab " + herb.name + " height will be scaled to 0.70 m in the world");
         }
     }
 }

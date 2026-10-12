@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Chopper.World
 {
-    // Wild plants: healing herbs (small red flowers) and ferns (they give fiber; the code still calls them fabric bushes, and saves and the config keep that name). A player picks one by
+    // Wild plants: healing herbs (a short leafy plant with a yellow flower) and ferns (they give fiber; the code still calls them fabric bushes, and saves and the config keep that name). A player picks one by
     // holding interact next to it; bandages are made from herbs and fabric at the workbench. Positions are generated
     // the same way on every peer (fixed seed over the terrain), so only picked plant numbers are networked: the server
     // marks one picked and tells everyone, late joiners get the picked list in one message, and dawn makes them all
@@ -27,9 +27,8 @@ namespace Chopper.World
         // Fabric bushes stand a little taller, above the grass.
         private const float FabricBushHeight = 1f;
         private const float MaxSlopeDegrees = 30f;
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        // Healing herbs are the pack's bush tinted red (also used for the dropped herb and its icon).
-        public static readonly Color HerbTint = new Color(1.7f, 0.42f, 0.36f);
+        // Left over from the red-tinted bush. Voxel herbs keep the colours painted on the mesh.
+        public static readonly Color HerbTint = Color.white;
 
         [SerializeField] private GameConfig _config;
         [SerializeField] private GameObject _model;
@@ -117,8 +116,6 @@ namespace Chopper.World
             _root.SetParent(transform, false);
             _views = new GameObject[_positions.Length];
 
-            var herbBlock = new MaterialPropertyBlock();
-            herbBlock.SetColor(BaseColorId, HerbTint);
             float herbScale = 0f;
             float bushScale = 0f;
             for (int i = 0; i < _positions.Length; i++)
@@ -132,8 +129,6 @@ namespace Chopper.World
                 if (bush && bushScale <= 0f) bushScale = FabricBushHeight / MeasuredHeight(view);
                 if (!bush && herbScale <= 0f) herbScale = ViewHeight / MeasuredHeight(view);
                 view.transform.localScale = Vector3.one * (bush ? bushScale : herbScale);
-                // Fabric bushes keep the pack's own leafy look; herbs are tinted red.
-                if (!bush) foreach (Renderer renderer in view.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(herbBlock);
                 foreach (Collider collider in view.GetComponentsInChildren<Collider>()) Destroy(collider);
                 _views[i] = view;
             }

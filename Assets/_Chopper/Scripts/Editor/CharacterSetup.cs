@@ -1394,6 +1394,24 @@ namespace Chopper.Editor
         // size. Returns the height of the head's top. Shared by the held torch and the yard torches (scaled up).
         public static float BuildTorchModel(Transform parent)
         {
+            const float heldHeight = 0.41f;
+            var voxel = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Chopper/Art/World/prop_torch_voxel.fbx");
+            var world = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (voxel != null && world != null)
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(voxel, parent);
+                go.name = "Voxel";
+                go.transform.localPosition = Vector3.zero;
+                foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>())
+                {
+                    renderer.sharedMaterial = world;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                }
+                float height = TorchHeight(go);
+                if (height > 0.05f) go.transform.localScale = Vector3.one * (heldHeight / height);
+                return heldHeight;
+            }
+
             Material bark = AssetDatabase.LoadAssetAtPath<Material>(PixelPackSetup.Root + "/Essential/Materials/tree_oak_log_psx2.mat");
             if (bark == null) bark = TorchMaterial("M_TorchWood", new Color(0.30f, 0.19f, 0.10f), false);
             Material charred = TorchMaterial("M_TorchHead", new Color(0.09f, 0.07f, 0.06f), false);
@@ -1405,6 +1423,19 @@ namespace Chopper.Editor
             TorchPart(parent, "BandLow", TaperedMesh("Mesh_TorchBand", 0.035f, 0.036f, 0.018f, 0f), rope, TorchShaftLength - 0.01f);
             TorchPart(parent, "BandHigh", TaperedMesh("Mesh_TorchBand", 0.035f, 0.036f, 0.018f, 0f), rope, TorchShaftLength + 0.05f);
             return TorchShaftLength - 0.03f + TorchHeadLength;
+        }
+
+        static float TorchHeight(GameObject go)
+        {
+            bool any = false;
+            var bounds = new Bounds();
+            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>())
+            {
+                if (!any) bounds = renderer.bounds;
+                else bounds.Encapsulate(renderer.bounds);
+                any = true;
+            }
+            return any ? bounds.size.y : 0f;
         }
 
         // How big the held torch's flames are at its natural size (yard torches scale this with the torch).

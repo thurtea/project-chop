@@ -51,7 +51,7 @@ namespace Chopper.World
                            key("Roll") + " rolls out of the way. Keep pressing " + key("Attack") + " for a three hit combo; the last hit lunges.\n\n" +
                            "Kill an elemental tree and your axe carries its element for fifteen hits.";
                 case Station.Gathering:
-                    return "Small red flowers are healing herbs and ferns give fiber. Press " + key("Interact") + " to pick one, then walk over what drops.\n\n" +
+                    return "Leafy plants with a yellow flower are healing herbs and ferns give fiber. Press " + key("Interact") + " to pick one, then walk over what drops.\n\n" +
                            "Fallen branches and wood piles are picked up the same way.";
                 case Station.Workbench:
                     return "The workbench stands in the house: walk up and press " + key("Interact") + ". Torches are made there, the axe, armor and hut are upgraded, crypt gear is forged, " +

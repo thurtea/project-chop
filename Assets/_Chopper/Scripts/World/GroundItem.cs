@@ -29,7 +29,6 @@ namespace Chopper.World
         private const float PopHeight = 0.6f;
         // A dropped sprig is this tall, whatever the size of the plant model.
         private const float SprigHeight = 0.28f;
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         [SerializeField] private GameConfig _config;
         [SerializeField] private Material _woodMaterial;
@@ -178,12 +177,6 @@ namespace Chopper.World
                 float height = 0f;
                 foreach (Renderer renderer in view.GetComponentsInChildren<Renderer>()) height = Mathf.Max(height, renderer.bounds.size.y);
                 view.transform.localScale = model.transform.localScale * (SprigHeight / Mathf.Max(0.05f, height));
-                if (Kind == GroundItemKind.Herb)
-                {
-                    var tint = new MaterialPropertyBlock();
-                    tint.SetColor(BaseColorId, HerbManager.HerbTint);
-                    foreach (Renderer renderer in view.GetComponentsInChildren<Renderer>()) renderer.SetPropertyBlock(tint);
-                }
                 // A small sprig of the plant, standing on the ground (lying on its side it read as a dark smudge).
                 view.transform.localRotation = Quaternion.Euler(Random.Range(-10f, 10f), Random.Range(0f, 360f), 0f);
             }

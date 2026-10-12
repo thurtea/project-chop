@@ -74,6 +74,8 @@ GRASS_TIP = srgb(214, 204, 96)
 LEAF = srgb(70, 120, 48)
 LEAF_DARK = srgb(52, 96, 38)
 LEAF_LIGHT = srgb(96, 146, 64)
+FLOWER = srgb(232, 214, 120)
+FLOWER_CENTER = srgb(214, 150, 48)
 CLOUD = srgb(250, 250, 252)
 CLOUD_SHADE = srgb(214, 220, 230)
 SUN = srgb(255, 232, 140)
@@ -389,6 +391,22 @@ def build_tuft(name, blades, mat, carpet=False):
     bpy.context.scene.collection.objects.link(obj)
     mesh.materials.append(mat)
     return obj
+
+
+# ----------------------------------------------------------------------------------------------- healing herb
+# A short leafy plant with a yellow flower, so it reads apart from the grass tufts and the old red bush.
+def herb_cells():
+    out = {}
+    for ix, iy in ((0, 0), (1, -1), (-1, 1)):
+        for iz in range(0, 3):
+            out[(ix, iy, iz)] = GRASS_DARK if iz == 0 else GRASS_MID
+    for ix, iy, iz in ((1, 0, 1), (-1, 0, 2), (0, 1, 1), (0, -1, 2), (2, -1, 1), (-1, -1, 1)):
+        out[(ix, iy, iz)] = LEAF_LIGHT if (ix + iy) % 2 == 0 else LEAF
+    out[(0, 0, 3)] = FLOWER_CENTER
+    out[(0, 0, 4)] = FLOWER
+    out[(1, -1, 3)] = FLOWER
+    out[(-1, 1, 3)] = FLOWER
+    return out
 
 
 # ----------------------------------------------------------------------------------------------- bushes
@@ -833,6 +851,7 @@ def lineup(cam, objs):
         "prop_torch_voxel": (-1.2, -6.2, 0),
         "prop_bush_voxel_a": (3.6, -3.6, 0),
         "prop_bush_voxel_b": (5.8, -2.6, 0),
+        "prop_herb_voxel": (7.4, -3.2, 0),
         "prop_grass_tuft_voxel_a": (0.6, -6.6, 0),
         "prop_grass_tuft_voxel_b": (1.5, -7.0, 0),
         "prop_grass_tuft_voxel_c": (-0.2, -7.3, 0),
@@ -911,6 +930,8 @@ def main():
         add(build_tuft("prop_grass_tuft_voxel_" + v, TUFTS[v], mat), {"h": (0.25, 0.6), "w": (0.1, 0.6), "tris": 60})
     for v in ("a", "b"):
         add(build("prop_bush_voxel_" + v, bush_cells(v), mat), {"h": (0.75, 1.3), "w": (1.2, 2.4), "tris": 1500})
+    add(build("prop_herb_voxel", herb_cells(), mat, size=(0.125, 0.125, 0.125)),
+        {"h": (0.5, 0.75), "w": (0.3, 0.8), "tris": 400})
     for v in ("a", "b", "c"):
         add(build("prop_cloud_voxel_" + v, cloud_cells(v), mat, size=(2.0, 2.0, 2.0), shade_bottom=CLOUD_SHADE),
             {"h": (2.0, 4.0), "w": (8.0, 16.0), "tris": 400})

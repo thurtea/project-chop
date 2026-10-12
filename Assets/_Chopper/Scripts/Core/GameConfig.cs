@@ -111,7 +111,7 @@ namespace Chopper.Core
         [Header("Crafting (torches at a workbench, bandages anywhere; paid with carried items)")]
         [SerializeField, Min(0)] private int _torchWoodCost = 3;
         [Header("Healing herbs and fiber")]
-        [Tooltip("Healing herbs growing in the world (small red flowers). Bandages are made from them and fiber.")]
+        [Tooltip("Healing herbs growing in the world (leafy plants with a yellow flower). Bandages are made from them and fiber.")]
         [SerializeField, Min(0)] private int _herbCount = 240;
         [SerializeField, Min(1)] private int _herbCarryCap = 20;
         [Tooltip("Ferns growing in the world. Picking one gives fiber.")]

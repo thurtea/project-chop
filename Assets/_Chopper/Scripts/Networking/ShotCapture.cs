@@ -809,6 +809,81 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Block ground (-chopperBlockGround, W5-08 step 5): the chunk colliders are the ground and the Terrain
+            // collider is off; the player stands on the block top at several places (feet within 12 cm, the skin, of the column
+            // top); every tree entry sits on its column top; pictures of the steps. Logs "[BlockGround] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperBlockGround") >= 0)
+            {
+                Hut.Instance.ServerSetRepaired(true);
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                yield return new WaitForSeconds(4f);
+                GameUi.HudHidden = true;
+                ui.DebugShow(0);
+                var blockColumns = Chopper.World.Voxel.VoxelColumns.Current;
+                Terrain smoothLand = Terrain.activeTerrain;
+                TerrainCollider smoothCollider = smoothLand != null ? smoothLand.GetComponent<TerrainCollider>() : null;
+                GameObject chunkRoot = GameObject.Find("VoxelWorld");
+                int chunkColliders = chunkRoot != null ? chunkRoot.GetComponentsInChildren<MeshCollider>().Length : 0;
+                bool terrainOff = smoothCollider == null || !smoothCollider.enabled;
+                Debug.Log($"[BlockGround] columns {(blockColumns != null ? blockColumns.Crc.ToString("X8") : "none")}, chunk colliders {chunkColliders}, terrain collider {(terrainOff ? "off" : "ON")}");
+
+                Vector2[] spots = { new Vector2(0f, 9f), new Vector2(0f, 30f), new Vector2(40f, 40f), new Vector2(-60f, 20f), new Vector2(25f, -70f), new Vector2(-90f, -90f) };
+                float worstFeet = 0f;
+                int feetChecked = 0;
+                foreach (Vector2 at in spots)
+                {
+                    yield return TeleportLocalPlayer(at, 0f);
+                    yield return new WaitForSeconds(1.2f);
+                    Vector3 p = wood.transform.position;
+                    if (blockColumns == null || !blockColumns.TryTopAt(p.x, p.z, out float top)) continue;
+                    // Only judge spots where the feet are on the blocks (the hub spot stands on the house floor).
+                    if (!Physics.Raycast(p + Vector3.up * 0.5f, Vector3.down, out RaycastHit under, 2f, ~0, QueryTriggerInteraction.Ignore)
+                        || !Chopper.World.Voxel.VoxelWorld.IsGround(under.collider))
+                    {
+                        Debug.Log($"[BlockGround] at {at}: standing on {(under.collider != null ? under.collider.name : "nothing")}, not the blocks; skipped");
+                        continue;
+                    }
+                    // On a step edge the controller may rest on the higher neighbour: take the nearest top of the 3 x 3.
+                    float best = float.MaxValue;
+                    for (int dz = -1; dz <= 1; dz++)
+                        for (int dx = -1; dx <= 1; dx++)
+                            if (blockColumns.TryTopAt(p.x + dx * 0.35f, p.z + dz * 0.35f, out float t)) best = Mathf.Min(best, Mathf.Abs(p.y - t));
+                    feetChecked++;
+                    worstFeet = Mathf.Max(worstFeet, best);
+                    Debug.Log($"[BlockGround] at {at}: feet y {p.y:F3}, block top {top:F2}, nearest top off by {best:F3} m");
+                }
+
+                int treesOff = 0, treesChecked = 0;
+                var treeList = Chopper.World.Generation.WorldSession.Trees;
+                for (int i = 0; treeList != null && blockColumns != null && i < treeList.Count; i++)
+                {
+                    Vector3 tp = treeList.Get(i).Position;
+                    if (!blockColumns.TryTopAt(tp.x, tp.z, out float top)) continue;
+                    treesChecked++;
+                    if (Mathf.Abs(tp.y - top) > 0.001f) treesOff++;
+                }
+                Debug.Log($"[BlockGround] trees on their block top: {treesChecked - treesOff} of {treesChecked}");
+
+                yield return TeleportLocalPlayer(new Vector2(-60f, 20f), 120f);
+                PlayerCamera groundCam = wood.GetComponent<PlayerCamera>();
+                groundCam.DebugSetDistance(6f);
+                groundCam.DebugSetPitch(22f);
+                groundCam.SnapYaw(120f);
+                yield return new WaitForSeconds(1.5f);
+                yield return Shot(folder, "blocks_hills");
+                yield return TeleportLocalPlayer(new Vector2(40f, 40f), 210f);
+                groundCam.SnapYaw(210f);
+                yield return new WaitForSeconds(1.5f);
+                yield return Shot(folder, "blocks_meadow");
+
+                bool groundPass = blockColumns != null && chunkColliders > 0 && terrainOff && feetChecked >= 4 && worstFeet < 0.12f
+                                  && treesChecked > 0 && treesOff == 0;
+                Debug.Log($"[BlockGround] RESULT {(groundPass ? "PASS" : "FAIL")} (feet checked {feetChecked}, worst {worstFeet:F3} m; trees off {treesOff})");
+                Application.Quit(groundPass ? 0 : 1);
+                yield break;
+            }
+
             // Ground probe (-chopperGroundProbe): logs every renderer at the player's feet and the block colour there,
             // then takes the same view with the block chunks, the water and the terrain toggled, to find what draws the
             // dark ground.
@@ -1039,6 +1114,19 @@ namespace Chopper.Networking
                         {
                             freezes++;
                             Debug.Log($"[Move] FREEZE {leg.label}: stopped at {now:F1} with the stick held");
+                            var freezeColumns = Chopper.World.Voxel.VoxelColumns.Current;
+                            if (freezeColumns != null)
+                            {
+                                Vector3 ahead = Quaternion.Euler(0f, leg.yaw, 0f) * Vector3.forward;
+                                string tops = "";
+                                for (int k = 0; k <= 3; k++)
+                                    tops += freezeColumns.TryTopAt(now.x + ahead.x * k, now.z + ahead.z * k, out float ft) ? $" {ft:F1}" : " -";
+                                Debug.Log($"[Move] block tops ahead (here, 1, 2, 3 m):{tops}; water {Chopper.World.Generation.WorldGen.WaterHeight:F2}");
+                                string blockers = "";
+                                foreach (Collider c in Physics.OverlapSphere(now + ahead * 0.8f + Vector3.up * 0.9f, 0.9f, ~0, QueryTriggerInteraction.Ignore))
+                                    if (!(c is CharacterController)) blockers += $" {c.name}({c.GetType().Name}, parent {(c.transform.parent ? c.transform.parent.name : "-")})";
+                                Debug.Log($"[Move] colliders ahead:{blockers}");
+                            }
                         }
                         last = now;
                     }
@@ -1141,6 +1229,23 @@ namespace Chopper.Networking
                 bool pass = maxSpin < 120f && axeWobble < 8f && drift < 6f;
                 Debug.Log($"[Guard] RESULT {(pass ? "PASS no spin" : "FAIL spin")} (largest body turn in one straight move {maxSpin:F0} degrees, axe wobble standing still {axeWobble:F1} degrees, upper body drift standing still {drift:F1} degrees)");
                 Application.Quit(pass ? 0 : 1);
+                yield break;
+            }
+
+            // Plants and the held torch (-chopperPlants): one healing herb, the lit torch in the hand, and a placed campfire piece.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperPlants") >= 0)
+            {
+                yield return PlantLook(folder, wood, ui);
+                Application.Quit(0);
+                yield break;
+            }
+
+            // Sky and water (-chopperSky): the hub pond, then a look straight at the block sun and at one cloud.
+            // Logs water ripple settings and "[Sky] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperSky") >= 0)
+            {
+                yield return SkyLook(folder, wood, ui);
+                Application.Quit(0);
                 yield break;
             }
 
@@ -3306,7 +3411,7 @@ namespace Chopper.Networking
         private static bool HasSolid(Vector3 center)
         {
             foreach (Collider c in Physics.OverlapBox(center + new Vector3(1f, 2f, -0.5f), new Vector3(6f, 1.6f, 7f), Quaternion.identity, ~0, QueryTriggerInteraction.Ignore))
-                if (!(c is TerrainCollider) && !(c is CharacterController)) return true;
+                if (!Chopper.World.Voxel.VoxelWorld.IsGround(c) && !(c is CharacterController)) return true;
             return false;
         }
 
@@ -3746,6 +3851,293 @@ namespace Chopper.Networking
             Debug.Log("[Gear] done");
         }
 
+        // One herb up close, the lit voxel torch, and a campfire piece placed beside a workbench.
+        private static IEnumerator PlantLook(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            Hut.Instance.ServerSetRepaired(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            if (WeatherSystem.Instance != null) WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            yield return new WaitForSeconds(3f);
+            ui.DebugShow(0);
+            GameUi.HudHidden = true;
+
+            // The first tour shot every subject under pine canopies. Each subject now stands in the open: no tree,
+            // rock or bush within a few metres and nothing overhead (renderer bounds, see OpenSpot).
+            GameObject herb = null;
+            List<Renderer> obstacles = PlantObstacles(wood.transform);
+            int herbsSeen = 0;
+            foreach (Transform t in UnityEngine.Object.FindObjectsByType<Transform>(FindObjectsSortMode.None))
+            {
+                if (!t.name.StartsWith("Herb_")) continue;
+                herbsSeen++;
+                if (herb == null) herb = t.gameObject;
+                if (!OpenSpot(t.position, 2.5f, obstacles, t)) continue;
+                herb = t.gameObject;
+                Debug.Log($"[Plants] open herb {t.name} after {herbsSeen} tried");
+                break;
+            }
+            bool herbOk = false;
+            Vector3 openAt = new Vector3(40f, 0f, 40f);
+            if (herb != null)
+            {
+                Vector3 at = herb.transform.position;
+                openAt = at;
+                yield return TeleportLocalPlayer(new Vector2(at.x + 5f, at.z - 5f), 0f);
+                yield return new WaitForSeconds(0.5f);
+                PlayerCamera cam = PlayerCamera.Local;
+                cam.enabled = false;
+                Camera view = Camera.main;
+                obstacles = PlantObstacles(null);
+                Vector3 camAt = at + new Vector3(1.1f, 1.0f, 1.1f);
+                for (int i = 0; i < 12; i++)
+                {
+                    float a = i * 30f * Mathf.Deg2Rad;
+                    Vector3 c = at + new Vector3(Mathf.Sin(a) * 1.5f, 1.0f, Mathf.Cos(a) * 1.5f);
+                    if (!SightClear(c, at + Vector3.up * 0.3f, obstacles, herb.transform)) continue;
+                    camAt = c;
+                    break;
+                }
+                view.transform.position = camAt;
+                view.transform.LookAt(at + Vector3.up * 0.3f);
+                yield return new WaitForEndOfFrame();
+                ui.DebugShow(0);
+                yield return Shot(folder, "plant_herb");
+                cam.enabled = true;
+                Renderer herbRenderer = herb.GetComponentInChildren<Renderer>();
+                string mesh = herbRenderer != null && herbRenderer.GetComponent<MeshFilter>() != null
+                    ? herbRenderer.GetComponent<MeshFilter>().sharedMesh.name : "none";
+                herbOk = mesh.Contains("herb");
+                Debug.Log($"[Plants] herb {herb.name} mesh {mesh} scale {herb.transform.localScale.y:F2}");
+            }
+            else Debug.Log("[Plants] herb missing");
+
+            PlayerInventory inventory = wood.GetComponent<PlayerInventory>();
+            if (inventory.Torches == 0) wood.GetComponent<PlayerDevTools>().Execute(DevCommand.GiveTorches, 2);
+            if (!inventory.TorchLit) inventory.ServerToggleTorch();
+            yield return new WaitForSeconds(0.6f);
+            // Stand in the open, 3 m from the herb (or wherever the first open ring point is).
+            Vector3 stand = openAt + new Vector3(3f, 0f, 0f);
+            obstacles = PlantObstacles(wood.transform);
+            for (int i = 0; i < 24; i++)
+            {
+                float a = i * 15f * Mathf.Deg2Rad;
+                float r = 3f + (i / 8) * 3f;
+                Vector3 c = openAt + new Vector3(Mathf.Sin(a) * r, 0f, Mathf.Cos(a) * r);
+                c.y = WorldGround.HeightAt(c);
+                if (!OpenSpot(c, 4f, obstacles, null)) continue;
+                stand = c;
+                break;
+            }
+            yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), 0f);
+            yield return new WaitForSeconds(0.6f);
+            obstacles = PlantObstacles(wood.transform);
+            Debug.Log($"[Plants] torch stand {stand} open {OpenSpot(wood.transform.position, 4f, obstacles, null)}");
+            bool torchOn = inventory.TorchLit;
+            Transform held = null;
+            foreach (Transform t in wood.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Voxel" && t.parent != null && t.parent.name == "Torch") held = t;
+            PlayerCamera side = PlayerCamera.Local;
+            // Own camera on the torch hand: in front of the player, a little to the torch side, clear of obstacles.
+            Vector3 torchAt = held != null ? held.position : wood.transform.position + Vector3.up * 1.1f;
+            Vector3 chest = wood.transform.position + Vector3.up * 1.2f;
+            Vector3 focus = Vector3.Lerp(chest, torchAt, 0.6f);
+            Vector3 fwd = wood.transform.forward;
+            float torchSide = Vector3.Dot(torchAt - chest, wood.transform.right) >= 0f ? 1f : -1f;
+            side.enabled = false;
+            Camera torchView = Camera.main;
+            Vector3 torchCam = focus + (fwd * 1.9f + wood.transform.right * torchSide * 0.9f) + Vector3.up * 0.35f;
+            foreach (float turn in new[] { 25f, 45f, 5f, 65f, -15f, 90f, -40f, 120f })
+            {
+                Vector3 dir = Quaternion.Euler(0f, turn * torchSide, 0f) * fwd;
+                Vector3 c = focus + dir * 2.1f + Vector3.up * 0.35f;
+                if (!SightClear(c, focus, obstacles, wood.transform)) continue;
+                torchCam = c;
+                break;
+            }
+            torchView.transform.position = torchCam;
+            torchView.transform.LookAt(focus);
+            yield return new WaitForEndOfFrame();
+            ui.DebugShow(0);
+            yield return Shot(folder, "plant_torch");
+            side.enabled = true;
+            bool torchOk = torchOn && held != null;
+            Debug.Log($"[Plants] torch lit {torchOn}, voxel {(held != null ? "present" : "missing")}");
+
+            wood.ServerAddWood(40);
+            yield return null;
+            BuildManager build = BuildManager.Instance;
+            PieceCatalog catalog = build != null ? build.Catalog : null;
+            int bench = CabinKind(catalog, "Workbench");
+            int fireKind = CabinKind(catalog, "Campfire");
+            Vector3 spot = wood.transform.position + wood.transform.forward * 4f;
+            spot.y = WorldGround.HeightAt(spot);
+            PlaceResult benchResult = build != null ? build.ServerPlace(wood.gameObject, bench, spot, 0f) : PlaceResult.BadKind;
+            Vector3 fireAt = spot + wood.transform.right * 2.2f;
+            fireAt.y = WorldGround.HeightAt(fireAt);
+            PlaceResult fireResult = build != null ? build.ServerPlace(wood.gameObject, fireKind, fireAt, 30f) : PlaceResult.BadKind;
+            // Pieces spawn on the next LateUpdate reconcile; find the campfire by kind, nearest the placed spot.
+            GameObject piece = null;
+            for (float waited = 0f; waited < 3f && piece == null; waited += 0.25f)
+            {
+                yield return new WaitForSeconds(0.25f);
+                float best = 3f;
+                foreach (PieceView pv in UnityEngine.Object.FindObjectsByType<PieceView>(FindObjectsSortMode.None))
+                {
+                    if (pv.Kind != fireKind) continue;
+                    float d = Vector3.Distance(pv.transform.position, fireAt);
+                    if (d < best) { best = d; piece = pv.gameObject; }
+                }
+            }
+            Debug.Log($"[Plants] campfire view {(piece != null ? piece.name + " under " + (piece.transform.parent != null ? piece.transform.parent.name : "root") : "missing")}");
+            int voxelMeshes = 0;
+            if (piece != null)
+            {
+                foreach (Transform t in piece.GetComponentsInChildren<Transform>(true))
+                    if (t.name == "Voxel") voxelMeshes += t.GetComponentsInChildren<Renderer>().Length;
+                Vector3 look = piece.transform.position;
+                side.enabled = false;
+                Camera fireView = Camera.main;
+                List<Renderer> around = PlantObstacles(null);
+                Vector3 fireCam = look + new Vector3(2.4f, 1.6f, 2.4f);
+                for (int i = 0; i < 12; i++)
+                {
+                    float a = (45f + i * 30f) * Mathf.Deg2Rad;
+                    Vector3 c = look + new Vector3(Mathf.Sin(a) * 3.2f, 1.6f, Mathf.Cos(a) * 3.2f);
+                    if (!SightClear(c, look + Vector3.up * 0.3f, around, piece.transform)) continue;
+                    fireCam = c;
+                    break;
+                }
+                fireView.transform.position = fireCam;
+                fireView.transform.LookAt(look + Vector3.up * 0.3f);
+                yield return new WaitForEndOfFrame();
+                ui.DebugShow(0);
+                yield return Shot(folder, "plant_fire");
+                side.enabled = true;
+            }
+            Debug.Log($"[Plants] workbench {benchResult}, campfire {fireResult}, voxel meshes {voxelMeshes}");
+            bool pass = herbOk && torchOk && voxelMeshes >= 12;
+            Debug.Log("[Plants] RESULT " + (pass ? "PASS" : "FAIL"));
+        }
+
+        // Renderers that can block a close-up: trees, rocks, bushes, props, players. Grass tufts (small) and terrain
+        // chunks (wider than 10 m) are left out. Anything under ignore is left out too.
+        private static List<Renderer> PlantObstacles(Transform ignore)
+        {
+            var list = new List<Renderer>();
+            foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled || !r.gameObject.activeInHierarchy || r is ParticleSystemRenderer) continue;
+                Bounds b = r.bounds;
+                if (b.size.magnitude < 0.8f || b.size.x > 10f || b.size.z > 10f) continue;
+                if (ignore != null && r.transform.IsChildOf(ignore)) continue;
+                list.Add(r);
+            }
+            return list;
+        }
+
+        // Nothing taller than knee height within radius (horizontal distance to the bounds), and nothing overhead.
+        private static bool OpenSpot(Vector3 p, float radius, List<Renderer> obstacles, Transform ignore)
+        {
+            foreach (Renderer r in obstacles)
+            {
+                if (r == null || (ignore != null && r.transform.IsChildOf(ignore))) continue;
+                Bounds b = r.bounds;
+                if (b.max.y < p.y + 0.5f || b.min.y > p.y + 8f) continue;
+                Vector3 q = b.ClosestPoint(new Vector3(p.x, Mathf.Clamp(p.y + 1f, b.min.y, b.max.y), p.z));
+                float dx = q.x - p.x, dz = q.z - p.z;
+                if (dx * dx + dz * dz < radius * radius) return false;
+            }
+            return true;
+        }
+
+        // No obstacle bounds between the camera and the subject (and the camera is not inside one).
+        private static bool SightClear(Vector3 from, Vector3 to, List<Renderer> obstacles, Transform subject)
+        {
+            Vector3 d = to - from;
+            float len = d.magnitude;
+            var ray = new Ray(from, d / len);
+            foreach (Renderer r in obstacles)
+            {
+                if (r == null || (subject != null && r.transform.IsChildOf(subject))) continue;
+                Bounds b = r.bounds;
+                if (b.Contains(from)) return false;
+                if (b.IntersectRay(ray, out float hit) && hit < len - 0.2f) return false;
+            }
+            return true;
+        }
+
+        // Pond from the bank, then the camera pointed at the block sun and at one cloud. The gameplay camera cannot
+        // tilt far enough to see a high sun, so those two frames turn the camera directly.
+        private static IEnumerator SkyLook(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            Hut.Instance.ServerSetRepaired(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            if (WeatherSystem.Instance != null) WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            yield return new WaitForSeconds(4f);
+            ui.DebugShow(0);
+            GameUi.HudHidden = true;
+
+            Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+            Vector2 pond = gen.PondCenter;
+            Vector2 bank = pond + (pond.sqrMagnitude > 1f ? pond.normalized : Vector2.right) * 22f;
+            float yaw = Mathf.Atan2(pond.x - bank.x, pond.y - bank.y) * Mathf.Rad2Deg;
+            yield return TeleportLocalPlayer(bank, yaw);
+            PlayerCamera cam = PlayerCamera.Local;
+            cam.DebugSetDistance(6f);
+            cam.DebugSetPitch(8f);
+            cam.SnapYaw(yaw);
+            yield return new WaitForSeconds(1.5f);
+            ui.DebugShow(0);
+            yield return Shot(folder, "sky_pond");
+
+            GameObject sky = GameObject.Find("BlockSky");
+            Transform sun = sky != null ? sky.transform.Find("BlockSun") : null;
+            Renderer sunRenderer = sun != null ? sun.GetComponent<Renderer>() : null;
+            int clouds = 0;
+            if (sky != null)
+            {
+                Transform cloudRoot = sky.transform.Find("Clouds");
+                if (cloudRoot != null) clouds = cloudRoot.childCount;
+            }
+            Renderer pondRenderer = null;
+            GameObject pondWater = GameObject.Find("PondWater");
+            if (pondWater != null) pondRenderer = pondWater.GetComponent<Renderer>();
+            Material water = pondRenderer != null ? pondRenderer.sharedMaterial : null;
+            float ripple = water != null && water.HasProperty("_RippleStrength") ? water.GetFloat("_RippleStrength") : -1f;
+            float swell = water != null && water.HasProperty("_Swell") ? water.GetFloat("_Swell") : -1f;
+            Debug.Log($"[Sky] BlockSky {(sky != null ? "present" : "missing")}, clouds {clouds}, sun {(sunRenderer != null && sunRenderer.enabled ? "on" : "off")}, pond {(water != null ? water.name : "none")} ripple {ripple:F2} swell {swell:F2}");
+
+            Camera view = Camera.main;
+            float far = view.farClipPlane;
+            view.farClipPlane = Mathf.Max(far, 500f);
+            cam.enabled = false;
+            Light daylight = RenderSettings.sun;
+            Vector3 toward = daylight != null ? -daylight.transform.forward : Vector3.up;
+            view.transform.position = wood.transform.position + Vector3.up * 2.2f;
+            view.transform.rotation = Quaternion.LookRotation(toward, Vector3.up);
+            yield return new WaitForEndOfFrame();
+            yield return Shot(folder, "sky_sun");
+
+            if (clouds > 0)
+            {
+                // Clouds follow the camera, so this look stays at the player's height and aims at the first puff.
+                Transform puff = sky.transform.Find("Clouds").GetChild(0);
+                Vector3 aim = new Vector3(view.transform.position.x, 0f, view.transform.position.z) + puff.localPosition;
+                view.transform.LookAt(aim);
+                yield return new WaitForEndOfFrame();
+                yield return Shot(folder, "sky_cloud");
+            }
+            view.farClipPlane = far;
+            cam.enabled = true;
+
+            bool pass = sky != null && clouds >= 8 && sunRenderer != null && sunRenderer.enabled && ripple == 0f && swell == 0f;
+            Debug.Log("[Sky] RESULT " + (pass ? "PASS" : "FAIL"));
+        }
+
         // The world audit: the gameplay camera at a few typical places, free cameras from higher up, dusk and night, the
         // ground and the sky, with frame times measured uncapped at three of the places.
         private static IEnumerator WorldAudit(string folder, PlayerWood wood, GameUi ui)
@@ -3957,7 +4349,7 @@ namespace Chopper.Networking
                 bool blocked = false;
                 for (int h = 0; h < hits; h++)
                 {
-                    if (probe[h] == null || probe[h] is TerrainCollider) continue;
+                    if (probe[h] == null || Chopper.World.Voxel.VoxelWorld.IsGround(probe[h])) continue;
                     blocked = true;
                     break;
                 }
@@ -4098,7 +4490,7 @@ namespace Chopper.Networking
             for (int i = 0; i < hits; i++)
             {
                 Collider hit = probe[i];
-                if (hit == null || hit is TerrainCollider || hit is CharacterController) continue;
+                if (hit == null || Chopper.World.Voxel.VoxelWorld.IsGround(hit) || hit is CharacterController) continue;
                 solid++;
             }
             return solid;
