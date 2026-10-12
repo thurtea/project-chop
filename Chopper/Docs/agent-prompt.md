@@ -18,18 +18,21 @@ Already done, do not redo:
 - Humanoid armature with Weapon_R, Shield_L, Shield_Back. Clips Idle, Walk, Run, Attack_1, Attack_2, HitReact, Death in the art project. Capsule radius on the art prefab stays 0.37 m. Axe blades stay front and back, about 0.85 m, with almost no triangle room left.
 - Art Unity project: repo folder Chopper/, Unity 6000.5.10f1 URP. Prefabs under Chopper/Assets/Game/. The only branch is main.
 - Live game: Unity project at the repo root, E:\Projects\project-chop. The old project stays. Do not delete it.
-- Live trees and rocks are the voxel pine and rock (ChopperMeadowSwap). Campfire uses the voxel rock and log. Felled trees spawn prop_stump_voxel scaled to the trunk (TreeManager._stumpPrefab).
+- Live trees and rocks are the voxel pine and rock (ChopperMeadowSwap). Campfire uses the voxel rock and log. Felled trees spawn prop_stump_voxel scaled to the trunk (TreeManager._stumpPrefab). Pines are sunk 0.40 m times their scale so the dirt pad is underground and the trunk comes out of the grass (concept 2.0).
+- The hub hut shows the voxel longhouse (`Assets/_Chopper/Resources/prop_longhouse_voxel.prefab`). The old cabin renderers are off. Bed, chest, and fireplace stay. Torches, tufts, clouds, and the sun are not swapped yet.
 - Live player prefab Assets/_Chopper/Prefabs/Player/Player.prefab instances chopper.fbx with a humanoid avatar. Existing gameplay clips stay on that avatar. Scale 1, controller height 1.8 m, radius 0.5 m. Worker look: hair on, helmet, plate, and pauldrons off. Gameplay axe and torch parent to RightHand/Weapon_R and LeftHand.
-- Grass carpet (GrassCarpet, shader Chopper/Grass) sways and bends away from GrassPushers. Player push radius is 1.25 m. HerbManager places herbs, fiber ferns, and 700 decorative bushes under a GrassField so those meshes lean and spring back.
+- Grass carpet sways and bends (player push radius 1.25 m). Herbs, ferns, and 700 decorative bushes lean through GrassField.
+- Voxel props stand upright. The warmer lighting pass is in. The world kit FBX files are exported and are not in the live scene. WorldGround still reads the Unity Terrain collider. Block columns, the palette, and the chunk mesh are in: on world build the terrain paint hides and Chopper/Block draws the steps. Batch proof is Logs/chopper_play/world_audit/W5-08_step2.log (RESULT PASS, CRC D467EE29, 382074 triangles). Nobody has pressed Play.
 
 Still open:
-- The held axe is still the old woodsman axe, not chopper_axe. The shield is not on the player.
-- Foliage code is in, and nobody has pressed Play to watch a walk through grass and bushes.
-- Look polish is optional (the current models are accepted): beard, box torso, boot rings, axe throat, shield rim.
+- W5-08 step 5: chunk colliders, WorldGround reads the columns, Terrain collider goes away, player step offset 0.55. Do that after a Play look at the blocks.
+- The held axe is still the old woodsman axe. chopper_axe_bear.fbx is built and is not on the player. The shield is not equipped.
+- W6-03 (beard, bear axe, painted atlas) was in progress. Do not restart it from scratch.
+- Look polish is optional: box torso, boot rings, shield rim.
 - W2-05 still needs a different reviewer. The person who built the assets does not mark that done.
 - World systems (generation, combat, crafting, building, fishing, networking) already exist. Change them only when a specific gap is named. Do not rewrite them.
 
-Sources: Chopper/Docs/cursor-claude-handoff.md is the status record. Concepts in the repo are visual reference only: chopper-3D-concept-3.jpg (Worker), 1.5 (Warrior), 1.8 (Elite), 1.7 (axe), 1 (mood), 4 (voxel tree).
+Sources: Chopper/Docs/cursor-claude-handoff.md is the status record. Concepts in the repo are visual reference only. chopper-3D-concept-2.0.jpg is the look for the world, the character, and the objects: trunks grow out of the grass, and the home is a log longhouse. Other sheets: 3 (Worker), 1.5 (Warrior), 1.8 (Elite), 1.7 (axe), 1 (mood), 4 (voxel tree).
 Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Git. No gh CLI.
 Constraints: Do not generate final meshes with AI image-to-3D. Do not remodel Chopper. Do not replace the live Animator controller. Mesh read/write stays on. No Block or EquipShield clip until combat asks. Work on main. Do not open another branch. No commits, pushes, deletions, or paid services without explicit approval. Unity batch on one project at a time. Import may use -nographics. Screenshot checks must not. Trust the log line "Exiting batchmode successfully", not the shell exit code.
 </project_brief>
@@ -77,7 +80,7 @@ Return a short report with: outcome, artifacts, evidence, decisions, gaps, appro
 </handoff>
 
 <start>
-Read Chopper/Docs/cursor-claude-handoff.md and the task board. Do not rebuild the character. The next safe check is to press Play and walk through grass and bushes, then put the Chopper axe in the player's hand if that look is right.
+Read Chopper/Docs/cursor-claude-handoff.md and the task board. Do not rebuild the character. The next safe task is a Play look at the block ground, then W5-08 step 5 (chunk colliders and dropping the Terrain collider) only if that look is right.
 </start>
 
 </prompt>

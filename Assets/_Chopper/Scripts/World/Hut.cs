@@ -68,6 +68,67 @@ namespace Chopper.World
         private void Awake()
         {
             Instance = this;
+            DressLonghouse();
+        }
+
+        // Concept 2.0's home is a log longhouse, not the pixel cabin. The bed, chest, fireplace, and floor stay.
+        // The longhouse is 12 m on X and 9 m on Z, door on +Z (build_world_kit.py).
+        void DressLonghouse()
+        {
+            var prefab = Resources.Load<GameObject>("prop_longhouse_voxel");
+            if (prefab == null) return;
+
+            Transform house = null;
+            foreach (Transform child in GetComponentsInChildren<Transform>(true))
+                if (child.name == "House") { house = child; break; }
+
+            if (house != null)
+            {
+                foreach (Renderer renderer in house.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (Kept(renderer.transform)) continue;
+                    renderer.enabled = false;
+                }
+                foreach (Collider collider in house.GetComponentsInChildren<Collider>(true))
+                {
+                    if (Kept(collider.transform) || collider.gameObject.name == "FloorCollider") continue;
+                    collider.enabled = false;
+                }
+                Transform floor = house.Find("FloorCollider");
+                if (floor != null && floor.TryGetComponent(out BoxCollider box))
+                    box.size = new Vector3(11.2f, box.size.y, 8.2f);
+            }
+
+            var longhouse = Instantiate(prefab, transform);
+            longhouse.name = "Longhouse";
+            longhouse.transform.localPosition = Vector3.zero;
+            longhouse.transform.localRotation = Quaternion.identity;
+            longhouse.transform.localScale = Vector3.one;
+            AddWall(longhouse.transform, new Vector3(0f, 1.375f, -4.5f), new Vector3(12.5f, 2.75f, 0.5f));
+            AddWall(longhouse.transform, new Vector3(-6f, 1.375f, 0f), new Vector3(0.5f, 2.75f, 9f));
+            AddWall(longhouse.transform, new Vector3(6f, 1.375f, 0f), new Vector3(0.5f, 2.75f, 9f));
+            AddWall(longhouse.transform, new Vector3(-3.375f, 1.375f, 4.5f), new Vector3(5.25f, 2.75f, 0.5f));
+            AddWall(longhouse.transform, new Vector3(3.375f, 1.375f, 4.5f), new Vector3(5.25f, 2.75f, 0.5f));
+            _houseHalfExtents = new Vector2(6f, 4.5f);
+        }
+
+        static bool Kept(Transform t)
+        {
+            while (t != null)
+            {
+                if (t.name is "Bed" or "StorageChest" or "Fireplace" or "Workbench" or "Longhouse") return true;
+                t = t.parent;
+            }
+            return false;
+        }
+
+        static void AddWall(Transform parent, Vector3 center, Vector3 size)
+        {
+            var wall = new GameObject("LonghouseWall");
+            wall.transform.SetParent(parent, false);
+            wall.transform.localPosition = center;
+            var box = wall.AddComponent<BoxCollider>();
+            box.size = size;
         }
 
         private void OnDestroy()

@@ -155,6 +155,25 @@ namespace Chopper.Editor
         }
 
         // Batch: Apply, then CheckOrientation. Logs "[ChopperMeadow] RESULT PASS" or "FAIL".
+        // Copies the exported log longhouse in and builds the prefab Hut loads from Resources.
+        public static void WireLonghouse()
+        {
+            string export = Path.Combine(Application.dataPath, "..", "Chopper", "Art", "Export", "prop_longhouse_voxel.fbx");
+            string dest = MeshFolder + "/prop_longhouse_voxel.fbx";
+            Directory.CreateDirectory(Path.GetDirectoryName(dest) ?? MeshFolder);
+            File.Copy(Path.GetFullPath(export), dest, true);
+            AssetDatabase.ImportAsset(dest);
+            EnsureImported("prop_longhouse_voxel");
+            GameObject prefab = PropPrefab("prop_longhouse_voxel", VertexMaterial("M_World", Color.white));
+            Directory.CreateDirectory("Assets/_Chopper/Resources");
+            const string resourcePath = "Assets/_Chopper/Resources/prop_longhouse_voxel.prefab";
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(resourcePath) != null) AssetDatabase.DeleteAsset(resourcePath);
+            if (!AssetDatabase.CopyAsset(AssetDatabase.GetAssetPath(prefab), resourcePath))
+                throw new IOException("Could not copy the longhouse into Resources.");
+            AssetDatabase.SaveAssets();
+            Debug.Log("[ChopperMeadow] longhouse prefab ready at " + resourcePath);
+        }
+
         public static void ApplyAndCheck()
         {
             Apply();

@@ -100,7 +100,7 @@ namespace Chopper.Trees
         {
             TreeEntry entry = _database.Get(i);
             Quaternion rotation = Quaternion.Euler(0f, entry.Yaw, 0f);
-            GameObject go = Instantiate(_database.GetModel(entry.ModelIndex), entry.Position, rotation, _root);
+            GameObject go = Instantiate(_database.GetModel(entry.ModelIndex), Planted(entry.Position, entry.Scale), rotation, _root);
             go.name = $"Tree_{i}_{entry.Size}";
             go.transform.localScale = Vector3.one * entry.Scale;
             TreeTint.Apply(go, entry.Zone);
@@ -433,7 +433,7 @@ namespace Chopper.Trees
                 EmitBurst(entry.Position + Vector3.up * ChipHeight, ChipColor, _config.ChipsPerHit * 2, 0.2f);
                 EmitBurst(entry.Position + Vector3.up * (FellFeelHeight + 1f), LeafColor, _config.LeavesOnFell, 1.5f);
                 PlayFeedback(entry, felled: true);
-                FallingTree.Spawn(_database.GetModel(entry.ModelIndex), entry.Position,
+                FallingTree.Spawn(_database.GetModel(entry.ModelIndex), Planted(entry.Position, entry.Scale),
                     view.transform.rotation, entry.Scale, direction, entry.Zone);
             }
 
@@ -441,6 +441,12 @@ namespace Chopper.Trees
             _views[treeId] = null;
             _stumps[treeId] = CreateStump(entry);
         }
+
+        // The pine is authored on a 0.25 m dirt pad (build_pine.py, cells at z = 0). Concept 2.0 has the trunk
+        // coming out of the grass, so the pad and a short bite of trunk sit below the ground. Stumps stay on top.
+        internal const float PineBuryMeters = 0.40f;
+
+        internal static Vector3 Planted(Vector3 ground, float scale) => ground + Vector3.down * (PineBuryMeters * scale);
 
         // Authored prop_stump_voxel is 0.75 m wide and 0.75 m tall, base on Y = 0.
         private const float StumpModelSize = 0.75f;

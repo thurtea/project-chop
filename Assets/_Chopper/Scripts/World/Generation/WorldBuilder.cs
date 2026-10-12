@@ -61,7 +61,14 @@ namespace Chopper.World.Generation
             }
             long fields = total.ElapsedMilliseconds;
 
-            BuildTerrain(heights, alpha);
+            Terrain terrain = BuildTerrain(heights, alpha);
+            if (graphics)
+            {
+                var columns = Chopper.World.Voxel.VoxelColumns.Build(gen);
+                int blockTris = Chopper.World.Voxel.VoxelWorld.Present(columns, transform, terrain);
+                Debug.Log($"[Voxel] CRC {columns.Crc:X8} triangles {blockTris} columns in {columns.BuildMilliseconds} ms. " +
+                          (blockTris > 0 ? "Terrain paint hidden, collider kept." : "Terrain paint left on."));
+            }
             BuildWater(gen);
             BuildBoundary();
             List<RockSpot> rocks = gen.GenerateRocks(_assets.RockModels.Length);
@@ -163,7 +170,7 @@ namespace Chopper.World.Generation
 
         // ---------- Terrain ----------
 
-        private void BuildTerrain(float[,] heights, float[,,] alpha)
+        private Terrain BuildTerrain(float[,] heights, float[,,] alpha)
         {
             var data = new TerrainData
             {
@@ -191,6 +198,7 @@ namespace Chopper.World.Generation
             // in the hub, where the whole mountain ring is in view).
             terrain.heightmapPixelError = 3f;
             go.isStatic = true;
+            return terrain;
         }
 
         // ---------- Water ----------

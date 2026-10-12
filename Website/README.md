@@ -11,7 +11,7 @@ Plain HTML, CSS and a little JavaScript, with no build step.
 | `index.html` | The one page: the game, home (workbench, chest, bed, building), crypts, fishing, playing together, status and credits |
 | `main.css`, `main.js` | Styles and the small menu script |
 | `chopper.jpg` | The logo art |
-| `images/` | The page's pictures, 1600 by 900 JPGs from the `-chopperSite` tour (and the creator from `-chopperCreatorTour`) |
+| `images/` | The page's pictures, 1600 by 900 JPGs from the `-chopperSite` tour. `creator.jpg` is a closer crop of the character shot. There is no character creator. |
 | `favicon_io-chopper/` | Favicons and the web manifest |
 
 ## Updating the page
