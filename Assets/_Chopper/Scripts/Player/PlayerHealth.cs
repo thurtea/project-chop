@@ -104,6 +104,11 @@ namespace Chopper.Player
             if (flash == null) flash = gameObject.AddComponent<PlayerHitFlash>();
             flash.Flash();
             if (IsOwner) LocalDamaged?.Invoke();
+            if (next > 0)
+            {
+                PlayerAnimator animator = GetComponent<PlayerAnimator>();
+                if (animator != null) animator.PlayHit();
+            }
         }
 
         private void OnDownChanged(bool previous, bool next, bool asServer)

@@ -200,6 +200,8 @@ namespace Chopper.Player
                 case HitOutcome.Parried:
                     CombatFx.Sparks(spot, new Color(1.6f, 1.5f, 1f, 1f), 18);
                     Sfx.Play(ProceduralSfx.Parry, transform.position + Vector3.up, 1f, 1f, 0.05f);
+                    PlayerAnimator parryAnim = GetComponent<PlayerAnimator>();
+                    if (parryAnim != null) parryAnim.PlayParry();
                     break;
                 case HitOutcome.Blocked:
                     CombatFx.Sparks(spot, new Color(1.4f, 1.1f, 0.6f, 1f), 9);

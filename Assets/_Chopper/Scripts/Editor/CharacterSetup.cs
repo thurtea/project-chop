@@ -164,6 +164,58 @@ namespace Chopper.Editor
                 .FirstOrDefault(c => !c.name.StartsWith("__preview__") && (c.name == take || c.name.EndsWith("|" + take)));
         }
 
+        // Adds the hit and parry states to the live controller without rebuilding it. Both clips need polish.
+        public static void PatchCombatMotions()
+        {
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            if (controller == null) throw new System.InvalidOperationException("No player animator at " + ControllerPath);
+            EnsureTrigger(controller, "Hit");
+            EnsureTrigger(controller, "Parry");
+            AnimatorControllerLayer[] layers = controller.layers;
+            int layerIndex = -1;
+            for (int i = 0; i < layers.Length; i++) if (layers[i].name == "Chop") layerIndex = i;
+            if (layerIndex < 0) throw new System.InvalidOperationException("Chop layer missing");
+            AnimatorStateMachine machine = layers[layerIndex].stateMachine;
+            AnimationClip flinch = ChopperTake("HitReact");
+            bool hit = EnsureReaction(machine, "HitReact", "Hit", flinch);
+            bool parry = EnsureReaction(machine, "Parry", "Parry", flinch);
+            controller.layers = layers;
+            EditorUtility.SetDirty(controller);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[CombatMotions] HitReact added {hit}, Parry added {parry}, clip {(flinch != null ? flinch.name : "MISSING")} (needs polish)");
+        }
+
+        private static void EnsureTrigger(AnimatorController controller, string name)
+        {
+            foreach (AnimatorControllerParameter parameter in controller.parameters)
+                if (parameter.name == name) return;
+            controller.AddParameter(name, AnimatorControllerParameterType.Trigger);
+        }
+
+        private static bool EnsureReaction(AnimatorStateMachine machine, string stateName, string trigger, AnimationClip clip)
+        {
+            foreach (ChildAnimatorState child in machine.states)
+                if (child.state.name == stateName) return false;
+            AnimatorState empty = null;
+            foreach (ChildAnimatorState child in machine.states)
+                if (child.state.name == "Empty") empty = child.state;
+            AnimatorState state = machine.AddState(stateName);
+            state.motion = clip;
+            AnimatorStateTransition any = machine.AddAnyStateTransition(state);
+            any.hasExitTime = false;
+            any.duration = 0.06f;
+            any.canTransitionToSelf = false;
+            any.AddCondition(AnimatorConditionMode.If, 0f, trigger);
+            if (empty != null)
+            {
+                AnimatorStateTransition back = state.AddTransition(empty);
+                back.hasExitTime = true;
+                back.exitTime = 0.82f;
+                back.duration = 0.12f;
+            }
+            return true;
+        }
+
         // Chopper's own blocky takes (animate_chopper.py) for the base layer. The Mixamo motion capture read as ragdoll
         // on the block body (user, 2026-10-12: movement should feel like Minecraft and survival ARPGs), so a slot plays
         // Chopper's take when chopper.fbx has it, then the user's Mixamo file, then the library's clip.
@@ -301,6 +353,8 @@ namespace Chopper.Editor
             controller.AddParameter("SwingSpeed", AnimatorControllerParameterType.Float);
             controller.AddParameter("Heal", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Chop", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Hit", AnimatorControllerParameterType.Trigger);
+            controller.AddParameter("Parry", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Stow", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("StrideRate", AnimatorControllerParameterType.Float);
             controller.AddParameter("LandHard", AnimatorControllerParameterType.Trigger);
@@ -671,12 +725,18 @@ namespace Chopper.Editor
             cross.motion = FindClip("Punch_Cross");
             cross.speedParameterActive = true;
             cross.speedParameter = "SwingSpeed";
+            // First-pass flinches. HitReact is Chopper's own take and still needs polish; the parry reuses it until it has its own.
+            AnimatorState hit = machine.AddState("HitReact");
+            AnimationClip hitClip = ChopperTake("HitReact");
+            hit.motion = hitClip != null ? hitClip : chop.motion;
+            AnimatorState parry = machine.AddState("Parry");
+            parry.motion = hit.motion;
 
             var strikes = new[]
             {
                 (state: swing, trigger: "Swing"), (state: backhand, trigger: "Swing2"), (state: finisher, trigger: "Swing3"),
                 (state: punch, trigger: "Punch"), (state: cross, trigger: "Punch2"), (state: chop, trigger: "Chop"),
-                (state: mine, trigger: "Mine")
+                (state: mine, trigger: "Mine"), (state: hit, trigger: "Hit"), (state: parry, trigger: "Parry")
             };
             foreach (var to in strikes)
             {

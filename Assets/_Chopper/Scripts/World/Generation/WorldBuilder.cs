@@ -570,16 +570,90 @@ namespace Chopper.World.Generation
                     }
                 }
             }
-            var lightGo = new GameObject("Glint");
-            lightGo.transform.SetParent(pivot.transform, false);
-            lightGo.transform.localPosition = new Vector3(0f, 0f, 0.45f);
-            Light light = lightGo.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = glow;
-            light.range = MineVeinView.Range;
-            light.intensity = 0f;
-            light.shadows = LightShadows.None;
-            pivot.AddComponent<MineVeinView>().Init(id, glow, light);
+            BuildOre(pivot.transform, id, glow);
+            pivot.AddComponent<MineVeinView>().Init(id, glow, null);
+        }
+
+        // Chunks of ore and a few crystal points stuck in the vein face. The mine's colour is the ore, not a lamp.
+        private static Material _oreMaterial;
+
+        private static void BuildOre(Transform pivot, int id, Color ore)
+        {
+            var go = new GameObject("Ore");
+            go.transform.SetParent(pivot, false);
+            go.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+            var filter = go.AddComponent<MeshFilter>();
+            filter.sharedMesh = OreMesh(id, ore);
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = OreMaterial();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        private static Material OreMaterial()
+        {
+            if (_oreMaterial != null) return _oreMaterial;
+            Shader shader = Shader.Find("Chopper/VertexColorLit");
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Lit");
+            _oreMaterial = new Material(shader) { name = "M_Ore" };
+            if (_oreMaterial.HasProperty("_UseAtlas")) _oreMaterial.SetFloat("_UseAtlas", 0f);
+            if (_oreMaterial.HasProperty("_BaseColor")) _oreMaterial.SetColor("_BaseColor", Color.white);
+            return _oreMaterial;
+        }
+
+        private static Mesh OreMesh(int id, Color ore)
+        {
+            var random = new System.Random(id * 17 + 3);
+            var verts = new List<Vector3>();
+            var colors = new List<Color>();
+            var tris = new List<int>();
+            Color rust = new Color(0.62f, 0.28f, 0.16f);
+            Color crystal = Color.Lerp(Color.white, ore, 0.35f);
+            Color metal = Color.Lerp(rust, ore, 0.72f);
+            for (int i = 0; i < 7; i++)
+            {
+                float x = ((float)random.NextDouble() - 0.5f) * 0.55f;
+                float y = ((float)random.NextDouble() - 0.5f) * 0.4f;
+                float z = (float)random.NextDouble() * 0.16f;
+                float s = 0.08f + (float)random.NextDouble() * 0.1f;
+                Color tint = i % 3 == 0 ? crystal : (i % 3 == 1 ? metal : rust);
+                OreCube(verts, colors, tris, new Vector3(x, y, z), new Vector3(s, s * 0.8f, s * 0.7f), tint);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                float x = ((float)random.NextDouble() - 0.5f) * 0.35f;
+                float y = ((float)random.NextDouble() - 0.5f) * 0.28f;
+                OreCube(verts, colors, tris, new Vector3(x, y, 0.16f), new Vector3(0.035f, 0.035f, 0.14f), crystal);
+            }
+            var mesh = new Mesh { name = "Ore" + id };
+            mesh.SetVertices(verts);
+            mesh.SetColors(colors);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            return mesh;
+        }
+
+        private static void OreCube(List<Vector3> verts, List<Color> colors, List<int> tris, Vector3 center, Vector3 size, Color color)
+        {
+            Vector3 h = size * 0.5f;
+            Vector3[] p =
+            {
+                center + new Vector3(-h.x, -h.y, -h.z), center + new Vector3(h.x, -h.y, -h.z),
+                center + new Vector3(h.x, h.y, -h.z), center + new Vector3(-h.x, h.y, -h.z),
+                center + new Vector3(-h.x, -h.y, h.z), center + new Vector3(h.x, -h.y, h.z),
+                center + new Vector3(h.x, h.y, h.z), center + new Vector3(-h.x, h.y, h.z)
+            };
+            int[] quads = { 0, 3, 2, 1, 4, 5, 6, 7, 0, 1, 5, 4, 3, 7, 6, 2, 1, 2, 6, 5, 0, 4, 7, 3 };
+            for (int q = 0; q < quads.Length; q += 4)
+            {
+                int i = verts.Count;
+                for (int k = 0; k < 4; k++)
+                {
+                    verts.Add(p[quads[q + k]]);
+                    colors.Add(color);
+                }
+                tris.Add(i); tris.Add(i + 1); tris.Add(i + 2);
+                tris.Add(i); tris.Add(i + 2); tris.Add(i + 3);
+            }
         }
 
         // A model laid along its longest side to a length, centered on a point, its foot on that point's height.

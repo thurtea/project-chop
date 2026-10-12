@@ -706,10 +706,17 @@ namespace Chopper.Player
             _headKnown = true;
         }
 
-        // Chop down and back up: rotation follows a half sine over the animation duration.
+        // Chopper's own takes already swing the arm. Spinning the grip on top of that turned the blade off the chop
+        // (a weird angle). The scripted arc is only for a rig whose hand does not pose the axe.
         private void AnimateSwing()
         {
             if (!_useScriptedSwing || _axePivot == null) return;
+            if (_frame == null) _frame = _axePivot.GetComponent<HeldItemFrame>();
+            if (_frame != null && _frame.HandPosed)
+            {
+                if (_axePivot.localRotation != _restRotation) _axePivot.localRotation = _restRotation;
+                return;
+            }
             float t = (Time.time - _swingStartTime) / _config.SwingAnimationDuration;
             if (t < 0f || t >= 1f)
             {

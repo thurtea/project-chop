@@ -35,6 +35,8 @@ namespace Chopper.Player
         private static readonly int FishCastId = Animator.StringToHash("FishCast");
         private static readonly int FishCatchId = Animator.StringToHash("FishCatch");
         private static readonly int EmptyStateId = Animator.StringToHash("Empty");
+        private static readonly int HitId = Animator.StringToHash("Hit");
+        private static readonly int ParryId = Animator.StringToHash("Parry");
         // The action layers that rest in an Empty state. An Empty humanoid state can write the neutral (T) pose over
         // the body, so these layers are only weighted in while they are playing something.
         private static readonly string[] ActionLayerNames = { "Work", "Chop", "Stow", "CrouchArms" };
@@ -193,6 +195,21 @@ namespace Chopper.Player
             }
             _animator.SetFloat(SwingSpeedId, clipSeconds / Mathf.Max(0.1f, cooldown * ChopFillsCooldown));
             _animator.SetTrigger(trigger);
+        }
+
+        // A hit that got through, and a parry. The clips are in and still need polish.
+        public void PlayHit() => PlayTrigger(HitId);
+        public void PlayParry() => PlayTrigger(ParryId);
+
+        private void PlayTrigger(int id)
+        {
+            if (_animator == null) return;
+            foreach (AnimatorControllerParameter parameter in _animator.parameters)
+            {
+                if (parameter.nameHash != id) continue;
+                _animator.SetTrigger(id);
+                return;
+            }
         }
 
         // A pickaxe strike at a vein: the crafting pack's one handed blow into a wall (0.97 s), a little quicker.

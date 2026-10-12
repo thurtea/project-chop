@@ -2187,6 +2187,15 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Logging tour (-chopperLogging): stand at one hub tree, chop until it falls, wood arrives in the arms.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperLogging") >= 0)
+            {
+                yield return LoggingTour(folder, wood, ui);
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
+
             // Inventory tour: every page of the Tab screen with a bag of things, next to the hut.
             // Mine tour (-chopperMine): every mine portal from outside, then down the first mine: the chambers, a vein
             // glowing, strikes timed to the glow (one picture mid swing), the find, the Mining page, and back out.
@@ -3906,6 +3915,70 @@ namespace Chopper.Networking
             bool pass = passed.Count > 0 && _foliageMidLean > 1f && afterLean < 1f && watch.Foliage == 0;
             Debug.Log($"[Foliage] errors during the tour {watch.Errors}, naming grass or herbs {watch.Foliage}");
             Debug.Log($"[Foliage] RESULT {(pass ? "PASS" : "FAIL")} (bushes in reach mid-walk {passed.Count}, max lean after passing {afterLean:F1} deg, max lean mid-walk {_foliageMidLean:F1} deg, foliage errors {watch.Foliage})");
+        }
+
+        // One hub tree, chopped from in front until it falls. Wood must land in the arms.
+        private static IEnumerator LoggingTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
+            axe.ServerSetHasAxe(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            yield return new WaitForSeconds(4f);
+            ui.DebugShow(0);
+            TreeDatabase trees = TreeManager.Instance.Database;
+            int id = -1;
+            Vector2 stand = Vector2.zero;
+            float yaw = 0f;
+            for (int i = 0; i < trees.Count && id < 0; i++)
+            {
+                Vector3 p = trees.Get(i).Position;
+                if (p.magnitude > 90f || p.magnitude < 18f) continue;
+                if (TreeManager.Instance.IsFelledOnClient(i)) continue;
+                for (int turn = 0; turn < 8 && id < 0; turn++)
+                {
+                    Vector3 aim = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
+                    Vector3 at = p - aim * 1.8f;
+                    if (!TreeManager.Instance.ServerFindTree(new Vector3(at.x, p.y, at.z), aim, out int hit, out _) || hit != i) continue;
+                    id = i;
+                    stand = new Vector2(at.x, at.z);
+                    yaw = turn * 45f;
+                }
+            }
+            Debug.Log($"[Log] tree {id} stand {stand} facing {yaw}");
+            if (id < 0)
+            {
+                Debug.Log("[Log] RESULT FAIL (no tree in reach)");
+                yield break;
+            }
+            yield return TeleportLocalPlayer(stand, yaw);
+            yield return new WaitForSeconds(1f);
+            ui.DebugShow(0);
+            yield return Shot(folder, "log_1_tree");
+            int before = wood.Carried;
+            int swings = 0;
+            float start = Time.time;
+            while (Time.time - start < 28f && swings < 30 && !TreeManager.Instance.IsFelledOnClient(id))
+            {
+                axe.TrySwing();
+                swings++;
+                if (swings == 2)
+                {
+                    ui.DebugShow(0);
+                    yield return Shot(folder, "log_2_chop");
+                }
+                yield return new WaitForSeconds(0.9f);
+            }
+            yield return new WaitForSeconds(0.6f);
+            bool felled = TreeManager.Instance.IsFelledOnClient(id);
+            bool woodGained = wood.Carried > before;
+            ui.DebugShow(0);
+            yield return Shot(folder, "log_3_after");
+            Debug.Log($"[Log] swings {swings}, felled {felled}, wood {before} -> {wood.Carried}");
+            Debug.Log("[Log] RESULT " + (felled && woodGained ? "PASS" : "FAIL"));
         }
 
         private static IEnumerator GearLook(string folder, PlayerWood wood, GameUi ui)

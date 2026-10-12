@@ -440,7 +440,7 @@ namespace Chopper.Trees
                 EmitBurst(entry.Position + Vector3.up * (FellFeelHeight + 1f), LeafColor, _config.LeavesOnFell, 1.5f);
                 PlayFeedback(entry, felled: true);
                 FallingTree.Spawn(_database.GetModel(entry.ModelIndex), Planted(entry.Position, entry.Scale),
-                    view.transform.rotation, entry.Scale, direction, entry.Zone);
+                    view.transform.rotation, entry.Scale, direction, entry.Zone, entry.Position);
             }
 
             Destroy(view);
