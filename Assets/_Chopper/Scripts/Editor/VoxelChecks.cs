@@ -21,5 +21,28 @@ namespace Chopper.Editor
             Debug.Log("[Voxel] RESULT " + (pass ? "PASS" : "FAIL"));
             if (!pass) EditorApplication.Exit(1);
         }
+
+        // Batch: Chopper.Editor.VoxelChecks.CheckBlockShader. Lists Chopper/Block compile errors for this platform. A
+        // shader with errors draws nothing in a player, which hid the whole block ground.
+        public static void CheckBlockShader()
+        {
+            Shader shader = Shader.Find("Chopper/Block");
+            bool pass = shader != null;
+            if (shader != null)
+            {
+                for (int i = 0; i < shader.passCount; i++)
+                    ShaderUtil.CompilePass(new Material(shader), i, true);
+                foreach (ShaderMessage message in ShaderUtil.GetShaderMessages(shader))
+                {
+                    Debug.Log($"[Voxel] shader {message.severity} line {message.line}: {message.message}");
+                    if (message.severity == UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error) pass = false;
+                }
+                bool hasError = ShaderUtil.ShaderHasError(shader);
+                Debug.Log($"[Voxel] shader passes {shader.passCount}, has error {hasError}");
+                if (hasError) pass = false;
+            }
+            Debug.Log("[Voxel] SHADER " + (pass ? "PASS" : "FAIL"));
+            EditorApplication.Exit(pass ? 0 : 1);
+        }
     }
 }

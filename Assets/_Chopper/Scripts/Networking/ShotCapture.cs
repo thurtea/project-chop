@@ -419,6 +419,71 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Ground probe (-chopperGroundProbe): logs every renderer at the player's feet and the block colour there,
+            // then takes the same view with the block chunks, the water and the terrain toggled, to find what draws the
+            // dark ground.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperGroundProbe") >= 0)
+            {
+                Hut.Instance.ServerSetRepaired(true);
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                yield return new WaitForSeconds(4f);
+                GameUi.HudHidden = true;
+                yield return TeleportLocalPlayer(new Vector2(0f, 9f), 0f);
+                yield return new WaitForSeconds(1.5f);
+                ui.DebugShow(0);
+                Vector3 feet = wood.transform.position;
+                Debug.Log($"[Probe] feet {feet.x:F2},{feet.y:F2},{feet.z:F2} pipeline {UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline?.name}");
+                Chopper.World.Voxel.BlockPalette.Ensure();
+                Debug.Log($"[Probe] palette from file {Chopper.World.Voxel.BlockPalette.LoadedFromFile} grass top {Chopper.World.Voxel.BlockPalette.Of(Chopper.World.Voxel.BlockType.Grass).Top}");
+                var probe = new Bounds(feet, new Vector3(0.5f, 1.5f, 0.5f));
+                foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                {
+                    if (!r.enabled || !r.gameObject.activeInHierarchy || !r.bounds.Intersects(probe)) continue;
+                    if (r.transform.IsChildOf(wood.transform)) continue;
+                    Material m = r.sharedMaterial;
+                    Debug.Log($"[Probe] renderer {r.name} parent {(r.transform.parent ? r.transform.parent.name : "-")} material {(m ? m.name : "none")} shader {(m && m.shader ? m.shader.name : "none")} bounds y {r.bounds.min.y:F2}..{r.bounds.max.y:F2}");
+                    if (r is MeshRenderer && r.name.StartsWith("Chunk_"))
+                    {
+                        Mesh mesh = r.GetComponent<MeshFilter>().sharedMesh;
+                        Vector3[] v = mesh.vertices;
+                        Color[] c = mesh.colors;
+                        int best = -1;
+                        float bestD = float.MaxValue;
+                        for (int i = 0; i < v.Length; i++)
+                        {
+                            float d = (r.transform.TransformPoint(v[i]) - feet).sqrMagnitude;
+                            if (d < bestD) { bestD = d; best = i; }
+                        }
+                        if (best >= 0) Debug.Log($"[Probe] chunk vertex {r.transform.TransformPoint(v[best])} colour {(c.Length > best ? c[best].ToString() : "none")} colours {c.Length} verts {v.Length}");
+                    }
+                }
+                Terrain probeTerrain = Terrain.activeTerrain;
+                Debug.Log($"[Probe] terrain {(probeTerrain ? probeTerrain.name : "none")} drawHeightmap {(probeTerrain ? probeTerrain.drawHeightmap : false)} height {(probeTerrain ? probeTerrain.SampleHeight(feet) + probeTerrain.transform.position.y : 0f):F2}");
+
+                PlayerCamera probeCam = wood.GetComponent<PlayerCamera>();
+                probeCam.DebugSetDistance(5f);
+                probeCam.DebugSetPitch(30f);
+                yield return new WaitForSeconds(1f);
+                yield return Shot(folder, "probe_0_all");
+                GameObject voxelRoot = GameObject.Find("VoxelWorld");
+                GameObject waterRoot = GameObject.Find("Water");
+                if (voxelRoot) voxelRoot.SetActive(false);
+                yield return new WaitForSeconds(0.3f);
+                yield return Shot(folder, "probe_1_no_blocks");
+                if (voxelRoot) voxelRoot.SetActive(true);
+                if (waterRoot) waterRoot.SetActive(false);
+                yield return new WaitForSeconds(0.3f);
+                yield return Shot(folder, "probe_2_no_water");
+                if (waterRoot) waterRoot.SetActive(true);
+                if (probeTerrain) probeTerrain.drawHeightmap = true;
+                yield return new WaitForSeconds(0.3f);
+                yield return Shot(folder, "probe_3_terrain_paint_on");
+                Debug.Log("[Probe] done");
+                Application.Quit(0);
+                yield break;
+            }
+
             // Lighting tour: the same few places at several times of day, for judging light, shadow and exposure.
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperLight") >= 0)
             {
@@ -939,9 +1004,10 @@ namespace Chopper.Networking
                 else Debug.Log("[Shot] no Water forest pond found");
 
                 // The concept 2.0 cabin, door and gable on +Z. A three-quarter from the front so the doorway, window and roof read.
+                // The camera stays well inside the yard torch ring (WorldGen.WallRadius, 14 m): at 13 m a torch post filled the frame.
                 Vector3 siteHome = Hut.Instance.transform.position;
-                yield return TeleportLocalPlayer(new Vector2(siteHome.x + 3.2f, siteHome.z + 7.2f), 205f);
-                siteCam.DebugSetDistance(6.2f);
+                yield return TeleportLocalPlayer(new Vector2(siteHome.x + 2.0f, siteHome.z + 5.0f), 205f);
+                siteCam.DebugSetDistance(4.6f);
                 siteCam.SnapYaw(205f);
                 siteCam.DebugSetPitch(6f);
                 yield return new WaitForSeconds(1.5f);
@@ -952,8 +1018,8 @@ namespace Chopper.Networking
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, 0.35f);
                 yield return new WaitForSeconds(0.5f);
                 inventory.ServerToggleTorch();
-                yield return TeleportLocalPlayer(new Vector2(siteHome.x - 2.2f, siteHome.z + 8f), 155f);
-                siteCam.DebugSetDistance(5.4f);
+                yield return TeleportLocalPlayer(new Vector2(siteHome.x - 1.6f, siteHome.z + 5.5f), 155f);
+                siteCam.DebugSetDistance(4.2f);
                 siteCam.SnapYaw(165f);
                 siteCam.DebugSetPitch(8f);
                 yield return new WaitForSeconds(2f);

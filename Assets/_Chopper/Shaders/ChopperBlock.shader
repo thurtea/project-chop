@@ -83,8 +83,8 @@ Shader "Chopper/Block"
                 float gy = frac(i.positionWS.y * 2.0);
                 float edge = min(min(g.x, 1.0 - g.x), min(g.z, 1.0 - g.z));
                 edge = min(edge, min(gy, 1.0 - gy));
-                half line = (half)(1.0 - saturate(edge * 28.0));
-                half3 albedo = i.color.rgb * (1.0 + jitter) * (1.0 - line * _Edge);
+                half gridLine = (half)(1.0 - saturate(edge * 28.0));
+                half3 albedo = i.color.rgb * (1.0 + jitter) * (1.0 - gridLine * _Edge);
 
                 float3 n = normalize(i.normalWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(i.positionWS));
@@ -147,6 +147,79 @@ Shader "Chopper/Block"
             }
 
             half4 frag () : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        // Depth and normals for the depth prepass, SSAO, and anything that reads the camera depth (water edges).
+        Pass
+        {
+            Name "DepthOnly"
+            Tags { "LightMode" = "DepthOnly" }
+            ZWrite On
+            ColorMask R
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma target 3.0
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            float4 vert (Attributes v) : SV_POSITION
+            {
+                UNITY_SETUP_INSTANCE_ID(v);
+                return TransformObjectToHClip(v.positionOS.xyz);
+            }
+
+            half frag () : SV_Target { return 0; }
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "DepthNormals"
+            Tags { "LightMode" = "DepthNormals" }
+            ZWrite On
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma target 3.0
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma multi_compile_instancing
+
+            struct Attributes
+            {
+                float4 positionOS : POSITION;
+                float3 normalOS   : NORMAL;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float3 normalWS   : TEXCOORD0;
+            };
+
+            Varyings vert (Attributes v)
+            {
+                Varyings o;
+                UNITY_SETUP_INSTANCE_ID(v);
+                o.positionCS = TransformObjectToHClip(v.positionOS.xyz);
+                o.normalWS = TransformObjectToWorldNormal(v.normalOS);
+                return o;
+            }
+
+            half4 frag (Varyings i) : SV_Target
+            {
+                return half4(NormalizeNormalPerPixel(i.normalWS), 0.0);
+            }
             ENDHLSL
         }
     }

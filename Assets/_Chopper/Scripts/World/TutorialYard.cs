@@ -159,8 +159,20 @@ namespace Chopper.World
             Vector3 toHut = -at;
             toHut.y = 0f;
             if (toHut.sqrMagnitude > 0.01f) root.transform.rotation = Quaternion.LookRotation(toHut);
-            Piece(root.transform, PrimitiveType.Cube, new Vector3(0f, 0.7f, 0f), new Vector3(0.12f, 1.4f, 0.12f), material, new Color(0.36f, 0.24f, 0.14f));
-            Piece(root.transform, PrimitiveType.Cube, new Vector3(0f, 1.35f, 0.05f), new Vector3(0.95f, 0.55f, 0.07f), material, new Color(0.52f, 0.38f, 0.22f));
+            // The concept 2.0 voxel sign (ChopperPropDress), board toward +Z. The old primitive sign if it is missing.
+            GameObject voxel = Resources.Load<GameObject>("Props/prop_sign_voxel");
+            if (voxel != null)
+            {
+                Instantiate(voxel, root.transform, false);
+                var box = root.AddComponent<BoxCollider>();
+                box.center = new Vector3(0f, 0.8f, 0f);
+                box.size = new Vector3(0.3f, 1.6f, 0.3f);
+            }
+            else
+            {
+                Piece(root.transform, PrimitiveType.Cube, new Vector3(0f, 0.7f, 0f), new Vector3(0.12f, 1.4f, 0.12f), material, new Color(0.36f, 0.24f, 0.14f));
+                Piece(root.transform, PrimitiveType.Cube, new Vector3(0f, 1.35f, 0.05f), new Vector3(0.95f, 0.55f, 0.07f), material, new Color(0.52f, 0.38f, 0.22f));
+            }
             Sign sign = root.AddComponent<Sign>();
             sign.Configure(TutorialStations.Title(station), string.Empty, false);
             return sign;
