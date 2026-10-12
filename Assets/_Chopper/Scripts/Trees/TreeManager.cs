@@ -357,7 +357,13 @@ namespace Chopper.Trees
         public override void OnStartServer()
         {
             base.OnStartServer();
-            if (_navSurface != null) _navSurface.BuildNavMesh();
+            if (_navSurface != null)
+            {
+                // Baked from every collider, so since W5-08 step 5 from the block chunks (plus crypts, rocks, the house).
+                var bake = System.Diagnostics.Stopwatch.StartNew();
+                _navSurface.BuildNavMesh();
+                Debug.Log($"[NavMesh] baked in {bake.ElapsedMilliseconds} ms");
+            }
         }
 
         [ObserversRpc]

@@ -133,27 +133,108 @@ def shade_log(row):
     return (LOG_DARK, LOG, LOG_LIGHT, LOG, LOG_DARK)[row % 5]
 
 
+BOARD = (THATCH, THATCH_LIGHT, srgb(190, 140, 70), srgb(218, 170, 96))
+BUTT = srgb(122, 82, 40)         # the shadowed lower edge of each shingle course
+BARGE = srgb(92, 56, 30)         # barge boards, posts and crossed gable ends (concept 2.0)
+GABLE = (srgb(126, 84, 46), srgb(140, 94, 52), srgb(112, 74, 40))
+
+
+def gable_roof(m, along, c_across, half, l0, l1, eave, ridge, rows=9, board=0.55, thick=0.07,
+               cross_ends=(True, True), cross_ext=0.95, beam=0.11):
+    """Two roof slopes of plank courses. along = 'x' or 'y' is the ridge direction. Each course is
+    lifted at its lower edge, so the rows read as overlapping shingles; a dark butt face shows the step.
+    Thick barge boards run up both rakes of each end and carry on past the peak into a crossed X."""
+    def pt(t, u, side, lift=0.0):
+        a = c_across + side * half * (1.0 - t)
+        z = eave + (ridge - eave) * t + lift
+        return (u, a, z) if along == "x" else (a, u, z)
+
+    length = l1 - l0
+    for side in (-1, 1):
+        for row in range(rows):
+            t0, t1 = row / rows, (row + 1) / rows
+            n = max(1, int(round(length / board)))
+            stagger = 0.5 if row % 2 else 0.0
+            cuts = {l0 + (k + stagger) * length / n for k in range(n + 1)}
+            edges = sorted({l0, l1} | {c for c in cuts if l0 < c < l1})
+            # dark underlay just under the boards: the gaps between boards show it as seams
+            m.quad_up(pt(t0, l0, side, thick - 0.015), pt(t0, l1, side, thick - 0.015),
+                      pt(t1, l1, side, -0.015), pt(t1, l0, side, -0.015), BUTT, back=THATCH_DARK)
+            gap = 0.025
+            for k, (u0, u1) in enumerate(zip(edges, edges[1:])):
+                color = BOARD[(k * 2 + row * 3 + (k * k) % 3) % len(BOARD)]
+                a0 = u0 + (gap if u0 > l0 else 0.0)
+                a1 = u1 - (gap if u1 < l1 else 0.0)
+                m.quad_up(pt(t0, a0, side, thick), pt(t0, a1, side, thick), pt(t1, a1, side, 0.0),
+                          pt(t1, a0, side, 0.0), color, back=THATCH_DARK)
+            # butt edge of the course, both sides so it shows from below and above
+            m.quad_up(pt(t0, l0, side, 0.0), pt(t0, l1, side, 0.0), pt(t0, l1, side, thick),
+                      pt(t0, l0, side, thick), BUTT, back=BUTT)
+    # ridge cap
+    a, b = pt(1.0, l0 - 0.05, 1, thick + 0.02), pt(1.0, l1 + 0.05, 1, thick + 0.02)
+    m.prism(a, b, beam * 0.9, BARGE, end=BARGE, sides=4)
+    # barge boards up both rakes; past the peak they cross into an X
+    for u, show in ((l0 - 0.06, cross_ends[0]), (l1 + 0.06, cross_ends[1])):
+        for side in (-1, 1):
+            s0 = pt(0.0, u, side, thick + 0.04)
+            s1 = pt(1.0, u, side, thick + 0.04)
+            d = tuple(s1[i] - s0[i] for i in range(3))
+            dl = math.sqrt(sum(c * c for c in d))
+            ext = cross_ext if show else beam
+            e = tuple(s1[i] + d[i] / dl * ext for i in range(3))
+            m.prism(s0, e, beam, BARGE, end=LOG_END if show else BARGE, sides=4)
+
+
+def gable_planks(m, along, c_across, half, at, eave, ridge, width=0.38, depth=0.08, z_from=None):
+    """Vertical boards filling a gable triangle (in the plane along = at)."""
+    z0 = eave - 0.05 if z_from is None else z_from
+    n = int(2 * half / width)
+    for k in range(n):
+        a0 = c_across - half + k * width
+        a1 = a0 + width
+        mid = abs((a0 + a1) / 2 - c_across)
+        top = eave + (ridge - eave) * max(0.0, 1.0 - mid / half) - 0.04
+        if top <= z0:
+            continue
+        col = GABLE[k % len(GABLE)]
+        if along == "x":
+            m.box(at - depth / 2, at + depth / 2, a0, a1, z0, top, col)
+        else:
+            m.box(a0, a1, at - depth / 2, at + depth / 2, z0, top, col)
+
+
 def build():
     m = Mesh()
-    # Stone foundation, two courses, a ring so the basement stays open.
-    for course, z0, color in ((0, 1.58, STONE_DARK), (1, 1.88, STONE)):
+    # Stone foundation: two courses of blocks in two greys, joints offset per course; a ring, so the
+    # basement stays open.
+    for course, z0 in ((0, 1.58), (1, 1.88)):
         z1 = z0 + 0.30
-        m.box(-W - 0.18, W + 0.18, -D - 0.22, -D + 0.16, z0, z1, color)
-        m.box(-W - 0.18, W + 0.18, D - 0.16, D + 0.22, z0, z1, color)
-        m.box(-W - 0.22, -W + 0.16, -D, D, z0, z1, color)
-        m.box(W - 0.16, W + 0.22, -D, D, z0, z1, color)
+        off = 0.0 if course == 0 else 0.4
+        k = 0
+        x = -W - 0.22 - off
+        while x < W + 0.22:
+            xa, xb = max(x, -W - 0.22), min(x + 0.8, W + 0.22)
+            col = STONE if (k + course) % 2 else STONE_DARK
+            other = STONE_DARK if col == STONE else STONE
+            m.box(xa, xb, -D - 0.22, -D + 0.16, z0, z1, col)
+            m.box(xa, xb, D - 0.16, D + 0.22, z0, z1, other)
+            x += 0.8
+            k += 1
+        y = -D - off
+        k = 0
+        while y < D:
+            ya, yb = max(y, -D), min(y + 0.8, D)
+            col = STONE if (k + course) % 2 else STONE_DARK
+            other = STONE_DARK if col == STONE else STONE
+            m.box(-W - 0.22, -W + 0.16, ya, yb, z0, z1, col)
+            m.box(W - 0.16, W + 0.22, ya, yb, z0, z1, other)
+            y += 0.8
+            k += 1
 
-    def log_run(x0, x1, y, z, color):
-        m.prism((x0, y, z), (x1, y, z), LOG_R, color)
-
-    def courses(z_of):
-        return [2.28 + i * 0.23 for i in range(8)]
-
-    zs = courses(None)
-    # Front and back walls. Door and windows are gaps; a dark frame closes the hole.
+    zs = [2.28 + i * 0.23 for i in range(8)]
     door = (0.15, 1.85, 2.12, 3.92)
-    windows = [(-4.15, -3.15, 2.85, 3.55), (3.3, 4.3, 2.85, 3.55),
-               (-2.2, -1.2, 2.85, 3.55), (2.4, 3.4, 2.85, 3.55)]
+    front_windows = [(-4.15, -3.15, 2.85, 3.55), (3.3, 4.3, 2.85, 3.55)]
+    back_windows = [(-2.2, -1.2, 2.85, 3.55), (2.4, 3.4, 2.85, 3.55)]
 
     def blocked(x, z, holes):
         for x0, x1, z0, z1 in holes:
@@ -161,15 +242,10 @@ def build():
                 return True
         return False
 
-    front_holes = [door] + windows[:2]
-    back_holes = windows[2:]
+    # Long walls: continuous logs, split only where a hole cuts them.
     for i, z in enumerate(zs):
         color = shade_log(i)
-        for x0, x1 in ((-W, -4.2), (-4.05, -3.25), (-3.05, 0.05), (1.95, 3.2), (4.4, W),
-                       (-W, W)):
-            pass
-        # continuous logs, split only where a hole cuts them
-        for y, holes in ((-D, front_holes), (D, back_holes)):
+        for y, holes in ((-D, [door] + front_windows), (D, back_windows)):
             x = -W
             while x < W - 0.05:
                 if blocked(x + 0.05, z, holes):
@@ -180,119 +256,104 @@ def build():
                     x1 += 0.15
                 m.prism((x, y, z), (min(x1, W), y, z), LOG_R, color)
                 x = x1 + 0.15
-    # end walls, logs along Y, one window each
-    end_windows = [(-1.1, -0.2, 2.85, 3.55)]
+    # End walls: logs along Y, one window each.
+    ew = (-1.1, -0.2, 2.85, 3.55)
+
+    def in_end_window(y, z):
+        return ew[2] < z < ew[3] and ew[0] - 0.05 < y < ew[1] + 0.05
+
     for i, z in enumerate(zs):
         color = shade_log(i + 1)
         for x in (-W, W):
             y = -D + 0.2
             while y < D - 0.25:
-                if blocked(0, z, end_windows) and abs(y) < 1.15:
+                if in_end_window(y, z):
                     y += 0.15
                     continue
                 y1 = y
-                while y1 < D - 0.2 and not (blocked(0, z, end_windows) and abs(y1) < 1.15):
+                while y1 < D - 0.2 and not in_end_window(y1 + 0.1, z):
                     y1 += 0.15
                 m.prism((x, y, z), (x, min(y1, D - 0.2), z), LOG_R, color)
                 y = y1 + 0.15
-    # frames
-    for x0, x1, z0, z1 in [door] + windows + [(-W, -W, -1.1, -0.2)] :
-        pass
-    def frame_rect(x0, x1, y, z0, z1):
-        m.box(x0 - 0.06, x0, y - 0.08, y + 0.08, z0, z1, FRAME)
-        m.box(x1, x1 + 0.06, y - 0.08, y + 0.08, z0, z1, FRAME)
-        m.box(x0, x1, y - 0.08, y + 0.08, z1, z1 + 0.08, FRAME)
-        m.box(x0, x1, y - 0.08, y + 0.08, z0 - 0.06, z0, FRAME)
 
-    frame_rect(*door[:2], -D, door[2], door[3])
-    for x0, x1, z0, z1 in windows:
-        y = -D if x0 < 0 and x1 < 0 or x0 > 2 else D
-        if x0 < -3 or (x0 > 3):
-            y = -D
-        else:
-            y = D
-        frame_rect(x0, x1, y, z0, z1)
+    # Heavy square posts split the walls into bays (concept 2.0), standing on the stones, up to a top
+    # plate that closes the wall to the underside of the roof (the old walls stopped 0.3 short of it).
+    roof_at_wall = EAVE + (RIDGE - EAVE) * (1.0 - D / (D + OVER))
+    post_top = roof_at_wall + 0.02
+    ph = 0.16
+    front_posts = (-W, -4.6, -2.6, -0.17, 2.12, 4.75, W)
+    back_posts = (-W, -4.0, -2.6, -0.4, 1.95, 3.85, W)
+    for y, xs in ((-D, front_posts), (D, back_posts)):
+        for x in xs:
+            m.box(x - ph, x + ph, y - ph - 0.04, y + ph + 0.04, 2.18, post_top, BARGE)
+        m.box(-W - 0.2, W + 0.2, y - 0.17, y + 0.17, zs[-1] + 0.08, post_top, POST)
     for x in (-W, W):
-        m.box(x - 0.08, x + 0.08, -1.15, -1.05, 2.8, 3.6, FRAME)
-        m.box(x - 0.08, x + 0.08, -0.15, -0.05, 2.8, 3.6, FRAME)
-        m.box(x - 0.08, x + 0.08, -1.15, -0.05, 3.55, 3.65, FRAME)
-        m.box(x - 0.08, x + 0.08, -1.15, -0.05, 2.75, 2.85, FRAME)
+        for y in (-2.0, 1.6):
+            m.box(x - ph - 0.04, x + ph + 0.04, y - ph, y + ph, 2.18, EAVE, BARGE)
+        m.box(x - 0.17, x + 0.17, -D - 0.2, D + 0.2, zs[-1] + 0.08, EAVE + 0.02, POST)
 
-    # Roof: two slopes, shingles with a lip, closed over the gable ends.
-    span_x0, span_x1 = -W - 0.35, W + 0.35
+    # Frames, with a lattice cross in each window.
+    def frame(x0, x1, y, z0, z1, lattice=True):
+        m.box(x0 - 0.07, x0, y - 0.09, y + 0.09, z0, z1, FRAME)
+        m.box(x1, x1 + 0.07, y - 0.09, y + 0.09, z0, z1, FRAME)
+        m.box(x0 - 0.07, x1 + 0.07, y - 0.09, y + 0.09, z1, z1 + 0.09, FRAME)
+        m.box(x0 - 0.07, x1 + 0.07, y - 0.09, y + 0.09, z0 - 0.07, z0, FRAME)
+        if lattice:
+            xm, zm = (x0 + x1) / 2, (z0 + z1) / 2
+            m.box(xm - 0.025, xm + 0.025, y - 0.03, y + 0.03, z0, z1, FRAME)
+            m.box(x0, x1, y - 0.03, y + 0.03, zm - 0.025, zm + 0.025, FRAME)
+
+    frame(door[0], door[1], -D, door[2], door[3], lattice=False)
+    for x0, x1, z0, z1 in front_windows:
+        frame(x0, x1, -D, z0, z1)
+    for x0, x1, z0, z1 in back_windows:
+        frame(x0, x1, D, z0, z1)
+    for x in (-W, W):
+        y0, y1, z0, z1 = ew
+        m.box(x - 0.09, x + 0.09, y0 - 0.07, y0, z0, z1, FRAME)
+        m.box(x - 0.09, x + 0.09, y1, y1 + 0.07, z0, z1, FRAME)
+        m.box(x - 0.09, x + 0.09, y0 - 0.07, y1 + 0.07, z1, z1 + 0.09, FRAME)
+        m.box(x - 0.09, x + 0.09, y0 - 0.07, y1 + 0.07, z0 - 0.07, z0, FRAME)
+        m.box(x - 0.03, x + 0.03, (y0 + y1) / 2 - 0.025, (y0 + y1) / 2 + 0.025, z0, z1, FRAME)
+        m.box(x - 0.03, x + 0.03, y0, y1, (z0 + z1) / 2 - 0.025, (z0 + z1) / 2 + 0.025, FRAME)
+
+    # Main roof: plank courses, barge boards, big crossed ends at both gables; plank gables.
     eave_y = D + OVER
-    rows, cols = 14, 18
-    for side in (-1, 1):
-        for row in range(rows):
-            for col in range(cols):
-                stagger = 0.5 if row % 2 else 0.0
-                t0 = row / rows
-                t1 = (row + 1) / rows
-                u0 = (col + stagger) / cols
-                u1 = (col + 1 + stagger) / cols
-                if u1 > 1.02:
-                    continue
+    gable_roof(m, "x", 0.0, eave_y, -W - 0.4, W + 0.4, EAVE, RIDGE, rows=11, board=0.6, thick=0.08,
+               cross_ext=1.1, beam=0.13)
+    for x in (-W + 0.02, W - 0.02):
+        gable_planks(m, "x", 0.0, eave_y * 0.97, x, EAVE, RIDGE, z_from=EAVE - 0.08)
 
-                def point(t, u, lift=0.0):
-                    x = span_x0 + (span_x1 - span_x0) * u
-                    y = -side * eave_y * (1.0 - t)
-                    z = EAVE + (RIDGE - EAVE) * t + lift
-                    return (x, y, z)
+    # Dormer on the ridge, left of centre like the concept, its gable to the front, with its own crosses.
+    dx0, dx1 = -3.2, -1.8
+    d_eave, d_ridge = RIDGE + 0.35, RIDGE + 1.0
+    m.box(dx0 + 0.08, dx1 - 0.08, -0.85, 0.85, RIDGE - 0.6, d_eave, GABLE[0])
+    for x in (dx0 + 0.08, dx1 - 0.08):
+        m.box(x - 0.09, x + 0.09, -0.9, -0.72, RIDGE - 0.6, d_eave, BARGE)
+        m.box(x - 0.09, x + 0.09, 0.72, 0.9, RIDGE - 0.6, d_eave, BARGE)
+    gable_roof(m, "y", (dx0 + dx1) / 2, (dx1 - dx0) / 2 + 0.2, -1.05, 1.05, d_eave, d_ridge, rows=4,
+               board=0.45, thick=0.06, cross_ext=0.55, beam=0.08)
+    for y in (-0.86, 0.86):
+        gable_planks(m, "y", (dx0 + dx1) / 2, (dx1 - dx0) / 2, y, d_eave, d_ridge, width=0.24, depth=0.06)
 
-                lip = 0.05 if row < rows - 1 else 0.0
-                a = point(t0, u0, 0.02)
-                b = point(t0, min(u1, 1.0), 0.02)
-                c = point(t1, min(u1, 1.0), 0.02 + lip)
-                d = point(t1, u0, 0.02 + lip)
-                color = (THATCH, THATCH_DARK, THATCH_LIGHT)[(row + col) % 3]
-                m.quad_up(a, b, c, d, color)
-                e = point(t0, u0, 0.0)
-                f = point(t0, min(u1, 1.0), 0.0)
-                m.quad_up(e, f, b, a, THATCH_DARK)
-
-    # Gable fill: short logs across each end, under the roof.
-    for x, sign in ((-W + 0.02, -1), (W - 0.02, 1)):
-        for i in range(16):
-            z = EAVE + 0.06 + (RIDGE - EAVE - 0.2) * i / 15.0
-            half = eave_y * (1.0 - (z - EAVE) / (RIDGE - EAVE)) * 0.96
-            m.prism((x, -half, z), (x, half, z), 0.095, shade_log(i))
-        # crossed beams, standing a little past the peak
-        peak = (x + sign * 0.08, 0.0, RIDGE + 0.28)
-        m.prism((x, -1.15, EAVE + 0.55), peak, 0.055, LOG_END)
-        m.prism((x, 1.15, EAVE + 0.55), peak, 0.055, LOG_END)
-
-    # Porch: deck in front of the door, two posts, a small cross-gable.
+    # Porch: deck in front of the door (the pieces collide with it), square posts on a beam, and a
+    # cross-gable whose ridge runs out from the main roof, with plank gable and crossed ends at the front.
     deck_y0, deck_y1 = -D - 2.15, -D
     m.box(-0.15, 2.15, deck_y0, deck_y1, MAIN - 0.12, MAIN, PLANK)
     m.box(-0.15, 2.15, deck_y0, deck_y1, MAIN - 0.18, MAIN - 0.12, PLANK_DARK)
-    for x, y in ((-0.05, deck_y0 + 0.12), (2.05, deck_y0 + 0.12)):
-        m.prism((x, y, MAIN), (x, y, MAIN + 1.72), 0.09, POST)
-    # porch roof, ridge running out from the wall
-    porch_eave = MAIN + 1.72
-    porch_ridge = porch_eave + 0.85
-    for side in (-1, 1):
-        for row in range(6):
-            for col in range(5):
-                t0, t1 = row / 6.0, (row + 1) / 6.0
-                u0, u1 = col / 5.0, (col + 1) / 5.0
-
-                def pp(t, u, lift=0.04):
-                    y = deck_y1 + (deck_y0 - deck_y1) * t
-                    x = 1.0 + side * 1.25 * (1.0 - u)
-                    z = porch_eave + (porch_ridge - porch_eave) * u + lift
-                    return (x, y, z)
-
-                color = (THATCH_LIGHT, THATCH, THATCH_DARK)[(row + col) % 3]
-                m.quad_up(pp(t0, u0), pp(t1, u0), pp(t1, u1), pp(t0, u1), color)
-    # porch gable at the front, with the same crossed beams
-    gy = deck_y0 + 0.05
-    for i in range(6):
-        z = porch_eave + 0.06 + (porch_ridge - porch_eave - 0.12) * i / 5.0
-        half = 1.15 * (1.0 - i / 5.0)
-        m.prism((1.0 - half, gy, z), (1.0 + half, gy, z), 0.055, shade_log(i))
-    tip = (1.0, gy - 0.06, porch_ridge + 0.18)
-    m.prism((1.0 - 0.7, gy, porch_eave + 0.25), tip, 0.045, LOG_END)
-    m.prism((1.0 + 0.7, gy, porch_eave + 0.25), tip, 0.045, LOG_END)
+    for k in range(6):
+        y = deck_y0 + 0.3 + k * 0.33
+        m.box(-0.15, 2.15, y, y + 0.03, MAIN - 0.005, MAIN + 0.005, PLANK_DARK)
+    pc, phalf = 1.0, 1.55
+    p_eave, p_ridge = MAIN + 1.95, MAIN + 3.05
+    for x in (pc - phalf + 0.2, pc + phalf - 0.2):
+        m.box(x - 0.13, x + 0.13, deck_y0 + 0.05, deck_y0 + 0.31, MAIN, p_eave + 0.05, BARGE)
+        m.box(x - 0.11, x + 0.11, deck_y0 + 0.05, -D + 0.1, p_eave - 0.12, p_eave + 0.06, POST)
+    m.box(pc - phalf + 0.07, pc + phalf - 0.07, deck_y0 + 0.05, deck_y0 + 0.31, p_eave - 0.12,
+          p_eave + 0.06, POST)
+    gable_roof(m, "y", pc, phalf + 0.15, deck_y0 - 0.35, -D + 0.9, p_eave, p_ridge, rows=6, board=0.5,
+               thick=0.07, cross_ends=(True, False), cross_ext=0.8, beam=0.1)
+    gable_planks(m, "y", pc, phalf - 0.05, deck_y0 + 0.18, p_eave + 0.06, p_ridge, width=0.3, depth=0.06)
     # four treads from the terrace (1.67) up to the deck
     for i in range(4):
         z0 = 1.67 + i * 0.08

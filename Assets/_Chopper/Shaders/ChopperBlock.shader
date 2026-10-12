@@ -10,7 +10,9 @@ Shader "Chopper/Block"
         _Jitter ("Texel shade strength", Range(0, 1)) = 1
         _Dark ("Dark texel shade", Range(0.3, 1)) = 0.72
         _Light ("Light texel shade", Range(1, 2)) = 1.32
-        _LipColor ("Grass lip colour (linear)", Color) = (0.0931, 0.2086, 0.0273, 1)
+        // sRGB: Unity converts Color properties to linear once. The old default was already linear, so it was
+        // converted twice and the lip drew near black (the dark wedges on every half-block step).
+        _LipColor ("Grass lip colour (sRGB)", Color) = (0.3373, 0.4941, 0.1803, 1)
     }
 
     SubShader
@@ -125,6 +127,10 @@ Shader "Chopper/Block"
                 float3 n = normalize(i.normalWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(i.positionWS));
                 half ndl = saturate(dot(n, mainLight.direction));
+                // Sides facing away from the sun got only ambient and fill, which the grading crushed to black: thin
+                // half-block steps read as black wedges once every riser had a wall (W5-08 step 5). A floor of
+                // sunlight on sides keeps shaded dirt brown and the grass lip green, like the concept's cliffs.
+                if (!isTop) ndl = max(ndl, 0.3h);
                 half3 direct = mainLight.color * (ndl * mainLight.shadowAttenuation * mainLight.distanceAttenuation);
                 half3 ambient = SampleSH(n);
                 // A low sun leaves flat tops in deep shadow. A little fill keeps the block colour readable.

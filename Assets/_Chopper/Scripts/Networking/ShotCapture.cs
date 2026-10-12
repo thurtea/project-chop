@@ -877,9 +877,40 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(1.5f);
                 yield return Shot(folder, "blocks_meadow");
 
+                // Climb out of the hub pond: swim from its middle toward the hut side and pull up onto the bank blocks.
+                Chopper.World.Generation.WorldGen pondGen = Chopper.World.Generation.WorldSession.Gen;
+                Vector2 pond = pondGen.PondCenter;
+                Vector2 toHub = pond.sqrMagnitude > 1f ? -pond.normalized : Vector2.up;
+                float outYaw = Mathf.Atan2(toHub.x, toHub.y) * Mathf.Rad2Deg;
+                yield return TeleportLocalPlayer(pond, outYaw);
+                yield return new WaitForSeconds(1.5f);
+                PlayerMotor swimMotor = wood.GetComponent<PlayerMotor>();
+                bool startedSwimming = swimMotor.IsSwimming;
+                Gamepad swimPad = InputSystem.AddDevice<Gamepad>();
+                float swimStart = Time.time;
+                while (Time.time - swimStart < 20f && (swimMotor.IsSwimming || Time.time - swimStart < 1f))
+                {
+                    InputSystem.QueueStateEvent(swimPad, new GamepadState { leftStick = Vector2.up });
+                    groundCam.SnapYaw(outYaw);
+                    yield return null;
+                }
+                for (float t = 0f; t < 1.5f; t += Time.deltaTime)
+                {
+                    InputSystem.QueueStateEvent(swimPad, new GamepadState { leftStick = Vector2.up });
+                    yield return null;
+                }
+                InputSystem.QueueStateEvent(swimPad, new GamepadState());
+                InputSystem.RemoveDevice(swimPad);
+                yield return new WaitForSeconds(0.5f);
+                Vector3 outAt = wood.transform.position;
+                bool climbedOut = startedSwimming && !swimMotor.IsSwimming
+                                  && outAt.y > Chopper.World.Generation.WorldGen.WaterHeight - 0.2f;
+                Debug.Log($"[BlockGround] pond climb-out: started swimming {startedSwimming}, after {Time.time - swimStart:F1} s at {outAt:F2}, swimming {swimMotor.IsSwimming}, ground {Chopper.World.WorldGround.HeightAt(outAt):F2}");
+                yield return Shot(folder, "blocks_pond_out");
+
                 bool groundPass = blockColumns != null && chunkColliders > 0 && terrainOff && feetChecked >= 4 && worstFeet < 0.12f
-                                  && treesChecked > 0 && treesOff == 0;
-                Debug.Log($"[BlockGround] RESULT {(groundPass ? "PASS" : "FAIL")} (feet checked {feetChecked}, worst {worstFeet:F3} m; trees off {treesOff})");
+                                  && treesChecked > 0 && treesOff == 0 && climbedOut;
+                Debug.Log($"[BlockGround] RESULT {(groundPass ? "PASS" : "FAIL")} (feet checked {feetChecked}, worst {worstFeet:F3} m; trees off {treesOff}; climbed out of the pond {climbedOut})");
                 Application.Quit(groundPass ? 0 : 1);
                 yield break;
             }
@@ -1957,19 +1988,44 @@ namespace Chopper.Networking
                     yield return MeasureFrames("without " + suspect.name + " (" + found.Length + ")", 3f);
                     foreach (UnityEngine.Object o in found) ((Behaviour)o).enabled = true;
                 }
-                yield return TeleportLocalPlayer(new Vector2(0f, 20f), 0f);
+                // The ring stays in the yard in front of the house: around (0, 20) at 18 m it reached into the hall
+                // (z 2..6), and enemies woken inside it had no way out (W5-08 step 6 NavCheck).
+                yield return TeleportLocalPlayer(new Vector2(0f, 32f), 0f);
                 for (int i = 0; i < 16; i++)
                 {
                     float angle = i / 16f * Mathf.PI * 2f;
-                    Vector3 at = new Vector3(Mathf.Cos(angle) * 18f, 0f, 20f + Mathf.Sin(angle) * 18f);
-                    Terrain ground = Terrain.activeTerrain;
-                    at.y = ground.SampleHeight(at) + ground.transform.position.y;
+                    Vector3 at = new Vector3(Mathf.Cos(angle) * 14f, 0f, 32f + Mathf.Sin(angle) * 14f);
+                    at.y = WorldGround.HeightAt(at);
                     EnemyDirector.Instance.ServerSpawn((Element)(i % 5), (TreeSize)(i % 3), false, at);
                 }
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, 0.2f);
                 wood.GetComponent<PlayerCombat>().ServerSetGod(true);
                 yield return new WaitForSeconds(6f);
                 yield return MeasureFrames("night, " + EnemyDirector.CountActive() + " enemies awake", 6f);
+                // W5-08 step 6: the NavMesh is baked from the block chunk colliders. Every awake enemy stands on it, and
+                // they close in on the player (the group fight keeps them on a ring a few metres out).
+                {
+                    Vector3 me = wood.transform.position;
+                    int active = 0, onMesh = 0, close = 0;
+                    float far = 0f;
+                    foreach (Treant t in Treant.All)
+                    {
+                        if (t == null || !t.IsActive) continue;
+                        active++;
+                        if (t.Agent != null && t.Agent.enabled && t.Agent.isOnNavMesh) onMesh++;
+                        float d = Vector3.Distance(new Vector3(t.transform.position.x, 0f, t.transform.position.z), new Vector3(me.x, 0f, me.z));
+                        if (d < 7f) close++;
+                        else if (t.Agent != null && t.Agent.isOnNavMesh)
+                        {
+                            var probePath = new UnityEngine.AI.NavMeshPath();
+                            bool found = UnityEngine.AI.NavMesh.CalculatePath(t.transform.position, me, UnityEngine.AI.NavMesh.AllAreas, probePath);
+                            Debug.Log($"[NavCheck] far {t.name} at {t.transform.position:F1} ({d:F1} m): path to the player {(found ? probePath.status.ToString() : "none")}, agent path {t.Agent.pathStatus}, has path {t.Agent.hasPath}, speed {t.Agent.velocity.magnitude:F2}, stopped {t.Agent.isStopped}, boss {t.IsBoss}, size {t.Size}");
+                        }
+                        far = Mathf.Max(far, d);
+                    }
+                    bool navPass = active >= 16 && onMesh == active && close == active;
+                    Debug.Log($"[NavCheck] RESULT {(navPass ? "PASS" : "FAIL")}: {active} awake, {onMesh} on the NavMesh, {close} within 7 m of the player (farthest {far:F1} m)");
+                }
                 WeatherSystem.Instance.ServerSet(WeatherKind.Rain);
                 yield return new WaitForSeconds(4f);
                 yield return MeasureFrames("night in rain", 5f);

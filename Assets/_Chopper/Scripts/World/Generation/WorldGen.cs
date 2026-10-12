@@ -69,7 +69,9 @@ namespace Chopper.World.Generation
         public const float SeaFloorHeight = -7f;
         public const float SeaInnerRadius = 246f;
         public const float SeaOuterRadius = 900f;
-        public const float WaterHeight = -0.9f;
+        // Halfway between two block tops (VoxelColumns.Step 0.5), W5-08 step 8: a -1.0 top is a 0.25 m wade, a -0.5
+        // bank stands 0.25 m clear, and no block top lies in the water plane (at -1.0 they would z-fight).
+        public const float WaterHeight = -0.75f;
         public const float BoundaryOffset = 314f;
 
         public const float PondInnerRadius = 12f;

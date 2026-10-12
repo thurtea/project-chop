@@ -35,6 +35,9 @@ namespace Chopper.Player
         // Ground steeper than the controller's slope limit is a mountainside: the player slides off it at this speed.
         private const float SteepSlideSpeed = GameConfig.SteepSlideSpeed;
         private const float SteepProbeLength = 0.6f;
+        // Swimming into a bank: rise at this speed while the block ahead tops out no higher than this over the water.
+        private const float SwimClimbSpeed = 3f;
+        private const float SwimClimbMaxAboveSurface = 0.75f;
 
         // Double jump: one more jump in the air, as high as the first and for the same stamina. It comes back on landing.
         private const int AirJumps = 1;
@@ -292,6 +295,10 @@ namespace Chopper.Player
                 // Buoyancy: float with the chest in the water instead of sinking or standing on the bottom.
                 float floatY = surfaceY - WaterSystem.SwimFloatDepth;
                 _verticalVelocity = Mathf.Clamp((floatY - transform.position.y) * 4f, -3f, 3f);
+                // Climbing out: swimming into a bank block whose top is near the surface lifts the swimmer over its
+                // edge (the feet float 1.05 m down, far below the step height), like pulling up onto a ledge.
+                if (direction.sqrMagnitude > TurnInputThreshold && BankAhead(direction, surfaceY))
+                    _verticalVelocity = SwimClimbSpeed;
             }
             else
             {
@@ -397,6 +404,15 @@ namespace Chopper.Player
 
         private const float RainSoakThreshold = 0.3f;
 
+        // A bank block just ahead (past the capsule's front) that is above the feet but low enough to pull up onto.
+        private bool BankAhead(Vector3 direction, float surfaceY)
+        {
+            if (Chopper.World.Voxel.VoxelColumns.Current == null) return false;
+            Vector3 ahead = transform.position + direction.normalized * (_controller.radius + 0.3f);
+            float top = WorldGround.HeightAt(ahead);
+            return top > transform.position.y + _controller.stepOffset && top <= surfaceY + SwimClimbMaxAboveSurface;
+        }
+
         // True when the terrain under the feet is steeper than the controller may climb; downhill is the flat
         // direction down the slope. The slope is the terrain's own smoothed steepness at the feet, not a contact
         // normal: a sphere touching the seam between two terrain triangles reports edge normals far steeper than the
@@ -404,6 +420,9 @@ namespace Chopper.Player
         private bool OnSteepGround(out Vector3 downhill)
         {
             downhill = Vector3.zero;
+            // Block ground (W5-08 step 5): every top is flat, and risers above one block already stop the controller
+            // (stepOffset clears one 0.5 m step), so nothing slides. The smooth-hill rule below only runs without blocks.
+            if (Chopper.World.Voxel.VoxelColumns.Current != null) return false;
             if (!WorldGround.Exists || !WorldGround.Covers(transform.position)) return false;
             // Only on the ground itself: above it (on a rock or a log) or below it (in a crypt) there is no slope.
             float ground = WorldGround.HeightAt(transform.position);
