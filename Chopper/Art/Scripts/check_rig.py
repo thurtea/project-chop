@@ -331,7 +331,7 @@ def main():
     lo, hi = bbox(allpts)
     h = hi.z - lo.z
     log("  bounds x %.3f..%.3f  y %.3f..%.3f  z %.3f..%.3f" % (lo.x, hi.x, lo.y, hi.y, lo.z, hi.z))
-    check(1.78 <= h <= 1.82, "character height %.4f m in [1.78, 1.82]" % h)
+    check(1.95 <= h <= 2.15, "character height %.4f m in [1.95, 2.15] (horns above the hair)" % h)
     check(abs(lo.z) < 0.005, "soles at Z=0 in rest (min z %.4f)" % lo.z)
     front = sum(p.y for p in allpts if p.z > 1.4) / max(1, len([p for p in allpts if p.z > 1.4]))
     check(min(p.y for p in eval_points(meshes["chopper_head"])[0]) < -0.15, "character faces -Y (nose at y < -0.15)")

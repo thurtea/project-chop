@@ -336,9 +336,12 @@ if char_b:
     xmin = min(b[0].x for b in char_b)
     xmax = max(b[1].x for b in char_b)
     out(f"  overall bounds: x {xmin:.3f}..{xmax:.3f}, z {zmin:.3f}..{zmax:.3f}")
-    check(f"character height {zmax - zmin:.4f} m in [1.78, 1.82]", 1.78 <= zmax - zmin <= 1.82)
+    check(f"character height {zmax - zmin:.4f} m in [1.95, 2.15] (horns above the hair)", 1.95 <= zmax - zmin <= 2.15)
     hair_top = bounds["chopper_hair"][1].z
-    check(f"top of hair {hair_top:.4f} m is the highest point", abs(hair_top - zmax) < 1e-6)
+    check(f"top of hair {hair_top:.4f} m stays at 1.80", 1.79 <= hair_top <= 1.81)
+    helm_top = bounds["chopper_helmet"][1].z
+    check(f"helmet horns {helm_top:.4f} m are the highest point, above the hair",
+          abs(helm_top - zmax) < 1e-4 and helm_top > hair_top + 0.12)
     bz = bounds["chopper_boots"][0].z
     check(f"lowest Z of boots {bz:.4f} within 0.005 of 0", abs(bz) <= 0.005)
     check(f"boots are the lowest geometry (min z {zmin:.4f})", abs(zmin - bz) < 1e-6)

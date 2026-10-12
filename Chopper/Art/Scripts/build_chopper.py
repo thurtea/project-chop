@@ -187,18 +187,18 @@ def loft(mb, samples, cs, color):
 
 
 def build_beard(mat):
-    """One spade (concept 2.0): full at the jaw, tapering to the collarbone. Strand lines
-    stay in the atlas. A straight tube, so the back stays clear of the vest and the
-    front unwraps in one strip."""
+    """One beard (concept 2.0): wide at the jaw, round, and down onto the upper chest.
+    Strand lines stay in the atlas. A straight tube, so the back stays clear of the vest."""
     mb = L.MeshBuilder("chopper_beard")
     G, D = PAL["ginger"], PAL["ginger_dark"]
-    clear = vest_front(1.20, 1.52) + BEARD_CLEAR
+    clear = vest_front(1.08, 1.52) + BEARD_CLEAR
     rows = []
     for i in range(16):
         t = i / 15.0
-        z = 1.22 + (1.50 - 1.22) * t
-        hw = 0.035 + 0.165 * math.sin(t * math.pi * 0.92) ** 1.15
-        hd = 0.028 + 0.030 * math.sin(t * math.pi)
+        z = 1.14 + (1.50 - 1.14) * t
+        # Wide at the jaw, narrower where it rests on the chest. A sine peak in the middle read as a ball.
+        hw = 0.07 + 0.11 * (t ** 0.55)
+        hd = 0.016 + 0.010 * t
         rows.append((z, hw, hd, -(clear + hd)))
     mb.ztube(0, 0, rows, cs=6, bevel=0.02, color=G)
     for s in (-1, 1):
@@ -407,8 +407,9 @@ def build_boots(mat):
 
 
 def build_helmet(mat):
-    """Skull cap with a brow band, a nasal guard and two long curved horns (concept 2.0).
-    The skull face is painted on the front. Hair stays the tallest point (1.80 m)."""
+    """Skull cap with a brow band, a nasal guard and two horns that rise above the head
+    (concept 2.0). The skull face is painted on the front. Hair stays at 1.80 m; the horns
+    are the highest point."""
     mb = L.MeshBuilder("chopper_helmet")
     cap = []
     for i in range(10):
@@ -417,8 +418,13 @@ def build_helmet(mat):
         spread = math.sin(min(t * 1.15, 1.0) * math.pi) ** 0.65
         hw = 0.05 + 0.155 * spread * (1.05 - 0.55 * t)
         hd = 0.045 + 0.150 * spread * (1.0 - 0.4 * t)
-        cap.append((z, hw, hd, -0.02 * (1.0 - t)))
+        cap.append((z, hw, hd, -0.07))
     mb.ztube(0, 0, cap, cs=4, bevel=0.02, color=PAL["steel"])
+    # Skull plate over the eyes and nose, in front of the head cube.
+    mb.box((0, -0.235, 1.56), (0.30, 0.04, 0.26), 0.01, color=PAL["steel"])
+    for s in (-1, 1):
+        mb.box((s * 0.07, -0.258, 1.58), (0.075, 0.018, 0.055), 0.004, color=PAL["steel_dark"])
+    mb.box((0, -0.258, 1.50), (0.04, 0.02, 0.09), 0.004, color=PAL["steel_dark"])
     # brow band and nasal guard, so the skull reads before the paint does
     brow = []
     for i in range(12):
@@ -431,10 +437,10 @@ def build_helmet(mat):
         horn = []
         for i in range(16):
             t = i / 15.0
-            x = s * (0.14 + 0.16 * t)
-            y = -0.02 - 0.08 * math.sin(t * math.pi)
-            z = 1.55 + 0.14 * math.sin(t * math.pi * 0.55)
-            r = 0.040 * (1.0 - 0.72 * t)
+            x = s * (0.15 + 0.30 * t)
+            y = -0.04 - 0.10 * math.sin(t * math.pi)
+            z = 1.62 + 0.36 * math.sin(t * math.pi * 0.5)
+            r = 0.048 * (1.0 - 0.70 * t)
             horn.append((Vector((x, y, z)), r, r * 0.82))
         loft(mb, horn, cs=3, color=PAL["steel_dark"])
     return mb.finish(mat)

@@ -168,6 +168,6 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 | W8-12 | Axe held head up, blade forward (user: upside down again) | done: carry turn skipped for the Chopper rig (`HeldItemFrame.HandPosed`); `gear2.log` head up, edge forward |
 | W8-08 | Water, clouds, sun to concept 2.0 | open |
 | W8-09 | Website pictures, last | open |
-| W8-13 | Character forms toward concept 2.0: one beard, one hair cap, smooth boots, broader chest, curved horns, painted skull, chainmail rings. Rig and module names kept | done: `check_assets` 136/0, `check_rig` 189/0. Bear axe not made chunkier |
+| W8-13 | Character forms toward concept 2.0: beard wide at the jaw and down the chest, hair one cap, smooth boots, broader chest, horns above the head, skull plate over the eyes, chainmail rings, chunkier bear head. Rig and module names kept | done: `check_assets` 137/0, `check_rig` 189/0, `concept_bust.png`. Player rebuilt (`concept_player2.log`) |
 
 - 2026-10-12 (user): everyone starts unarmoured; armour comes from a kit dropped by boss trees. Concept 2.0 is the target for the whole world and the characters. The house is wide and low like the concept, for two players, with a basement and an upstairs. Website pictures come last.

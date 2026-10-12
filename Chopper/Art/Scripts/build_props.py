@@ -191,8 +191,8 @@ def build_axe_bear(mat):
     mb.paint([f for f in faces if near_edge(f)], PAL["steel"])
     # carved bear head on the top end of the haft, looking out over the blade (+X)
     W, WD = BEAR_HEAD, BEAR_CARVE
-    mb.box((0, 0, 0.678), (0.096, 0.086, 0.080), 0.008, color=W)                 # skull
-    mb.box((0.060, 0, 0.666), (0.040, 0.056, 0.046), 0.006, color=W)             # snout
+    mb.box((0, 0, 0.678), (0.130, 0.112, 0.096), 0.008, color=W)                 # skull
+    mb.box((0.072, 0, 0.666), (0.056, 0.072, 0.056), 0.006, color=W)             # snout
     block(mb, (0.080, -0.014, 0.671), (0.090, 0.014, 0.687), WD)                 # nose
     block(mb, (0.042, -0.032, 0.694), (0.050, -0.014, 0.704), WD)                # eyes
     block(mb, (0.042, 0.014, 0.694), (0.050, 0.032, 0.704), WD)
