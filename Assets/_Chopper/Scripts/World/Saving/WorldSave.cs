@@ -139,6 +139,9 @@ namespace Chopper.World.Saving
         public int Wards;
         // Element stones set in the axe, one bit per element (ElementBuffRules).
         public int Stones;
+        // The armoured outfit: kits carried and whether it is worn (missing in older saves: unarmoured, no kits).
+        public int ArmourKits;
+        public bool Armoured;
         // Fishing: rod and lure levels, the fish carried (one count per kind), and the old packed int for the first four.
         public int Rod;
         public int Lure;

@@ -50,13 +50,25 @@ Block columns, the palette, and the chunk mesh are in. On world build the terrai
 
 ## Still open, in this order
 
-1. Bigger hub cabin (user, 2026-10-12): "ample size", two floors are fine. Then water to match concept 2.0. Website pictures last, after everything else is updated.
-2. W5-08 step 5: `WorldGround` reads the columns, chunk colliders, drop the Terrain collider, `stepOffset` 0.55, slide only when pushing into a riser taller than 1 m. Design: `Logs/chopper_play/world_audit/W5-08_voxel_terrain_design.md`. Then snap tree Y onto the block top (step 7), or the buried pines will float off the new surface. The blocks are now visible in Play (see below), so the Play look this step waited for is done.
-3. Workbench and campfire meshes, and the held torch. The yard torches, the standing torch piece, and the signs are voxel now.
-4. Clouds and the block sun. Healing herbs are still the old red flowers; there is no voxel herb in the world kit.
-5. Character: see "Character pass" below. Open: whether the starting look wears the chainmail, bracers and shield (concept 2.0) or earns them (2026-10-11 decision); the chainmail reads flat blue-grey; the carry pose holds the axe head down; the art-project Unity checks (`ChopperCheck`, 12 skinned meshes expected, the FBX has 13) were not rerun. Do not mark W2-05 done.
-6. User, 2026-10-12: concept 2.0 is the target for the ground, grass, foliage, sky, trees, and characters. Forests only change colour. Also seen in the tour: the block mountain faces show tall streaks (the shader's pixel jitter uses world XZ only, so vertical faces get one value per column), and the tufts read yellow next to the bright green ground.
-7. The night website picture is weak: the camera looks at the player's back against the dark cabin.
+1. Animations read "weird and flaily" (user, 2026-10-12). Not fixed. The live player plays the Quaternius and Mixamo clips through the auto-built humanoid avatar. `-chopperAnimProbe` (`Logs/chopper_play/anim_base.log`): idle arms out 6-8 deg; walking the upper arms reach 81 deg (left) and 118 deg (right, the axe arm) out to the side and swing -92..46 deg. A hand-built T-pose avatar (as the art project does) made it worse (arms straight up, `anim_after.log`) and was reverted, with `chopper.fbx.meta` restored. Frame strips `Logs/chopper_play/anim_strip/` look like a normal stride at that size; which motion looks flaily (walk, run, chop, idle) still needs pinning down with the user.
+2. Character polish toward concept 2.0: chunkier bear axe, chainmail reads flat blue-grey, the helmet is a plain steel cap with stub horns (concept 2.0 has the skull helmet; W2-05 noted it too). Torso is still a straight box.
+3. The house: porch cross-gable over the door and the stone/grass terrace of concept 2.0 are not built; basement walls are log pieces tinted grey. `MeadowBuilder`/`PieceBuilder` rebuilds would undo the voxel dresses; rerun `ChopperPropDress.Apply` after them.
+4. W5-08 step 5: chunk colliders, `WorldGround` reads the columns, drop the Terrain collider, then snap tree Y onto the block top (step 7). The player still walks on the smooth Terrain collider under the stepped blocks. `stepOffset` is already 0.55.
+5. Clouds and the block sun. Healing herbs are still the old red flowers. The campfire piece is not dressed. The held torch is the old model.
+6. Water to match concept 2.0 (user, 2026-10-12).
+7. Website pictures last, once the above is in (user, 2026-10-12). The night picture is weak.
+8. Art-project Unity checks (`ChopperCheck`, 12 skinned meshes expected, the FBX has 13) were not rerun. Do not mark W2-05 done.
+
+## Armour, house, furniture, stairs, flicker, axe edge (2026-10-12, latest)
+
+Decisions (user): everyone starts unarmoured (no helmet, chainmail, bracers or shield; axe and tools unchanged). Each felled boss tree gives every player an armour kit; using it from the bag puts on the armoured look for good. The house is a wide, low log house for two with an upstairs and a basement, two workbenches and two beds, matched to concept 2.0.
+
+- Armour: `PlayerUpgrades` keeps `ArmourKits` and `Armoured` (synced, saved in `PlayerRecord`, 10% less damage). `EnemyDirector.ServerOnBossKilled` grants a kit. Bag entry "Armour kit" with "Put on". `PlayerOutfit` shows helmet, chainmail, bracers and the shield and hides the hair. Tour `-chopperArmour`: `Logs/chopper_play/armour.log` RESULT PASS (starts unarmoured, kit after the boss, worn after use, reduction 0.00 -> 0.10, a second kit refused). Shots `armour/`.
+- House: `Hut.DressCabin`, 12 x 8 piece-metres scaled 1.5 = 18 m x 12 m. Basement (stone-tinted log walls), main floor, loft in the roof, ridge along X, gables with crossed beams at both ends, door and log steps on the long +Z side. Tour `-chopperHouse`: `Logs/chopper_play/house5.log` RESULT PASS (127 pieces, 2 beds and 2 workbenches inside; outside steps to 3.38 m, loft stairs to 6.38 m, across the loft at 6.66 m, basement stairs to 3.38 m). Shots `house5/`. `WorldGen.HutHalfWidth/Depth` 9.5/6.5; yard campfires moved behind the house (165 and 195 deg, 10 m).
+- Furniture: `Chopper/Art/Scripts/build_furniture.py` (chest, grand chest, bed, workbench, fireplace; `furniture_check_report.txt` ALL PASS, `furniture_lineup.png`). `ChopperPropDress.Apply` (`world_audit/prop_dress4.log` RESULT PASS) dresses the house bed, chest and fireplace (fire and light kept), the yard workbench and the workbench piece, and points `SO_WorldAssets` crypt chests at the voxel chests.
+- Stairs and steps: the doorway's 0.25 m sill collider was removed (it stopped the player at the door). The stairs piece's 45 deg ramp collider is off; eight 0.25 m tread boxes instead. Player `stepOffset` 0.55 (`NetworkScenesBuilder.PlayerStepOffset`).
+- Flicker: `Chopper/Block` fades its 6 cm jitter and grid lines by pixel footprint (`fwidth`) and hashes jitter in 3D (no streaks on cliffs). The character atlas gutter is filled by push-pull (`uv_atlas.fill_gutter`; near-black texels 0.01%), so mip levels no longer pull dark gutter onto the edges. Not measured in Play beyond the tour pictures.
+- Axe edge: `CharacterSetup.AttachChopperGear` set the edge to the positive blade axis; the bear axe's blade is on the negative side, so the carry hung the edge up. Now the side the blade reaches farther. `Logs/chopper_play/axe_gear.log`, 0 errors; `axe_gear/gear_close_right.png` edge toward the ground.
 
 ## Character pass and double jump (2026-10-12, later)
 

@@ -109,8 +109,10 @@ namespace Chopper.World.Generation
 
         // Two fires in the hut yard (between the torches on the south side) and one on the pond bank facing the hut,
         // where swimmers come out: standing by one dries a wet player (WetRules). Every peer places the same fires.
-        private static readonly float[] YardFireAngles = { 120f, 240f };
-        private const float YardFireRadius = 6.8f;
+        // Behind the 18 m x 12 m house (its back wall is 6 m out), inside the yard torches (12.6 m) and clear of the two
+        // behind it (150 and 210 degrees).
+        private static readonly float[] YardFireAngles = { 165f, 195f };
+        private const float YardFireRadius = 10f;
         private const float PondFireTurn = 35f;
         private const float FireClearance = 3f;
 

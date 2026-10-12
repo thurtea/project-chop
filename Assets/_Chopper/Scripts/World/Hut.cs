@@ -76,48 +76,142 @@ namespace Chopper.World
             DressCabin();
         }
 
-        // Concept 2.0's home is a small log cabin: door on the gable (+Z), one window, two thatch slopes.
-        // The bed, chest, and fireplace move inside. The old pixel house and the longhouse stay hidden.
+        // The hub house (user, 2026-10-12, matched to chopper-3D-concept-2.0.jpg): a wide, low log house for two under
+        // a big thatch roof, built from the hammer pieces. Laid out 12 x 8 piece-metres and scaled by HouseScale to
+        // 18 m wide and 12 m deep, the long side to the front (+Z) with the door and the log steps. It stands on its
+        // basement (stone-tinted walls, the raised step the concept house stands on); the main floor is one storey of
+        // log walls; the roof ridge runs the length of the house, two roof pieces down each side, with a log gable and
+        // crossed beams at each end, and the upstairs is a loft inside the roof. Stairs go up from the basement at the
+        // -X end and from the main floor into the loft. Two workbenches (main floor and basement), two beds (loft), the
+        // chest and the fireplace on the main floor.
+        public const float HouseScale = 1.5f;
+        public const float StoreyHeight = 2f * HouseScale;
+        // Half the house in piece-metres (the layout) and in metres (the walls enemies hit).
+        static readonly Vector2 LayoutHalf = new Vector2(6f, 4f);
+        public static readonly Vector2 HouseHalfSize = LayoutHalf * HouseScale;
+        static readonly float[] TilesX = { -5f, -3f, -1f, 1f, 3f, 5f };
+        static readonly float[] TilesZ = { -3f, -1f, 1f, 3f };
+        static readonly Color BasementStone = new Color(0.62f, 0.60f, 0.58f);
+        static readonly int TintId = Shader.PropertyToID("_BaseColor");
+
         void DressCabin()
         {
             Transform house = null;
             foreach (Transform child in GetComponentsInChildren<Transform>(true))
                 if (child.name == "House") { house = child; break; }
 
+            var root = new GameObject("Cabin").transform;
+            root.SetParent(transform, false);
+            root.localScale = Vector3.one * HouseScale;
+            // Piece-metres under the scaled root: basement floor, main floor, loft floor (= the eaves).
+            const float main = 2f, loft = 4f;
+            const float doorX = 1f;
+            var basementHole = new Vector2(-5f, -1f);   // basement stairs, under the main floor
+            var loftHole = new Vector2(3f, 1f);         // main floor stairs, under the loft
+
+            foreach (float x in TilesX)
+            {
+                foreach (float z in TilesZ)
+                {
+                    Put(root, "Wood floor", new Vector3(x, 0f, z), 0f);
+                    if (new Vector2(x, z) != basementHole) Put(root, "Wood floor", new Vector3(x, main, z), 0f);
+                    // The loft covers the middle of the house, where the roof is high enough to stand.
+                    if (Mathf.Abs(z) < 2f && new Vector2(x, z) != loftHole) Put(root, "Wood floor", new Vector3(x, loft, z), 0f);
+                }
+            }
+
+            // Basement walls, stone tinted, with small windows; the main floor walls with windows and the door.
+            Walls(root, 0f,
+                new[] { "Wood wall", "Wood wall", "Log window", "Wood wall", "Wood wall", "Wood wall" },
+                new[] { "Log window", "Wood wall", "Log window", "Wood wall", "Log window", "Wood wall" }, 99f, BasementStone);
+            Walls(root, main,
+                new[] { "Wood wall", "Log window", "Wood wall", "Wood wall", "Log window", "Wood wall" },
+                new[] { "Log window", "Wood wall", "Log window", "Doorway", "Log window", "Wood wall" }, 1f, Color.white);
+
+            // Stairs: from the basement up toward the back at the -X end, and from the main floor up into the loft
+            // (rising toward +X). Outside, log steps up to the door.
+            Put(root, "Stairs", new Vector3(basementHole.x, 0f, basementHole.y), 180f);
+            Put(root, "Stairs", new Vector3(loftHole.x, main, loftHole.y), 90f);
+            Put(root, "Stairs", new Vector3(doorX, 0f, LayoutHalf.y + 1f), 180f);
+
+            // Thatch: ridge along X at z = 0, two roof pieces (4 m rise) down the front and the back; log gables at both
+            // ends, stretched to the 8 m depth and 4 m height.
+            foreach (float x in TilesX)
+            {
+                Put(root, "Roof", new Vector3(x, loft, 3f), 180f);
+                Put(root, "Roof", new Vector3(x, loft + 2f, 1f), 180f);
+                Put(root, "Roof", new Vector3(x, loft, -3f), 0f);
+                Put(root, "Roof", new Vector3(x, loft + 2f, -1f), 0f);
+            }
+            Put(root, "Log gable", new Vector3(LayoutHalf.x, loft, 0f), 90f, new Vector3(4f, 2f, 1f));
+            Put(root, "Log gable", new Vector3(-LayoutHalf.x, loft, 0f), -90f, new Vector3(4f, 2f, 1f));
+
+            // Furniture at its own size, placed in piece-metres (scaled to metres by Spot). The bed and the workbench are
+            // copied for the second player.
             if (house != null)
             {
                 HideOldHouse();
-                MoveInside(house, "Fireplace", new Vector3(0f, 0.1f, -1.55f), Quaternion.identity);
-                MoveInside(house, "Bed", new Vector3(0f, 0.1f, 0.15f), Quaternion.Euler(0f, 90f, 0f));
-                MoveInside(house, "StorageChest", new Vector3(0f, 0.1f, 1.7f), Quaternion.identity);
+                PlaceAt(house.Find("Fireplace"), Spot(0f, main, -3.6f), 0f);
+                PlaceAt(house.Find("StorageChest"), Spot(-2.6f, main, -3.6f), 0f);
+                Transform bed = house.Find("Bed");
+                if (bed != null)
+                {
+                    PlaceAt(bed, Spot(-3.6f, loft, 0f), 90f);
+                    Transform second = Instantiate(bed.gameObject, bed.parent).transform;
+                    second.name = "Bed";
+                    PlaceAt(second, Spot(-1.6f, loft, 0f), 90f);
+                }
             }
-
-            var root = new GameObject("Cabin").transform;
-            root.SetParent(transform, false);
-            // 2 m wide, 4 m deep, centered on the hut. Door and gable face +Z. Roofs meet on the ridge at z = 0.
-            Put(root, "Wood floor", new Vector3(0f, 0f, -1f), 0f);
-            Put(root, "Wood floor", new Vector3(0f, 0f, 1f), 0f);
-            Put(root, "Doorway", new Vector3(0f, 0f, 2f), 0f);
-            Put(root, "Wood wall", new Vector3(0f, 0f, -2f), 0f);
-            Put(root, "Wood wall", new Vector3(-1f, 0f, -1f), 90f);
-            Put(root, "Wood wall", new Vector3(-1f, 0f, 1f), 90f);
-            Put(root, "Log window", new Vector3(1f, 0f, -1f), 90f);
-            Put(root, "Wood wall", new Vector3(1f, 0f, 1f), 90f);
-            Put(root, "Log gable", new Vector3(0f, 2f, 2f), 0f);
-            Put(root, "Roof", new Vector3(0f, 2f, -1f), 0f);
-            Put(root, "Roof", new Vector3(0f, 2f, 1f), 180f);
-            _houseHalfExtents = new Vector2(1f, 2f);
+            GameObject yardBench = GameObject.Find("HutYard/Workbench");
+            if (yardBench != null)
+            {
+                PlaceAt(yardBench.transform, Spot(3.2f, main, -3.4f), 0f);
+                Transform second = Instantiate(yardBench, yardBench.transform.parent).transform;
+                second.name = "Workbench";
+                PlaceAt(second, Spot(-1f, 0f, 2.8f), 0f);
+            }
+            _houseHalfExtents = HouseHalfSize;
         }
 
-        static void MoveInside(Transform house, string name, Vector3 localPosition, Quaternion localRotation)
+        // One storey's walls at height y: six pieces along the back (-Z) and the front (+Z), from -X to +X, and four along
+        // each end, with a window instead of a wall at endWindowZ. tint colours every piece (white leaves them as they are).
+        void Walls(Transform root, float y, string[] back, string[] front, float endWindowZ, Color tint)
         {
-            Transform prop = house.Find(name);
-            if (prop == null) return;
-            prop.localPosition = localPosition;
-            prop.localRotation = localRotation;
+            float d = LayoutHalf.y, w = LayoutHalf.x;
+            for (int i = 0; i < TilesX.Length; i++)
+            {
+                Tint(Put(root, back[i], new Vector3(TilesX[i], y, -d), 0f), tint);
+                Tint(Put(root, front[i], new Vector3(TilesX[i], y, d), 0f), tint);
+            }
+            foreach (float z in TilesZ)
+            {
+                string end = Mathf.Approximately(z, endWindowZ) ? "Log window" : "Wood wall";
+                Tint(Put(root, end, new Vector3(-w, y, z), 90f), tint);
+                Tint(Put(root, end, new Vector3(w, y, z), 90f), tint);
+            }
         }
 
-        void Put(Transform root, string displayName, Vector3 localPosition, float yaw)
+        static void Tint(GameObject piece, Color tint)
+        {
+            if (piece == null || tint == Color.white) return;
+            var block = new MaterialPropertyBlock();
+            block.SetColor(TintId, tint);
+            foreach (Renderer r in piece.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(block);
+        }
+
+        // A point on a floor of the house, from piece-metres to the hut's local metres (just above the planks).
+        static Vector3 Spot(float x, float floor, float z) => new Vector3(x, floor, z) * HouseScale + Vector3.up * 0.12f;
+
+        void PlaceAt(Transform prop, Vector3 local, float yaw)
+        {
+            if (prop == null) return;
+            prop.position = transform.TransformPoint(local);
+            prop.rotation = transform.rotation * Quaternion.Euler(0f, yaw, 0f);
+        }
+
+        GameObject Put(Transform root, string displayName, Vector3 localPosition, float yaw) => Put(root, displayName, localPosition, yaw, Vector3.one);
+
+        GameObject Put(Transform root, string displayName, Vector3 localPosition, float yaw, Vector3 scale)
         {
             PieceCatalog catalog = BuildManager.Instance != null ? BuildManager.Instance.Catalog : null;
             GameObject prefab = null;
@@ -132,13 +226,14 @@ namespace Chopper.World
             if (prefab == null)
             {
                 Debug.LogWarning("[Hut] missing piece " + displayName);
-                return;
+                return null;
             }
             GameObject copy = Instantiate(prefab, root);
             copy.name = displayName;
             copy.transform.localPosition = localPosition;
             copy.transform.localRotation = Quaternion.Euler(0f, yaw, 0f);
-            copy.transform.localScale = Vector3.one;
+            copy.transform.localScale = scale;
+            return copy;
         }
 
         void HideOldHouse()

@@ -440,6 +440,7 @@ namespace Chopper.UI
                 foreach (Element element in EssenceRules.Elements) if (upgrades.HasStone(element)) stones.Add(element.ToString());
                 if (stones.Count > 0) left.AppendLine("Stones  " + string.Join(", ", stones));
                 left.AppendLine($"Armor  level {upgrades.ArmorLevel}  ({Mathf.RoundToInt(upgrades.ArmorReduction * 100f)}% less damage)");
+                left.AppendLine(upgrades.Armoured ? "Outfit  armoured" : "Outfit  unarmoured (a boss tree drops an armour kit)");
                 left.AppendLine($"Sturdy gear  level {upgrades.SturdyLevel}  (a falling tree {CrushRules.Describe(upgrades.SturdyLevel)})");
                 foreach (Element element in EssenceRules.Elements)
                 {
@@ -515,6 +516,11 @@ namespace Chopper.UI
             Add("Fiber", PickupFeed.Kind.Fabric, inventory.Fabric, "From ferns. Bandages are made with it, and rods are mended with it.", "Make bandage", () => Craft(RecipeBook.Bandage));
             Add("Crypt iron", PickupFeed.Kind.Iron, inventory.Iron, "From crypt chests and arena bosses. Forges Sturdy gear.", null, null);
             Add("Rune shard", PickupFeed.Kind.Shard, inventory.Shards, "Carves the Rune axe and sets element stones.", null, null);
+            if (upgrades != null && upgrades.ArmourKits > 0)
+                _items.Add(new Item { Name = "Armour kit", Icon = HotbarIcons.Get("upgrade"), Tint = Color.white, Count = upgrades.ArmourKits.ToString(),
+                    Description = upgrades.Armoured ? "You already wear the armour."
+                        : $"From a felled boss tree. Puts on the helmet, chainmail, bracers and shield for good: {Mathf.RoundToInt(PlayerUpgrades.ArmouredReduction * 100f)}% less damage.",
+                    Action = upgrades.Armoured ? null : "Put on", Use = upgrades.Armoured ? null : upgrades.RequestUseArmourKit });
             foreach (Element element in EssenceRules.Elements)
             {
                 int essence = inventory.Essence(element);

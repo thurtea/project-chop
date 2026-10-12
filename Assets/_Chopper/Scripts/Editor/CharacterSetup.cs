@@ -869,7 +869,9 @@ namespace Chopper.Editor
             {
                 bool gearPart = renderer.gameObject.name is "chopper_helmet" or "chopper_plate" or "chopper_pauldrons";
                 renderer.sharedMaterial = gearPart ? gear : body;
-                if (gearPart) renderer.enabled = false;
+                // The base look: no helmet, chainmail or bracers (the Elite plate and pauldrons are not used). PlayerOutfit
+                // shows the armour once the player has put it on.
+                if (gearPart || renderer.gameObject.name is "chopper_chainmail" or "chopper_bracers") renderer.enabled = false;
             }
         }
 
@@ -1069,7 +1071,9 @@ namespace Chopper.Editor
             int blade = Enumerable.Range(0, 3).Where(i => i != haft).OrderByDescending(i => size[i]).First();
             Vector3 head = Vector3.zero, edge = Vector3.zero;
             head[haft] = Mathf.Abs(b.max[haft]) >= Mathf.Abs(b.min[haft]) ? 1f : -1f;
-            edge[blade] = 1f;
+            // The cutting edge is on the side the head reaches farther from the haft (the bear axe has one blade; the
+            // edge pointed at its back, so the carry hung the edge up).
+            edge[blade] = Mathf.Abs(b.max[blade]) >= Mathf.Abs(b.min[blade]) ? 1f : -1f;
             Matrix4x4 toGrip = grip.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
             HeldItemFrame frame = grip.AddComponent<HeldItemFrame>();
             frame.Head = toGrip.MultiplyVector(head).normalized;

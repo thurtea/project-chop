@@ -387,6 +387,28 @@ def dilate(buf, filled, steps):
     return m
 
 
+def fill_gutter(buf, filled):
+    """Fills every texel outside the padded islands with the average colour of the nearest islands (push-pull: average
+    the filled texels down a pyramid, then fill the gaps back up from the coarser levels). Mip levels then blend island
+    colours with each other instead of with a dark gutter, which showed as flickering dark edges on the character."""
+    img = buf.reshape(SIZE, SIZE, 4)
+    w = filled.reshape(SIZE, SIZE).astype(np.float64)
+    colours, weights = [img[:, :, :3] * w[:, :, None]], [w]
+    while colours[-1].shape[0] > 1:
+        c, k = colours[-1], weights[-1]
+        n = c.shape[0] // 2
+        colours.append(c.reshape(n, 2, n, 2, 3).sum(axis=(1, 3)))
+        weights.append(k.reshape(n, 2, n, 2).sum(axis=(1, 3)))
+    # Down the pyramid from the coarsest level: a level's empty texels take the colour of the level above.
+    fill = colours[-1] / np.maximum(weights[-1], 1e-9)[:, :, None]
+    for c, k in zip(reversed(colours[:-1]), reversed(weights[:-1])):
+        up = np.repeat(np.repeat(fill, 2, axis=0), 2, axis=1)
+        own = c / np.maximum(k, 1e-9)[:, :, None]
+        fill = np.where((k > 0)[:, :, None], own, up)
+    empty = w == 0
+    img[:, :, :3][empty] = fill[empty]
+
+
 def texel_density(ob):
     """Mean texel density in px per metre: SIZE * sqrt(UV area / surface area)."""
     me = ob.data
@@ -435,13 +457,14 @@ def main():
               "size %d, pixel art: one texel = %.1f cm (%.1f px/m), finer on the face front and the bear axe "
               "(atlas_paint.texel_m); part gap %d px, inner gap %d px, edge padding %d px (copied edge texels)"
               % (SIZE, 100 * TEXEL_M, D, PART_GAP, INNER_GAP, DILATE)]
-    # the gutter keeps the old dark colour; the edge padding covers it next to every island
+    # the edge padding copies the edge texels; fill_gutter then fills the rest from the nearest islands
     buf = np.tile(np.array([0.0134, 0.0100, 0.0086, 1.0]), (SIZE * SIZE, 1))
     island_px = np.zeros(SIZE * SIZE, dtype=np.int8)
     overlaps = []
     process(CHAR, CHAR_OBJECTS, layout, D, buf, island_px, overlaps, report)
     process(PROPS, PROP_OBJECTS, layout, D, buf, island_px, overlaps, report)
     padded = dilate(buf, island_px, DILATE)
+    fill_gutter(buf, padded)
     report.append("coverage: islands %.1f %%, islands plus padding %.1f %%"
                   % (100.0 * island_px.mean(), 100.0 * padded.mean()))
     cross = sum(1 for a, b in overlaps if a != b)

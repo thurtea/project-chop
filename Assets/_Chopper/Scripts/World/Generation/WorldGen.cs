@@ -111,8 +111,9 @@ namespace Chopper.World.Generation
 
         // The hut at the center; the yard torches stand on a ring of WallRadius (where the palisade stood).
         public const float WallRadius = 14f;
-        public const float HutHalfWidth = 4.5f;
-        public const float HutHalfDepth = 6f;
+        // The hub house is 18 m x 12 m (Hut.HouseHalfSize), with log steps out of the front: no grass inside or on them.
+        public const float HutHalfWidth = 9.5f;
+        public const float HutHalfDepth = 6.5f;
 
         // Forest order used for terrain layers 1 to 4 (after the hub layer).
         public static readonly Element[] Forests = { Element.Water, Element.Earth, Element.Fire, Element.Wind };

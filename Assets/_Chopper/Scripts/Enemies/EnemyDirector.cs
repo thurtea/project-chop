@@ -494,8 +494,10 @@ namespace Chopper.Enemies
             {
                 PlayerBoons boons = player.GetComponent<PlayerBoons>();
                 if (boons != null) boons.ServerGrant(kind);
+                PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
+                if (upgrades != null) upgrades.ServerGrantArmourKit();
             }
-            ServerAnnounce($"Boss defeated! Everyone gains a permanent boon: {BoonRules.Name(kind)}.");
+            ServerAnnounce($"Boss defeated! Everyone gains a permanent boon: {BoonRules.Name(kind)}, and an armour kit (use it from the bag).");
         }
 
         // ---------- Game over ----------

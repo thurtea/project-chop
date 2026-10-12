@@ -225,6 +225,8 @@ namespace Chopper.World.Saving
                 record.RuneLevel = upgrades.RuneLevel;
                 record.Wards = upgrades.WardsPacked;
                 record.Stones = upgrades.Stones;
+                record.ArmourKits = upgrades.ArmourKits;
+                record.Armoured = upgrades.Armoured;
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();
             if (boons != null) record.Boons = boons.Packed;
@@ -332,6 +334,7 @@ namespace Chopper.World.Saving
                 upgrades.ServerLoad(record.AxeLevel, record.ArmorLevel, record.SturdyLevel, record.RuneLevel);
                 upgrades.ServerLoadWards(record.Wards);
                 upgrades.ServerLoadStones(record.Stones);
+                upgrades.ServerLoadOutfit(record.ArmourKits, record.Armoured);
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();
             if (boons != null) boons.ServerLoad(record.Boons);

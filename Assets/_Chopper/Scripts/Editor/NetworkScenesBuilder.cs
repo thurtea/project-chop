@@ -108,8 +108,11 @@ namespace Chopper.Editor
             Debug.Log("[Chopper] Player prefab, Boot and World rebuilt; scenes registered in Build Settings.");
         }
 
+        // The block terrain steps in half metres (VoxelColumns.Step), so the player steps up 0.55 m.
+        private const float PlayerStepOffset = 0.55f;
+
         [MenuItem("Chopper/Art/Use Chopper Player")]
-        public static void UseChopperPlayer()
+                public static void UseChopperPlayer()
         {
             var config = AssetDatabase.LoadAssetAtPath<GameConfig>(GameConfigPath);
             BuildPlayerPrefab(config);
@@ -129,6 +132,8 @@ namespace Chopper.Editor
             controller.height = height;
             controller.radius = PlayerRadius;
             controller.center = new Vector3(0f, height * 0.5f, 0f);
+            // Walks up anything up to just over half a metre without jumping: a half block, a stair tread, a doorstep.
+            controller.stepOffset = PlayerStepOffset;
 
             // Animated mannequin with an axe in the right hand (see CharacterSetup).
             CharacterSetup.Result character = CharacterSetup.AttachModel(root);
@@ -151,6 +156,8 @@ namespace Chopper.Editor
             PlayerHealth playerHealth = root.AddComponent<PlayerHealth>();
             PlayerBuffs buffs = root.AddComponent<PlayerBuffs>();
             PlayerUpgrades upgrades = root.AddComponent<PlayerUpgrades>();
+            // Unarmoured until an armour kit is used (PlayerUpgrades.Armoured).
+            root.AddComponent<PlayerOutfit>();
             root.AddComponent<PlayerCrypt>();
             PlayerMining mining = root.AddComponent<PlayerMining>();
             SetSerialized(mining, "_pickPivot", p => p.objectReferenceValue = character != null ? character.PickaxeGrip : null);

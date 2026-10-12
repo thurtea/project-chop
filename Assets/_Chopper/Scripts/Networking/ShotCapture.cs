@@ -419,6 +419,253 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Arm motion (-chopperAnimProbe): on flat yard ground, how far each upper arm swings out to the side
+            // (abduction from hanging down) and forward and back, standing and walking, with the animator's grounded flag.
+            // Logs "[Anim]" maxima and pictures side and front mid-walk.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperAnimProbe") >= 0)
+            {
+                Application.runInBackground = true;
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+                yield return new WaitForSeconds(4f);
+                ui.DebugShow(0);
+                GameUi.HudHidden = true;
+                Vector3 yard = Hut.Instance.transform.position;
+                yield return TeleportLocalPlayer(new Vector2(yard.x - 10f, yard.z - 2f), 180f);
+                PlayerCamera animCam = wood.GetComponent<PlayerCamera>();
+                animCam.DebugSetDistance(3.4f);
+                animCam.DebugSetPitch(5f);
+                yield return new WaitForSeconds(1f);
+                Animator anim = wood.GetComponentInChildren<Animator>();
+                string[] armNames = { "left", "right" };
+                Transform[] upper = { anim.GetBoneTransform(HumanBodyBones.LeftUpperArm), anim.GetBoneTransform(HumanBodyBones.RightUpperArm) };
+                Transform[] lower = { anim.GetBoneTransform(HumanBodyBones.LeftLowerArm), anim.GetBoneTransform(HumanBodyBones.RightLowerArm) };
+                var maxOut = new float[2];
+                var minSwing = new float[2];
+                var maxSwing = new float[2];
+                int airborne = 0, frames = 0;
+                IEnumerator Watch(float seconds)
+                {
+                    for (int k = 0; k < 2; k++) { maxOut[k] = 0f; minSwing[k] = 0f; maxSwing[k] = 0f; }
+                    airborne = 0;
+                    frames = 0;
+                    for (float t = 0f; t < seconds; t += Time.deltaTime)
+                    {
+                        for (int k = 0; k < 2; k++)
+                        {
+                            Vector3 v = wood.transform.InverseTransformDirection(lower[k].position - upper[k].position).normalized;
+                            maxOut[k] = Mathf.Max(maxOut[k], Mathf.Atan2(Mathf.Abs(v.x), -v.y) * Mathf.Rad2Deg);
+                            float swing = Mathf.Atan2(v.z, -v.y) * Mathf.Rad2Deg;
+                            minSwing[k] = Mathf.Min(minSwing[k], swing);
+                            maxSwing[k] = Mathf.Max(maxSwing[k], swing);
+                        }
+                        if (!anim.GetBool("Grounded")) airborne++;
+                        frames++;
+                        yield return null;
+                    }
+                }
+                string Report() => $"{armNames[0]} out {maxOut[0]:F0}, swing {minSwing[0]:F0}..{maxSwing[0]:F0}; {armNames[1]} out {maxOut[1]:F0}, swing {minSwing[1]:F0}..{maxSwing[1]:F0}; airborne {airborne}/{frames} frames";
+                yield return Watch(2f);
+                Debug.Log("[Anim] idle: " + Report());
+                Gamepad animPad = InputSystem.AddDevice<Gamepad>();
+                InputSystem.QueueStateEvent(animPad, new GamepadState { leftStick = new Vector2(0f, 1f) });
+                yield return new WaitForSeconds(0.6f);
+                yield return Watch(2f);
+                Debug.Log("[Anim] walk: " + Report());
+                // Frame strips (one picture every 0.1 s) to see the motion: walking sideways across the view (stick left,
+                // so the camera sees him from the side), then a chop.
+                InputSystem.QueueStateEvent(animPad, new GamepadState { leftStick = new Vector2(-0.5f, 0f) });
+                yield return new WaitForSeconds(0.8f);
+                for (int f = 0; f < 8; f++)
+                {
+                    yield return Shot(folder, "anim_walk_" + f);
+                    yield return new WaitForSeconds(0.1f);
+                }
+                InputSystem.QueueStateEvent(animPad, new GamepadState());
+                InputSystem.RemoveDevice(animPad);
+                yield return new WaitForSeconds(1f);
+                PlayerAxe probeAxe = wood.GetComponent<PlayerAxe>();
+                probeAxe.ServerSetHasAxe(true);
+                yield return new WaitForSeconds(0.5f);
+                bool chopped = probeAxe.TrySwing();
+                for (int f = 0; f < 8; f++)
+                {
+                    yield return Shot(folder, "anim_chop_" + f);
+                    yield return new WaitForSeconds(0.08f);
+                }
+                Debug.Log($"[Anim] chop swung {chopped}");
+                Debug.Log("[Anim] done");
+                Application.Quit(0);
+                yield break;
+            }
+
+            // Hub house (-chopperHouse): counts the beds and workbenches in the house, walks a virtual pad up the outside
+            // steps, through the door and up the inside stairs to the top floor, and up from the basement to the main
+            // floor, logging heights. Pictures outside and in, and "[House] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperHouse") >= 0)
+            {
+                Application.runInBackground = true;
+                InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+                Hut.Instance.ServerSetRepaired(true);
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                yield return new WaitForSeconds(4f);
+                ui.DebugShow(0);
+                GameUi.HudHidden = true;
+                Vector3 home = Hut.Instance.transform.position;
+                PlayerCamera houseCam = wood.GetComponent<PlayerCamera>();
+                int beds = 0, benches = 0;
+                foreach (Bed bed in UnityEngine.Object.FindObjectsByType<Bed>(FindObjectsSortMode.None))
+                    if (Hut.Instance.DistanceToWalls(bed.transform.position) < 0.01f) beds++;
+                foreach (Workbench bench in Workbench.All)
+                    if (Hut.Instance.DistanceToWalls(bench.transform.position) < 0.01f) benches++;
+                Transform cabin = Hut.Instance.transform.Find("Cabin");
+                Debug.Log($"[House] pieces {(cabin != null ? cabin.childCount : 0)}, beds inside {beds}, workbenches inside {benches}");
+
+                float hs = Hut.HouseScale, storey = Hut.StoreyHeight;
+                float YawTo(Vector3 from, Vector3 to) => Mathf.Atan2(to.x - from.x, to.z - from.z) * Mathf.Rad2Deg;
+                IEnumerator LookAtHouse(Vector2 from, float distance, float pitch, string name)
+                {
+                    float yaw = YawTo(new Vector3(from.x, 0f, from.y), home);
+                    yield return TeleportLocalPlayer(from, yaw);
+                    houseCam.DebugSetDistance(distance);
+                    houseCam.SnapYaw(yaw);
+                    houseCam.DebugSetPitch(pitch);
+                    yield return new WaitForSeconds(1.5f);
+                    yield return Shot(folder, name);
+                }
+                yield return LookAtHouse(new Vector2(home.x + 12f, home.z + 24f), 6f, 10f, "house_out_front");
+                yield return LookAtHouse(new Vector2(home.x - 24f, home.z - 8f), 6f, 10f, "house_out_side");
+
+                Gamepad walkPad = InputSystem.AddDevice<Gamepad>();
+                // Walks to a point in piece-metres of the house (x, z), steering every frame: the stick is read relative
+                // to the camera, so the direction is turned by its yaw.
+                IEnumerator WalkTo(float x, float z, float seconds)
+                {
+                    Vector3 target = home + new Vector3(x, 0f, z) * hs;
+                    for (float t = 0f; t < seconds; t += Time.deltaTime)
+                    {
+                        Vector3 to = target - wood.transform.position;
+                        to.y = 0f;
+                        if (to.magnitude < 0.3f) break;
+                        Vector3 stick = Quaternion.Euler(0f, -houseCam.Yaw, 0f) * to.normalized;
+                        InputSystem.QueueStateEvent(walkPad, new GamepadState { leftStick = new Vector2(stick.x, stick.z) });
+                        yield return null;
+                    }
+                    InputSystem.QueueStateEvent(walkPad, new GamepadState());
+                    yield return new WaitForSeconds(0.4f);
+                }
+                float Rise() => wood.transform.position.y - home.y;
+
+                // The outside steps to the door, across the main floor to the loft stairs (rising toward +X), and up them.
+                yield return TeleportLocalPlayer(new Vector2(home.x + 1f * hs, home.z + 7f * hs), 180f);
+                houseCam.DebugSetDistance(3f);
+                yield return new WaitForSeconds(0.8f);
+                float startRise = Rise();
+                yield return WalkTo(1f, 2.8f, 4f);
+                float atDoor = Rise();
+                Vector3 doorAt = wood.transform.position - home;
+                Debug.Log($"[House] outside steps: from {startRise:F2} m to {atDoor:F2} m, at {doorAt.x:F2},{doorAt.z:F2}");
+                houseCam.DebugSetPitch(20f);
+                yield return new WaitForSeconds(0.5f);
+                yield return Shot(folder, "house_in_main");
+                yield return WalkTo(1.4f, 1f, 3f);
+                yield return WalkTo(5f, 1f, 4f);
+                float atTop = Rise();
+                Vector3 topAt = wood.transform.position - home;
+                Debug.Log($"[House] inside stairs: {atTop:F2} m at {topAt.x:F2},{topAt.z:F2}");
+                houseCam.SnapYaw(0f);
+                houseCam.DebugSetPitch(25f);
+                // Along the loft, round the stairwell (open at 3, 1), not across it.
+                yield return WalkTo(5f, -1f, 3f);
+                yield return WalkTo(-1f, -1f, 4f);
+                float upstairs = Rise();
+                yield return new WaitForSeconds(0.5f);
+                yield return Shot(folder, "house_in_upstairs");
+
+                // The basement, up its stairs at the -X end to the main floor.
+                yield return TeleportLocalPlayer(new Vector2(home.x - 3f * hs, home.z + 2f * hs), 180f);
+                houseCam.SnapYaw(0f);
+                houseCam.DebugSetPitch(15f);
+                yield return new WaitForSeconds(0.8f);
+                float basement = Rise();
+                yield return Shot(folder, "house_in_basement");
+                yield return WalkTo(-5f, 0.6f, 3f);
+                yield return WalkTo(-5f, -3f, 4f);
+                float fromBasement = Rise();
+                Debug.Log($"[House] upstairs across the floor at {upstairs:F2} m; basement at {basement:F2} m, up its stairs to {fromBasement:F2} m");
+                InputSystem.RemoveDevice(walkPad);
+
+                bool houseOk = beds == 2 && benches == 2 && atDoor > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
+                               && atTop > 2f * storey - 0.2f && upstairs > 2f * storey - 0.2f && basement < 0.6f && fromBasement > storey - 0.2f;
+                Debug.Log("[House] RESULT " + (houseOk ? "PASS" : "FAIL"));
+                Application.Quit(houseOk ? 0 : 1);
+                yield break;
+            }
+
+            // Armour kit (-chopperArmour): the player starts unarmoured, a felled boss tree (EnemyDirector.ServerOnBossKilled)
+            // gives a kit, and using it from the bag shows the helmet, chainmail, bracers and shield and hides the hair.
+            // Pictures before and after, and "[Armour] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperArmour") >= 0)
+            {
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                yield return new WaitForSeconds(4f);
+                ui.DebugShow(0);
+                GameUi.HudHidden = true;
+                yield return TeleportLocalPlayer(new Vector2(0f, 9f), 0f);
+                PlayerCamera armourCam = wood.GetComponent<PlayerCamera>();
+                armourCam.DebugSetDistance(3.2f);
+                armourCam.SnapYaw(180f);
+                armourCam.DebugSetPitch(8f);
+                yield return new WaitForSeconds(1.5f);
+                PlayerUpgrades kitUpgrades = wood.GetComponent<PlayerUpgrades>();
+                PlayerOutfit outfit = wood.GetComponent<PlayerOutfit>();
+                bool Shown(string part)
+                {
+                    foreach (Renderer r in wood.GetComponentsInChildren<Renderer>(true))
+                    {
+                        for (Transform t = r.transform; t != null && t != wood.transform; t = t.parent)
+                            if (t.name == part) return r.enabled && r.gameObject.activeInHierarchy;
+                    }
+                    return false;
+                }
+                string Look() => $"helmet {Shown("chopper_helmet")}, chainmail {Shown("chopper_chainmail")}, bracers {Shown("chopper_bracers")}, shield {Shown("chopper_shield")}, hair {Shown("chopper_hair")}, beard {Shown("chopper_beard")}, vest {Shown("chopper_vest")}";
+                float reductionBefore = kitUpgrades.ArmorReduction;
+                bool startOk = outfit != null && !kitUpgrades.Armoured && kitUpgrades.ArmourKits == 0
+                               && !Shown("chopper_helmet") && !Shown("chopper_chainmail") && !Shown("chopper_bracers") && !Shown("chopper_shield")
+                               && Shown("chopper_hair") && Shown("chopper_vest");
+                Debug.Log($"[Armour] start: outfit view {outfit != null}, armoured {kitUpgrades.Armoured}, kits {kitUpgrades.ArmourKits}; {Look()}");
+                yield return Shot(folder, "armour_0_start");
+
+                Chopper.Enemies.EnemyDirector.Instance.ServerOnBossKilled();
+                yield return new WaitForSeconds(0.5f);
+                bool kitOk = kitUpgrades.ArmourKits == 1 && !kitUpgrades.Armoured;
+                Debug.Log($"[Armour] after the boss: kits {kitUpgrades.ArmourKits}, armoured {kitUpgrades.Armoured}");
+
+                kitUpgrades.RequestUseArmourKit();
+                yield return new WaitForSeconds(1f);
+                bool wornOk = kitUpgrades.Armoured && kitUpgrades.ArmourKits == 0
+                              && Shown("chopper_helmet") && Shown("chopper_chainmail") && Shown("chopper_bracers") && Shown("chopper_shield")
+                              && !Shown("chopper_hair") && Shown("chopper_beard");
+                bool reductionOk = Mathf.Abs(kitUpgrades.ArmorReduction - reductionBefore - PlayerUpgrades.ArmouredReduction) < 0.001f;
+                Debug.Log($"[Armour] used: armoured {kitUpgrades.Armoured}, kits {kitUpgrades.ArmourKits}, reduction {reductionBefore:F2} -> {kitUpgrades.ArmorReduction:F2}; {Look()}");
+                yield return Shot(folder, "armour_1_worn");
+                armourCam.SnapYaw(0f);
+                yield return new WaitForSeconds(0.6f);
+                yield return Shot(folder, "armour_2_worn_back");
+
+                // A second kit cannot be used once the armour is on.
+                Chopper.Enemies.EnemyDirector.Instance.ServerOnBossKilled();
+                yield return new WaitForSeconds(0.3f);
+                bool secondRefused = !kitUpgrades.ServerUseArmourKit() && kitUpgrades.ArmourKits == 1;
+                Debug.Log($"[Armour] start ok {startOk}, kit ok {kitOk}, worn ok {wornOk}, reduction ok {reductionOk}, second kit refused {secondRefused}");
+                bool armourPass = startOk && kitOk && wornOk && reductionOk && secondRefused;
+                Debug.Log("[Armour] RESULT " + (armourPass ? "PASS" : "FAIL"));
+                Application.Quit(armourPass ? 0 : 1);
+                yield break;
+            }
+
             // Double jump (-chopperDoubleJump): a virtual pad's A makes one jump, then a jump and a second jump in the air,
             // then a third press in the air that must do nothing. Logs the peak heights and "[DoubleJump] RESULT".
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperDoubleJump") >= 0)

@@ -20,6 +20,11 @@ namespace Chopper.Player
         public const int KindSturdy = 4;
         public const int KindRune = 5;
         private const float MaxArmorReduction = 0.85f;
+        // The armoured outfit (user, 2026-10-12): everyone starts unarmoured. Each boss tree felled gives every player an
+        // armour kit; using one puts on the helmet, chainmail, bracers and shield for good, and takes this much more off
+        // every blow (on top of the armor level, within MaxArmorReduction).
+        public const int MaxArmourKits = 9;
+        public const float ArmouredReduction = 0.10f;
 
         private readonly SyncVar<int> _axeLevel = new SyncVar<int>();
         private readonly SyncVar<int> _armorLevel = new SyncVar<int>();
@@ -29,6 +34,11 @@ namespace Chopper.Player
         private readonly SyncVar<int> _wards = new SyncVar<int>();
         // Element stones set in the axe (permanent enchantments, ElementBuffRules): one bit per element.
         private readonly SyncVar<int> _stones = new SyncVar<int>();
+        private readonly SyncVar<int> _armourKits = new SyncVar<int>();
+        private readonly SyncVar<bool> _armoured = new SyncVar<bool>();
+
+        // Raised on every client when this player puts the armour on (or a save loads it).
+        public event System.Action OutfitChanged;
 
         // Raised on every client when a stone is set in this player's axe (the axe takes its color).
         public event System.Action StonesChanged;
@@ -50,6 +60,8 @@ namespace Chopper.Player
         public int RuneLevel => _runeLevel.Value;
         public int WardsPacked => _wards.Value;
         public int Stones => _stones.Value;
+        public int ArmourKits => _armourKits.Value;
+        public bool Armoured => _armoured.Value;
         public bool HasStone(Element element) => ElementBuffRules.HasStone(_stones.Value, element);
         public int WardLevel(Element element) => EssenceRules.Get(_wards.Value, element);
         // Share of damage from enemies of this element that the player's ward takes away.
@@ -59,7 +71,8 @@ namespace Chopper.Player
         public float SwingCooldownMultiplier => DropRules.Lookup(_config.AxeCooldownMultipliers, _axeLevel.Value);
         public float AxeDamageMultiplier => DropRules.Lookup(_config.AxeDamageMultipliers, _axeLevel.Value)
                                             * (1f + (_boons != null ? _boons.AxeDamageBonus : 0f)) * (1f + RuneBonus);
-        public float ArmorReduction => Mathf.Min(MaxArmorReduction, DropRules.Lookup(_config.ArmorDamageReduction, _armorLevel.Value) + (_boons != null ? _boons.ArmorBonus : 0f));
+        public float ArmorReduction => Mathf.Min(MaxArmorReduction, DropRules.Lookup(_config.ArmorDamageReduction, _armorLevel.Value) + (_boons != null ? _boons.ArmorBonus : 0f)
+                                                                     + (_armoured.Value ? ArmouredReduction : 0f));
 
         public bool NextAxeCost(out int cost) => DropRules.TryGetNextCost(_config.AxeUpgradeCosts, _axeLevel.Value, out cost);
         public bool NextArmorCost(out int cost) => DropRules.TryGetNextCost(_config.ArmorUpgradeCosts, _armorLevel.Value, out cost);
@@ -75,6 +88,8 @@ namespace Chopper.Player
             _runeLevel.OnChange += OnLevelChanged;
             _wards.OnChange += OnLevelChanged;
             _stones.OnChange += OnStonesChanged;
+            _armoured.OnChange += OnArmouredChanged;
+            OutfitChanged?.Invoke();
         }
 
         public override void OnStopClient()
@@ -86,6 +101,42 @@ namespace Chopper.Player
             _runeLevel.OnChange -= OnLevelChanged;
             _wards.OnChange -= OnLevelChanged;
             _stones.OnChange -= OnStonesChanged;
+            _armoured.OnChange -= OnArmouredChanged;
+        }
+
+        private void OnArmouredChanged(bool previous, bool next, bool asServer)
+        {
+            if (asServer != IsServerInitialized) return;
+            OutfitChanged?.Invoke();
+            if (next && !previous) Sfx.Play(ProceduralSfx.Upgrade, transform.position + Vector3.up, 1f);
+        }
+
+        // Server only. A boss tree fell: one more armour kit to carry.
+        public void ServerGrantArmourKit() => _armourKits.Value = Mathf.Min(MaxArmourKits, _armourKits.Value + 1);
+
+        // Called from the bag: put the armour on. Anywhere, once.
+        public void RequestUseArmourKit()
+        {
+            if (IsOwner) UseArmourKitServerRpc();
+        }
+
+        [ServerRpc]
+        private void UseArmourKitServerRpc() => ServerUseArmourKit();
+
+        // Server only. True when a kit was used.
+        public bool ServerUseArmourKit()
+        {
+            if (_armoured.Value || _armourKits.Value <= 0) return false;
+            _armourKits.Value--;
+            _armoured.Value = true;
+            return true;
+        }
+
+        // Server only. Loading a saved player.
+        public void ServerLoadOutfit(int kits, bool armoured)
+        {
+            _armourKits.Value = Mathf.Clamp(kits, 0, MaxArmourKits);
+            _armoured.Value = armoured;
         }
 
         private void OnStonesChanged(int previous, int next, bool asServer)
@@ -275,6 +326,8 @@ namespace Chopper.Player
             _runeLevel.Value = 0;
             _wards.Value = 0;
             _stones.Value = 0;
+            _armourKits.Value = 0;
+            _armoured.Value = false;
         }
     }
 }

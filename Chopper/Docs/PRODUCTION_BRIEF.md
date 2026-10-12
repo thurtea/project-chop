@@ -66,3 +66,9 @@ Hair and helmet are mutually exclusive. All modules are skinned to the one share
 ## Method
 
 Models are authored by hand in Blender through Python (explicit vertex and primitive placement), not by AI image-to-3D. Each Blender file has a check script that reports dimensions, triangle counts, applied transforms and names, and renders front, side and three-quarter views for side-by-side comparison with the concepts.
+
+## Live game looks (2026-10-12, user)
+
+- Chopper starts unarmoured: hair, plaid shirt, patchwork vest, crossbelt, belt, trousers, boots, the bear-head axe (`chopper_axe_bear`). No helmet, chainmail, bracers or shield.
+- Armoured: after an armour kit (dropped by each felled boss tree) the helmet, chainmail, bracers and the shield on the back show and the hair hides.
+- Concept 2.0 is the target for the whole world and the characters; forests differ only in colour.

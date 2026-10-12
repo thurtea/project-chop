@@ -151,3 +151,19 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 - W6-01/W6-02 (2026-10-11): `build_axe_bear` (696 tris, 0.905 m, blade on +X like `chopper_axe`'s front blade, same grip frame: check_rig grip offset 0.0 mm, haft dot 0.9999). `chopper_bracers` (336 tris) split from `chopper_belt`; sleeves now reach the wrist. Base look plus bear axe 9,970 tris; height 1.8000 m. `check_assets` 115 PASS, 0 FAIL; `check_rig` 137 PASS, 0 FAIL (manager checked both SUMMARY lines). Renders `base_look_*.png`, `axe_bear_*.png` (vertex colour), viewed by the manager. New rerun step: `blender -b -P Art/Scripts/render_base_look.py`. Unity not run: `ChopperCheck` expects 12 skinned meshes and the FBX now has 13 (W6-04).
 - W5-02a (2026-10-11): cause: `ChopperMeadowSwap.PropPrefab` saved the FBX root (+90 X) as the prefab root, and `TreeManager`/`FallingTree` overwrite the root rotation with yaw only. Fix: plain root with the model as a child; `TintKey` keeps existing pine names; campfire log tilt 78 to 12 deg (`MeadowBuilder`). `CheckOrientation`: `RESULT FAIL (13 props not upright)` before, `RESULT PASS (0 props not upright)` after. Pines 3.25 m upright, base at 0.00; stump collider vertical. Manager viewed `world_audit_after/shots_02b2/09_high_hub_overview.png`. Open: the zone tint colours the dirt pad; pine bounds are 0.18 m off the root on X. Not rerun: foliage walk, gear look, enemy NavMesh tour, client join.
 - W5-02b (2026-10-11): `DayNightCycle.cs` (saturation -12, bloom 0.30, warmer sun, cooler ambient, thicker atmosphere), `ZonePalette.cs` hub fog 0.0060, `Chopper_Lighting.asset` contrast 8, `PC_Renderer.asset` SSAO radius 0.6. Old values logged in the report and in code comments. Frame time: hut 5.6 to 5.1 ms, others unchanged.
+
+## Week 8: concept 2.0 polish (2026-10-12)
+
+| ID | Package | Status |
+|---|---|---|
+| W8-01 | Unarmoured start; armour kit from each felled boss tree, used from the bag (`PlayerUpgrades`, `PlayerOutfit`, save fields) | done: `armour.log` RESULT PASS |
+| W8-02 | Hub house: wide, low, basement, main floor, loft, 2 beds, 2 workbenches (`Hut.DressCabin`) | done: `house5.log` RESULT PASS. Porch gable and stone terrace open |
+| W8-03 | Voxel furniture: chest, grand chest, bed, workbench, fireplace; crypt chests | done: `furniture_check_report.txt` ALL PASS, `prop_dress4.log` RESULT PASS |
+| W8-04 | Step up automatically: stepOffset 0.55, stair treads, doorway sill removed | done: house tour climbs every stair |
+| W8-05 | Flicker: block shader detail fade, atlas gutter fill | done, not measured beyond pictures |
+| W8-06 | Carry the bear axe edge down | done: `axe_gear.log`, picture checked |
+| W8-07 | Animations less flaily | open: measured (`anim_base.log`), T-pose avatar tried and reverted; needs the user to name the motion |
+| W8-08 | Water, clouds, sun to concept 2.0 | open |
+| W8-09 | Website pictures, last | open |
+
+- 2026-10-12 (user): everyone starts unarmoured; armour comes from a kit dropped by boss trees. Concept 2.0 is the target for the whole world and the characters. The house is wide and low like the concept, for two players, with a basement and an upstairs. Website pictures come last.
