@@ -1,6 +1,6 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (3593996 bytes)
+  [PASS] file exists: Export\chopper.fbx (4340972 bytes)
   [PASS] file exists: Export\chopper_axe.fbx (32348 bytes)
   [PASS] file exists: Export\chopper_axe_bear.fbx (30764 bytes)
   [PASS] file exists: Export\chopper_shield.fbx (40508 bytes)
@@ -28,7 +28,11 @@ RAW FBX: chopper.fbx
   [PASS] take Attack_3 present, frames 0.00-28.00 (expected 0-28 = 0.93 s at 30 fps)
   [PASS] take HitReact present, frames 0.00-15.00 (expected 0-15 = 0.50 s at 30 fps)
   [PASS] take Death present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
-  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
+  [PASS] take FishWait present, frames 0.00-60.00 (expected 0-60 = 2.00 s at 30 fps)
+  [PASS] take FishCast present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
+  [PASS] take FishFight present, frames 0.00-20.00 (expected 0-20 = 0.67 s at 30 fps)
+  [PASS] take FishCatch present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
+  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
 
 IMPORTED chopper.fbx
 ------------------------------------------------------------------------
@@ -224,6 +228,28 @@ TAKE Death (imported)
   [PASS] Death: feet stay above Z=-0.02 (lowest -0.0000)
   [PASS] Death: whole body stays above Z=-0.06 (lowest -0.000 m at frame 1)
 
+TAKE FishWait (imported)
+  [PASS] action for take FishWait found (chopper_rig|FishWait)
+  [PASS] imported frame range 1-61 (expected 1-61)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+
+TAKE FishCast (imported)
+  [PASS] action for take FishCast found (chopper_rig|FishCast)
+  [PASS] imported frame range 1-25 (expected 1-25)
+  [PASS] FishCast moves (body vertex delta mid-clip 0.985 m)
+  [PASS] FishCast: feet stay above Z=-0.02 (lowest -0.0000)
+
+TAKE FishFight (imported)
+  [PASS] action for take FishFight found (chopper_rig|FishFight)
+  [PASS] imported frame range 1-21 (expected 1-21)
+  [PASS] first and last frame identical: max vertex delta 0.00e+00 m, max bone matrix delta 0.00e+00
+
+TAKE FishCatch (imported)
+  [PASS] action for take FishCatch found (chopper_rig|FishCatch)
+  [PASS] imported frame range 1-25 (expected 1-25)
+  [PASS] FishCatch moves (body vertex delta mid-clip 0.832 m)
+  [PASS] FishCatch: feet stay above Z=-0.02 (lowest -0.0000)
+
 PROPS
 ------------------------------------------------------------------------
   [PASS] chopper_axe.fbx imports as exactly one mesh named chopper_axe (got [('chopper_axe', 'MESH')])
@@ -286,4 +312,4 @@ BEARD CLEARANCE (beard vertices vs vest, shirt and body)
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 
 ========================================================================
-SUMMARY: 189 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 207 PASS, 0 FAIL -> ALL PASS

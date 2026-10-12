@@ -159,9 +159,16 @@ namespace Chopper.World.Building
             }
             if (BlockedByWorld(box)) return PlaceResult.Overlaps;
 
+            // Minecraft, not Valheim: a piece may hang in the air, so there is no support check.
+            if (Chopper.World.WorldGround.FootprintTops(box, out float lowest, out float highest))
+            {
+                // Blocks: standing on the highest top under it, the footprint may span one half-block step at most.
+                bool onBlocks = Mathf.Abs(position.y - highest) <= BuildRules.GroundTolerance;
+                if (onBlocks && !touchesPiece && BuildRules.TooUneven(lowest, highest)) return PlaceResult.TooSteep;
+                return PlaceResult.Ok;
+            }
             float ground = GroundAt(position, out Vector3 normal);
             bool onGround = Mathf.Abs(position.y - ground) <= BuildRules.GroundTolerance;
-            // Minecraft, not Valheim: a piece may hang in the air, so there is no support check.
             if (onGround && !touchesPiece && BuildRules.TooSteep(normal.y)) return PlaceResult.TooSteep;
             return PlaceResult.Ok;
         }
@@ -232,6 +239,16 @@ namespace Chopper.World.Building
                 return true;
             }
             return false;
+        }
+
+        // Where a piece aimed at the block ground stands: on the highest block top under its footprint, so floors sit
+        // flush on the blocks instead of on the 5 cm aim grid. Unchanged off the blocks.
+        public float OnBlockTop(int kind, Vector3 position, float yaw)
+        {
+            PieceDefinition definition = _catalog != null ? _catalog.Get(kind) : null;
+            if (definition == null) return position.y;
+            Bounds box = BuildRules.BoundsOf(position, definition.Size, yaw);
+            return Chopper.World.WorldGround.FootprintTops(box, out _, out float highest) ? highest : position.y;
         }
 
         public static float GroundAt(Vector3 position, out Vector3 normal)

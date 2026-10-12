@@ -1,5 +1,6 @@
 """Author Chopper's takes on chopper_rig: Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, LandHard, Roll,
-SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact and Death.
+SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact, Death, and the fishing takes FishWait, FishCast, FishFight
+and FishCatch.
 
 Movement style (user, 2026-10-12): no ragdoll looseness. Blocky and snappy like Minecraft and survival ARPGs: the
 torso and head stay rigid (no hip twist, no spine sway, no head bob), the arms swing as near-straight pendulums, the
@@ -571,6 +572,66 @@ def chop_pose(name, length):
     return pose
 
 
+# Fishing (user, 2026-10-12: the library cast looked like throwing the bobber by hand while holding the rod). The rod
+# lies along Weapon_R's local +Z, the same axis as the axe head. Arm values were searched on the rig (the rod
+# direction and the hand within a degree and a few cm): wait = rod forward 40 deg up, hand by the right hip; fight =
+# rod 60 deg up, hand at the chest; release = rod forward and level, arm out; wind-up = rod back over the right
+# shoulder. Same key layout as CHOP_KEYS.
+FISH_WAIT = (57, 73, -105, 93, 0)
+FISH_FIGHT = (100, 65, -157, 115, 25)
+FISH_RELEASE = (80, 55, -102, 127, -60)
+FISH_WINDUP = (65, -88, -115, -100, -55)
+FISH_WAIT_LEN = 60     # loop: a slow rod-tip bob
+FISH_CAST_LEN = 24     # one-shot, 0.8 s: back over the shoulder, whip forward, settle to the wait
+FISH_FIGHT_LEN = 20    # loop: pumping the rod back against the fish
+FISH_CATCH_LEN = 24    # one-shot: heave the rod up and back, then lower it to the carry
+
+
+def _k(t, arm, turn=0.0, lean=0.0, drop=0.0):
+    return (t, *arm, turn, lean, drop)
+
+
+def _lerp_arm(a, b, s):
+    return tuple(x + (y - x) * s for x, y in zip(a, b))
+
+
+FISH_KEYS = {
+    "FishWait": [_k(0.00, FISH_WAIT), _k(0.50, _lerp_arm(FISH_WAIT, FISH_FIGHT, 0.12)), _k(1.00, FISH_WAIT)],
+    "FishCast": [_k(0.00, FISH_WAIT),
+                 _k(0.30, FISH_WINDUP, turn=12, lean=-6),
+                 _k(0.42, FISH_WINDUP, turn=14, lean=-8),
+                 _k(0.56, FISH_RELEASE, turn=-8, lean=10, drop=0.03),
+                 _k(0.70, FISH_RELEASE, turn=-8, lean=10, drop=0.03),
+                 _k(1.00, FISH_WAIT)],
+    "FishFight": [_k(0.00, FISH_FIGHT, lean=-6, drop=0.03),
+                  _k(0.50, _lerp_arm(FISH_FIGHT, FISH_WINDUP, 0.25), lean=-10, drop=0.05),
+                  _k(1.00, FISH_FIGHT, lean=-6, drop=0.03)],
+    "FishCatch": [_k(0.00, FISH_FIGHT, lean=-6, drop=0.03),
+                  _k(0.35, _lerp_arm(FISH_FIGHT, FISH_WINDUP, 0.6), turn=8, lean=-12, drop=0.04),
+                  _k(0.50, _lerp_arm(FISH_FIGHT, FISH_WINDUP, 0.6), turn=8, lean=-12, drop=0.04),
+                  _k(1.00, (0, 0, 0, 0, 0))],
+}
+
+
+def fish_pose(name, length):
+    def pose(rig, f):
+        p = (f - 1) / length
+        raise_, swing, elbow, twist, wrist, turn, lean, drop = chop_values(FISH_KEYS[name], p)
+        deltas = {}
+        hips_off = Vector((0, 0, -drop))
+        deltas["Spine"] = R(Z, turn * 0.5) @ R(X, lean * 0.5)
+        deltas["Chest"] = R(Z, turn * 0.5) @ R(X, lean * 0.5)
+        _chop_arm(rig, deltas, raise_, swing, elbow, twist, wrist)
+        feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+        return hips_off, deltas, feet
+    return pose
+
+
+fish_wait_pose = fish_pose("FishWait", FISH_WAIT_LEN)
+fish_cast_pose = fish_pose("FishCast", FISH_CAST_LEN)
+fish_fight_pose = fish_pose("FishFight", FISH_FIGHT_LEN)
+fish_catch_pose = fish_pose("FishCatch", FISH_CATCH_LEN)
+
 attack1_pose = chop_pose("Attack_1", ATTACK1_LEN)
 attack2_pose = chop_pose("Attack_2", ATTACK2_LEN)
 attack3_pose = chop_pose("Attack_3", ATTACK3_LEN)
@@ -685,6 +746,10 @@ def main():
         ("Attack_3", ATTACK3_LEN, attack3_pose, False),
         ("HitReact", HIT_LEN, hit_pose, False),
         ("Death", DEATH_LEN, death_pose, False),
+        ("FishWait", FISH_WAIT_LEN, fish_wait_pose, True),
+        ("FishCast", FISH_CAST_LEN, fish_cast_pose, False),
+        ("FishFight", FISH_FIGHT_LEN, fish_fight_pose, True),
+        ("FishCatch", FISH_CATCH_LEN, fish_catch_pose, False),
     )
     for name, length, fn, loop in clips:
         rig.max_reach = 0.0

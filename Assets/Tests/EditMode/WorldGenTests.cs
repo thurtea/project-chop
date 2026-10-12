@@ -47,9 +47,10 @@ namespace Chopper.Tests.EditMode
             foreach (int seed in new[] { 1, 99, 1337, 777777 })
             {
                 var gen = new WorldGen(seed, HubRadius);
+                // The house terrace (W8-02) sits on the mound: spots outside the house stand on it.
                 Assert.AreEqual(WorldGen.MoundHeight, gen.HeightAt(0f, 0f), 0.01f);
-                Assert.AreEqual(WorldGen.MoundHeight, gen.HeightAt(4.6f, 6.6f), 0.01f, "the axe table spot");
-                Assert.AreEqual(WorldGen.MoundHeight, gen.HeightAt(-4.6f, 6.6f), 0.01f, "the notice board spot");
+                Assert.AreEqual(WorldGen.MoundHeight + WorldGen.TerraceRaise(4.6f, 6.6f), gen.HeightAt(4.6f, 6.6f), 0.01f, "the axe table spot");
+                Assert.AreEqual(WorldGen.MoundHeight + WorldGen.TerraceRaise(-4.6f, 6.6f), gen.HeightAt(-4.6f, 6.6f), 0.01f, "the notice board spot");
             }
         }
 
@@ -157,19 +158,21 @@ namespace Chopper.Tests.EditMode
         }
 
         // Meters of ground steeper than 45 degrees met while walking from start along direction for length meters.
-        private static float SteepMeters(WorldGen gen, Vector2 start, Vector2 direction, float length)
+        // Block world (W5-08 step 9): walking from the foot (start + direction * length) up to start one 1 m column at a
+        // time, the tallest single rise between neighbouring block tops. Above 3.05 m (double jump plus the step) the
+        // line cannot be climbed.
+        private static float TallestBlockRise(WorldGen gen, Vector2 start, Vector2 direction, float length)
         {
-            const float step = 0.5f;
-            float steep = 0f;
-            float previous = gen.HeightAt(start.x, start.y);
-            for (float t = step; t <= length; t += step)
+            float Top(Vector2 p) => Mathf.Round(gen.HeightAt(Mathf.Floor(p.x) + 0.5f, Mathf.Floor(p.y) + 0.5f) / 0.5f) * 0.5f;
+            float tallest = 0f;
+            float previous = Top(start + direction * length);
+            for (float t = length - 1f; t >= 0f; t -= 1f)
             {
-                Vector2 p = start + direction * t;
-                float height = gen.HeightAt(p.x, p.y);
-                if (Mathf.Abs(height - previous) > step) steep += step;
-                previous = height;
+                float top = Top(start + direction * t);
+                tallest = Mathf.Max(tallest, top - previous);
+                previous = top;
             }
-            return steep;
+            return tallest;
         }
 
         [Test]
@@ -186,9 +189,11 @@ namespace Chopper.Tests.EditMode
                     foreach (float turn in new[] { -20f, 20f })
                     {
                         Vector2 crest = (Vector2)(Quaternion.Euler(0f, 0f, turn) * (Vector3)ZoneMap.Axis(forest)) * gen.RingRadius;
-                        Assert.Greater(gen.HeightAt(crest.x, crest.y) - floor, 18f, $"{forest} ring is too low beside its pass");
+                        // The ring is 20 m since W5-08 step 9; beside a pass it stands at least two 4.5 m risers over the
+                        // floor (12.8 m on one seed). That it cannot be climbed is the block rise below and ZoneSeal.
+                        Assert.Greater(gen.HeightAt(crest.x, crest.y) - floor, 2f * WorldGen.MountainStep, $"{forest} ring is too low beside its pass");
                         Vector2 inward = -crest.normalized;
-                        Assert.GreaterOrEqual(SteepMeters(gen, crest, inward, WorldGen.RingFootHalfWidth + 4f), 3f, $"{forest} ring can be walked up from the hub");
+                        Assert.Greater(TallestBlockRise(gen, crest, inward, WorldGen.RingFootHalfWidth + 4f), 3.05f, $"{forest} ring can be climbed from the hub");
                     }
                 }
             }
@@ -212,8 +217,9 @@ namespace Chopper.Tests.EditMode
                         foreach (float side in new[] { -1f, 1f })
                         {
                             Vector2 below = crest + across * side * (WorldGen.RidgeFootHalfWidth + 15f);
-                            Assert.Greater(top - gen.HeightAt(below.x, below.y), 20f, $"ridge {diagonal} at {r} m is too low");
-                            Assert.GreaterOrEqual(SteepMeters(gen, crest, across * side, WorldGen.RidgeFootHalfWidth + 4f), 3f, $"ridge {diagonal} at {r} m can be walked up");
+                            // Ridges are 28 m since W5-08 step 9 (concept 2.0 stacked blocks, not 42 m walls).
+                            Assert.Greater(top - gen.HeightAt(below.x, below.y), 15f, $"ridge {diagonal} at {r} m is too low");
+                            Assert.Greater(TallestBlockRise(gen, crest, across * side, WorldGen.RidgeFootHalfWidth + 4f), 3.05f, $"ridge {diagonal} at {r} m can be climbed");
                         }
                     }
                 }

@@ -877,6 +877,83 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(1.5f);
                 yield return Shot(folder, "blocks_meadow");
 
+                // Building on blocks (W5-08 step 10): a floor on a flat cell sits exactly on the block top, a floor over a
+                // half-block step stands on the higher top, and a footprint over more than half a block is too steep.
+                bool buildOk;
+                {
+                    BuildManager build = BuildManager.Instance;
+                    PieceCatalog catalog = build != null ? build.Catalog : null;
+                    int floorKind = CabinKind(catalog, "Wood floor");
+                    int benchKind = CabinKind(catalog, "Workbench");
+                    PieceDefinition floorDef = catalog != null && floorKind >= 0 ? catalog.Get(floorKind) : null;
+                    string flat = "none", half = "none", steep = "none";
+                    bool flatOk = false, halfOk = true, steepOk = true;
+                    int steepSeen = 0, halfSeen = 0;
+                    PlaceResult benchResult = PlaceResult.BadKind;
+                    // The meadow for the flat and half-block cells, then hillier ground until a steeper cell turns up.
+                    foreach (Vector2 buildSpot in new[] { new Vector2(40f, 40f), new Vector2(-60f, 20f), new Vector2(60f, 92f), new Vector2(-92f, 60f), new Vector2(92f, -60f) })
+                    {
+                    if (buildSpot.x != 40f && steepSeen > 0) break;
+                    yield return TeleportLocalPlayer(buildSpot, 0f);
+                    yield return new WaitForSeconds(0.8f);
+                    wood.ServerAddWood(200);
+                    Vector3 me = wood.transform.position;
+                    Vector3 benchAt = me + Vector3.right * 2.5f;
+                    benchAt.y = build != null ? build.OnBlockTop(benchKind, benchAt, 0f) : benchAt.y;
+                    PlaceResult benchHere = build != null ? build.ServerPlace(wood.gameObject, benchKind, benchAt, 0f) : PlaceResult.BadKind;
+                    if (buildSpot.x == 40f) benchResult = benchHere;
+                    for (int dz = -2; dz <= 2 && floorDef != null; dz++)
+                    {
+                        for (int dx = -2; dx <= 2; dx++)
+                        {
+                            float cx = BuildRules.CellCenter(me.x + dx * BuildRules.Cell), cz = BuildRules.CellCenter(me.z + dz * BuildRules.Cell);
+                            var probeAt = new Vector3(cx, 0f, cz);
+                            Bounds box = BuildRules.BoundsOf(probeAt, floorDef.Size, 0f);
+                            if (box.Intersects(BuildRules.BoundsOf(benchAt, catalog.Get(benchKind).Size, 0f))) continue;
+                            if (!WorldGround.FootprintTops(box, out float lo, out float hi)) continue;
+                            probeAt.y = build.OnBlockTop(floorKind, probeAt, 0f);
+                            float step = hi - lo;
+                            if (step < 0.01f && flat == "none")
+                            {
+                                PlaceResult placed = build.ServerPlace(wood.gameObject, floorKind, probeAt, 0f);
+                                bool flush = false;
+                                for (int i = 0; i < build.Pieces.Count; i++)
+                                    if (build.Pieces[i].Kind == floorKind && (build.Pieces[i].Position - probeAt).sqrMagnitude < 0.01f)
+                                        flush = Mathf.Abs(build.Pieces[i].Position.y - hi) < 0.001f;
+                                flatOk = placed == PlaceResult.Ok && flush;
+                                flat = $"{placed} at y {probeAt.y:F2} on top {hi:F2}, flush {flush}";
+                            }
+                            else if (step > 0.4f && step < 0.6f)
+                            {
+                                PlaceResult r = build.Check(wood.gameObject, floorKind, probeAt, 0f);
+                                halfSeen++;
+                                if (r != PlaceResult.Ok && r != PlaceResult.Overlaps)
+                                {
+                                    halfOk = false;
+                                    Debug.Log($"[BlockGround] half-block cell at {probeAt:F1} over {lo:F1}..{hi:F1} gave {r}");
+                                }
+                                if (half == "none") half = $"{r} over {lo:F1}..{hi:F1}";
+                            }
+                            else if (step > 0.6f)
+                            {
+                                PlaceResult r = build.Check(wood.gameObject, floorKind, probeAt, 0f);
+                                steepSeen++;
+                                // Any refusal will do (high up a riser it is also out of reach); it must never be Ok.
+                                if (r == PlaceResult.Ok)
+                                {
+                                    steepOk = false;
+                                    Debug.Log($"[BlockGround] steeper cell at {probeAt:F1} over {lo:F1}..{hi:F1} gave {r}");
+                                }
+                                if (steep == "none") steep = $"{r} over {lo:F1}..{hi:F1}";
+                            }
+                        }
+                    }
+                    }
+                    buildOk = benchResult == PlaceResult.Ok && flatOk && halfOk && steepOk && steepSeen > 0;
+                    Debug.Log($"[BlockGround] building: workbench {benchResult}; flat cell {flat}; half-block cells {halfSeen} ({half}); steeper cells {steepSeen} ({steep})");
+                    yield return Shot(folder, "blocks_build");
+                }
+
                 // Climb out of the hub pond: swim from its middle toward the hut side and pull up onto the bank blocks.
                 Chopper.World.Generation.WorldGen pondGen = Chopper.World.Generation.WorldSession.Gen;
                 Vector2 pond = pondGen.PondCenter;
@@ -909,8 +986,8 @@ namespace Chopper.Networking
                 yield return Shot(folder, "blocks_pond_out");
 
                 bool groundPass = blockColumns != null && chunkColliders > 0 && terrainOff && feetChecked >= 4 && worstFeet < 0.12f
-                                  && treesChecked > 0 && treesOff == 0 && climbedOut;
-                Debug.Log($"[BlockGround] RESULT {(groundPass ? "PASS" : "FAIL")} (feet checked {feetChecked}, worst {worstFeet:F3} m; trees off {treesOff}; climbed out of the pond {climbedOut})");
+                                  && treesChecked > 0 && treesOff == 0 && climbedOut && buildOk;
+                Debug.Log($"[BlockGround] RESULT {(groundPass ? "PASS" : "FAIL")} (feet checked {feetChecked}, worst {worstFeet:F3} m; trees off {treesOff}; climbed out of the pond {climbedOut}; building {buildOk})");
                 Application.Quit(groundPass ? 0 : 1);
                 yield break;
             }

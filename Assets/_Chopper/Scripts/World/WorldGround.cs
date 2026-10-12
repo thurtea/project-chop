@@ -25,6 +25,27 @@ namespace Chopper.World
 
         public static float HeightAt(float x, float z) => HeightAt(new Vector3(x, 0f, z));
 
+        // Lowest and highest block top under a footprint (the box's x/z extent, 5 cm in from each edge so a piece that
+        // only touches the next column does not count it). False without blocks.
+        public static bool FootprintTops(Bounds box, out float lowest, out float highest)
+        {
+            lowest = float.MaxValue;
+            highest = float.MinValue;
+            Voxel.VoxelColumns columns = Voxel.VoxelColumns.Current;
+            if (columns == null) return false;
+            float x0 = box.min.x + 0.05f, x1 = box.max.x - 0.05f, z0 = box.min.z + 0.05f, z1 = box.max.z - 0.05f;
+            for (float x = Mathf.Floor(x0); x <= x1; x += 1f)
+            {
+                for (float z = Mathf.Floor(z0); z <= z1; z += 1f)
+                {
+                    if (!columns.TryTopAt(Mathf.Clamp(x + 0.5f, x0, x1), Mathf.Clamp(z + 0.5f, z0, z1), out float top)) continue;
+                    lowest = Mathf.Min(lowest, top);
+                    highest = Mathf.Max(highest, top);
+                }
+            }
+            return highest >= lowest;
+        }
+
         // True when a position lies over the land (inside its square), not out past its edge.
         public static bool Covers(Vector3 position)
         {

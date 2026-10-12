@@ -152,6 +152,7 @@ namespace Chopper.Player
             AimedPiece = 0;
             Ray ray = view.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
             Vector3 aim = transform.position + transform.forward * 3f;
+            bool aimOnBlocks = false;
             int count = Physics.RaycastNonAlloc(ray, AimHits, AimReach + 6f, ~0, QueryTriggerInteraction.Ignore);
             System.Array.Sort(AimHits, 0, count, ByDistance);
             for (int h = 0; h < count; h++)
@@ -159,6 +160,7 @@ namespace Chopper.Player
                 RaycastHit hit = AimHits[h];
                 if (hit.collider is CharacterController || hit.collider.transform.IsChildOf(transform)) continue;
                 aim = hit.point;
+                aimOnBlocks = Chopper.World.Voxel.VoxelWorld.IsGround(hit.collider);
                 PieceView piece = hit.collider.GetComponentInParent<PieceView>();
                 if (piece != null)
                 {
@@ -179,6 +181,7 @@ namespace Chopper.Player
             }
 
             position = BuildRules.Snap(aim, definition.Snap, _yaw);
+            if (aimOnBlocks) position.y = manager.OnBlockTop(_kind, position, _yaw);
             // Valheim's snapping: near a placed piece, join it corner to corner (the first join that fits).
             position = manager.SnapToPieces(gameObject, _kind, aim, _yaw, position);
             AimResult = manager.Check(gameObject, _kind, position, _yaw);

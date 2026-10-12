@@ -152,8 +152,21 @@ namespace Chopper.World
             GameObject hallPrefab = Resources.Load<GameObject>("Props/hall_hub");
             if (hallPrefab != null)
             {
-                foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
-                    renderer.enabled = false;
+                // The hall is the shell only (stone, log walls, roof, porch). Floors and stairs inside the house keep
+                // their own look, or the basement, main floor and loft were invisible (user, 2026-10-12: "floors were
+                // missing from the hut"). The porch deck and its steps are drawn by the hall.
+                foreach (Transform piece in root)
+                {
+                    Vector3 p = piece.localPosition;
+                    bool inside = Mathf.Abs(p.x) < LayoutHalf.x && Mathf.Abs(p.z) < LayoutHalf.y;
+                    // The basement's stone-tinted walls too: the terrace buries their outside, and without them the
+                    // cellar showed the terrace's dirt.
+                    bool basementWall = piece.name == "Wood wall" && p.y < 1f;
+                    bool keep = (inside && (piece.name == "Wood floor" || piece.name == "Stairs")) || basementWall;
+                    if (keep) continue;
+                    foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true))
+                        renderer.enabled = false;
+                }
                 Transform hall = Instantiate(hallPrefab, root).transform;
                 hall.name = "Hall";
                 hall.localPosition = Vector3.zero;

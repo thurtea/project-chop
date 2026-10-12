@@ -37,8 +37,8 @@ HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
 SOCKETS = ["Weapon_R", "Shield_L", "Shield_Back"]
 TAKES = {"Idle": 60, "Walk": 30, "Run": 18, "Sprint": 16, "CrouchIdle": 40, "CrouchWalk": 24, "Air": 20, "LandHard": 18,
          "Roll": 24, "SwimIdle": 40, "Swim": 24, "Attack_1": 22, "Attack_2": 22, "Attack_3": 28, "HitReact": 15,
-         "Death": 30}
-LOOP_TAKES = {"Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim"}
+         "Death": 30, "FishWait": 60, "FishCast": 24, "FishFight": 20, "FishCatch": 24}
+LOOP_TAKES = {"Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim", "FishWait", "FishFight"}
 # Ground speed of each in-place gait (= animate_chopper GAITS), for the planted-foot slip check.
 GAIT_SPEEDS = {"Run": 4.10, "Sprint": 6.50, "CrouchWalk": 1.60}
 # Whole-body moves that must not sink into the ground (lowest vertex of every mesh).

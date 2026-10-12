@@ -203,6 +203,8 @@ namespace Chopper.Player
 
         // Visuals, on every client.
         private Transform _hand;
+        private HeldItemFrame _handFrame;
+        private const float RodGripBack = 0.12f;
         private Transform _butt;
         private Transform _tip;
         private Transform _bobberView;
@@ -1163,8 +1165,14 @@ namespace Chopper.Player
             bool bite = IsOwner && _stage == Stage.Bite;
 
             // The rod: a butt in the hand and a tip that bends down with the strain (and jerks while the fish thrashes).
+            // In the hand along the grip's head axis (the AxeGrip on Weapon_R), so the rod follows the arm through the
+            // cast; without the grip, a fixed angle in front of the body as before.
             Vector3 grip = _hand != null ? _hand.position : transform.position + Vector3.up * 1.1f + transform.forward * 0.3f;
-            Vector3 along = Quaternion.AngleAxis(-RodUpDegrees, transform.right) * transform.forward;
+            Vector3 along = _handFrame != null
+                ? _hand.TransformDirection(_handFrame.Head).normalized
+                : Quaternion.AngleAxis(-RodUpDegrees, transform.right) * transform.forward;
+            // The butt sticks out a little behind the hand, like a real grip.
+            grip -= along * RodGripBack;
             _butt.SetPositionAndRotation(grip + along * (RodButtLength * 0.5f), Quaternion.FromToRotation(Vector3.up, along));
             Vector3 joint = grip + along * RodButtLength;
             float bend = (bite ? 0.3f : 0f) + tension * 0.8f + (thrashing ? Mathf.Sin(Time.time * 26f) * 0.15f : 0f);
@@ -1310,13 +1318,17 @@ namespace Chopper.Player
             CharacterCatalog catalog = Resources.Load<CharacterCatalog>("CharacterCatalog");
             Material material = catalog != null ? catalog.GearMaterial : null;
             if (material == null) return;
+            // Chopper's rig holds things on AxeGrip (Weapon_R) with a HeldItemFrame; the old rig had a bone hand_r.
+            // The lookup for hand_r alone found nothing on Chopper, so the rod floated in front of the body.
             foreach (Transform t in GetComponentsInChildren<Transform>(true))
             {
-                if (t.name == "hand_r")
+                if (t.name == "AxeGrip" && t.GetComponent<HeldItemFrame>() != null)
                 {
                     _hand = t;
+                    _handFrame = t.GetComponent<HeldItemFrame>();
                     break;
                 }
+                if (t.name == "hand_r" && _hand == null) _hand = t;
             }
 
             _butt = Piece(PrimitiveType.Cylinder, "RodButt", new Vector3(0.04f, RodButtLength * 0.5f, 0.04f), material, new Color(0.42f, 0.28f, 0.15f));

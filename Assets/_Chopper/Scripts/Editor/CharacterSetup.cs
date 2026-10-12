@@ -457,10 +457,12 @@ namespace Chopper.Editor
         // the cast and the pull out once; Gather bends down to pick a plant.
         private static void AddWorkLayer(AnimatorController controller)
         {
-            AnimationClip wait = CraftingClip("Fishing/HumanM@Fishing01 - Loop");
-            AnimationClip cast = CraftingClip("Fishing/HumanM@FishingThrow01");
-            AnimationClip fight = CraftingClip("Fishing/HumanM@FishingFighting01");
-            AnimationClip pull = CraftingClip("Fishing/HumanM@FishingPullOut01");
+            // Chopper's own fishing takes first (animate_chopper.py: the rod in the hand, cast over the shoulder; the
+            // library throw looked like tossing the bobber by hand, user 2026-10-12), the library clips if absent.
+            AnimationClip wait = ChopperTake("FishWait") ?? CraftingClip("Fishing/HumanM@Fishing01 - Loop");
+            AnimationClip cast = ChopperTake("FishCast") ?? CraftingClip("Fishing/HumanM@FishingThrow01");
+            AnimationClip fight = ChopperTake("FishFight") ?? CraftingClip("Fishing/HumanM@FishingFighting01");
+            AnimationClip pull = ChopperTake("FishCatch") ?? CraftingClip("Fishing/HumanM@FishingPullOut01");
             AnimationClip gather = CraftingClip("Gathering/HumanM@Gathering01");
             if (wait == null || cast == null || fight == null || pull == null || gather == null)
             {
@@ -869,7 +871,7 @@ namespace Chopper.Editor
 
         // ---------- Model ----------
 
-        private static readonly string[] ChopperLoopTakes = { "Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim" };
+        private static readonly string[] ChopperLoopTakes = { "Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim", "FishWait", "FishFight" };
 
         static void PrepareChopperModel()
         {

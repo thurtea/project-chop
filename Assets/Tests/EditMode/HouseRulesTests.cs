@@ -308,5 +308,13 @@ namespace Chopper.Tests.EditMode
             int[] steps = BuildRules.SupportSteps(withSide, new[] { true, false, false, false, true });
             Assert.AreEqual(1, steps[3]);
         }
+
+        [Test]
+        public void ABlockFootprintMaySpanOneHalfBlockStep()
+        {
+            Assert.IsFalse(BuildRules.TooUneven(2f, 2f));
+            Assert.IsFalse(BuildRules.TooUneven(2f, 2.5f));
+            Assert.IsTrue(BuildRules.TooUneven(2f, 3f));
+        }
     }
 }

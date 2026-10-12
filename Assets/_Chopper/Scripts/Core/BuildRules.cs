@@ -27,6 +27,10 @@ namespace Chopper.Core
         // How far above the ground a piece's bottom may sit and still stand on it.
         public const float GroundTolerance = 0.45f;
         public const float MaxGroundSlope = 32f;
+        // On block ground (W5-08 step 10) the slope rule is the step under the footprint: one half block at most.
+        public const float MaxFootprintStep = 0.5f;
+
+        public static bool TooUneven(float lowestTop, float highestTop) => highestTop - lowestTop > MaxFootprintStep + 0.01f;
         // How many pieces away from one on the ground a piece may be (Valheim's structural support, by count): a floor
         // on the ground is 0, a wall on it 1, a second storey wall 2, and so on. Enough for a two storey house and a
         // roof, not for towers or long bridges into the air.
