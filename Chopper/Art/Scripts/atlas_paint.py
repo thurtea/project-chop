@@ -79,10 +79,14 @@ def cell(p, t):
     return (math.floor(p.x / t), math.floor(p.y / t), math.floor(p.z / t))
 
 
+# All grain at half strength (user, 2026-10-12: smoother textures; the per-pixel noise also shimmered in motion).
+GRAIN_SCALE = 0.5
+
+
 def grain(rgb, p, t, amount=0.07):
     """Per-pixel value jitter (the pixel-art noise of a block texture)."""
     i, j, k = cell(p, t)
-    f = 1.0 + amount * (2.0 * h3(i, j, k) - 1.0)
+    f = 1.0 + amount * GRAIN_SCALE * (2.0 * h3(i, j, k) - 1.0)
     return tuple(min(1.0, c * f) for c in rgb)
 
 
@@ -281,10 +285,11 @@ def strands(p, n, t, base, darkc, light):
         col = math.floor(side_coord(p, n) / t)
         row = math.floor(p.z / t)
     hsh = h3(col, row // 3, 11)
+    # Strands are a soft shade of the base, not full dark and light (smoother, and they no longer shimmer in motion).
     if col % 3 == 0 or hsh < 0.18:
-        return darkc
+        return mix(base, darkc, 0.55)
     if hsh > 0.9:
-        return light
+        return mix(base, light, 0.5)
     return base
 
 

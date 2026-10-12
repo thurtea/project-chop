@@ -1,4 +1,4 @@
-"""Author Idle, Walk, Run, Attack_1, Attack_2, HitReact and Death on chopper_rig.
+"""Author Idle, Walk, Run, Attack_1, Attack_2, Attack_3, HitReact and Death on chopper_rig.
 
 Run:  blender -b -P animate_chopper.py
 In:   Art/Blender/chopper_rigged.blend (from rig_chopper.py)
@@ -30,8 +30,9 @@ WALK_LEN = 30          # frames 1..31 (31 == 1)
 WALK_SPEED = 0.75      # m/s; Unity should move the character at this speed
 RUN_LEN = 20           # frames 1..21
 RUN_SPEED = 2.20       # m/s
-ATTACK1_LEN = 24       # overhead chop, one-shot
-ATTACK2_LEN = 24       # side sweep, one-shot
+ATTACK1_LEN = 22       # diagonal chop from over the right shoulder, one-shot
+ATTACK2_LEN = 22       # diagonal chop from over the left shoulder, one-shot
+ATTACK3_LEN = 28       # overhead finisher, one-shot
 HIT_LEN = 15
 DEATH_LEN = 36
 STANCE = 0.60          # fraction of the cycle a foot is on the ground
@@ -396,45 +397,72 @@ def _combat_arms(rig, deltas, right_pitch, right_yaw, elbow):
     deltas["RightLowerArm"] = R(toward(rig, "RightLowerArm", (0, -1, 0), 1), elbow) @ deltas["RightLowerArm"]
 
 
-def attack1_pose(rig, f):
-    p = (f - 1) / ATTACK1_LEN
-    # wind up overhead, chop down, settle
-    if p < 0.35:
-        s = smooth(p / 0.35)
-        pitch, elbow = 70 * s, 25 * s
-    elif p < 0.62:
-        s = smooth((p - 0.35) / 0.27)
-        pitch, elbow = 70 - 110 * s, 25 + 35 * s
-    else:
-        s = smooth((p - 0.62) / 0.38)
-        pitch, elbow = -40 + 20 * s, 60 - 40 * s
-    deltas = {}
-    hips_off = Vector((0, 0.0, -0.03 * math.sin(math.pi * min(1, p / 0.62))))
-    deltas["Spine"] = R(X, 8 * math.sin(math.pi * p))
-    deltas["Chest"] = R(X, 6 * math.sin(math.pi * p))
-    _combat_arms(rig, deltas, pitch, 0.0, elbow)
-    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
-    return hips_off, deltas, feet
+# One-handed axe chops in the Valheim manner (user, 2026-10-12: the sword slashes looked off): a wind-up like a
+# throw (upper arm out to the side, forearm up, the axe head back behind the head), a short hold, a fast strike down
+# and across with the body turning into it and the knees giving a little, a follow-through, then back to the guard.
+# Each key: (time 0..1, upper arm raise from the A-pose, arm swing forward, elbow (+ folds), upper arm twist about its
+# own length, wrist (- cocks the axe back), spine twist (+ turns right), chest pitch (+ leans forward), hips drop m). Between keys the values ease (smoothstep).
+CHOP_KEYS = {
+    # The wind-ups were found by a search over the rig (hand by the right shoulder, the axe head above and behind
+    # the head); the strikes end low in front, across the body.
+    "Attack_1": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
+                 (0.32, 95, -45, -60, -120, -60, 14, -8, 0.0),
+                 (0.42, 100, -45, -60, -120, -65, 16, -10, 0.0),
+                 (0.56, -20, 60, 15, 0, 0, -16, 16, 0.05),
+                 (0.70, -25, 65, 20, 0, 5, -18, 18, 0.05),
+                 (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+    "Attack_2": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
+                 (0.30, 150, 30, 15, 80, -60, -14, -6, 0.0),
+                 (0.40, 150, 35, 15, 80, -65, -16, -8, 0.0),
+                 (0.54, -15, -15, 10, 0, 0, 16, 12, 0.04),
+                 (0.68, -20, -20, 12, 0, 5, 18, 14, 0.04),
+                 (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+    "Attack_3": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
+                 (0.35, 155, 45, -60, -80, -30, 4, -14, -0.02),
+                 (0.48, 160, 40, -60, -80, -35, 4, -16, -0.02),
+                 (0.60, -30, 30, 5, 0, 0, -4, 24, 0.09),
+                 (0.75, -33, 30, 8, 0, 5, -4, 24, 0.09),
+                 (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+}
 
 
-def attack2_pose(rig, f):
-    p = (f - 1) / ATTACK2_LEN
-    if p < 0.30:
-        s = smooth(p / 0.30)
-        yaw, elbow = -55 * s, 20 * s
-    elif p < 0.60:
-        s = smooth((p - 0.30) / 0.30)
-        yaw, elbow = -55 + 100 * s, 20 + 25 * s
-    else:
-        s = smooth((p - 0.60) / 0.40)
-        yaw, elbow = 45 - 45 * s, 45 - 25 * s
-    deltas = {}
-    hips_off = Vector((0.02 * math.sin(math.pi * p), 0, -0.02))
-    deltas["Hips"] = R(Z, 8 * math.sin(math.pi * p))
-    deltas["Spine"] = R(Z, -6 * math.sin(math.pi * p))
-    _combat_arms(rig, deltas, 10.0, yaw, elbow)
-    feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
-    return hips_off, deltas, feet
+def chop_values(keys, p):
+    for (t0, *a), (t1, *b) in zip(keys, keys[1:]):
+        if p <= t1:
+            s = smooth((p - t0) / max(1e-6, t1 - t0))
+            return [x + (y - x) * s for x, y in zip(a, b)]
+    return list(keys[-1][1:])
+
+
+def _chop_arm(rig, deltas, raise_, swing, elbow, twist, wrist=0.0):
+    """The shield arm in the walk guard; the axe arm raised out to the side, twisted about its own length, swung
+    forward about the vertical, and the elbow folded."""
+    arm_base(rig, deltas, 18.0, 12.0, 20.0)
+    ua = "RightUpperArm"
+    up_axis = toward(rig, ua, (0, 0, 1), 1)
+    raised = R(up_axis, raise_) @ rig.rest_dir(ua)
+    deltas[ua] = R(Z, swing) @ R(raised, twist) @ R(up_axis, raise_) @ deltas[ua]
+    deltas["RightLowerArm"] = R(toward(rig, "RightLowerArm", (0, -1, 0), 1), elbow) @ deltas["RightLowerArm"]
+    deltas["RightHand"] = R(toward(rig, "RightHand", (0, -1, 0), 1), wrist) @ deltas.get("RightHand", I3)
+
+
+def chop_pose(name, length):
+    def pose(rig, f):
+        p = (f - 1) / length
+        raise_, swing, elbow, twist, wrist, turn, lean, drop = chop_values(CHOP_KEYS[name], p)
+        deltas = {}
+        hips_off = Vector((0, 0, -drop))
+        deltas["Spine"] = R(Z, turn * 0.5) @ R(X, lean * 0.5)
+        deltas["Chest"] = R(Z, turn * 0.5) @ R(X, lean * 0.5)
+        _chop_arm(rig, deltas, raise_, swing, elbow, twist, wrist)
+        feet = {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
+        return hips_off, deltas, feet
+    return pose
+
+
+attack1_pose = chop_pose("Attack_1", ATTACK1_LEN)
+attack2_pose = chop_pose("Attack_2", ATTACK2_LEN)
+attack3_pose = chop_pose("Attack_3", ATTACK3_LEN)
 
 
 def hit_pose(rig, f):
@@ -551,6 +579,7 @@ def main():
         ("Run", RUN_LEN, run_pose, True),
         ("Attack_1", ATTACK1_LEN, attack1_pose, False),
         ("Attack_2", ATTACK2_LEN, attack2_pose, False),
+        ("Attack_3", ATTACK3_LEN, attack3_pose, False),
         ("HitReact", HIT_LEN, hit_pose, False),
         ("Death", DEATH_LEN, death_pose, False),
     )

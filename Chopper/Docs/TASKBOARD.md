@@ -162,7 +162,8 @@ Week 3: voxel pine, Elite variant, polish of the open look issues.
 | W8-04 | Step up automatically: stepOffset 0.55, stair treads, doorway sill removed | done: house tour climbs every stair |
 | W8-05 | Flicker: block shader detail fade, atlas gutter fill | done, not measured beyond pictures |
 | W8-06 | Carry the bear axe edge down | done: `axe_gear.log`, picture checked |
-| W8-07 | Animations less flaily | open: measured (`anim_base.log`), T-pose avatar tried and reverted; needs the user to name the motion |
+| W8-07 | Axe swings like Valheim (walking is fine) | done: Attack_1/2/3 own chops, `attacks_sheet.png`, `chop_probe.log`, check_rig 145/0 |
+| W8-10 | Softer character textures, no flicker | paint softened, atlas aniso 4; flicker not yet verified in motion |
 | W8-08 | Water, clouds, sun to concept 2.0 | open |
 | W8-09 | Website pictures, last | open |
 

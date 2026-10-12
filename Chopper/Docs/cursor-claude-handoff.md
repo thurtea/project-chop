@@ -50,7 +50,7 @@ Block columns, the palette, and the chunk mesh are in. On world build the terrai
 
 ## Still open, in this order
 
-1. Animations read "weird and flaily" (user, 2026-10-12). Not fixed. The live player plays the Quaternius and Mixamo clips through the auto-built humanoid avatar. `-chopperAnimProbe` (`Logs/chopper_play/anim_base.log`): idle arms out 6-8 deg; walking the upper arms reach 81 deg (left) and 118 deg (right, the axe arm) out to the side and swing -92..46 deg. A hand-built T-pose avatar (as the art project does) made it worse (arms straight up, `anim_after.log`) and was reverted, with `chopper.fbx.meta` restored. Frame strips `Logs/chopper_play/anim_strip/` look like a normal stride at that size; which motion looks flaily (walk, run, chop, idle) still needs pinning down with the user.
+1. Texture flicker on the character and the ground: verify in motion after the gutter fill, softer paint, anisotropic 4 and the block shader fade (see "Axe chops, softer textures").
 2. Character polish toward concept 2.0: chunkier bear axe, chainmail reads flat blue-grey, the helmet is a plain steel cap with stub horns (concept 2.0 has the skull helmet; W2-05 noted it too). Torso is still a straight box.
 3. The house: porch cross-gable over the door and the stone/grass terrace of concept 2.0 are not built; basement walls are log pieces tinted grey. `MeadowBuilder`/`PieceBuilder` rebuilds would undo the voxel dresses; rerun `ChopperPropDress.Apply` after them.
 4. W5-08 step 5: chunk colliders, `WorldGround` reads the columns, drop the Terrain collider, then snap tree Y onto the block top (step 7). The player still walks on the smooth Terrain collider under the stepped blocks. `stepOffset` is already 0.55.
@@ -58,6 +58,13 @@ Block columns, the palette, and the chunk mesh are in. On world build the terrai
 6. Water to match concept 2.0 (user, 2026-10-12).
 7. Website pictures last, once the above is in (user, 2026-10-12). The night picture is weak.
 8. Art-project Unity checks (`ChopperCheck`, 12 skinned meshes expected, the FBX has 13) were not rerun. Do not mark W2-05 done.
+
+## Axe chops, softer textures (2026-10-12, end of day)
+
+- User: walking is fine; the axe swing looked off and should feel like Valheim or Minecraft. New one-handed chops in `animate_chopper.py` (`CHOP_KEYS`, `_chop_arm` with a twist and a wrist channel): Attack_1 diagonal from over the right shoulder, Attack_2 from the left, Attack_3 overhead finisher (new take, 28 frames). Wind-ups found by a grid search over the rig (hand by the shoulder, axe head above and behind the head). `check_rig.py` takes list updated: 145 PASS, 0 FAIL; `check_assets` 136 PASS. Sheet `Chopper/Art/Renders/attacks_sheet.png` (`render_attacks.py`). Live: `CharacterSetup.ChopperTake` puts Attack_1/2/3 on Swing/Swing2/Swing3 and Attack_1 on the tree Chop; `PlayerAnimator` clip lengths 22/22/28 frames. `Logs/chopper_play/chop_probe.log`: the chop layer plays Attack_1, Attack_2, Attack_3 in turn and the hand rises 0.47-0.53 m over the shoulder. Screenshots are too slow to catch the swing; judge it from the sheet or in the editor.
+- Softer character texture: `atlas_paint.grain` at half strength (`GRAIN_SCALE`), hair and beard strands blended toward the base colour. Atlas rebaked and copied to the live project. The atlas imports with mipmaps and anisotropic 4 (`CharacterSetup.PrepareChopperModel`).
+- Flicker is not verified in motion. Item 1 of the open list.
+- The earlier "flaily" walk numbers (`anim_base.log`) are the run cycle; the user says walking is fine.
 
 ## Armour, house, furniture, stairs, flicker, axe edge (2026-10-12, latest)
 

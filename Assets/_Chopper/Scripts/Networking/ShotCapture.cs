@@ -487,13 +487,37 @@ namespace Chopper.Networking
                 PlayerAxe probeAxe = wood.GetComponent<PlayerAxe>();
                 probeAxe.ServerSetHasAxe(true);
                 yield return new WaitForSeconds(0.5f);
-                bool chopped = probeAxe.TrySwing();
-                for (int f = 0; f < 8; f++)
+                // The three-swing combo away from trees, filmed from his right side.
+                for (int swingIndex = 0; swingIndex < 3; swingIndex++)
                 {
-                    yield return Shot(folder, "anim_chop_" + f);
-                    yield return new WaitForSeconds(0.08f);
+                    float wait = 0f;
+                    bool swung = false;
+                    while (!swung && wait < 2f)
+                    {
+                        swung = probeAxe.TrySwing();
+                        if (!swung) { wait += Time.deltaTime; yield return null; }
+                    }
+                    animCam.SnapYaw(wood.transform.eulerAngles.y - 90f);
+                    // How high the axe hand rises over the shoulder during the swing, and what the chop layer plays.
+                    Transform hand = anim.GetBoneTransform(HumanBodyBones.RightHand);
+                    Transform shoulder = anim.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                    float topRise = -9f;
+                    string states = string.Empty;
+                    int chopLayer = anim.GetLayerIndex("Chop");
+                    for (float t = 0f; t < 0.7f; t += Time.deltaTime)
+                    {
+                        topRise = Mathf.Max(topRise, hand.position.y - shoulder.position.y);
+                        if (chopLayer >= 0)
+                        {
+                            AnimatorClipInfo[] clips = anim.GetCurrentAnimatorClipInfo(chopLayer);
+                            string playing = clips.Length > 0 ? clips[0].clip.name : "-";
+                            if (!states.EndsWith(playing)) states += " > " + playing;
+                        }
+                        yield return null;
+                    }
+                    Debug.Log($"[Anim] swing {swingIndex} played {swung}: chop layer {chopLayer} weight {(chopLayer >= 0 ? anim.GetLayerWeight(chopLayer) : 0f):F2}, clips{states}, hand rose up to {topRise:F2} m over the shoulder");
+                    yield return new WaitForSeconds(0.1f);
                 }
-                Debug.Log($"[Anim] chop swung {chopped}");
                 Debug.Log("[Anim] done");
                 Application.Quit(0);
                 yield break;

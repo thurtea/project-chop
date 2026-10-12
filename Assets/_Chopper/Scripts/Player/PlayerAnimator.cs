@@ -45,11 +45,13 @@ namespace Chopper.Player
         // Clip lengths in seconds (TreeChopping and the sword combo from the second library), and the fraction of a
         // swing cooldown one swing should fill.
         // The chop ends after its follow through, about half of the 0.97 s loop.
-        private const float ChopClipSeconds = 0.52f;
+        // Chopper's own chops (animate_chopper.py): Attack_1 and Attack_2 22 frames, Attack_3 28 frames, at 30 fps. The tree
+        // chop is Attack_1.
+        private const float ChopClipSeconds = 22f / 30f;
         // The Mixamo swings, cut to their wind up and recovery (CharacterSetup.SlotTrim): about a second each.
-        private const float ComboAClipSeconds = 1.1f;
-        private const float ComboBClipSeconds = 1.0f;
-        private const float ComboCClipSeconds = 1.1f;
+        private const float ComboAClipSeconds = 22f / 30f;
+        private const float ComboBClipSeconds = 22f / 30f;
+        private const float ComboCClipSeconds = 28f / 30f;
         private const float PunchClipSeconds = 0.87f;
         private const float ChopFillsCooldown = 0.95f;
         // The top of the locomotion blend (the sprint loop's speed in CharacterSetup); faster than this, the loop plays

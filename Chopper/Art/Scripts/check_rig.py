@@ -35,7 +35,7 @@ HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
             "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "LeftToes",
             "RightUpperLeg", "RightLowerLeg", "RightFoot", "RightToes"]
 SOCKETS = ["Weapon_R", "Shield_L", "Shield_Back"]
-TAKES = {"Idle": 60, "Walk": 30, "Run": 20, "Attack_1": 24, "Attack_2": 24, "HitReact": 15, "Death": 36}
+TAKES = {"Idle": 60, "Walk": 30, "Run": 20, "Attack_1": 22, "Attack_2": 22, "Attack_3": 28, "HitReact": 15, "Death": 36}
 LOOP_TAKES = {"Idle", "Walk", "Run"}
 RUN_SPEED = 2.20
 FPS = 30

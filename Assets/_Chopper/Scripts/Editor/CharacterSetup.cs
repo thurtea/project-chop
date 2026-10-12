@@ -157,6 +157,13 @@ namespace Chopper.Editor
         }
 
         // The user's clip for a slot when its file is there, otherwise the library's clip.
+        // One of Chopper's own takes in chopper.fbx (Idle, Walk, Run, Attack_1..3, HitReact, Death), or null.
+        internal static AnimationClip ChopperTake(string take)
+        {
+            return AssetDatabase.LoadAllAssetsAtPath(ChopperModelPath).OfType<AnimationClip>()
+                .FirstOrDefault(c => !c.name.StartsWith("__preview__") && (c.name == take || c.name.EndsWith("|" + take)));
+        }
+
         internal static AnimationClip Slot(string slot, string fallback)
         {
             AnimationClip clip = MotionClip($"{MixamoFolder}/{slot}.fbx");
@@ -538,7 +545,9 @@ namespace Chopper.Editor
             empty.writeDefaultValues = false; // an Empty humanoid state that writes defaults shows the T-pose
             // The axe in a fight: the second library's sword combo (A, B, then the C finisher). On a tree: a real chop.
             AnimatorState swing = machine.AddState("Swing");
-            swing.motion = Slot("attack_1", "Sword_Regular_A");
+            // Chopper's own one-handed axe chops (animate_chopper.py, user 2026-10-12: Valheim-like); the library's sword
+            // combo only when chopper.fbx is not there.
+            swing.motion = ChopperTake("Attack_1") ?? Slot("attack_1", "Sword_Regular_A");
             swing.speedParameterActive = true;
             swing.speedParameter = "SwingSpeed";
             machine.defaultState = empty;
@@ -605,15 +614,17 @@ namespace Chopper.Editor
 
             // Combo: a backhand (the slash played backwards), then a heavy finisher; fists alternate jab and cross.
             AnimatorState backhand = machine.AddState("Swing2");
-            backhand.motion = Slot("attack_2", "Sword_Regular_B");
+            backhand.motion = ChopperTake("Attack_2") ?? Slot("attack_2", "Sword_Regular_B");
             backhand.speedParameterActive = true;
             backhand.speedParameter = "SwingSpeed";
             AnimatorState finisher = machine.AddState("Swing3");
-            finisher.motion = Slot("attack_3", "Sword_Regular_C");
+            finisher.motion = ChopperTake("Attack_3") ?? Slot("attack_3", "Sword_Regular_C");
             finisher.speedParameterActive = true;
             finisher.speedParameter = "SwingSpeed";
             AnimatorState chop = machine.AddState("Chop");
-            chop.motion = BuildOneShotClip("TreeChopping_Loop");
+            // On a tree the same diagonal chop as the first swing (one-shot); the library's tree chop loop without it.
+            AnimationClip ownChop = ChopperTake("Attack_1");
+            chop.motion = ownChop != null ? ownChop : BuildOneShotClip("TreeChopping_Loop");
             chop.speedParameterActive = true;
             chop.speedParameter = "SwingSpeed";
             // A pickaxe blow into a rock face (the Kevin Iglesias crafting pack); the tree chop if it is missing.
@@ -652,7 +663,7 @@ namespace Chopper.Editor
                 AnimatorStateTransition leave = to.state.AddTransition(empty);
                 leave.hasExitTime = true;
                 // The chop is one cycle of a loop: after the follow through it would wind up again, so it ends there.
-                leave.exitTime = to.state == chop ? ChopExitTime : SwingExitTime;
+                leave.exitTime = to.state == chop && ownChop == null ? ChopExitTime : SwingExitTime;
                 leave.duration = to.state == chop ? 0.2f : 0.1f;
             }
 
@@ -840,6 +851,10 @@ namespace Chopper.Editor
             if (tex != null)
             {
                 tex.sRGBTexture = true;
+                // Faces seen edge on (the sides as he turns) shimmered on low mip levels; anisotropic filtering keeps
+                // them sharp without the sparkle.
+                tex.mipmapEnabled = true;
+                tex.anisoLevel = 4;
                 tex.SaveAndReimport();
             }
         }

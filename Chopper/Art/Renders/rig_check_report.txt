@@ -1,6 +1,6 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (1957484 bytes)
+  [PASS] file exists: Export\chopper.fbx (2138172 bytes)
   [PASS] file exists: Export\chopper_axe.fbx (32268 bytes)
   [PASS] file exists: Export\chopper_axe_bear.fbx (30748 bytes)
   [PASS] file exists: Export\chopper_shield.fbx (40556 bytes)
@@ -15,11 +15,12 @@ RAW FBX: chopper.fbx
   [PASS] take Idle present, frames 0.00-60.00 (expected 0-60 = 2.00 s at 30 fps)
   [PASS] take Walk present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
   [PASS] take Run present, frames 0.00-20.00 (expected 0-20 = 0.67 s at 30 fps)
-  [PASS] take Attack_1 present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
-  [PASS] take Attack_2 present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
+  [PASS] take Attack_1 present, frames 0.00-22.00 (expected 0-22 = 0.73 s at 30 fps)
+  [PASS] take Attack_2 present, frames 0.00-22.00 (expected 0-22 = 0.73 s at 30 fps)
+  [PASS] take Attack_3 present, frames 0.00-28.00 (expected 0-28 = 0.93 s at 30 fps)
   [PASS] take HitReact present, frames 0.00-15.00 (expected 0-15 = 0.50 s at 30 fps)
   [PASS] take Death present, frames 0.00-36.00 (expected 0-36 = 1.20 s at 30 fps)
-  [PASS] takes are exactly ['Attack_1', 'Attack_2', 'Death', 'HitReact', 'Idle', 'Run', 'Walk'] (found ['Attack_1', 'Attack_2', 'Death', 'HitReact', 'Idle', 'Run', 'Walk'])
+  [PASS] takes are exactly ['Attack_1', 'Attack_2', 'Attack_3', 'Death', 'HitReact', 'Idle', 'Run', 'Walk'] (found ['Attack_1', 'Attack_2', 'Attack_3', 'Death', 'HitReact', 'Idle', 'Run', 'Walk'])
 
 IMPORTED chopper.fbx
 ------------------------------------------------------------------------
@@ -135,15 +136,21 @@ TAKE Run (imported)
 
 TAKE Attack_1 (imported)
   [PASS] action for take Attack_1 found (chopper_rig|Attack_1)
-  [PASS] imported frame range 1-25 (expected 1-25)
-  [PASS] Attack_1 moves (body vertex delta mid-clip 0.418 m)
+  [PASS] imported frame range 1-23 (expected 1-23)
+  [PASS] Attack_1 moves (body vertex delta mid-clip 1.377 m)
   [PASS] Attack_1: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE Attack_2 (imported)
   [PASS] action for take Attack_2 found (chopper_rig|Attack_2)
-  [PASS] imported frame range 1-25 (expected 1-25)
-  [PASS] Attack_2 moves (body vertex delta mid-clip 0.305 m)
+  [PASS] imported frame range 1-23 (expected 1-23)
+  [PASS] Attack_2 moves (body vertex delta mid-clip 1.190 m)
   [PASS] Attack_2: feet stay above Z=-0.02 (lowest -0.0000)
+
+TAKE Attack_3 (imported)
+  [PASS] action for take Attack_3 found (chopper_rig|Attack_3)
+  [PASS] imported frame range 1-29 (expected 1-29)
+  [PASS] Attack_3 moves (body vertex delta mid-clip 1.396 m)
+  [PASS] Attack_3: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE HitReact (imported)
   [PASS] action for take HitReact found (chopper_rig|HitReact)
@@ -219,4 +226,4 @@ BEARD CLEARANCE (beard vertices vs vest, shirt and body)
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 
 ========================================================================
-SUMMARY: 140 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 145 PASS, 0 FAIL -> ALL PASS
