@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 1387693687905777697}
   - component: {fileID: 6436522114489780117}
   - component: {fileID: 3219390534677036456}
+  - component: {fileID: 3566982832196927850}
   m_Layer: 0
   m_Name: EnemyDirector
   m_TagString: Untagged
@@ -232,3 +233,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: f01864c465c48bb4abd53b49bb440349, type: 2}
   - {fileID: 11400000, guid: 628e0c33392f14b49b96e33a0fc00e64, type: 2}
   - {fileID: 11400000, guid: 667b622bac1171848bab71ebd7e7513a, type: 2}
+--- !u!114 &3566982832196927850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6666002672748783606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc586257e4965fa4cb9b7b1345acbcdf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.HubPathStones
+  _model: {fileID: 3308492885939357430, guid: cde0c12402da64647a143b3f3f5f0e70, type: 3}

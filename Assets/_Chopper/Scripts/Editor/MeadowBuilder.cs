@@ -412,7 +412,7 @@ namespace Chopper.Editor
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
             RenderSettings.fogDensity = ZonePalette.FogDensity(Element.Neutral);
-            RenderSettings.fogColor = new Color(0.78f, 0.85f, 0.80f);
+            RenderSettings.fogColor = ZonePalette.Fog(Element.Neutral);
 
             string skyPath = $"{MaterialsFolder}/M_Sky.mat";
             Material sky = AssetDatabase.LoadAssetAtPath<Material>(skyPath);

@@ -96,9 +96,8 @@ button:focus-visible {
 
 .brand img {
   display: block;
-  height: 3.2rem;
+  height: 4.25rem;
   width: auto;
-  border-radius: 0.35rem;
 }
 
 .nav-toggle {
@@ -137,8 +136,9 @@ main {
 }
 
 .hero {
-  padding: 3.5rem 0 2rem;
+  padding: 2rem 0 2.25rem;
   border-bottom: 1px solid var(--border);
+  text-align: center;
 }
 
 .eyebrow {
@@ -159,8 +159,8 @@ h1 {
 }
 
 .lede {
-  margin: 0;
-  max-width: 34rem;
+  margin: 0 auto;
+  max-width: 36rem;
   color: var(--muted);
   font-size: 1.15rem;
 }
@@ -379,16 +379,18 @@ footer a:hover {
   margin: 0 0 1.25rem;
 }
 
-.hero .banner,
-.cover {
+.hero .banner {
   display: block;
-  width: min(100%, 28rem);
+  width: min(100%, 26rem);
   height: auto;
-  border-radius: 0.6rem;
+  margin: 0 auto;
 }
 
 .cover {
-  margin: 0 0 1.25rem;
+  float: right;
+  width: min(46%, 20rem);
+  height: auto;
+  margin: 0.15rem 0 1rem 1.5rem;
 }
 
 .cta {
@@ -558,7 +560,14 @@ table {
   }
 
   .hero {
-    padding-top: 2rem;
+    padding-top: 1.5rem;
+  }
+
+  .cover {
+    float: none;
+    display: block;
+    width: min(100%, 18rem);
+    margin: 0 auto 1.25rem;
   }
 
   .cta .btn {
@@ -612,11 +621,8 @@ table {
   color: var(--muted);
 }
 
-.empty-gallery {
-  margin: 0;
-  padding: 2.5rem 1.25rem;
-  border: 1px dashed var(--border);
-  background: var(--bg-raise);
-  text-align: center;
-  color: var(--muted);
+#game::after {
+  content: "";
+  display: block;
+  clear: both;
 }

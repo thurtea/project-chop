@@ -271,6 +271,14 @@ namespace Chopper.World.Generation
             return best;
         }
 
+        // A point on a forest path, the same centre line DistanceToPath measures.
+        public Vector2 PathPoint(Element forest, float along)
+        {
+            Vector2 axis = ZoneMap.Axis(forest);
+            Vector2 perpendicular = new Vector2(axis.y, -axis.x);
+            return axis * along + perpendicular * PathOffset(along);
+        }
+
         public bool OnPath(float x, float z, float margin) => DistanceToPath(x, z) < PathHalfWidth + margin;
 
         // 1 on the path, fading to 0 just outside it.

@@ -44,13 +44,14 @@ namespace Chopper.World
                 case Element.Fire: return new Color(0.66f, 0.50f, 0.44f);
                 case Element.Earth: return new Color(0.42f, 0.52f, 0.42f);
                 case Element.Wind: return new Color(0.84f, 0.86f, 0.80f);
-                default: return new Color(0.78f, 0.85f, 0.80f);
+                // W11-08: warm meadow haze, so the distance reads pale gold instead of cool green.
+                default: return new Color(0.80f, 0.76f, 0.66f);
             }
         }
 
         // Exponential squared fog density: thick mist in the marsh, gloom in the deep woods, clear air on the highlands.
-        // Thick enough that nobody sees across the island: in the hub the air is half fog at about 185 m (the mountain
-        // ring still shows) and solid well before the far coast; the camera stops drawing at FarClip.
+        // Thick enough that nobody sees across the island. In the hub the air is half fog at about 88 m (the mountain
+        // ring still shows through it) and solid well before the far coast; the camera stops drawing at FarClip.
         public static float FogDensity(Element zone)
         {
             switch (zone)
@@ -59,8 +60,8 @@ namespace Chopper.World
                 case Element.Fire: return 0.0060f;
                 case Element.Earth: return 0.0062f;
                 case Element.Wind: return 0.0040f;
-                // W5-02b Valheim depth haze (was 0.0045): distance fog over the hub.
-                default: return 0.0060f;
+                // W11-08 thicker hub mist (was 0.0060). Half fog near 88 m.
+                default: return 0.0095f;
             }
         }
 

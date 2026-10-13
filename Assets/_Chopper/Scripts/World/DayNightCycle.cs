@@ -41,10 +41,9 @@ namespace Chopper.World
         private static readonly Color NoonColor = new Color(1f, 0.87f, 0.68f);
         private static readonly Color MoonColor = new Color(0.50f, 0.62f, 1f);
         private static readonly Color NightFilter = new Color(0.66f, 0.76f, 1f);
-        // W5-02b Valheim grade (was 0.62, 0.68, 0.78): cooler sky fill, so shadows read blue against the warm sun.
-        private static readonly Color LightingSky = new Color(0.56f, 0.65f, 0.82f);
-        // W5-02b Valheim grade (was 0.68, 0.69, 0.60): a cool horizon fill for blue shade.
-        private static readonly Color LightingEquator = new Color(0.60f, 0.66f, 0.72f);
+        // W11-08: daylight fill follows the warm sky. Night stays blue below.
+        private static readonly Color LightingSky = new Color(0.72f, 0.66f, 0.56f);
+        private static readonly Color LightingEquator = new Color(0.70f, 0.62f, 0.50f);
         private static readonly Color LightingGround = new Color(0.42f, 0.40f, 0.30f);
         private static readonly Color NightSky = new Color(0.26f, 0.34f, 0.58f);
         private static readonly Color NightEquator = new Color(0.20f, 0.26f, 0.42f);
@@ -76,7 +75,7 @@ namespace Chopper.World
         private static readonly int SunSizeId = Shader.PropertyToID("_SunSize");
         // Low sun: a golden haze in the air and warmer fill light; high sun: clear, faintly cool air.
         private static readonly Color LowSunHaze = new Color(1.08f, 0.80f, 0.60f);
-        private static readonly Color NoonHaze = new Color(0.94f, 0.98f, 1.04f);
+        private static readonly Color NoonHaze = new Color(1.04f, 0.96f, 0.84f);
         private static readonly Color LowSunEquator = new Color(0.80f, 0.64f, 0.50f);
         // Below the horizon the sky shows the color of the open sea, so the fogged sea and the sky meet without a seam.
         private static readonly Color SeaHorizon = new Color(0.30f, 0.38f, 0.40f);
@@ -266,11 +265,10 @@ namespace Chopper.World
             {
                 if (_skyRuntime.HasProperty(ExposureId)) _skyRuntime.SetFloat(ExposureId, Mathf.Lerp(1.3f, NightSkyExposure, d) * weather.Sky);
                 // A thicker atmosphere at a low sun paints the long orange horizon of morning and evening.
-                // W5-02b concept 1 look: noon thickness 1.1 (was 0.95) for a paler, hazier horizon.
-                if (_skyRuntime.HasProperty(AtmosphereId)) _skyRuntime.SetFloat(AtmosphereId, Mathf.Lerp(1.1f, 1.5f, lowSun));
+                // W11-08: a thicker, warmer noon sky so the horizon is pale gold, not hard blue.
+                if (_skyRuntime.HasProperty(AtmosphereId)) _skyRuntime.SetFloat(AtmosphereId, Mathf.Lerp(1.45f, 1.75f, lowSun));
                 // An overcast sky loses its blue and its warm low sun tint and turns flat grey.
-                // W5-02b concept 1 look: high sun tint 0.50, 0.52, 0.54 (was 0.46, 0.50, 0.55), a softer, less saturated blue.
-                Color tint = Color.Lerp(new Color(0.50f, 0.52f, 0.54f), new Color(0.52f, 0.47f, 0.44f), lowSun);
+                Color tint = Color.Lerp(new Color(0.64f, 0.56f, 0.46f), new Color(0.62f, 0.48f, 0.36f), lowSun);
                 if (_skyRuntime.HasProperty(SkyTintId)) _skyRuntime.SetColor(SkyTintId, Color.Lerp(tint, OvercastSky, weather.Overcast));
                 if (_skyRuntime.HasProperty(GroundColorId)) _skyRuntime.SetColor(GroundColorId, Color.Lerp(SeaHorizon, SeaHorizon * 0.15f, d));
                 // The visible sun is the block disc (BlockSky). This disc in the skybox stays a small glow behind it.

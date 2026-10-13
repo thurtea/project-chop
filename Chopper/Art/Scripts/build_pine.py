@@ -37,26 +37,48 @@ FACE = {
 
 
 def cells():
-    """Integer cube coordinates. x, y across the pad, z up. (0,0) is the trunk."""
+    """Integer cube coordinates. x, y across the pad, z up. (0,0) is the trunk.
+
+    Four foliage discs with a bare trunk cell between them, widest at the bottom,
+    so the tree reads as stacked layers instead of one cone.
+    """
     out = {}
-    for ix in range(-3, 4):
-        for iy in range(-3, 4):
-            if abs(ix) == 3 and abs(iy) == 3:
+    for ix in range(-4, 5):
+        for iy in range(-4, 5):
+            if ix * ix + iy * iy > 18:
                 continue
-            if (ix, iy) in ((-3, 2), (3, -2), (2, 3)):
+            if abs(ix) >= 3 and abs(iy) >= 3:
                 continue
             out[(ix, iy, 0)] = DIRT_DARK if (ix + iy) % 2 else DIRT
-    for iz in range(1, 5):
+    for iz in range(1, 17):
         out[(0, 0, iz)] = TRUNK
-    radii = (4, 3, 3, 2, 2, 1, 1, 0)
-    for layer, r in enumerate(radii):
-        iz = 5 + layer
-        for ix in range(-r, r + 1):
-            for iy in range(-r, r + 1):
-                if ix * ix + iy * iy > r * r:
-                    continue
-                out[(ix, iy, iz)] = LEAF_DARK if (ix + iy + iz) % 2 else LEAF
+    # (bottom z, top z, radius). A trunk-only slice sits between each pair.
+    tiers = ((6, 7, 4), (9, 10, 3), (12, 13, 2), (15, 16, 1))
+    for z0, z1, r in tiers:
+        for iz in range(z0, z1 + 1):
+            for ix in range(-r, r + 1):
+                for iy in range(-r, r + 1):
+                    if ix * ix + iy * iy > r * r + r // 2:
+                        continue
+                    if max(abs(ix), abs(iy)) == r and (ix * 3 + iy * 5 + iz) % 3 == 0:
+                        continue
+                    if iz == z0:
+                        out[(ix, iy, iz)] = LEAF_DARK
+                    else:
+                        out[(ix, iy, iz)] = LEAF_DARK if (ix + iy + iz) % 3 == 0 else LEAF
     return out
+
+
+def foliage_tiers(occ):
+    """How many separated foliage bands sit on the trunk (a gap of at least one cell splits a band)."""
+    zs = sorted({iz for (ix, iy, iz) in occ if iz > 0 and (ix, iy) != (0, 0)})
+    if not zs:
+        return 0
+    bands = 1
+    for a, b in zip(zs, zs[1:]):
+        if b > a + 1:
+            bands += 1
+    return bands
 
 
 def build(occ):
@@ -101,7 +123,7 @@ def build(occ):
     return obj
 
 
-def check(obj, n_cells):
+def check(obj, n_cells, occ):
     lines = ["Voxel pine check", "=" * 60]
     ok = True
 
@@ -131,6 +153,8 @@ def check(obj, n_cells):
     imgs = [im.name for im in bpy.data.images if im.name not in ("Render Result", "Viewer Node")]
     add("no images in the file", not imgs, ", ".join(imgs))
     add("cubes %d, triangles %d" % (n_cells, tris), tris < 8000)
+    tiers = foliage_tiers(occ)
+    add("foliage in %d separated tiers" % tiers, tiers >= 4)
     lines.append("SUMMARY: %s" % ("ALL PASS" if ok else "FAILURES"))
     text = "\n".join(lines) + "\n"
     os.makedirs(os.path.dirname(REPORT), exist_ok=True)
@@ -141,13 +165,13 @@ def check(obj, n_cells):
         raise SystemExit(1)
 
 
-def shoot(name, yaw_deg, ortho):
+def shoot(name, yaw_deg, ortho, pitch_deg=12):
     import math
     sc = bpy.context.scene
     cam = sc.camera
     cam.data.type = "ORTHO"
     cam.data.ortho_scale = ortho
-    yaw, pitch = math.radians(yaw_deg), math.radians(12)
+    yaw, pitch = math.radians(yaw_deg), math.radians(pitch_deg)
     look = Vector((math.sin(yaw) * math.cos(pitch), math.cos(yaw) * math.cos(pitch), -math.sin(pitch)))
     target = Vector((0, 0, 1.5))
     cam.location = target - look * 8
@@ -168,15 +192,27 @@ def render(obj):
     sh.show_shadows = False
     if sc.world is None:
         sc.world = bpy.data.worlds.new("World")
-    sc.world.color = (0.85, 0.86, 0.88)
+    # Warm haze, the colour of the concept sky, so the shot is not a hard blue.
     data = bpy.data.cameras.new("Cam")
     cam = bpy.data.objects.new("Cam", data)
     sc.collection.objects.link(cam)
     sc.camera = cam
     sc.render.image_settings.file_format = "PNG"
     data.clip_end = 100
-    shoot("pine_front", 0, 4.2)
-    shoot("pine_three_quarter", -40, 4.6)
+    sc.world.color = (0.78, 0.70, 0.56)
+    shoot("pine_front", 0, 5.2)
+    shoot("pine_three_quarter", -40, 5.6)
+    copies = []
+    for x, y, s in ((-1.6, -2.4, 1.05), (2.6, -1.2, 0.72), (-2.8, 1.8, 0.58), (1.2, 3.6, 0.42)):
+        copy = obj.copy()
+        copy.data = obj.data
+        copy.location = (x, y, 0)
+        copy.scale = (s, s, s)
+        sc.collection.objects.link(copy)
+        copies.append(copy)
+    shoot("pine_grove", -32, 11.0, pitch_deg=18)
+    for copy in copies:
+        bpy.data.objects.remove(copy, do_unlink=True)
 
 
 def export_fbx():
@@ -204,7 +240,7 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     occ = cells()
     obj = build(occ)
-    check(obj, len(occ))
+    check(obj, len(occ), occ)
     render(obj)
     bpy.context.preferences.filepaths.save_version = 0
     os.makedirs(os.path.dirname(BLEND), exist_ok=True)
