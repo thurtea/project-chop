@@ -148,11 +148,11 @@ namespace Chopper.UI
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
 
-            // A picture of the game, darkened on the left where the menu sits.
+            // The start-menu concept (W11-01), darkened on the left where the menu sits.
             var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(RawImage), typeof(AspectRatioFitter)).GetComponent<RawImage>();
             backdrop.rectTransform.SetParent(_canvas.transform, false);
             UiKit.Stretch(backdrop.rectTransform);
-            var shot = Resources.Load<Texture2D>("Branding/chopper-cover");
+            var shot = Resources.Load<Texture2D>("Branding/start-menu-background");
             if (shot == null) shot = Resources.Load<Texture2D>("Branding/title");
             backdrop.texture = shot != null ? shot : BackdropTexture();
             backdrop.raycastTarget = false;

@@ -102,6 +102,8 @@ namespace Chopper.Player
         {
             _durability.Value = Mathf.Clamp(durability, 1, _config.AxeDurability);
             ServerSetHasAxe(true);
+            // Picked up with Interact, it goes on the back; the Axe key draws it (W11-20).
+            _drawn.Value = false;
         }
 
         // Server only. The axe leaves the hand to lie where the player fell; returns how worn it is, for the pickup.

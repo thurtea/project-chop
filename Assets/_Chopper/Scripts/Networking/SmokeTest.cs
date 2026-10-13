@@ -1080,7 +1080,7 @@ namespace Chopper.Networking
             TeleportPlayer(wood, new Vector3(bank.x, 0f, bank.y));
             yield return new WaitForSeconds(0.5f);
             Check(PlayerFishing.AtPond(wood.transform.position), "the hub pond's bank is a fishing spot");
-            Check(fishing.TryToggle() && fishing.Busy, "interact on the bank takes the rod out");
+            Check(fishing.TryToggle() && fishing.Busy, "the rod key on the bank takes the rod out");
             yield return new WaitForSeconds(0.4f);
 
             var target = new Vector3(gen.PondCenter.x, 0f, gen.PondCenter.y);

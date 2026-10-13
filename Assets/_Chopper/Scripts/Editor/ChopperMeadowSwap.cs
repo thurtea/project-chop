@@ -107,6 +107,8 @@ namespace Chopper.Editor
             importer.bakeAxisConversion = true;
             importer.importAnimation = false;
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            // FallingTree cuts the pine at the stump top, which needs the vertices in the player build.
+            importer.isReadable = name == "prop_pine_voxel";
             importer.SaveAndReimport();
         }
 

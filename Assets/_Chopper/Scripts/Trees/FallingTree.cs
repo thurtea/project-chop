@@ -58,7 +58,7 @@ namespace Chopper.Trees
             falling._scale = scale;
             falling._onBreak = onBreak;
             falling._groundY = float.IsNaN(groundY) ? cut.y : groundY;
-            CutBelow(go, falling._localHinge.y);
+            Cut(go, falling._localHinge.y, keepAbove: true);
             falling.Apply(landed ? FallDegrees : 0f);
             return falling;
         }
@@ -86,14 +86,20 @@ namespace Chopper.Trees
             _onBreak?.Invoke(_breakCenter);
         }
 
-        // Everything below the cut (stump, roots, dirt pad) stays behind: faces wholly below are dropped and faces
-        // crossing the cut are clamped to it. Heights are in the tree root's space (the mesh is on its side from the export).
-        private static void CutBelow(GameObject go, float cutY)
+        // Splits a tree copy at the stump top. keepAbove: the falling trunk and crown; otherwise the roots and the dirt
+        // pad that stay on the stump (TreeManager). Faces wholly on the dropped side go, faces crossing the cut are
+        // clamped to it. Heights are in the tree root's space. The mesh must import with Read/Write on.
+        public static void Cut(GameObject go, float cutY, bool keepAbove)
         {
             foreach (MeshFilter filter in go.GetComponentsInChildren<MeshFilter>())
             {
                 Mesh source = filter.sharedMesh;
-                if (source == null || !source.isReadable) continue;
+                if (source == null) continue;
+                if (!source.isReadable)
+                {
+                    Debug.LogWarning($"[FallingTree] {source.name} is not readable; the tree is not cut at the stump");
+                    continue;
+                }
                 Vector3[] verts = source.vertices;
                 int[] tris = source.triangles;
                 Matrix4x4 toRoot = go.transform.worldToLocalMatrix * filter.transform.localToWorldMatrix;
@@ -105,14 +111,15 @@ namespace Chopper.Trees
                 for (int i = 0; i < tris.Length; i += 3)
                 {
                     float top = Mathf.Max(heights[tris[i]], Mathf.Max(heights[tris[i + 1]], heights[tris[i + 2]]));
-                    if (top <= cutY) continue;
+                    float bottom = Mathf.Min(heights[tris[i]], Mathf.Min(heights[tris[i + 1]], heights[tris[i + 2]]));
+                    if (keepAbove ? top <= cutY : bottom >= cutY) continue;
                     kept.Add(tris[i]);
                     kept.Add(tris[i + 1]);
                     kept.Add(tris[i + 2]);
                 }
                 for (int v = 0; v < verts.Length; v++)
                 {
-                    if (heights[v] >= cutY) continue;
+                    if (keepAbove ? heights[v] >= cutY : heights[v] <= cutY) continue;
                     Vector3 p = toRoot.MultiplyPoint3x4(verts[v]);
                     p.y = cutY;
                     verts[v] = toMesh.MultiplyPoint3x4(p);

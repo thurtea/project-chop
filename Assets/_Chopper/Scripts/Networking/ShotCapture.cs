@@ -636,7 +636,7 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.8f);
                 float basement = Rise();
                 yield return Shot(folder, "house_in_basement");
-                yield return WalkTo(-5f, 0.6f, 3f);
+                yield return WalkTo(-5f, 2.6f, 3f);
                 yield return WalkTo(-5f, -3f, 4f);
                 float fromBasement = Rise();
                 Debug.Log($"[House] upstairs across the floor at {upstairs:F2} m; basement at {basement:F2} m, up its stairs to {fromBasement:F2} m");

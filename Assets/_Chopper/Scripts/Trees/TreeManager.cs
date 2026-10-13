@@ -770,6 +770,7 @@ namespace Chopper.Trees
                 float scale = diameter / StumpModelSize;
                 stump.transform.localScale = Vector3.one * scale;
                 stump.transform.position = entry.Position;
+                AddRoots(entry, stump.transform);
                 return stump;
             }
 
@@ -780,7 +781,23 @@ namespace Chopper.Trees
             cylinder.transform.localScale = new Vector3(diameter, StumpHeight * 0.5f, diameter);
             cylinder.transform.position = entry.Position + Vector3.up * (StumpHeight * 0.5f);
             if (_stumpMaterial != null) cylinder.GetComponent<MeshRenderer>().sharedMaterial = _stumpMaterial;
+            AddRoots(entry, cylinder.transform);
             return cylinder;
+        }
+
+        // The tree below the stump top (roots, dirt pad) stays upright on the stump until the stump is cleared (W11-12).
+        private void AddRoots(TreeEntry entry, Transform stump)
+        {
+            GameObject model = _database.GetModel(entry.ModelIndex);
+            if (model == null) return;
+            GameObject roots = Instantiate(model, Planted(entry.Position, entry.Scale), Quaternion.Euler(0f, entry.Yaw, 0f));
+            roots.name = "Roots";
+            roots.transform.localScale = Vector3.one * entry.Scale;
+            TreeTint.Apply(roots, entry.Zone);
+            foreach (Collider collider in roots.GetComponentsInChildren<Collider>()) Destroy(collider);
+            float scale = Mathf.Max(0.01f, entry.Scale);
+            FallingTree.Cut(roots, (StumpTop(entry) + PineBuryMeters * scale) / scale, keepAbove: false);
+            roots.transform.SetParent(stump, true);
         }
     }
 }

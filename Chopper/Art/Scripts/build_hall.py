@@ -47,6 +47,7 @@ THATCH_DARK = srgb(168, 122, 58)
 THATCH_LIGHT = srgb(228, 186, 108)
 FRAME = srgb(72, 44, 26)
 POST = srgb(96, 58, 32)
+CHINK = srgb(62, 40, 24)
 
 
 class Mesh:
@@ -312,6 +313,8 @@ def build():
                 while x1 < W and not blocked(x1 + 0.1, z, holes):
                     x1 += 0.15
                 m.prism((x, y, z), (min(x1, W), y, z), LOG_R, color)
+                # Chinking inside the course seals the slit between the flat log faces (W11-14 flicker).
+                m.box(x + 0.02, min(x1, W) - 0.02, y - 0.05, y + 0.05, z - LOG_R, z + LOG_R, CHINK)
                 x = x1 + 0.15
     # End walls: logs along Y, one window each.
     ew = (-1.1, -0.2, 2.85, 3.55)
@@ -331,6 +334,7 @@ def build():
                 while y1 < D - 0.2 and not in_end_window(y1 + 0.1, z):
                     y1 += 0.15
                 m.prism((x, y, z), (x, min(y1, D - 0.2), z), LOG_R, color)
+                m.box(x - 0.05, x + 0.05, y + 0.02, min(y1, D - 0.2) - 0.02, z - LOG_R, z + LOG_R, CHINK)
                 y = y1 + 0.15
 
     # Heavy square posts split the walls into bays (concept 2.0), standing on the stones, up to a top

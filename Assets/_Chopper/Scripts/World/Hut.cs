@@ -109,7 +109,8 @@ namespace Chopper.World
             // Piece-metres under the scaled root: basement floor, main floor, loft floor (= the eaves).
             const float main = 2f, loft = 4f;
             const float doorX = 1f;
-            var basementHole = new Vector2(-5f, -1f);   // basement stairs, under the main floor
+            // The basement stairwell is two tiles long at the -X end, so the flight rises at half the pitch (W11-14).
+            var basementHoles = new[] { new Vector2(-5f, -1f), new Vector2(-5f, 1f) };
             var loftHole = new Vector2(3f, 1f);         // main floor stairs, under the loft
 
             foreach (float x in TilesX)
@@ -117,7 +118,7 @@ namespace Chopper.World
                 foreach (float z in TilesZ)
                 {
                     Put(root, "Wood floor", new Vector3(x, 0f, z), 0f);
-                    if (new Vector2(x, z) != basementHole) Put(root, "Wood floor", new Vector3(x, main, z), 0f);
+                    if (System.Array.IndexOf(basementHoles, new Vector2(x, z)) < 0) Put(root, "Wood floor", new Vector3(x, main, z), 0f);
                     // The loft covers the middle of the house, where the roof is high enough to stand.
                     if (Mathf.Abs(z) < 2f && new Vector2(x, z) != loftHole) Put(root, "Wood floor", new Vector3(x, loft, z), 0f);
                 }
@@ -134,7 +135,7 @@ namespace Chopper.World
 
             // Stairs: from the basement up toward the back at the -X end, and from the main floor up into the loft
             // (rising toward +X).
-            Put(root, "Stairs", new Vector3(basementHole.x, 0f, basementHole.y), 180f);
+            Put(root, "Stairs", new Vector3(-5f, 0f, 0f), 180f, new Vector3(1f, 1f, 2f));
             Put(root, "Stairs", new Vector3(loftHole.x, main, loftHole.y), 90f);
             BuildPorch(root, doorX, main);
 

@@ -75,7 +75,7 @@ namespace Chopper.UI
             "<Gamepad>/buttonNorth",       // Inventory (Y)
             "<Gamepad>/select",            // Map (Back)
             HotbarPath,                    // Food
-            HotbarPath,                    // Rod (Interact at the pond also takes it out)
+            HotbarPath,                    // Rod
             HotbarPath,                    // Axe (draw or put away)
             HotbarPath,                    // Build (the hammer)
             "<Gamepad>/rightStickPress"    // Unequip (R3)

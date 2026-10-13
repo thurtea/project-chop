@@ -342,8 +342,8 @@ namespace Chopper.Player
 
         // ---------- Owner ----------
 
-        // Interact or the rod key: puts the rod away while fishing, or takes it out on the bank. False if neither
-        // applies. Interact and the rod key can share a button, so a second call in the same frame is ignored.
+        // The rod key: puts the rod away while fishing, or takes it out on the bank. False if neither applies. A second
+        // call in the same frame is ignored.
         public bool TryToggle()
         {
             if (!IsOwner) return false;

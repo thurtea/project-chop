@@ -88,7 +88,6 @@ namespace Chopper.Player
                 PlayerCrypt crypt = GetComponent<PlayerCrypt>();
                 // Not a pattern match: a missing Unity component compares equal to null but is not a C# null.
                 PlayerMining mining = GetComponent<PlayerMining>();
-                PlayerFishing fishing = GetComponent<PlayerFishing>();
                 PlayerRest rest = GetComponent<PlayerRest>();
                 Station station = StationHere(transform.position);
                 PlayerBuilder builder = GetComponent<PlayerBuilder>();
@@ -96,8 +95,6 @@ namespace Chopper.Player
                 if (builder != null && builder.TryRemoveAimed()) { }
                 else if (crypt != null && crypt.TryInteract()) { }
                 else if (mining != null && mining.TryInteract()) { }
-                // At a shore with a rod, interact takes it out (and puts it away again).
-                else if (fishing != null && fishing.TryToggle()) { }
                 // The house: the workbench and the chest open their menus, the bed lies down (from dusk on).
                 else if (station == Station.Workbench) UiState.RequestWorkbench();
                 else if (station == Station.Chest) UiState.RequestChest();
@@ -137,12 +134,12 @@ namespace Chopper.Player
         }
 
         // What interact would pick here. Plants first, then a wood pile (only with room to carry it), then a branch. A
-        // sign or a shore claims the interact for itself.
+        // sign claims the interact for itself.
         private Pickup PickupHere()
         {
             Vector3 at = transform.position;
             if (HerbManager.Instance != null && HerbManager.Instance.HerbInReach(at)) return Pickup.Herb;
-            if (Sign.Nearest(at) != null || PlayerFishing.AtWater(at)) return Pickup.None;
+            if (Sign.Nearest(at) != null) return Pickup.None;
             if (Carried < Cap && WoodPile.Nearest(at) != null) return Pickup.Pile;
             BranchManager branches = BranchManager.Instance;
             if (branches != null && branches.BranchInReach(at)) return Pickup.Branch;
