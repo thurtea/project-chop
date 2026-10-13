@@ -20,9 +20,10 @@ EXPORT = os.path.join(ART, "Export")
 REPORT = os.path.join(ART, "Renders", "meadow_check_report.txt")
 
 S = 0.25
-STONE = (0.46, 0.45, 0.41)
-STONE_DARK = (0.32, 0.31, 0.28)
-MOSS = (0.26, 0.34, 0.16)
+STONE = (0.30, 0.29, 0.27)
+STONE_DARK = (0.21, 0.20, 0.19)
+MOSS = (0.20, 0.28, 0.11)
+MOSS_DARK = (0.15, 0.22, 0.08)
 BARK = (0.34, 0.20, 0.10)
 BARK_DARK = (0.24, 0.14, 0.07)
 WOOD = (0.55, 0.36, 0.16)
@@ -59,8 +60,10 @@ def rock_cells():
     )
     for iz, r, bites in layers:
         for ix, iy in disc(r, bites):
-            top = iz == 3 or (iz == 2 and abs(ix) + abs(iy) <= 1)
-            out[(ix, iy, iz)] = MOSS if top and (ix + iy) % 2 == 0 else (STONE_DARK if (ix + iy + iz) % 3 == 0 else STONE)
+            out[(ix, iy, iz)] = STONE_DARK if (ix + iy + iz) % 3 == 0 else STONE
+    for (ix, iy, iz) in list(out):
+        if (ix, iy, iz + 1) not in out and (ix * 3 + iy * 5) % 4 != 0:
+            out[(ix, iy, iz)] = MOSS if (ix + iy) % 2 else MOSS_DARK
     return out
 
 

@@ -222,7 +222,7 @@ namespace Chopper.Editor
         private static readonly Dictionary<string, string> OwnTakes = new Dictionary<string, string>
         {
             { "idle", "Idle" }, { "walk", "Walk" }, { "run", "Run" }, { "sprint", "Sprint" }, { "fall", "Air" },
-            { "land_hard", "LandHard" }, { "death", "Death" }, { "swim_idle", "SwimIdle" }, { "swim", "Swim" },
+            { "land_hard", "LandHard" }, { "death", "Death" },
         };
         // Ground speed each own loop was authored at (animate_chopper WALK_SPEED and GAITS), m/s.
         private static readonly Dictionary<string, float> OwnNaturalSpeed = new Dictionary<string, float>

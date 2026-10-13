@@ -228,3 +228,22 @@ Order (user): character first, then the hut, then the world. Gameplay, combat an
 | W11-10 | Fire burns: standing in a fire deals burn damage that ticks over time | open (gameplay phase) |
 | W11-11 | Combat, enemy AI and mechanics polish | open (last) |
 - 2026-10-13 W11 character pass proof: `check_assets` 137/0, `check_rig` 217/0 (every-frame axe probe included), EditMode 295/295, player rebuilt, build 0 errors, `[Arrival] PASS`, `[Guard] PASS`, `[House] PASS`; renders `base_look_front/three_quarter.png` and Concept tour shots viewed.
+
+### Week 11 team (2026-10-13, user asked for parallel work)
+
+| Role | Owns | Mission | Proof required |
+|---|---|---|---|
+| Manager (this session) | Unity integration, builds, tours, TASKBOARD, CharacterSetup, FishingView, Hut.cs | integrate, compile, verify, review handoffs | compile/test/tour lines, screenshots viewed |
+| Character modeller (agent) | build_chopper.py, atlas_paint.py, build_props.py | Chopper and the axe to the model sheet (W11-02..06) | check_assets/check_rig 0 FAIL, `Renders/sheet_compare.png` |
+| Hut builder (agent) | build_pieces.py, build_furniture.py | watertight roof, no sliver flicker, furniture and pieces to the concepts (W11-07) | build SUMMARY ALL PASS, `Renders/hut_preview_*.png` |
+| Gameplay engineer (agent) | Trees/*, fire damage code, tests | W11-09 logs and stumps, W11-10 burns | code + tests, compiled by the manager |
+
+| ID | Package | Status |
+|---|---|---|
+| W11-12 | Tree fall shows roots and sinks (user) | written: `FallingTree` cuts the mesh at the stump top (faces below dropped, crossing faces clamped), hinges there, lies 6 s and breaks into chips instead of sinking. Compiled 2026-10-13 (EditMode 295/295) |
+| W11-13 | Fishing indicator above the float (user) | written: `FishingView` places the tension bar and the cue word over the float's screen position (`PlayerFishing.BobberWorld`), cue keeps the last float spot while it fades |
+| W11-14 | House floors read as checker, log facets flicker (user) | done: floor = long planks, walls = square-cut logs (`build_pieces.py`), pieces re-dressed (RESULT PASS), `[House] RESULT PASS`, interior shot viewed. Roof leaks: hut builder |
+| W11-15 | Water still royal blue | Rebuild Network Scenes rewrote it; `MeadowBuilder.CreateWaterMaterials` now writes the grey-teal too, materials fixed |
+| W11-16 | Swim motion (user: does not look good) | written: swim and swim idle use the installed Mixamo clips (own blocky takes dropped from `CharacterSetup.OwnTakes`); needs a player rebuild |
+| W11-17 | Pale "white" rocks (user screenshot) | `build_meadow.py`: darker stone, moss on every exposed top; ALL PASS; needs `ChopperMeadowSwap` in Unity |
+| W11-18 | KayKit animation pack (user added) | found: blocky clips incl. Chop/Chopping, Fishing set, Melee_1H_Attack_Chop, Melee_Block, Hit, PickUp, Sit, Lie_Down (no swim). Candidate for chop/combat motion swap in the polish phase |

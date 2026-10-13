@@ -439,8 +439,10 @@ namespace Chopper.Trees
                 EmitBurst(entry.Position + Vector3.up * ChipHeight, ChipColor, _config.ChipsPerHit * 2, 0.2f);
                 EmitBurst(entry.Position + Vector3.up * (FellFeelHeight + 1f), LeafColor, _config.LeavesOnFell, 1.5f);
                 PlayFeedback(entry, felled: true);
+                Vector3 stumpTop = entry.Position + Vector3.up * StumpTop(entry);
                 FallingTree.Spawn(_database.GetModel(entry.ModelIndex), Planted(entry.Position, entry.Scale),
-                    view.transform.rotation, entry.Scale, direction, entry.Zone, entry.Position);
+                    view.transform.rotation, entry.Scale, direction, entry.Zone, stumpTop,
+                    at => EmitBurst(at, ChipColor, _config.ChipsPerHit * 3, 1.2f));
             }
 
             Destroy(view);
@@ -456,6 +458,13 @@ namespace Chopper.Trees
 
         // Authored prop_stump_voxel is 0.75 m wide and 0.75 m tall, base on Y = 0.
         private const float StumpModelSize = 0.75f;
+
+        // Height of the stump CreateStump leaves; the falling trunk is cut there.
+        private float StumpTop(TreeEntry entry)
+        {
+            float diameter = _config.GetTrunkRadius(entry.Size) * 2f;
+            return _stumpPrefab != null ? diameter : StumpHeight;
+        }
 
         private GameObject CreateStump(TreeEntry entry)
         {

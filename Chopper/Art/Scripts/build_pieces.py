@@ -40,8 +40,8 @@ PLANK_DARK = srgb(112, 74, 42)
 THATCH = srgb(206, 156, 80)
 THATCH_DARK = srgb(174, 126, 60)
 THATCH_LIGHT = srgb(226, 182, 104)
-LOG_RADIUS = 0.142     # a little over half the 0.25 m course, so neighbouring logs meet in a crease
-LOG_SIDES = 8
+LOG_RADIUS = 0.125 * 2 ** 0.5   # square-cut logs filling the 0.25 m course (no thin facets to alias)
+LOG_SIDES = 4
 
 FACE = {
     (1, 0, 0): ((1, 0, 0), (1, 1, 0), (1, 1, 1), (1, 0, 1)),
@@ -124,26 +124,16 @@ def log_shade(row, segment):
     return (LOG_DARK, LOG, LOG, LOG_LIGHT, LOG)[h]
 
 
-BOARD_SHADES = (srgb(150, 102, 60), srgb(136, 92, 54), srgb(160, 112, 68), srgb(126, 84, 48))
-BOARD_JOINT = srgb(88, 56, 30)
-BOARD_LEN = 4
+BOARD_SHADES = (srgb(150, 104, 62), srgb(140, 96, 57), srgb(156, 110, 66))
 
 
 def floor_cells():
-    """Boards along X, one per 0.25 m row, joints staggered."""
+    """Long boards along X, one per 0.25 m row, in three close shades."""
     out = {}
     for iy in range(-4, 4):
-        stagger = (iy * 3) % BOARD_LEN
+        base = BOARD_SHADES[(iy * 2) % len(BOARD_SHADES)]
         for ix in range(-4, 4):
-            k = ix + 4 + stagger
-            board, along = divmod(k, BOARD_LEN)
-            base = BOARD_SHADES[(board * 5 + iy * 3) % len(BOARD_SHADES)]
-            if along == BOARD_LEN - 1:
-                color = BOARD_JOINT if (board + iy) % 2 == 0 else tuple(c * 0.72 for c in base)
-            else:
-                grain = 1.0 + 0.05 * (((ix * 7 + iy * 11) % 3) - 1)
-                color = tuple(c * grain for c in base)
-            out[(ix, iy, 0)] = color
+            out[(ix, iy, 0)] = base
     return out
 
 

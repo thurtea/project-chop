@@ -628,10 +628,10 @@ namespace Chopper.Editor
         private static void CreateWaterMaterials(out Material pond, out Material marsh, out Material sea)
         {
             Texture2D ripples = CreateRippleNormal();
-            // Concept 2.0: a flat bright blue, lighter in the shallows. No ripple, no sun glint.
-            pond = CreateWaterMaterial("M_Water", new Color(0.45f, 0.74f, 0.90f), new Color(0.16f, 0.42f, 0.74f), ripples, 1.6f, 0.28f, 3.5f);
+            // Concept 2.0: muted grey-teal, lighter in the shallows. No ripple, no sun glint.
+            pond = CreateWaterMaterial("M_Water", new Color(0.42f, 0.58f, 0.60f), new Color(0.13f, 0.29f, 0.36f), ripples, 1.6f, 0.28f, 3.5f);
             marsh = CreateWaterMaterial("M_MarshWater", new Color(0.42f, 0.58f, 0.42f), new Color(0.16f, 0.28f, 0.18f), ripples, 1.2f, 0.22f, 3f);
-            sea = CreateWaterMaterial("M_Sea", new Color(0.36f, 0.66f, 0.86f), new Color(0.10f, 0.32f, 0.64f), ripples, 2.2f, 0.22f, 6f);
+            sea = CreateWaterMaterial("M_Sea", new Color(0.34f, 0.52f, 0.58f), new Color(0.10f, 0.25f, 0.36f), ripples, 2.2f, 0.22f, 6f);
         }
 
         private static Material CreateWaterMaterial(string name, Color shallow, Color deep, Texture2D ripples, float depthDistance, float clarity, float rippleTile)

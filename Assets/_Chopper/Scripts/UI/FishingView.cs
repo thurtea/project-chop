@@ -20,6 +20,12 @@ namespace Chopper.UI
         private static readonly Color Mark = new Color(0.05f, 0.05f, 0.05f, 0.9f);
 
         private readonly RectTransform _root;
+        private readonly RectTransform _hud;
+        private static readonly Vector2 CueHome = new Vector2(0f, -260f);
+        private const float BarAboveFloat = 70f;
+        private const float CueAboveFloat = 120f;
+        private Vector2 _lastFloat;
+        private float _lastFloatAt = float.NegativeInfinity;
         private readonly UiKit.Bar _tension;
         private readonly Text _debug;
         private readonly Text _cue;
@@ -30,6 +36,7 @@ namespace Chopper.UI
 
         public FishingView(Transform hud)
         {
+            _hud = hud as RectTransform;
             _root = UiKit.Rect(hud, "Fishing");
             UiKit.Place(_root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -330f), new Vector2(Width, 60f));
 
@@ -63,12 +70,38 @@ namespace Chopper.UI
                 return;
             }
             string word = mine ? mining.CueWord : fishing.CueWord;
+            bool overFloat = FloatOnScreen(fishing, out Vector2 at);
+            if (!overFloat && Time.time - _lastFloatAt < CueHold + CueFade)
+            {
+                at = _lastFloat;
+                overFloat = true;
+            }
+            _cue.rectTransform.anchoredPosition = !mine && overFloat ? at + Vector2.up * CueAboveFloat : CueHome;
             if (_cue.text != word) _cue.text = word;
             Color color = (mine ? mining.CueGood : fishing.CueGood) ? GoodCue : BadCue;
             color.a = 1f - Mathf.Clamp01((age - CueHold) / CueFade);
             _cue.color = color;
             // A small pop as it appears.
             _cue.rectTransform.localScale = Vector3.one * (1f + 0.15f * (1f - Mathf.Clamp01(age / 0.15f)));
+        }
+
+        // The float's spot on the HUD (centre-anchored), when it is in front of the camera.
+        private bool FloatOnScreen(PlayerFishing fishing, out Vector2 position)
+        {
+            position = Vector2.zero;
+            Camera camera = Camera.main;
+            PlayerFishing.Stage stage = fishing != null ? fishing.CurrentStage : PlayerFishing.Stage.Off;
+            bool floating = stage == PlayerFishing.Stage.Waiting || stage == PlayerFishing.Stage.Bite || stage == PlayerFishing.Stage.Fighting;
+            if (!floating || camera == null || _hud == null) return false;
+            Vector3 screen = camera.WorldToScreenPoint(fishing.BobberWorld);
+            if (screen.z <= 0f) return false;
+            Canvas canvas = _hud.GetComponentInParent<Canvas>();
+            Camera uiCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(_hud, screen, uiCamera, out Vector2 local)) return false;
+            position = local + (_hud.rect.center * -1f);
+            _lastFloat = position;
+            _lastFloatAt = Time.time;
+            return true;
         }
 
         private static void AddMark(RectTransform bar, float at)
@@ -88,6 +121,7 @@ namespace Chopper.UI
             if (_root.gameObject.activeSelf != show) _root.gameObject.SetActive(show);
             if (!show) return;
 
+            if (FloatOnScreen(fishing, out Vector2 above)) _root.anchoredPosition = above + Vector2.up * BarAboveFloat;
             Fight fight = fishing.CurrentFight;
             float tension = Mathf.Clamp01(fight.Tension);
             TensionZone zone = FishingRules.Zone(tension);

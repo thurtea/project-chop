@@ -1131,6 +1131,8 @@ namespace Chopper.Player
         // ---------- Visuals ----------
 
         // Where the bobber is right now (the owner's own may be flying or dragged in).
+        public Vector3 BobberWorld => BobberPoint();
+
         private Vector3 BobberPoint() => _bobberView != null && _bobberView.gameObject.activeSelf ? _bobberView.position : _bobber.Value;
 
         private void LateUpdate()
