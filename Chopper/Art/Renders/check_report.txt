@@ -17,7 +17,7 @@ chopper_body
   [PASS] chopper_body flat shaded
     winding    : 7 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 969 faces facing inward (ray parity)
   [PASS] chopper_body winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_body has one UV layer inside 0-1 - layers=1 u 0.088..0.920 v 0.005..0.525
+  [PASS] chopper_body has one UV layer inside 0-1 - layers=1 u 0.265..0.890 v 0.005..0.537
     uv layout  : 49 islands for 969 faces (19.8 faces per island), texel density 184 px/m
   [PASS] chopper_body UVs are connected islands, not one cell per face (19.8 faces per island)
 chopper_head
@@ -33,7 +33,7 @@ chopper_head
   [PASS] chopper_head flat shaded
     winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 178 faces facing inward (ray parity)
   [PASS] chopper_head winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_head has one UV layer inside 0-1 - layers=1 u 0.034..0.982 v 0.144..0.525
+  [PASS] chopper_head has one UV layer inside 0-1 - layers=1 u 0.005..0.716 v 0.183..0.537
     uv layout  : 30 islands for 178 faces (5.9 faces per island), texel density 196 px/m
   [PASS] chopper_head UVs are connected islands, not one cell per face (5.9 faces per island)
 chopper_beard
@@ -49,12 +49,12 @@ chopper_beard
   [PASS] chopper_beard flat shaded
     winding    : 15 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 458 faces facing inward (ray parity)
   [PASS] chopper_beard winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_beard has one UV layer inside 0-1 - layers=1 u 0.032..0.785 v 0.287..0.524
+  [PASS] chopper_beard has one UV layer inside 0-1 - layers=1 u 0.058..0.983 v 0.287..0.557
     uv layout  : 104 islands for 458 faces (4.4 faces per island), texel density 184 px/m
   [PASS] chopper_beard UVs are connected islands, not one cell per face (4.4 faces per island)
 chopper_hair
-    triangles  : 1156
-    dimensions : 0.311 x 0.372 x 0.300 m  (bounds z 1.500..1.800)
+    triangles  : 1300
+    dimensions : 0.414 x 0.410 x 0.350 m  (bounds z 1.450..1.800)
     location   : (0.0000, 0.0000, 0.0000)
     rotation   : (0.0000, 0.0000, 0.0000)
     scale      : (1.0000, 1.0000, 1.0000)
@@ -63,14 +63,14 @@ chopper_hair
   [PASS] chopper_hair transforms applied (loc 0, rot 0, scale 1)
   [PASS] chopper_hair materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_hair flat shaded
-    winding    : 3 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 538 faces facing inward (ray parity)
+    winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 606 faces facing inward (ray parity)
   [PASS] chopper_hair winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_hair has one UV layer inside 0-1 - layers=1 u 0.141..0.581 v 0.376..0.500
-    uv layout  : 22 islands for 538 faces (24.5 faces per island), texel density 181 px/m
-  [PASS] chopper_hair UVs are connected islands, not one cell per face (24.5 faces per island)
+  [PASS] chopper_hair has one UV layer inside 0-1 - layers=1 u 0.274..0.969 v 0.269..0.514
+    uv layout  : 34 islands for 606 faces (17.8 faces per island), texel density 182 px/m
+  [PASS] chopper_hair UVs are connected islands, not one cell per face (17.8 faces per island)
 chopper_shirt
-    triangles  : 1032
-    dimensions : 1.734 x 0.498 x 0.915 m  (bounds z 0.515..1.430)
+    triangles  : 744
+    dimensions : 1.409 x 0.498 x 0.740 m  (bounds z 0.690..1.430)
     location   : (0.0000, 0.0000, 0.0000)
     rotation   : (0.0000, 0.0000, 0.0000)
     scale      : (1.0000, 1.0000, 1.0000)
@@ -79,11 +79,11 @@ chopper_shirt
   [PASS] chopper_shirt transforms applied (loc 0, rot 0, scale 1)
   [PASS] chopper_shirt materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_shirt flat shaded
-    winding    : 3 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 516 faces facing inward (ray parity)
+    winding    : 3 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 372 faces facing inward (ray parity)
   [PASS] chopper_shirt winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_shirt has one UV layer inside 0-1 - layers=1 u 0.005..0.428 v 0.005..0.290
-    uv layout  : 26 islands for 516 faces (19.8 faces per island), texel density 183 px/m
-  [PASS] chopper_shirt UVs are connected islands, not one cell per face (19.8 faces per island)
+  [PASS] chopper_shirt has one UV layer inside 0-1 - layers=1 u 0.296..0.982 v 0.005..0.283
+    uv layout  : 32 islands for 372 faces (11.6 faces per island), texel density 182 px/m
+  [PASS] chopper_shirt UVs are connected islands, not one cell per face (11.6 faces per island)
 chopper_vest
     triangles  : 496
     dimensions : 0.926 x 0.562 x 0.583 m  (bounds z 0.825..1.408)
@@ -97,7 +97,7 @@ chopper_vest
   [PASS] chopper_vest flat shaded
     winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 232 faces facing inward (ray parity)
   [PASS] chopper_vest winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_vest has one UV layer inside 0-1 - layers=1 u 0.436..0.975 v 0.005..0.499
+  [PASS] chopper_vest has one UV layer inside 0-1 - layers=1 u 0.005..0.749 v 0.005..0.509
     uv layout  : 34 islands for 232 faces (6.8 faces per island), texel density 182 px/m
   [PASS] chopper_vest UVs are connected islands, not one cell per face (6.8 faces per island)
 chopper_belt
@@ -113,7 +113,7 @@ chopper_belt
   [PASS] chopper_belt flat shaded
     winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 140 faces facing inward (ray parity)
   [PASS] chopper_belt winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_belt has one UV layer inside 0-1 - layers=1 u 0.005..0.806 v 0.201..0.525
+  [PASS] chopper_belt has one UV layer inside 0-1 - layers=1 u 0.037..0.502 v 0.182..0.557
     uv layout  : 30 islands for 140 faces (4.7 faces per island), texel density 184 px/m
   [PASS] chopper_belt UVs are connected islands, not one cell per face (4.7 faces per island)
 chopper_bracers
@@ -129,7 +129,7 @@ chopper_bracers
   [PASS] chopper_bracers flat shaded
     winding    : 2 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 168 faces facing inward (ray parity)
   [PASS] chopper_bracers winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_bracers has one UV layer inside 0-1 - layers=1 u 0.751..0.902 v 0.367..0.429
+  [PASS] chopper_bracers has one UV layer inside 0-1 - layers=1 u 0.520..0.671 v 0.368..0.430
     uv layout  : 40 islands for 168 faces (4.2 faces per island), texel density 184 px/m
   [PASS] chopper_bracers UVs are connected islands, not one cell per face (4.2 faces per island)
 chopper_chainmail
@@ -145,12 +145,12 @@ chopper_chainmail
   [PASS] chopper_chainmail flat shaded
     winding    : 6 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 251 faces facing inward (ray parity)
   [PASS] chopper_chainmail winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_chainmail has one UV layer inside 0-1 - layers=1 u 0.059..0.928 v 0.005..0.470
+  [PASS] chopper_chainmail has one UV layer inside 0-1 - layers=1 u 0.173..0.930 v 0.005..0.479
     uv layout  : 57 islands for 251 faces (4.4 faces per island), texel density 187 px/m
   [PASS] chopper_chainmail UVs are connected islands, not one cell per face (4.4 faces per island)
 chopper_boots
-    triangles  : 808
-    dimensions : 0.628 x 0.440 x 0.430 m  (bounds z 0.000..0.430)
+    triangles  : 984
+    dimensions : 0.628 x 0.440 x 0.600 m  (bounds z 0.000..0.600)
     location   : (0.0000, 0.0000, 0.0000)
     rotation   : (0.0000, 0.0000, 0.0000)
     scale      : (1.0000, 1.0000, 1.0000)
@@ -159,11 +159,11 @@ chopper_boots
   [PASS] chopper_boots transforms applied (loc 0, rot 0, scale 1)
   [PASS] chopper_boots materials within ['M_Chopper', 'M_Chopper_Gear'] - ['M_Chopper']
   [PASS] chopper_boots flat shaded
-    winding    : 8 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 372 faces facing inward (ray parity)
+    winding    : 12 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 428 faces facing inward (ray parity)
   [PASS] chopper_boots winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_boots has one UV layer inside 0-1 - layers=1 u 0.111..0.649 v 0.292..0.499
-    uv layout  : 44 islands for 372 faces (8.5 faces per island), texel density 185 px/m
-  [PASS] chopper_boots UVs are connected islands, not one cell per face (8.5 faces per island)
+  [PASS] chopper_boots has one UV layer inside 0-1 - layers=1 u 0.058..0.961 v 0.275..0.527
+    uv layout  : 68 islands for 428 faces (6.3 faces per island), texel density 186 px/m
+  [PASS] chopper_boots UVs are connected islands, not one cell per face (6.3 faces per island)
 chopper_helmet
     triangles  : 1748
     dimensions : 0.806 x 0.463 x 0.467 m  (bounds z 1.508..1.974)
@@ -177,7 +177,7 @@ chopper_helmet
   [PASS] chopper_helmet flat shaded
     winding    : 30 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 746 faces facing inward (ray parity)
   [PASS] chopper_helmet winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_helmet has one UV layer inside 0-1 - layers=1 u 0.005..0.977 v 0.311..0.533
+  [PASS] chopper_helmet has one UV layer inside 0-1 - layers=1 u 0.005..0.981 v 0.367..0.557
     uv layout  : 206 islands for 746 faces (3.6 faces per island), texel density 182 px/m
   [PASS] chopper_helmet UVs are connected islands, not one cell per face (3.6 faces per island)
 chopper_plate
@@ -193,7 +193,7 @@ chopper_plate
   [PASS] chopper_plate flat shaded
     winding    : 5 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 176 faces facing inward (ray parity)
   [PASS] chopper_plate winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_plate has one UV layer inside 0-1 - layers=1 u 0.111..0.984 v 0.167..0.500
+  [PASS] chopper_plate has one UV layer inside 0-1 - layers=1 u 0.090..0.925 v 0.169..0.512
     uv layout  : 34 islands for 176 faces (5.2 faces per island), texel density 184 px/m
   [PASS] chopper_plate UVs are connected islands, not one cell per face (5.2 faces per island)
 chopper_pauldrons
@@ -209,7 +209,7 @@ chopper_pauldrons
   [PASS] chopper_pauldrons flat shaded
     winding    : 4 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 104 faces facing inward (ray parity)
   [PASS] chopper_pauldrons winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_pauldrons has one UV layer inside 0-1 - layers=1 u 0.088..0.850 v 0.373..0.468
+  [PASS] chopper_pauldrons has one UV layer inside 0-1 - layers=1 u 0.005..0.414 v 0.375..0.513
     uv layout  : 24 islands for 104 faces (4.3 faces per island), texel density 183 px/m
   [PASS] chopper_pauldrons UVs are connected islands, not one cell per face (4.3 faces per island)
   [PASS] winding detector self-test: legs reversed on a scratch copy -> 24 inconsistent edges, 2 inside-out islands, 240 inward faces
@@ -232,7 +232,7 @@ chopper_axe
   [PASS] chopper_axe flat shaded
     winding    : 9 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 433 faces facing inward (ray parity)
   [PASS] chopper_axe winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_axe has one UV layer inside 0-1 - layers=1 u 0.005..0.994 v 0.377..0.522
+  [PASS] chopper_axe has one UV layer inside 0-1 - layers=1 u 0.120..0.992 v 0.432..0.554
     uv layout  : 57 islands for 433 faces (7.6 faces per island), texel density 180 px/m
   [PASS] chopper_axe UVs are connected islands, not one cell per face (7.6 faces per island)
 chopper_axe_bear
@@ -248,7 +248,7 @@ chopper_axe_bear
   [PASS] chopper_axe_bear flat shaded
     winding    : 14 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 321 faces facing inward (ray parity)
   [PASS] chopper_axe_bear winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_axe_bear has one UV layer inside 0-1 - layers=1 u 0.125..0.994 v 0.005..0.533
+  [PASS] chopper_axe_bear has one UV layer inside 0-1 - layers=1 u 0.005..0.986 v 0.161..0.550
     uv layout  : 110 islands for 321 faces (2.9 faces per island), texel density 242 px/m
   [PASS] chopper_axe_bear UVs are connected islands, not one cell per face (2.9 faces per island)
 chopper_shield
@@ -264,7 +264,7 @@ chopper_shield
   [PASS] chopper_shield flat shaded
     winding    : 9 islands, 0 inconsistent edges, 0 inside-out islands, 0 of 635 faces facing inward (ray parity)
   [PASS] chopper_shield winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces) - 0 / 0 / 0
-  [PASS] chopper_shield has one UV layer inside 0-1 - layers=1 u 0.183..0.929 v 0.005..0.523
+  [PASS] chopper_shield has one UV layer inside 0-1 - layers=1 u 0.005..0.749 v 0.005..0.538
     uv layout  : 58 islands for 635 faces (10.9 faces per island), texel density 185 px/m
   [PASS] chopper_shield UVs are connected islands, not one cell per face (10.9 faces per island)
   [PASS] chopper_props.blend: no image textures / reference images - none found
@@ -272,18 +272,18 @@ chopper_shield
 
 BUDGETS (triangles after triangulation)
 ------------------------------------------------------------------------
-  [PASS] body+head+shirt+vest+belt+bracers+chainmail+boots: 5884 in [4000, 8000]
+  [PASS] body+head+shirt+vest+belt+bracers+chainmail+boots: 5772 in [4000, 8000]
   [PASS] beard: 1060 in [1000, 3000]
-  [PASS] hair: 1156 in [1000, 3000]
+  [PASS] hair: 1300 in [1000, 3000]
   [PASS] axe: 986 in [300, 1000]
   [PASS] bear-head axe: 696 in [300, 1000]
   [PASS] bracers: 336 in [50, 600]
   [PASS] shield: 1330 in [500, 1500]
   [PASS] helmet: 1748 in [1000, 3000]
-  [PASS] Worker + axe + shield: 10416 in [8000, 15000]
-  [PASS] Warrior (helmet, no hair) + axe + shield: 11008 in [8000, 15000]
-  [PASS] Elite (plate and pauldrons, no leather vest, no hair) + axe + shield: 11136 in [8000, 15000]
-  [PASS] Base look (no armour) + bear-head axe: body+head+beard+hair+shirt+vest+belt+boots: 7958 in [6000, 15000]
+  [PASS] Worker + axe + shield: 10448 in [8000, 15000]
+  [PASS] Warrior (helmet, no hair) + axe + shield: 10896 in [8000, 15000]
+  [PASS] Elite (plate and pauldrons, no leather vest, no hair) + axe + shield: 11024 in [8000, 15000]
+  [PASS] Base look (no armour) + bear-head axe: body+head+beard+hair+shirt+vest+belt+boots: 7990 in [6000, 15000]
 
 CHARACTER DIMENSIONS
 ------------------------------------------------------------------------
@@ -312,24 +312,24 @@ UV ATLAS (all objects of both files share one 2048 atlas)
   density chopper_axe_bear     80.7 px/m
   density chopper_head         65.3 px/m
   density chopper_chainmail    62.2 px/m
+  density chopper_boots        61.9 px/m
   density chopper_shield       61.7 px/m
-  density chopper_boots        61.6 px/m
   density chopper_bracers      61.4 px/m
   density chopper_body         61.4 px/m
   density chopper_belt         61.4 px/m
   density chopper_plate        61.4 px/m
   density chopper_beard        61.2 px/m
   density chopper_pauldrons    61.1 px/m
-  density chopper_shirt        61.0 px/m
+  density chopper_shirt        60.8 px/m
   density chopper_vest         60.8 px/m
   density chopper_helmet       60.7 px/m
-  density chopper_hair         60.4 px/m
+  density chopper_hair         60.7 px/m
   density chopper_axe          60.0 px/m
   texel chopper_axe_bear    1.24 cm per painted pixel
   texel chopper_head        1.53 cm per painted pixel
   texel chopper_chainmail   1.61 cm per painted pixel
-  texel chopper_shield      1.62 cm per painted pixel
   texel chopper_boots       1.62 cm per painted pixel
+  texel chopper_shield      1.62 cm per painted pixel
   texel chopper_bracers     1.63 cm per painted pixel
   texel chopper_body        1.63 cm per painted pixel
   texel chopper_belt        1.63 cm per painted pixel
@@ -339,12 +339,12 @@ UV ATLAS (all objects of both files share one 2048 atlas)
   texel chopper_shirt       1.64 cm per painted pixel
   texel chopper_vest        1.65 cm per painted pixel
   texel chopper_helmet      1.65 cm per painted pixel
-  texel chopper_hair        1.66 cm per painted pixel
+  texel chopper_hair        1.65 cm per painted pixel
   texel chopper_axe         1.67 cm per painted pixel
-  [PASS] pixel size uniform on the base look (excluding the face): 1.62..1.66 cm, required 1.5-2.0 cm and within 10 %
+  [PASS] pixel size uniform on the base look (excluding the face): 1.62..1.65 cm, required 1.5-2.0 cm and within 10 %
   [PASS] face pixels as fine or finer than the body (head 1.53 cm, body 1.63 cm)
-  [PASS] atlas: 8 px edge padding around every island carries the island colour, not the gutter (0 of 670004 padding px are gutter colour)
-  [PASS] atlas PNG exists at Art/Textures/chopper_atlas.png - 451996 bytes
+  [PASS] atlas: 8 px edge padding around every island carries the island colour, not the gutter (0 of 702019 padding px are gutter colour)
+  [PASS] atlas PNG exists at Art/Textures/chopper_atlas.png - 467788 bytes
 
 ========================================================================
 SUMMARY: 137 PASS, 0 FAIL -> ALL PASS

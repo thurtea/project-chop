@@ -448,7 +448,7 @@ def linear_to_srgb(a):
 
 
 UNDER_ATLAS = os.path.join(TEX, "chopper_atlas_under.png")
-UNDER_OBJECTS = ["chopper_shirt", "chopper_body"]
+UNDER_OBJECTS = ["chopper_shirt", "chopper_body", "chopper_boots"]
 
 
 def write_under_atlas(buf, layout, D):

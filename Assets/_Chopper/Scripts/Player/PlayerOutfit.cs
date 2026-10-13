@@ -13,7 +13,7 @@ namespace Chopper.Player
         // The everyday outfit (W9-01): shown once it is picked up on the shore (PlayerUpgrades.Dressed). Without it
         // Chopper wears his base layer (undershirt and braies): the shirt and body with the base-layer atlas.
         private static readonly string[] OutfitParts = { "chopper_vest", "chopper_belt" };
-        private static readonly string[] BaseLayerParts = { "chopper_shirt", "chopper_body" };
+        private static readonly string[] BaseLayerParts = { "chopper_shirt", "chopper_body", "chopper_boots" };
         private const string BaseLayerAtlas = "Character/chopper_atlas_under";
         private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
         private static Texture2D _baseLayer;

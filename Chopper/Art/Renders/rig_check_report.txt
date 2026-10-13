@@ -1,9 +1,9 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (4555820 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32716 bytes)
-  [PASS] file exists: Export\chopper_axe_bear.fbx (30652 bytes)
-  [PASS] file exists: Export\chopper_shield.fbx (40396 bytes)
+  [PASS] file exists: Export\chopper.fbx (4555548 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32604 bytes)
+  [PASS] file exists: Export\chopper_axe_bear.fbx (30716 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (40556 bytes)
 
 RAW FBX: chopper.fbx
 ------------------------------------------------------------------------
@@ -68,15 +68,15 @@ SKIN WEIGHTS (imported)
   [PASS] chopper_beard       560 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_belt        176 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_body       1036 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_boots       440 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_boots       536 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_bracers     192 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_chainmail   338 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_hair        584 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_hair        660 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_head        212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_helmet      952 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_pauldrons   128 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_plate       212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_shirt       552 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_shirt       408 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_vest        268 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_head is 100% Head
   [PASS] chopper_hair is 100% Head
@@ -271,7 +271,7 @@ PROPS
 
 PROPS ON SOCKETS (identity local transform relative to the socket bone)
   [PASS] rest: chopper_axe_bear grips like chopper_axe on Weapon_R: grip offset 0.0 mm, haft direction dot 0.9998, blade (perpendicular to the haft) vs chopper_axe +X blade dot 1.000, world blade dir (-0.59 -0.57 -0.58)
-  [PASS] clip detector self-test: shield sunk into the chest -> 709 verts (84 mm), axe through the leg -> 360 verts (99 mm)
+  [PASS] clip detector self-test: shield sunk into the chest -> 709 verts (84 mm), axe through the leg -> 386 verts (99 mm)
   [PASS] rest: shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
   [PASS] rest: shield board back not floating: gap to forearm/bracer surface 29.6..29.6 mm (min over the board, per sampled frame; required 5-30 mm)
   [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 0.000), covers 91% of hand width -0.089..0.126, bar 0.216 m)
@@ -319,7 +319,7 @@ BEARD CLEARANCE (beard vertices vs vest, shirt and body)
   [PASS] Idle: beard clear of vest, shirt and body on 21 frames (closest 21.8 mm to chopper_vest at frame 4)
   [PASS] Walk: beard clear of vest, shirt and body on 31 frames (closest 21.8 mm to chopper_vest at frame 1)
   [INFO] Run (info): beard clear of vest, shirt and body on 11 frames (closest 16.1 mm to chopper_vest at frame 1)
-  passing frame used for rig_walk_passing_side: 10
+  passing frame used for rig_walk_passing_side: 9
 
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 

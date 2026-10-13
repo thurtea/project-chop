@@ -209,3 +209,22 @@ The entrance the user wants: you drop from the sky into the hub pond with no out
 | W10-10 | Chopper's build to concept 2.0 (user: "HORRIFICly inaccurate") | `build_chopper.apply_bulk`: one smooth warp over every part (layering kept): chest and shoulders x1.30, hips and legs x1.18, arms moved out with the shoulders and thickened (x1.40 at the shoulder to x1.10 at the wrist); head unchanged. Rig follows (joints measured from the mesh). Re-tuned on the new body: Attack_1 (wind-up raise +10 twist -20, strike swing -20), Attack_2 wind-up swing -20, Gather reach swing -20, Death pivot 0.56, Shield_L 3 cm down the forearm and 2.5 cm out; the axe probe allows the grip section under the sleeve cuff. `check_assets` 137/0, `check_rig` 217/0, renders and Concept/GearLook shots viewed; player rebuilt; `[Guard] PASS`, `[Arrival] PASS`, EditMode 295/295. Open: the bear axe looks small next to the new body |
 | W10-11 | Rebuild Network Scenes reverted the concept pieces (it runs PieceBuilder.BuildAll); commit 51b2d6e recorded the old pieces | `NetworkScenesBuilder.Build` now runs `ChopperPieceDress.Apply` and `ChopperPropDress.Apply` at the end. Re-dressed: both RESULT PASS, `[House] RESULT PASS` |
 
+## Week 11: match the three concepts (user, 2026-10-13)
+
+References: `chopper-character-and-axe-3D-concept-2.0.jpg` (model sheet: dressed, base layer, axe), `chopper-3D-concept-2.0.jpg`, `chopper-start-menu-background-3D-concept-2.0.jpg` (world and hut).
+Order (user): character first, then the hut, then the world. Gameplay, combat and enemy AI polish come last, once those systems are finished.
+
+| ID | Package | Status |
+|---|---|---|
+| W11-01 | Title backdrop is the start-menu concept image | done: title shot `Logs/homework/title-1013d/title.png` viewed |
+| W11-02 | Character base layer to the sheet: dark grey short-sleeved tunic, grey shorts, bare feet | done: `atlas_paint.UNDER` paints a grey tunic and shorts, bare legs, and the boots as bare feet; `PlayerOutfit` swaps shirt, body and boots. Render and `tour-Arrival-1013-1501` viewed. Left: the knee wraps (part of the boot mesh) show as skin ridges while undressed |
+| W11-03 | Plaid sleeves rolled to just below the elbow, bare forearms (bracers stay armour) | done: sleeves end at t 0.34 with a rolled darker cuff (`build_shirt`); forearms bare; armour bracers unchanged |
+| W11-04 | Hair: full thick ginger hair down the back of the neck, heavier brows | first pass: thick hair block over the crown (top kept at the 1.80 m spec) and a back mass to the nape covering the ears (`build_hair`). Still reads blocky next to the sheet; brows and volume need a second pass |
+| W11-05 | Legs: brown trousers with leather knee and shin wraps, chunky folded boots | first pass: shirt now ends at the hip (0.69 m), brown trousers show; two leather wraps at knee and shin (`build_boots`). Folded boot cuffs still open |
+| W11-06 | Axe to the sheet: larger single blade, carved bear-head top, spiral-carved haft, red-brown leather grip wrap | checked: the bear axe length (0.85-0.95 m spec) already matches the sheet; grip wrap recoloured red-brown. Larger blade and carved spiral detail still open |
+| W11-07 | Hut to the concept (after the character) | open |
+| W11-08 | World to the concepts: misty layered pines, haze, warm sky, stepped stone paths, foliage (the grey "bushes" render colourless; bring back a proper foliage set) | open |
+| W11-09 | Trees break at the base: the stump and roots stay, the trunk falls and lands as a log that is chopped up for wood; a stump regrows into a tree unless it is cleared; stumps can be cleared | open (gameplay phase) |
+| W11-10 | Fire burns: standing in a fire deals burn damage that ticks over time | open (gameplay phase) |
+| W11-11 | Combat, enemy AI and mechanics polish | open (last) |
+- 2026-10-13 W11 character pass proof: `check_assets` 137/0, `check_rig` 217/0 (every-frame axe probe included), EditMode 295/295, player rebuilt, build 0 errors, `[Arrival] PASS`, `[Guard] PASS`, `[House] PASS`; renders `base_look_front/three_quarter.png` and Concept tour shots viewed.

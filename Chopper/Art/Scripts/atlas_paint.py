@@ -26,7 +26,7 @@ SUPER = 3                # atlas texels per painted pixel, per axis
 MOUSTACHE = (0.88, 0.44, 0.13)                       # = build_chopper.MOUSTACHE
 HELM_BONE = (0.86, 0.80, 0.66)                       # = build_chopper.BONE
 BEAR_WOOD, BEAR_CARVE, BEAR_HEAD = (0.72, 0.42, 0.19), (0.42, 0.22, 0.09), (0.80, 0.50, 0.23)  # build_props
-SHOULDER_X, SHOULDER_Z = 0.30 * 1.30, 1.27           # build_chopper.SHOULDER after the bulk warp
+SHOULDER_X, SHOULDER_Z = 0.300, 1.27           # build_chopper.SHOULDER after the bulk warp
 
 
 def texel_m(name, normal, centre):
@@ -143,7 +143,7 @@ WOOD_GROOVE = S(92, 50, 22)
 BEAR = S(198, 132, 70)
 BEAR_MUZZLE = S(222, 168, 108)
 BEAR_DARK = S(40, 24, 14)
-WRAP = S(60, 38, 22)
+WRAP = S(118, 52, 34)
 
 
 # ------------------------------------------------------------------ parts
@@ -162,10 +162,11 @@ def plaid(i, j):
 
 # Base layer atlas (undershirt and braies), baked by uv_atlas.write_under_atlas.
 UNDER = False
-LINEN = S(214, 200, 170)
-LINEN_SEAM = S(170, 154, 124)
+LINEN = S(92, 92, 94)
+LINEN_SEAM = S(64, 64, 66)
+SHORTS = S(78, 78, 80)
 UNDER_SLEEVE = 0.15        # m along the arm from the shoulder joint
-UNDER_BRAIES_Z = 0.66      # braies hem height (m); bare legs below, down to the boots
+UNDER_BRAIES_Z = 0.56      # shorts hem height (m); bare legs and feet below
 
 
 def linen(p, n, t):
@@ -280,7 +281,7 @@ def paint_body(p, n, rgb, pc, t):
             return grain(SKIN, p, t, 0.03)
         if p.z < UNDER_BRAIES_Z:
             return LINEN_SEAM
-        return linen(p, n, t)
+        return grain(SHORTS, p, t, 0.04)
     if near(rgb, PAL["trousers"]):
         c = TROUSERS
         if abs(pc.x) > 0.05 and abs(side_coord(p, n) - pc.x) < 0.5 * t and abs(n.x) > 0.7:
@@ -340,6 +341,10 @@ def paint_beard(p, n, rgb, pc, t):
 
 
 def paint_boots(p, n, rgb, pc, t):
+    if UNDER:                                 # bare feet
+        if p.z < 0.035 or (p.y < -0.20 and p.z < 0.06 and math.floor(p.x / t) % 3 == 0):
+            return SKIN_SHADE
+        return grain(SKIN, p, t, 0.03)
     if near(rgb, PAL["sole"]):
         return SOLE
     i, j, k = cell(p, t)

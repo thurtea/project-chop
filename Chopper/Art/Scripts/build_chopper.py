@@ -249,12 +249,15 @@ def build_hair(mat):
         dome.append((z, hw, hd, dy))
     mb.ztube(0, 0, dome, cs=6, bevel=0.015, color=G)
     mb.box((0, -0.155, 1.725), (0.28, 0.055, 0.045), 0.01, color=G)
-    mb.ztube(0, 0.155, [(1.50, 0.06, 0.028), (1.62, 0.095, 0.034), (1.74, 0.07, 0.028)],
-             cs=3, bevel=0.01, color=D)
+    # Full head of hair (character sheet): a thick block over the crown and a mass down the back and sides.
+    mb.ztube(0, 0, [(1.665, 0.200, 0.192), (1.70, 0.207, 0.199), (1.765, 0.207, 0.199), (1.79, 0.192, 0.184),
+                    (1.80, 0.150, 0.140)], cs=2, bevel=0.03, color=G)
+    mb.box((0, 0.098, 1.575), (0.414, 0.212, 0.25), 0.03, color=G)
+    mb.box((0, 0.196, 1.50), (0.30, 0.03, 0.10), 0.012, color=D)
     return mb.finish(mat)
 
 SHIRT = [
-    (0.515, 0.262, 0.182), (0.53, 0.260, 0.180), (0.60, 0.256, 0.175), (0.70, 0.253, 0.170),
+    (0.69, 0.255, 0.172), (0.70, 0.253, 0.170),
     (0.80, 0.253, 0.163), (0.86, 0.243, 0.158), (0.90, 0.238, 0.158), (0.94, 0.243, 0.163),
     (1.02, 0.298, 0.195), (1.12, 0.328, 0.210), (1.20, 0.345, 0.214), (1.27, 0.340, 0.202),
     (1.33, 0.312, 0.180), (1.37, 0.250, 0.148), (1.395, 0.118, 0.112), (1.43, 0.104, 0.104),
@@ -264,20 +267,20 @@ SHIRT = [
 def build_shirt(mat):
     mb = L.MeshBuilder("chopper_shirt")
     mb.ztube(0, 0, SHIRT, cs=2, bevel=0.035, cap0=False, cap1=False, color=PAL["shirt"],
-             color_fn=lambda p: PAL["shirt_dark"] if p.z < 0.56 or p.z > 1.385 else None)
+             color_fn=lambda p: PAL["shirt_dark"] if p.z < 0.735 or p.z > 1.385 else None)
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
         # full-length plaid sleeve (concept 1.5): the forearm is covered to the wrist, so the
         # base look without bracers shows no bare forearm and no gap at the hand
-        sleeve = [(-0.06, 0.072, 0.078)] + [r for r in ARM if -0.04 < r[0] <= 0.54]
+        # sleeves rolled to just below the elbow (character sheet), bare forearms
+        sleeve = [(-0.06, 0.072, 0.078)] + [r for r in ARM if -0.04 < r[0] <= 0.25]
         rings = arm_rings(s, sleeve, off=0.010, bevel=0.025)
-        # buttoned cuff at the wrist, ending where the hand starts (t 0.60)
-        for t, extra in ((0.556, 0.016), (0.562, 0.020), (0.585, 0.020), (0.592, 0.012)):
+        for t, extra in ((0.262, 0.016), (0.27, 0.022), (0.33, 0.022), (0.338, 0.014)):
             hw = L_interp_arm(t, 1) + extra
             hd = L_interp_arm(t, 2) + extra
             rings.append((S + d * t, u, v, hw, hd, 0.025))
         mb.tube(rings, cs=2, cap0=False, cap1=False, color=PAL["shirt"],
-                color_fn=lambda p, S=S, d=d: PAL["shirt_dark"] if (p - S).dot(d) > 0.553 else None)
+                color_fn=lambda p, S=S, d=d: PAL["shirt_dark"] if (p - S).dot(d) > 0.258 else None)
     return mb.finish(mat)
 
 
@@ -425,6 +428,9 @@ def build_boots(mat):
         # sole and instep strap
         mb.box((x0, -0.055, 0.0175), (0.272, 0.40, 0.035), 0.008, color=PAL["sole"])
         mb.box((x0, -0.07, 0.15), (0.262, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
+        for z0, z1 in ((0.455, 0.505), (0.56, 0.60)):
+            wrap = [(z, interp(LEG, z, 1) + 0.016, interp(LEG, z, 2) + 0.016) for z in (z0, z1)]
+            mb.ztube(x0, 0, wrap, cs=2, bevel=0.01, color=PAL["boot_wrap"])
     return mb.finish(mat)
 
 
