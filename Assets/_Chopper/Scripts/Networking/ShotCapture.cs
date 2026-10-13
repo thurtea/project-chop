@@ -418,6 +418,7 @@ namespace Chopper.Networking
                 PlayerAxe comboAxe = wood.GetComponent<PlayerAxe>();
                 PlayerCamera comboCamera = wood.GetComponent<PlayerCamera>();
                 comboAxe.SwingPlayed += st => Debug.Log("[Combo] SwingPlayed step=" + st);
+                int comboStrikes = 0;
                 for (int pass = 0; pass < 2; pass++)
                 {
                     comboAxe.ServerSetHasAxe(pass == 0);
@@ -428,15 +429,20 @@ namespace Chopper.Networking
                         yield return new WaitForSeconds(0.28f);
                         Animator comboAnimator = wood.GetComponentInChildren<Animator>();
                         string[] names = { "Empty", "Swing", "Swing2", "Swing3", "Punch", "Punch2", "Guard" };
+                        int chopLayer = comboAnimator.GetLayerIndex("Chop");
+                        AnimatorStateInfo chopState = comboAnimator.GetCurrentAnimatorStateInfo(chopLayer);
+                        AnimatorStateInfo chopNext = comboAnimator.GetNextAnimatorStateInfo(chopLayer);
                         string active = "?";
-                        foreach (string n in names) if (comboAnimator.GetCurrentAnimatorStateInfo(1).IsName(n)) active = n;
-                        Debug.Log($"[Combo] pass {pass} step {step}: swung={swung} chop layer state={active} t={comboAnimator.GetCurrentAnimatorStateInfo(1).normalizedTime:F2}");
+                        foreach (string n in names) if (chopState.IsName(n) || chopNext.IsName(n)) active = n;
+                        if (swung && active != "Empty" && active != "?") comboStrikes++;
+                        Debug.Log($"[Combo] pass {pass} step {step}: swung={swung} chop layer state={active} t={chopState.normalizedTime:F2} weight={comboAnimator.GetLayerWeight(chopLayer):F2}");
                         comboCamera.SnapYaw(-60f);
                         ui.DebugShow(0); yield return Shot(folder, $"combo_{(pass == 0 ? "axe" : "fist")}_{step + 1}");
                         comboCamera.SnapYaw(0f);
                         yield return new WaitForSeconds(0.12f);
                     }
                 }
+                Debug.Log($"[Combo] RESULT {(comboStrikes == 6 ? "PASS" : "FAIL")} ({comboStrikes} of 6 swings playing a strike on the Chop layer)");
                 Application.Quit(0);
                 yield break;
             }
@@ -3086,6 +3092,8 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.3f);
                 foe.ServerActivate();
                 yield return new WaitForSeconds(2.2f);
+                bool foeEngaged = foe != null && foe.IsActive && foe.GetComponent<TreantAI>().ModeName != "Approach";
+                Debug.Log($"[Combat] foe after 2.2 s: active {foe != null && foe.IsActive}, mode {(foe != null ? foe.GetComponent<TreantAI>().ModeName : "none")}, {(foe != null ? Vector3.Distance(foe.transform.position, wood.transform.position) : 0f):F1} m away");
                 ui.DebugShow(0); yield return Shot(folder, "combat_2_enemy_windup");
                 // Close, then a step to the side: the creature that stands up where the pine was, mid punch.
                 wood.GetComponent<PlayerCamera>().DebugSetDistance(4.2f);
@@ -3097,12 +3105,17 @@ namespace Chopper.Networking
                 ui.DebugShow(0); yield return Shot(folder, "combat_2c_golem_side");
                 wood.GetComponent<PlayerCamera>().SnapYaw(0f);
                 wood.GetComponent<PlayerCamera>().DebugSetDistance(8f);
+                Vector3 foeBefore = foe != null ? foe.transform.position : Vector3.zero;
                 if (foe != null) foe.ServerHit(0.6f, null, wood, wood.transform.position);
                 yield return new WaitForSeconds(0.1f);
+                bool foeStaggered = foe != null && foe.IsStaggered;
+                Debug.Log($"[Combat] hit: staggered {foeStaggered}, knocked {(foe != null ? Vector3.Distance(foe.transform.position, foeBefore) : 0f):F2} m");
                 ui.DebugShow(0); yield return Shot(folder, "combat_3_enemy_hit");
                 yield return new WaitForSeconds(0.4f);
                 if (foe != null) foe.ServerHit(1000f, null, wood, wood.transform.position);
                 yield return new WaitForSeconds(0.45f);
+                bool foeDown = foe == null || !foe.IsActive;
+                Debug.Log($"[Combat] killing blow: down {foeDown}");
                 ui.DebugShow(0); yield return Shot(folder, "combat_3b_enemy_falls");
                 wood.GetComponent<PlayerCombat>().DebugRoll();
                 yield return new WaitForSeconds(0.25f);
@@ -3122,6 +3135,8 @@ namespace Chopper.Networking
                     member.ServerActivate();
                 }
                 wood.GetComponent<PlayerCamera>().DebugSetDistance(11f);
+                int mostAttacking = 0;
+                var closest = new System.Collections.Generic.Dictionary<Treant, float>();
                 for (int t = 0; t < 12; t++)
                 {
                     yield return new WaitForSeconds(1f);
@@ -3133,10 +3148,19 @@ namespace Chopper.Networking
                         d.y = 0f;
                         float bearing = Vector3.SignedAngle(wood.transform.forward, d, Vector3.up);
                         line.Append($" | {d.magnitude:F1} m at {bearing:F0} deg {member.GetComponent<TreantAI>().ModeName}");
+                        closest[member] = Mathf.Min(closest.TryGetValue(member, out float c) ? c : float.MaxValue, d.magnitude);
                     }
+                    int attacking = 0;
+                    foreach (Treant member in Treant.All) if (member != null && member.IsActive && member.GetComponent<TreantAI>().ModeName == "Attack") attacking++;
+                    mostAttacking = Mathf.Max(mostAttacking, attacking);
                     Debug.Log(line.ToString());
                     if (t == 4) { ui.DebugShow(0); yield return Shot(folder, "combat_6_group"); }
                 }
+                int reached = 0;
+                foreach (float c in closest.Values) if (c <= 2.5f) reached++;
+                bool groupOk = closest.Count == 4 && reached == 4 && mostAttacking <= CombatCircle.AttackersPerPlayer;
+                Debug.Log($"[Combat] group: {reached} of {closest.Count} came within 2.5 m, most attacking at once {mostAttacking} (limit {CombatCircle.AttackersPerPlayer})");
+                Debug.Log($"[Combat] RESULT {(foeEngaged && foeStaggered && foeDown && groupOk ? "PASS" : "FAIL")} (engaged {foeEngaged}, staggered {foeStaggered}, down {foeDown}, group {groupOk})");
                 foreach (Treant member in new System.Collections.Generic.List<Treant>(Treant.All)) if (member != null) member.ServerDespawn();
                 yield return new WaitForSeconds(0.5f);
 
@@ -3563,7 +3587,7 @@ namespace Chopper.Networking
             bool used = wood.GetComponent<PlayerInventory>().ServerUseSalve();
             yield return new WaitForSeconds(0.45f);
             Animator body = wood.GetComponentInChildren<Animator>();
-            bool healing = body != null && body.layerCount > 1 && body.GetCurrentAnimatorStateInfo(1).IsName("Heal");
+            bool healing = body != null && body.GetLayerIndex("Chop") >= 0 && body.GetCurrentAnimatorStateInfo(body.GetLayerIndex("Chop")).IsName("Heal");
             Debug.Log($"[Fly] bandage used {used}, health now {hurt.Health}, heal animation playing {healing}");
             yield return Shot(folder, "fly_6c_heal");
             ui.DebugConsole("tp hut");

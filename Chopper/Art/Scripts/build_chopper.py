@@ -264,12 +264,16 @@ BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~
 
 
 HAIR_BLOCKS = [  # (centre, size); the head is x +-0.182, y -0.182..0.162, z 1.41..1.72
-    ((0, -0.005, 1.760), (0.430, 0.400, 0.060)),     # crown
-    ((0, 0.000, 1.720), (0.452, 0.396, 0.050)),      # crown rim, front just above the brows
+    ((0, 0.000, 1.715), (0.444, 0.392, 0.050)),      # rim, front just above the brows
+    ((0, 0.000, 1.750), (0.420, 0.380, 0.040)),      # crown, stepped in so the mass reads round
+    ((0, 0.005, 1.775), (0.350, 0.330, 0.030)),
     ((0, 0.160, 1.600), (0.420, 0.110, 0.300)),      # back
+    ((0, 0.150, 1.480), (0.360, 0.090, 0.080)),      # nape
 ]
-HAIR_TOP = [(-0.10, -0.09), (0.10, -0.09), (-0.10, 0.09), (0.10, 0.09)]
-FRINGE = [(-0.150, 0.105, 1.690), (-0.050, 0.095, 1.705), (0.050, 0.095, 1.695), (0.150, 0.105, 1.710)]
+HAIR_TOP = [(-0.075, -0.07, 0.030), (0.075, -0.07, 0.022), (-0.075, 0.08, 0.020), (0.075, 0.08, 0.030),
+            (0.0, 0.0, 0.030)]
+FRINGE = [(-0.160, 0.090, 1.685, 0.000), (-0.085, 0.070, 1.712, 0.010), (-0.020, 0.075, 1.695, -0.012),
+          (0.050, 0.080, 1.718, 0.006), (0.120, 0.070, 1.690, -0.008), (0.180, 0.060, 1.705, 0.004)]
 BACK_LOCKS = [(-0.16, 1.440), (-0.08, 1.425), (0.0, 1.420), (0.08, 1.430), (0.16, 1.450)]
 
 
@@ -280,10 +284,10 @@ def build_hair(mat):
     G, D = PAL["ginger"], PAL["ginger_dark"]
     for c, size in HAIR_BLOCKS:
         mb.box(c, size, 0.022, color=G)
-    for x, y in HAIR_TOP:
-        mb.box((x, y, 1.780), (0.17, 0.16, 0.040), 0.012, color=G)
-    for x, w, z0 in FRINGE:
-        mb.box((x, -0.195, (z0 + 1.75) / 2), (w, 0.040, 1.75 - z0), 0.008, color=G)
+    for x, y, h in HAIR_TOP:
+        mb.box((x, y, 1.80 - h / 2), (0.14, 0.14, h), 0.010, color=G)
+    for x, w, z0, dy in FRINGE:
+        mb.box((x, -0.195 + dy, (z0 + 1.75) / 2), (w, 0.040, 1.75 - z0), 0.008, color=G)
     for s in (-1, 1):
         mb.box((s * 0.205, 0.020, 1.5825), (0.058, 0.300, 0.245), 0.014, color=G)
     for x, z0 in BACK_LOCKS:
@@ -291,7 +295,7 @@ def build_hair(mat):
     return mb.finish(mat)
 
 SHIRT = [
-    (0.69, 0.255, 0.172), (0.70, 0.253, 0.170),
+    (0.530, 0.262, 0.178), (0.57, 0.260, 0.176), (0.70, 0.253, 0.170),
     (0.80, 0.253, 0.163), (0.86, 0.243, 0.158), (0.90, 0.238, 0.158), (0.94, 0.243, 0.163),
     (1.02, 0.298, 0.195), (1.12, 0.328, 0.210), (1.20, 0.345, 0.214), (1.27, 0.340, 0.202),
     (1.33, 0.312, 0.180), (1.37, 0.250, 0.148), (1.395, 0.118, 0.112), (1.43, 0.104, 0.104),
@@ -301,7 +305,7 @@ SHIRT = [
 def build_shirt(mat):
     mb = L.MeshBuilder("chopper_shirt")
     mb.ztube(0, 0, SHIRT, cs=2, bevel=0.035, cap0=False, cap1=False, color=PAL["shirt"],
-             color_fn=lambda p: PAL["shirt_dark"] if p.z < 0.735 or p.z > 1.385 else None)
+             color_fn=lambda p: PAL["shirt_dark"] if p.z < 0.558 or p.z > 1.385 else None)
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
         # full-length plaid sleeve (concept 1.5): the forearm is covered to the wrist, so the
@@ -448,7 +452,7 @@ def build_boots(mat):
         mb.ztube(x0, 0, shaft, cs=2, bevel=0.03, cap0=False, cap1=False, color=PAL["boot"])
         # folded cuff: wider than the shaft, flaring out and pinching at the rolled lip
         cuff = []
-        for z, flare in ((0.22, 0.010), (0.26, 0.020), (0.30, 0.034), (0.335, 0.042), (0.355, 0.026)):
+        for z, flare in ((0.22, 0.008), (0.26, 0.013), (0.30, 0.019), (0.335, 0.022), (0.355, 0.016)):
             cuff.append((z, interp(LEG, z, 1) + flare, interp(LEG, z, 2) + flare))
         mb.ztube(x0, 0, cuff, cs=2, bevel=0.012, cap0=False, cap1=False, color=PAL["boot"],
                  color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.315 else None)
@@ -456,25 +460,25 @@ def build_boots(mat):
         w = -Y
         v = Z
         u = v.cross(w)
-        foot = [(0.135, 0.110, 0.025, 0.135), (0.12, 0.122, 0.025, 0.150), (0.0, 0.126, 0.025, 0.155),
-                (-0.10, 0.128, 0.025, 0.148), (-0.17, 0.128, 0.025, 0.128), (-0.22, 0.124, 0.025, 0.100),
-                (-0.245, 0.114, 0.03, 0.078)]
+        foot = [(0.135, 0.104, 0.025, 0.135), (0.12, 0.114, 0.025, 0.150), (0.0, 0.118, 0.025, 0.155),
+                (-0.10, 0.118, 0.025, 0.148), (-0.17, 0.118, 0.025, 0.128), (-0.22, 0.114, 0.025, 0.100),
+                (-0.245, 0.104, 0.03, 0.078)]
         rings = []
         for y, hw, z0, z1 in foot:
             rings.append((Vector((x0, y, (z0 + z1) / 2)), u, v, hw, (z1 - z0) / 2, 0.02))
         mb.tube(rings, cs=2, color=PAL["boot"])
         # sole and instep strap
-        mb.box((x0, -0.055, 0.0175), (0.272, 0.40, 0.035), 0.008, color=PAL["sole"])
-        mb.box((x0, -0.07, 0.15), (0.262, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
+        mb.box((x0, -0.055, 0.0175), (0.248, 0.40, 0.035), 0.008, color=PAL["sole"])
+        mb.box((x0, -0.07, 0.15), (0.242, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
         # one leather knee wrap (model sheet) with a steel band round its top
-        z0, z1, extra = 0.425, 0.535, 0.030
+        z0, z1, extra = 0.390, 0.475, 0.022
         mid = (z0 + z1) / 2
         wrap = [(z0, interp(LEG, z0, 1) + extra * 0.75, interp(LEG, z0, 2) + extra * 0.75),
                 (mid, interp(LEG, mid, 1) + extra, interp(LEG, mid, 2) + extra),
                 (z1, interp(LEG, z1, 1) + extra * 0.75, interp(LEG, z1, 2) + extra * 0.75)]
         mb.ztube(x0, 0, wrap, cs=2, bevel=0.012, color=PAL["boot_wrap"])
         band = [(z, interp(LEG, z, 1) + e, interp(LEG, z, 2) + e)
-                for z, e in ((0.500, 0.026), (0.505, 0.036), (0.525, 0.036), (0.530, 0.026))]
+                for z, e in ((0.420, 0.020), (0.425, 0.028), (0.445, 0.028), (0.450, 0.020))]
         mb.ztube(x0, 0, band, cs=2, bevel=0.008, cap0=False, cap1=False, color=PAL["steel_dark"])
     return mb.finish(mat)
 

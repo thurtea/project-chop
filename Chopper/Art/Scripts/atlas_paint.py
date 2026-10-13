@@ -134,10 +134,10 @@ CHEEK = S(222, 128, 108)
 EYE_WHITE = S(236, 232, 222)
 IRIS = S(52, 150, 70)
 PUPIL = S(24, 30, 26)
-GINGER = S(172, 80, 36)          # deeper copper of the model sheet
-GINGER_DARK = S(118, 50, 22)
-GINGER_LIGHT = S(210, 116, 58)
-MOUSTACHE_C = S(192, 98, 46)
+GINGER = S(160, 70, 26)          # deeper copper of the model sheet
+GINGER_DARK = S(108, 42, 15)
+GINGER_LIGHT = S(196, 100, 44)
+MOUSTACHE_C = S(180, 86, 34)
 WOOD = S(176, 106, 52)
 WOOD_DARK = S(136, 80, 38)
 WOOD_GROOVE = S(92, 50, 22)
@@ -338,9 +338,26 @@ def strands(p, n, t, base, darkc, light):
     return base
 
 
+def clumps(p, n, t, base, darkc, light):
+    """Hair pixels as chunky locks (model sheet): 2x3 texel clumps, each a shade, with a dark lower lip."""
+    if abs(n.z) > 0.7:
+        col = math.floor(p.x / t)
+        row = math.floor(p.y / t)
+    else:
+        col = math.floor(side_coord(p, n) / t)
+        row = math.floor(p.z / t)
+    ci = col // 2
+    cj = (row + (ci % 2)) // 3
+    hsh = h3(ci, cj, 23)
+    c = mix(base, darkc, 0.35) if hsh < 0.3 else mix(base, light, 0.35) if hsh > 0.8 else base
+    if abs(n.z) <= 0.7 and (row + (ci % 2)) % 3 == 0:
+        return mix(c, darkc, 0.6)
+    return c
+
+
 def paint_hair(p, n, rgb, pc, t):
     base = mix(GINGER, GINGER_DARK, 0.35) if near(rgb, PAL["ginger_dark"]) else GINGER
-    return strands(p, n, t, base, GINGER_DARK, GINGER_LIGHT)
+    return clumps(p, n, t, base, GINGER_DARK, GINGER_LIGHT)
 
 
 def paint_beard(p, n, rgb, pc, t):
@@ -358,7 +375,7 @@ def paint_boots(p, n, rgb, pc, t):
     # (those bands are part of this mesh; painting them as skin made them look like ridges).
     if near(rgb, PAL["boot_wrap"]) or near(rgb, PAL["leather_dark"]):
         k = math.floor(p.z / t)
-        if 0.42 < p.z < 0.50 and abs(p.z - 0.462) < t * 0.8:
+        if 0.39 < p.z < 0.475 and abs(p.z - 0.408) < t * 0.8:
             return mix(BOOT_WRAP, CORD, 0.4)   # one stitch round the knee wrap
         if near(rgb, PAL["leather_dark"]):
             return grain(BOOT_WRAP, p, t, 0.04)
@@ -419,14 +436,14 @@ def paint_armour(name, p, n, rgb):
         rows = (0.565, 0.61, 0.655, 0.70, 0.75, 0.80)
         r = sum(1 for zr in rows if z >= zr) - 1
         if r < 0 or r >= len(rows) - 1:
-            return S(52, 56, 64)
+            return S(40, 40, 44)
         v = (z - rows[r]) / (rows[r + 1] - rows[r])
         c = math.floor(side_coord(p, n) / t) + (r % 2) * 2
         if v < 0.2:
-            return S(112, 114, 118) if c % 4 else S(80, 82, 86)
+            return S(92, 92, 94) if c % 4 else S(64, 64, 66)
         if c % 4 == 0 and v > 0.35:
-            return S(36, 38, 42)
-        return grain(S(72, 74, 78), p, t, 0.08)
+            return S(28, 28, 30)
+        return grain(S(56, 56, 58), p, t, 0.08)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)

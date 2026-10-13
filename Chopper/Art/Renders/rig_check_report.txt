@@ -1,9 +1,9 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (4564924 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32556 bytes)
-  [PASS] file exists: Export\chopper_axe_bear.fbx (30908 bytes)
-  [PASS] file exists: Export\chopper_shield.fbx (40700 bytes)
+  [PASS] file exists: Export\chopper.fbx (4570620 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32380 bytes)
+  [PASS] file exists: Export\chopper_axe_bear.fbx (30892 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (40620 bytes)
 
 RAW FBX: chopper.fbx
 ------------------------------------------------------------------------
@@ -71,12 +71,12 @@ SKIN WEIGHTS (imported)
   [PASS] chopper_boots       704 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_bracers     192 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_chainmail   338 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_hair        576 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_hair        736 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_head        276 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_helmet      952 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_pauldrons   128 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_plate       212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_shirt       408 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_shirt       420 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_vest        268 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_head is 100% Head
   [PASS] chopper_hair is 100% Head
@@ -271,7 +271,7 @@ PROPS
 
 PROPS ON SOCKETS (identity local transform relative to the socket bone)
   [PASS] rest: chopper_axe_bear grips like chopper_axe on Weapon_R: grip offset 0.0 mm, haft direction dot 0.9994, blade (perpendicular to the haft) vs chopper_axe +X blade dot 1.000, world blade dir (-0.59 -0.57 -0.58)
-  [PASS] clip detector self-test: shield sunk into the chest -> 728 verts (84 mm), axe through the leg -> 374 verts (99 mm)
+  [PASS] clip detector self-test: shield sunk into the chest -> 728 verts (84 mm), axe through the leg -> 368 verts (99 mm)
   [PASS] rest: shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
   [PASS] rest: shield board back not floating: gap to forearm/bracer surface 28.7..28.7 mm (min over the board, per sampled frame; required 5-30 mm)
   [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 0.000), covers 99% of hand width -0.100..0.138, bar 0.270 m)
