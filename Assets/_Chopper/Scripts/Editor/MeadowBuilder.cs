@@ -855,7 +855,10 @@ namespace Chopper.Editor
             var herbSo = new SerializedObject(herbs);
             herbSo.FindProperty("_config").objectReferenceValue = config;
             herbSo.FindProperty("_model").objectReferenceValue = PixelModel("pixel_bush2_lowpoly");
-            herbSo.FindProperty("_fabricBushModel").objectReferenceValue = PixelModel("Fern_1");
+            GameObject bushA = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Chopper/Resources/Foliage/prop_bush_voxel_a.prefab");
+            GameObject bushB = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Chopper/Resources/Foliage/prop_bush_voxel_b.prefab");
+            herbSo.FindProperty("_fabricBushModel").objectReferenceValue = bushA != null ? bushA : PixelModel("Fern_1");
+            if (bushB != null) herbSo.FindProperty("_foliageBushB").objectReferenceValue = bushB;
             herbSo.ApplyModifiedPropertiesWithoutUndo();
             root.AddComponent<CryptManager>();
             root.AddComponent<ArenaManager>();

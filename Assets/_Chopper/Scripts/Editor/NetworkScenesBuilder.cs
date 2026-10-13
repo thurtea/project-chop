@@ -62,6 +62,7 @@ namespace Chopper.Editor
             // BuildAll resets the pieces and the hut to the old models; put the concept dressing back.
             ChopperPieceDress.Apply();
             ChopperPropDress.Apply();
+            ChopperFoliageSwap.Apply();
             AssetDatabase.SaveAssets();
 
         }

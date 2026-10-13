@@ -11,7 +11,7 @@ Pick one:
   ```powershell
   Start-Process "E:\Projects\project-chop\Builds\Dev\Chopper.exe"
   ```
-  The build is current as of 2026-10-12. If you change anything in Unity, rebuild first with `Chopper.Editor.BuildTools.BuildDevPlayer`.
+  The build is current as of 2026-10-13 (`Builds\Dev\Chopper.exe`). If you change anything in Unity, rebuild first with `Chopper.Editor.BuildTools.BuildDevPlayer`.
 
 In the menu choose **Host** to start a world. Set the screen to 2560 x 1440 or 1920 x 1080 (16:9).
 
@@ -42,19 +42,24 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 ## 4. Checklist
 
 ### A. Character and movement (first minute)
-- [ ] You arrive by falling from the sky into the hub pond, bare-chested in trousers and boots, with no axe.
-- [ ] Swim to the bank toward the house and climb out. The outfit (plaid shirt, patched vest, belt) and the bear-head axe lie on the bank: walk over them to put them on.
+- [ ] The title screen shows the cover art and the Chopper logo (cabin, axes, ribbon), and the exe icon is that same mark.
+- [ ] You arrive by falling from the sky into the hub pond, in a short grey tunic and shorts, bare feet, with no axe.
+- [ ] Swim to the bank toward the house. The stroke should read as swimming, not a stiff flap. Climb out.
+- [ ] The outfit (plaid shirt, patched vest, belt) and the bear-head axe lie on the bank: walk over them to put them on.
+- [ ] Dressed, he reads closer to the model sheet: thick ginger hair down the neck, heavy brows, a wide beard with a braid, rolled sleeves, knee wraps, folded boot cuffs, a larger carved axe. Note anything that still looks like a block (ears poking out, a small blade).
 - [ ] Walk, run, sprint, crouch: blocky and firm, no floppy limbs.
 - [ ] Jump, then double jump in the air. A third press in the air does nothing.
 - [ ] Roll (Left Alt).
 - [ ] The axe is held head up, blade forward, both standing and walking.
-- [ ] Chop a tree with left click: the three swings chain, and the tree falls and leaves a stump.
+- [ ] Chop a tree: the trunk above the stump falls and lands as a log. You get only some of the wood when it falls. Chop the log on the ground for the rest. Chop the stump three times to clear it. The fallen trunk should not sink, and nothing underground should show.
 
 ### B. The hub house
 - [ ] It looks like the concept hut: stone base, log walls between dark posts, a golden plank roof, big crossed beams at the gable ends, a small ridge dormer, and a porch with its own crossed gable over the door.
 - [ ] Repair it: bring 10 wood and press R at the hut (or type `repair`).
 - [ ] Inside, the floors show on every level: the basement (stone-tinted walls), the main floor, and the loft. Stairs go basement to main floor and main floor to the loft.
-- [ ] Two beds in the loft, two workbenches (main floor and basement), the chest and the fireplace on the main floor.
+- [ ] From the loft, look up: the roof is solid wood. No sky or foliage shows between the courses or at the gable peak.
+- [ ] Two beds in the loft, two workbenches (main floor and basement), the chest and a stone fireplace on the main floor (not a white noise block).
+- [ ] Stand in the lit fireplace: health ticks down, and it stops when you step out. The warmth ring around a campfire should not burn you.
 - [ ] Walk in and out the door and up the porch steps without getting stuck.
 
 ### C. Block ground and mountains
@@ -65,15 +70,18 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 - [ ] No black wedges or holes along the grass steps. Every step shows a green grass lip over brown dirt.
 
 ### D. Water and fishing
-- [ ] The pond is flat blue with a stepped sand bank and a shallow edge you can wade in.
+- [ ] The pond is grey-teal, not royal blue, with a stepped sand bank and a shallow edge you can wade in.
 - [ ] Swim to the middle, then swim back to the bank: you climb out without jumping.
 - [ ] Fishing (rod on 4): stand at the bank, hold left click to charge, let go to cast, wait for the bite, reel in.
-- [ ] The rod stays in the right hand the whole time: the cast swings it back over the shoulder and whips it forward (new, 2026-10-12, check it on video).
+- [ ] The rod stays in the right hand the whole time: the cast swings it back over the shoulder and whips it forward.
+- [ ] While a fish is on, the tension bar sits above the float. "Hooked!" or "Missed" appears there too.
 
 ### E. Plants, torch and campfire
 - [ ] Healing herbs are small yellow voxel flowers on a green clump (tell me if they should be a stronger yellow).
 - [ ] At night (`night`), take the torch (2): a lit voxel torch in the hand.
-- [ ] Build a campfire with the hammer (6) in a forest: logs and stones, with flames.
+- [ ] Meadow rocks are dark stone with moss on top, not pale grey lumps.
+- [ ] Bushes and grass: say whether they read as green foliage or as flat grey.
+- [ ] Build a campfire with the hammer (6) in a forest: logs and stones, with flames. Stand in the flame: health ticks down and stops when you leave.
 
 ### F. Building with the hammer (6)
 - [ ] In the hub the hammer refuses every piece: "The hub stays as it is: build in the forests".
