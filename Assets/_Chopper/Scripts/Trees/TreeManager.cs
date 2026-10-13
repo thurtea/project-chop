@@ -34,14 +34,22 @@ namespace Chopper.Trees
         [SerializeField] private NavMeshSurface _navSurface;
 
         private TreeHitTracker _tracker;
+        // Logs, stump chops and cleared spots. The server's copy is the truth; peers only keep enough to show and aim.
+        private readonly TreeRemains _remains = new TreeRemains();
         // Every peer's own record of which trees are down, filled from the felled, load and late join RPCs. The
         // server's _tracker is the truth; on a joined client it stays empty, so client side checks read this instead.
         private readonly HashSet<int> _clientFelled = new HashSet<int>();
+        private readonly Dictionary<int, float> _clientLogYaw = new Dictionary<int, float>();
+        private readonly Dictionary<int, float> _clientLogReady = new Dictionary<int, float>();
+        private readonly HashSet<int> _clientCleared = new HashSet<int>();
+        // Server: Time.time when a freshly felled log can be chopped. Loaded logs are already down and stay out of here.
+        private readonly Dictionary<int, float> _logReadyAt = new Dictionary<int, float>();
         // Server: the random turn on each falling tree (TreeFallRules).
         private readonly System.Random _fallRandom = new System.Random();
         private bool _firstLargeTreeFelled;
         private TreeView[] _views;
         private GameObject[] _stumps;
+        private FallingTree[] _fallen;
         private Transform _root;
         private ParticleSystem _particles;
 
@@ -90,10 +98,11 @@ namespace Chopper.Trees
             _root.SetParent(transform, false);
             _views = new TreeView[_database.Count];
             _stumps = new GameObject[_database.Count];
+            _fallen = new FallingTree[_database.Count];
 
             for (int i = 0; i < _database.Count; i++) CreateView(i);
-            // Felled ids that arrived before the world was built become stumps now.
-            foreach (int id in _clientFelled) ShowFelled(id, Vector3.zero, animate: false);
+            // Felled ids that arrived before the world was built become stumps (and landed logs) now.
+            foreach (int id in _clientFelled) Present(id, Vector3.zero, animate: false);
         }
 
         private void CreateView(int i)
@@ -184,22 +193,22 @@ namespace Chopper.Trees
         {
             if (!ServerFindTree(origin, aim, out int id, out _)) return;
             PlayerUpgrades upgrades = swinger != null ? swinger.GetComponent<PlayerUpgrades>() : null;
-            ServerHitTree(id, swinger, aim, true, upgrades != null ? upgrades.AxeDamageMultiplier : 1f);
+            ServerHitTree(id, swinger, origin, aim, true, upgrades != null ? upgrades.AxeDamageMultiplier : 1f);
         }
 
         // Server only. Picks the nearest tree in the swing strip.
         public bool ServerFindTree(Vector3 origin, Vector3 aim, out int treeId, out float distance)
         {
-            return FindTree(origin, aim, _tracker.IsFelled, out treeId, out distance);
+            return FindTree(origin, aim, server: true, out treeId, out distance);
         }
 
         // Any peer. The same pick against this peer's view of which trees are down (the owner's swing prediction).
         public bool ClientFindTree(Vector3 origin, Vector3 aim, out int treeId, out float distance)
         {
-            return FindTree(origin, aim, _clientFelled.Contains, out treeId, out distance);
+            return FindTree(origin, aim, server: false, out treeId, out distance);
         }
 
-        private bool FindTree(Vector3 origin, Vector3 aim, System.Func<int, bool> isFelled, out int treeId, out float distance)
+        private bool FindTree(Vector3 origin, Vector3 aim, bool server, out int treeId, out float distance)
         {
             treeId = -1;
             distance = float.MaxValue;
@@ -209,31 +218,61 @@ namespace Chopper.Trees
             if (_database == null) return false;
             for (int i = 0; i < _database.Count; i++)
             {
-                if (isFelled(i)) continue;
                 TreeEntry entry = _database.Get(i);
                 Vector3 delta = entry.Position - origin;
                 delta.y = 0f;
-                if (delta.sqrMagnitude > broadSqr) continue;
+                bool felled = server ? _tracker.IsFelled(i) : _clientFelled.Contains(i);
+                if (!felled)
+                {
+                    if (delta.sqrMagnitude > broadSqr) continue;
+                    float d = TreeTargeting.HitDistance(origin, aim, _config.SwingRange, _config.SwingRadius,
+                        entry.Position, _config.GetTrunkRadius(entry.Size));
+                    if (d >= 0f && d < distance)
+                    {
+                        treeId = i;
+                        distance = d;
+                    }
+                    continue;
+                }
 
-                float d = TreeTargeting.HitDistance(origin, aim, _config.SwingRange, _config.SwingRadius,
-                    entry.Position, _config.GetTrunkRadius(entry.Size));
-                if (d >= 0f && d < distance)
+                float yaw = 0f;
+                bool cleared = server ? _remains.IsCleared(i) : _clientCleared.Contains(i);
+                bool hasLog = server ? _remains.TryGetLogYaw(i, out yaw) : _clientLogYaw.TryGetValue(i, out yaw);
+                if (hasLog && LogStillFalling(i, server)) hasLog = false;
+                if (cleared && !hasLog) continue;
+                float reach = LogLength(entry.Size) + broadRange;
+                if (delta.sqrMagnitude > reach * reach) continue;
+                float remains = RemainsDistance(entry, origin, aim, !cleared, hasLog, yaw);
+                if (remains >= 0f && remains < distance)
                 {
                     treeId = i;
-                    distance = d;
+                    distance = remains;
                 }
             }
             return treeId >= 0;
         }
 
-        // Server only. Takes the swing's chop points off the tree (power 1 is a plain axe hit, more for a better axe),
-        // grants wood on the felling hit, and rolls sapling drops.
+        // Server only. Older callers have no swing origin; the swinger's feet stand in for it.
         public void ServerHitTree(int treeId, PlayerWood swinger, Vector3 aim, bool countsAsHit = true, float power = 1f)
         {
+            Vector3 origin = swinger != null ? swinger.transform.position : new Vector3(float.NaN, 0f, 0f);
+            ServerHitTree(treeId, swinger, origin, aim, countsAsHit, power);
+        }
+
+        // Server only. Takes the swing's chop points off the tree (power 1 is a plain axe hit, more for a better axe).
+        // Felling pays a third of the wood (LogRules.FellWood). The log and the stump take the swings after that.
+        public void ServerHitTree(int treeId, PlayerWood swinger, Vector3 origin, Vector3 aim, bool countsAsHit, float power)
+        {
+            if (_database == null || treeId < 0 || treeId >= _database.Count) return;
+            if (_tracker.IsFelled(treeId))
+            {
+                if (countsAsHit) ServerHitRemains(treeId, swinger, origin, aim, power);
+                return;
+            }
             if (!countsAsHit)
             {
                 // A fist punch that has not added up to a whole hit yet: the tree shakes, nothing else happens.
-                if (!_tracker.IsFelled(treeId)) ServerShowHit(treeId, aim);
+                ServerShowHit(treeId, aim);
                 return;
             }
             TreeEntry entry = _database.Get(treeId);
@@ -246,12 +285,15 @@ namespace Chopper.Trees
             }
             else
             {
-                if (swinger != null) swinger.ServerAddWood(_config.GetWoodForSize(entry.Size));
+                int fellWood = LogRules.FellWood(_config.GetWoodForSize(entry.Size));
+                if (swinger != null && fellWood > 0) swinger.ServerAddWood(fellWood);
                 bool teachTreeDanger = entry.Size == TreeSize.Large && swinger != null && !_firstLargeTreeFelled;
                 if (teachTreeDanger) _firstLargeTreeFelled = true;
                 Vector3 fall = teachTreeDanger
                     ? TreeFallRules.TowardPlayer(entry.Position, swinger.transform.position, -aim)
                     : ServerFallDirection(treeId, entry, aim);
+                _remains.AddLog(treeId, FlatYaw(fall));
+                _logReadyAt[treeId] = Time.time + FallingTree.FallDuration;
                 TreeFelledObserversRpc(treeId, fall);
                 // Only the big trees are heavy enough to hurt: anyone where the trunk lands is crushed.
                 if (entry.Size == TreeSize.Large) StartCoroutine(ServerCrushWhenLanded(entry, fall));
@@ -314,44 +356,100 @@ namespace Chopper.Trees
 
         private static float TreeSizeHeight(TreeSize size) => Chopper.World.Generation.WorldGen.TreeHeights[(int)size];
 
-        // Server only. Saving: the ids of every tree that is down right now.
+        // Server only. Saving: each felled id, plus a packed tail when that tree still has a log or a cleared wait
+        // (TreeRemains.Pack). WorldSaver stores the array unchanged. A plain id still means "this tree is down".
         public int[] ServerFelledIds()
         {
             var felled = new List<int>();
             _tracker.CopyFelledTo(felled);
-            return felled.ToArray();
+            var saved = new List<int>(felled.Count * 2);
+            foreach (int id in felled)
+            {
+                saved.Add(id);
+                bool hasLog = _remains.TryGetLogYaw(id, out float yaw);
+                bool cleared = _remains.Cleared.TryGetValue(id, out int dawns);
+                if (!hasLog && !cleared) continue;
+                if (id >= 1 << 14) continue;
+                saved.Add(TreeRemains.Pack(id, hasLog, yaw, cleared, cleared ? dawns : 0));
+            }
+            return saved.ToArray();
         }
 
-        // Server only. Loading a saved world: these trees are already down (stumps, no falling, no wood).
+        // Server only. Loading a saved world: stumps, and any log or cleared wait packed beside the id.
         public void ServerLoadFelled(int[] treeIds, bool firstLargeTreeFelled = false)
         {
             _firstLargeTreeFelled = firstLargeTreeFelled;
+            _remains.Clear();
+            _logReadyAt.Clear();
             if (treeIds == null || treeIds.Length == 0 || _database == null) return;
-            var valid = new List<int>();
-            foreach (int id in treeIds)
+            foreach (int raw in treeIds)
             {
+                if (raw >= 0)
+                {
+                    if (raw < _database.Count) _tracker.MarkFelled(raw);
+                    continue;
+                }
+                if (!TreeRemains.TryUnpack(raw, out int id, out bool hasLog, out float yaw, out bool cleared, out int dawns)) continue;
                 if (id < 0 || id >= _database.Count) continue;
                 _tracker.MarkFelled(id);
-                valid.Add(id);
+                if (hasLog) _remains.AddLog(id, yaw);
+                if (cleared) _remains.MarkCleared(id, dawns);
             }
-            LoadFelledObserversRpc(valid.ToArray());
+            BroadcastFelled();
+        }
+
+        private void BroadcastFelled()
+        {
+            var felled = new List<int>();
+            _tracker.CopyFelledTo(felled);
+            if (felled.Count == 0) return;
+            FillRemains(out int[] logIds, out float[] yaws, out int[] cleared);
+            LoadFelledObserversRpc(felled.ToArray(), logIds, yaws, cleared);
+        }
+
+        private void FillRemains(out int[] logIds, out float[] yaws, out int[] cleared)
+        {
+            logIds = new int[_remains.Logs.Count];
+            yaws = new float[_remains.Logs.Count];
+            int n = 0;
+            foreach (KeyValuePair<int, TreeRemains.Log> pair in _remains.Logs)
+            {
+                logIds[n] = pair.Key;
+                yaws[n] = pair.Value.Yaw;
+                n++;
+            }
+            cleared = new int[_remains.Cleared.Count];
+            n = 0;
+            foreach (KeyValuePair<int, int> pair in _remains.Cleared) cleared[n++] = pair.Key;
         }
 
         [ObserversRpc]
-        private void LoadFelledObserversRpc(int[] treeIds)
+        private void LoadFelledObserversRpc(int[] treeIds, int[] logIds, float[] logYaws, int[] clearedIds)
         {
-            foreach (int id in treeIds) ClientFell(id, Vector3.zero, animate: false);
+            ApplySnapshot(treeIds, logIds, logYaws, clearedIds);
         }
 
-        // Server only. Dawn regrowth (plan D6) and restarts: every felled tree grows back.
+        // Server only. Dawn keeps a cleared spot bare (TreeRemains.Dawn). A restart, any other phase, grows every tree.
         public void ServerRegrowAll()
         {
             var felled = new List<int>();
             _tracker.CopyFelledTo(felled);
             if (felled.Count == 0) return;
 
-            foreach (int id in felled) _tracker.Regrow(id);
-            TreeRegrowObserversRpc(felled.ToArray());
+            var regrow = new List<int>();
+            bool dawn = Chopper.World.DayNightCycle.Instance != null
+                && Chopper.World.DayNightCycle.Instance.Phase == DayPhase.Dawn;
+            if (dawn) _remains.Dawn(felled, regrow);
+            else
+            {
+                regrow.AddRange(felled);
+                _remains.Clear();
+                _logReadyAt.Clear();
+            }
+            foreach (int id in regrow) _logReadyAt.Remove(id);
+            if (regrow.Count == 0) return;
+            foreach (int id in regrow) _tracker.Regrow(id);
+            TreeRegrowObserversRpc(regrow.ToArray());
         }
 
         public override void OnStartServer()
@@ -372,10 +470,15 @@ namespace Chopper.Trees
             foreach (int id in treeIds)
             {
                 _clientFelled.Remove(id);
-                if (_views == null || id < 0 || id >= _views.Length || _views[id] != null) continue;
+                _clientLogYaw.Remove(id);
+                _clientLogReady.Remove(id);
+                _clientCleared.Remove(id);
+                if (_views == null || id < 0 || id >= _views.Length) continue;
+                if (_fallen != null && id < _fallen.Length && _fallen[id] != null) Destroy(_fallen[id].gameObject);
+                if (_fallen != null && id < _fallen.Length) _fallen[id] = null;
                 if (_stumps[id] != null) Destroy(_stumps[id]);
                 _stumps[id] = null;
-                CreateView(id);
+                if (_views[id] == null) CreateView(id);
             }
         }
 
@@ -384,7 +487,9 @@ namespace Chopper.Trees
             base.OnSpawnServer(connection);
             var felled = new List<int>();
             _tracker.CopyFelledTo(felled);
-            if (felled.Count > 0) SyncFelledTargetRpc(connection, felled.ToArray());
+            if (felled.Count == 0) return;
+            FillRemains(out int[] logIds, out float[] yaws, out int[] cleared);
+            SyncFelledTargetRpc(connection, felled.ToArray(), logIds, yaws, cleared);
         }
 
         // A tree shaking is only worth sending to the players who could see it (NearbyClients).
@@ -414,8 +519,26 @@ namespace Chopper.Trees
         }
 
         [TargetRpc]
-        private void SyncFelledTargetRpc(NetworkConnection connection, int[] felledIds)
+        private void SyncFelledTargetRpc(NetworkConnection connection, int[] felledIds, int[] logIds, float[] logYaws, int[] clearedIds)
         {
+            ApplySnapshot(felledIds, logIds, logYaws, clearedIds);
+        }
+
+        private void ApplySnapshot(int[] felledIds, int[] logIds, float[] logYaws, int[] clearedIds)
+        {
+            _clientLogYaw.Clear();
+            _clientLogReady.Clear();
+            _clientCleared.Clear();
+            if (logIds != null && logYaws != null)
+            {
+                int count = Mathf.Min(logIds.Length, logYaws.Length);
+                for (int i = 0; i < count; i++) _clientLogYaw[logIds[i]] = logYaws[i];
+            }
+            if (clearedIds != null)
+            {
+                foreach (int id in clearedIds) _clientCleared.Add(id);
+            }
+            if (felledIds == null) return;
             foreach (int id in felledIds) ClientFell(id, Vector3.zero, animate: false);
         }
 
@@ -425,29 +548,200 @@ namespace Chopper.Trees
         {
             if (treeId < 0) return;
             _clientFelled.Add(treeId);
-            ShowFelled(treeId, direction, animate);
+            if (direction.sqrMagnitude > 0.0001f)
+            {
+                _clientLogYaw[treeId] = FlatYaw(direction);
+                if (animate) _clientLogReady[treeId] = Time.time + FallingTree.FallDuration;
+                else _clientLogReady.Remove(treeId);
+            }
+            Present(treeId, direction, animate);
         }
 
-        private void ShowFelled(int treeId, Vector3 direction, bool animate)
+        private void Present(int treeId, Vector3 direction, bool animate)
         {
-            if (_views == null || treeId >= _views.Length || _views[treeId] == null) return;
+            if (_views == null || treeId < 0 || treeId >= _views.Length) return;
 
             TreeEntry entry = _database.Get(treeId);
-            GameObject view = _views[treeId].gameObject;
+            Quaternion rotation = Quaternion.Euler(0f, entry.Yaw, 0f);
+            if (_views[treeId] != null) rotation = _views[treeId].transform.rotation;
             if (animate)
             {
                 EmitBurst(entry.Position + Vector3.up * ChipHeight, ChipColor, _config.ChipsPerHit * 2, 0.2f);
                 EmitBurst(entry.Position + Vector3.up * (FellFeelHeight + 1f), LeafColor, _config.LeavesOnFell, 1.5f);
                 PlayFeedback(entry, felled: true);
-                Vector3 stumpTop = entry.Position + Vector3.up * StumpTop(entry);
-                FallingTree.Spawn(_database.GetModel(entry.ModelIndex), Planted(entry.Position, entry.Scale),
-                    view.transform.rotation, entry.Scale, direction, entry.Zone, stumpTop,
-                    at => EmitBurst(at, ChipColor, _config.ChipsPerHit * 3, 1.2f));
             }
 
-            Destroy(view);
-            _views[treeId] = null;
-            _stumps[treeId] = CreateStump(entry);
+            if (_views[treeId] != null)
+            {
+                Destroy(_views[treeId].gameObject);
+                _views[treeId] = null;
+            }
+
+            if (_clientCleared.Contains(treeId))
+            {
+                if (_stumps[treeId] != null) Destroy(_stumps[treeId]);
+                _stumps[treeId] = null;
+            }
+            else if (_stumps[treeId] == null)
+            {
+                _stumps[treeId] = CreateStump(entry);
+            }
+
+            if (!_clientLogYaw.TryGetValue(treeId, out float yaw) || _fallen == null || _fallen[treeId] != null) return;
+            Vector3 fall = direction.sqrMagnitude > 0.0001f ? direction : YawDirection(yaw);
+            Vector3 stumpTop = entry.Position + Vector3.up * StumpTop(entry);
+            _fallen[treeId] = FallingTree.Spawn(_database.GetModel(entry.ModelIndex), Planted(entry.Position, entry.Scale),
+                rotation, entry.Scale, fall, entry.Zone, stumpTop,
+                at => EmitBurst(at, ChipColor, _config.ChipsPerHit * 3, 1.2f), landed: !animate, groundY: entry.Position.y);
+        }
+
+        // Server only. The nearer of the log and the stump takes the swing. Clearing the stump does not eat the log.
+        private void ServerHitRemains(int treeId, PlayerWood swinger, Vector3 origin, Vector3 aim, float power)
+        {
+            TreeEntry entry = _database.Get(treeId);
+            if (float.IsNaN(origin.x)) origin = entry.Position;
+            bool cleared = _remains.IsCleared(treeId);
+            bool hasLog = _remains.TryGetLogYaw(treeId, out float yaw);
+            if (hasLog && LogStillFalling(treeId, server: true)) hasLog = false;
+            if (cleared && !hasLog) return;
+
+            int points = ChopRules.SwingPoints(power);
+            float stumpDistance = -1f;
+            if (!cleared)
+            {
+                stumpDistance = TreeTargeting.HitDistance(origin, aim, _config.SwingRange, _config.SwingRadius,
+                    entry.Position, _config.GetTrunkRadius(entry.Size));
+            }
+            float logDistance = -1f;
+            if (hasLog)
+            {
+                LogEnds(entry, yaw, out Vector3 a, out Vector3 b);
+                logDistance = TreeTargeting.SegmentHitDistance(origin, aim, _config.SwingRange, _config.SwingRadius,
+                    a, b, _config.GetTrunkRadius(entry.Size));
+            }
+
+            bool hitLog = logDistance >= 0f && (stumpDistance < 0f || logDistance <= stumpDistance);
+            if (hitLog)
+            {
+                RemainsHit hit = _remains.HitLog(treeId, entry.Size, points, out int before, out int after);
+                if (hit == RemainsHit.Ignored) return;
+                int wood = LogRules.WoodBetween(LogRules.LogWood(_config.GetWoodForSize(entry.Size), entry.Size),
+                    LogRules.LogPoints(entry.Size), before, after);
+                if (swinger != null && wood > 0) swinger.ServerAddWood(wood);
+                if (hit == RemainsHit.Finished)
+                {
+                    _logReadyAt.Remove(treeId);
+                    LogFinishedObserversRpc(treeId);
+                }
+                else ServerShowLogHit(treeId);
+                return;
+            }
+            if (stumpDistance < 0f) return;
+
+            RemainsHit stump = _remains.HitStump(treeId, points);
+            if (stump == RemainsHit.Ignored) return;
+            if (stump == RemainsHit.Finished)
+            {
+                if (swinger != null && LogRules.StumpWood > 0) swinger.ServerAddWood(LogRules.StumpWood);
+                StumpClearedObserversRpc(treeId);
+            }
+            else ServerShowStumpHit(treeId);
+        }
+
+        private float RemainsDistance(TreeEntry entry, Vector3 origin, Vector3 aim, bool stump, bool hasLog, float yaw)
+        {
+            float best = -1f;
+            float radius = _config.GetTrunkRadius(entry.Size);
+            if (stump)
+            {
+                float d = TreeTargeting.HitDistance(origin, aim, _config.SwingRange, _config.SwingRadius, entry.Position, radius);
+                if (d >= 0f) best = d;
+            }
+            if (hasLog)
+            {
+                LogEnds(entry, yaw, out Vector3 a, out Vector3 b);
+                float d = TreeTargeting.SegmentHitDistance(origin, aim, _config.SwingRange, _config.SwingRadius, a, b, radius);
+                if (d >= 0f && (best < 0f || d < best)) best = d;
+            }
+            return best;
+        }
+
+        private void LogEnds(TreeEntry entry, float fallYaw, out Vector3 a, out Vector3 b)
+        {
+            Vector3 along = FallingTree.GroundDirection(YawDirection(fallYaw));
+            a = entry.Position;
+            b = entry.Position + along * LogLength(entry.Size);
+        }
+
+        private static float LogLength(TreeSize size) => TreeSizeHeight(size) * CrushReachFraction;
+
+        private bool LogStillFalling(int treeId, bool server)
+        {
+            Dictionary<int, float> ready = server ? _logReadyAt : _clientLogReady;
+            return ready.TryGetValue(treeId, out float at) && Time.time < at;
+        }
+
+        private static float FlatYaw(Vector3 direction)
+        {
+            Vector3 flat = new Vector3(direction.x, 0f, direction.z);
+            if (flat.sqrMagnitude < 0.0001f) flat = Vector3.forward;
+            return Mathf.Atan2(flat.x, flat.z) * Mathf.Rad2Deg;
+        }
+
+        private static Vector3 YawDirection(float yaw) => Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+
+        private void ServerShowLogHit(int treeId)
+        {
+            Vector3 position = _database.Get(treeId).Position;
+            foreach (NetworkConnection connection in Chopper.Networking.NearbyClients.Within(ServerManager, position))
+                LogHitTargetRpc(connection, treeId);
+        }
+
+        private void ServerShowStumpHit(int treeId)
+        {
+            Vector3 position = _database.Get(treeId).Position;
+            foreach (NetworkConnection connection in Chopper.Networking.NearbyClients.Within(ServerManager, position))
+                StumpHitTargetRpc(connection, treeId);
+        }
+
+        [TargetRpc]
+        private void LogHitTargetRpc(NetworkConnection connection, int treeId)
+        {
+            if (_fallen != null && treeId >= 0 && treeId < _fallen.Length && _fallen[treeId] != null) _fallen[treeId].Jolt();
+            if (_database == null || treeId < 0 || treeId >= _database.Count) return;
+            TreeEntry entry = _database.Get(treeId);
+            EmitBurst(entry.Position + Vector3.up * 0.4f, ChipColor, _config.ChipsPerHit, 0.2f);
+            PlayFeedback(entry, felled: false);
+        }
+
+        [TargetRpc]
+        private void StumpHitTargetRpc(NetworkConnection connection, int treeId)
+        {
+            if (_database == null || treeId < 0 || treeId >= _database.Count) return;
+            TreeEntry entry = _database.Get(treeId);
+            EmitBurst(entry.Position + Vector3.up * 0.25f, ChipColor, _config.ChipsPerHit, 0.12f);
+            PlayFeedback(entry, felled: false);
+        }
+
+        [ObserversRpc]
+        private void LogFinishedObserversRpc(int treeId)
+        {
+            _clientLogYaw.Remove(treeId);
+            _clientLogReady.Remove(treeId);
+            if (_fallen == null || treeId < 0 || treeId >= _fallen.Length) return;
+            if (_fallen[treeId] != null) _fallen[treeId].Break();
+            _fallen[treeId] = null;
+        }
+
+        [ObserversRpc]
+        private void StumpClearedObserversRpc(int treeId)
+        {
+            _clientCleared.Add(treeId);
+            if (_stumps == null || treeId < 0 || treeId >= _stumps.Length) return;
+            if (_stumps[treeId] != null) Destroy(_stumps[treeId]);
+            _stumps[treeId] = null;
+            if (_database == null || treeId >= _database.Count) return;
+            EmitBurst(_database.Get(treeId).Position + Vector3.up * 0.2f, ChipColor, _config.ChipsPerHit * 2, 0.25f);
         }
 
         // The pine is authored on a 0.25 m dirt pad (build_pine.py, cells at z = 0). Concept 2.0 has the trunk

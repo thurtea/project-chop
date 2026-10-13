@@ -90,6 +90,15 @@ button:focus-visible {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+}
+
+.brand img {
+  display: block;
+  height: 3.2rem;
+  width: auto;
+  border-radius: 0.35rem;
 }
 
 .nav-toggle {
@@ -366,13 +375,20 @@ footer a:hover {
 
 /* ---------- Game page additions ---------- */
 
-.hero .logo {
-  display: block;
-  width: 7.5rem;
-  height: auto;
+.hero h1 {
   margin: 0 0 1.25rem;
+}
+
+.hero .banner,
+.cover {
+  display: block;
+  width: min(100%, 28rem);
+  height: auto;
   border-radius: 0.6rem;
-  image-rendering: pixelated;
+}
+
+.cover {
+  margin: 0 0 1.25rem;
 }
 
 .cta {

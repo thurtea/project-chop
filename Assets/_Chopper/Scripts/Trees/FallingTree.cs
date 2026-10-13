@@ -3,13 +3,14 @@ using UnityEngine;
 
 namespace Chopper.Trees
 {
-    // Local only (plan D14: felled trees are not networked). Only the trunk above the stump and the crown fall: the
-    // mesh is cut at the stump top and hinges there. It topples slowly, then faster, lies on the ground, then breaks
-    // apart in a burst of chips.
+    // Local only: the server keeps the log's state (TreeRemains) and every peer shows it. Only the trunk above the
+    // stump and the crown fall: the mesh is cut at the stump top and hinges there. It topples slowly, then faster, and
+    // lies on the ground as a log until it is chopped up (W11-09), then breaks apart in a burst of chips.
     public class FallingTree : MonoBehaviour
     {
         public const float FallDuration = 1.5f;
-        private const float RestDuration = 6f;
+        private const float JoltSeconds = 0.25f;
+        private const float JoltHeight = 0.1f;
         private const float BreakDuration = 0.4f;
         private const float FallDegrees = 88f;
 
@@ -21,7 +22,11 @@ namespace Chopper.Trees
         private float _scale;
         private System.Action<Vector3> _onBreak;
         private bool _broken;
+        private float _breakTime;
         private Vector3 _breakCenter;
+        private float _joltTime = -1f;
+        private float _groundY;
+        private float _restLift = -1f;
 
         // Which way along the ground the top of a tree ends up when it is felled with this aim (flat, unit length).
         public static Vector3 GroundDirection(Vector3 fallDirection)
@@ -34,12 +39,14 @@ namespace Chopper.Trees
             return top.normalized;
         }
 
-        public static void Spawn(GameObject model, Vector3 position, Quaternion rotation, float scale, Vector3 fallDirection, Chopper.Core.Element zone,
-            Vector3 cut, System.Action<Vector3> onBreak)
+        // landed: already lying on the ground (loading, late join).
+        public static FallingTree Spawn(GameObject model, Vector3 position, Quaternion rotation, float scale, Vector3 fallDirection, Chopper.Core.Element zone,
+            Vector3 cut, System.Action<Vector3> onBreak, bool landed = false, float groundY = float.NaN)
         {
             GameObject go = Instantiate(model, position, rotation);
             go.transform.localScale = Vector3.one * scale;
             TreeTint.Apply(go, zone);
+            foreach (Collider collider in go.GetComponentsInChildren<Collider>()) Destroy(collider);
             var falling = go.AddComponent<FallingTree>();
             Vector3 flat = new Vector3(fallDirection.x, 0f, fallDirection.z);
             if (flat.sqrMagnitude < 0.0001f) flat = Vector3.forward;
@@ -47,11 +54,36 @@ namespace Chopper.Trees
             falling._startRotation = rotation;
             falling._hinge = cut;
             falling._localHinge = Quaternion.Inverse(rotation) * ((cut - position) / Mathf.Max(0.01f, scale));
-            falling._startTime = Time.time;
+            falling._startTime = landed ? Time.time - FallDuration : Time.time;
             falling._scale = scale;
             falling._onBreak = onBreak;
+            falling._groundY = float.IsNaN(groundY) ? cut.y : groundY;
             CutBelow(go, falling._localHinge.y);
-            falling.Apply(0f);
+            falling.Apply(landed ? FallDegrees : 0f);
+            return falling;
+        }
+
+        public bool Landed => Time.time - _startTime >= FallDuration;
+
+        // A chop on the log: it jumps a little.
+        public void Jolt() => _joltTime = Time.time;
+
+        // The log is used up: it breaks apart in chips.
+        public void Break()
+        {
+            if (_broken) return;
+            _broken = true;
+            _breakTime = Time.time;
+            Apply(FallDegrees);
+            _breakCenter = transform.position;
+            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+            if (renderers.Length > 0)
+            {
+                Bounds bounds = renderers[0].bounds;
+                foreach (Renderer r in renderers) bounds.Encapsulate(r.bounds);
+                _breakCenter = bounds.center;
+            }
+            _onBreak?.Invoke(_breakCenter);
         }
 
         // Everything below the cut (stump, roots, dirt pad) stays behind: faces wholly below are dropped and faces
@@ -97,32 +129,21 @@ namespace Chopper.Trees
 
         private void Update()
         {
-            float elapsed = Time.time - _startTime;
-            if (elapsed < FallDuration)
+            if (!_broken)
             {
-                Apply(FallDegrees * (elapsed / FallDuration) * (elapsed / FallDuration));
+                float elapsed = Time.time - _startTime;
+                if (elapsed < FallDuration)
+                {
+                    Apply(FallDegrees * (elapsed / FallDuration) * (elapsed / FallDuration));
+                    return;
+                }
+                Apply(FallDegrees);
+                float jolt = Time.time - _joltTime;
+                if (_joltTime >= 0f && jolt < JoltSeconds) transform.position += Vector3.up * (JoltHeight * Mathf.Sin(jolt / JoltSeconds * Mathf.PI));
                 return;
             }
 
-            float breakElapsed = elapsed - FallDuration - RestDuration;
-            if (breakElapsed < 0f)
-            {
-                Apply(FallDegrees);
-                return;
-            }
-            if (!_broken)
-            {
-                _broken = true;
-                _breakCenter = transform.position;
-                Renderer[] renderers = GetComponentsInChildren<Renderer>();
-                if (renderers.Length > 0)
-                {
-                    Bounds bounds = renderers[0].bounds;
-                    foreach (Renderer r in renderers) bounds.Encapsulate(r.bounds);
-                    _breakCenter = bounds.center;
-                }
-                _onBreak?.Invoke(_breakCenter);
-            }
+            float breakElapsed = Time.time - _breakTime;
             if (breakElapsed > BreakDuration)
             {
                 Destroy(gameObject);
@@ -133,12 +154,29 @@ namespace Chopper.Trees
             transform.localScale = Vector3.one * size;
         }
 
-        // The hinge (the stump cut, on the ground) stays put. The trunk rotates about it.
+        // The hinge (the stump cut) stays put while the trunk rotates about it. Once it has landed, the mesh is lifted
+        // so the log lies on the ground instead of clipping through it.
         private void Apply(float degrees)
         {
             Quaternion rot = Quaternion.AngleAxis(degrees, _axis) * _startRotation;
             transform.rotation = rot;
             transform.position = _hinge - rot * (_localHinge * transform.localScale.x);
+            if (degrees < FallDegrees - 0.01f) return;
+            if (_restLift < 0f) _restLift = LiftToGround();
+            if (_restLift > 0f) transform.position += Vector3.up * _restLift;
+        }
+
+        private float LiftToGround()
+        {
+            Renderer[] renderers = GetComponentsInChildren<Renderer>();
+            float minY = float.PositiveInfinity;
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] == null) continue;
+                if (renderers[i].bounds.min.y < minY) minY = renderers[i].bounds.min.y;
+            }
+            if (minY == float.PositiveInfinity) return 0f;
+            return Mathf.Max(0f, _groundY - minY);
         }
     }
 }

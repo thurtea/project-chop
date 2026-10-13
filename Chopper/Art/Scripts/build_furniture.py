@@ -89,8 +89,12 @@ def fireplace_cells():
     out = {}
 
     def stone(ix, iy, iz):
-        r = (kit.hsh(ix, iy, iz) % 1000) / 1000.0
-        return kit.STONE_DARK if r < 0.3 else (kit.STONE_LIGHT if r > 0.8 else kit.STONE)
+        # Two-cell courses of blocks about three cells wide. Joints step over on the next course.
+        course = iz // 2
+        col = (ix + 2 * (course & 1)) // 3
+        if (col + course) % 2 == 0:
+            return kit.STONE
+        return kit.STONE_DARK if (iy + course) % 2 == 0 else kit.STONE_LIGHT
 
     box(out, -6, 6, -3, 3, 0, 10, stone)                                                   # hearth block
     for (ix, iy, iz) in list(out):                                                          # opening, 1 m x 0.75 m

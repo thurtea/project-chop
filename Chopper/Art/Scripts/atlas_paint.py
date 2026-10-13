@@ -24,6 +24,7 @@ TEXEL_M = 0.016          # character pixel (m)
 TEXEL_FINE = 0.012       # face front and bear axe
 SUPER = 3                # atlas texels per painted pixel, per axis
 MOUSTACHE = (0.88, 0.44, 0.13)                       # = build_chopper.MOUSTACHE
+BEAD = (0.86, 0.62, 0.28)                            # = build_chopper.BEAD
 HELM_BONE = (0.86, 0.80, 0.66)                       # = build_chopper.BONE
 BEAR_WOOD, BEAR_CARVE, BEAR_HEAD = (0.72, 0.42, 0.19), (0.42, 0.22, 0.09), (0.80, 0.50, 0.23)  # build_props
 SHOULDER_X, SHOULDER_Z = 0.300, 1.27           # build_chopper.SHOULDER after the bulk warp
@@ -330,10 +331,14 @@ def strands(p, n, t, base, darkc, light):
 
 
 def paint_hair(p, n, rgb, pc, t):
-    return strands(p, n, t, GINGER, GINGER_DARK, GINGER_LIGHT)
+    base = GINGER_DARK if near(rgb, PAL["ginger_dark"]) else GINGER
+    return strands(p, n, t, base, GINGER_DARK, GINGER_LIGHT)
 
 
 def paint_beard(p, n, rgb, pc, t):
+    if near(rgb, BEAD):
+        k = math.floor(p.z / t)
+        return S(120, 78, 36) if k % 2 == 0 else S(196, 142, 64)   # carved amber bead
     if near(rgb, MOUSTACHE):
         return strands(p, n, t, MOUSTACHE_C, GINGER, S(244, 150, 72))
     base = GINGER if near(rgb, PAL["ginger"]) else mix(GINGER, GINGER_DARK, 0.45)
@@ -341,18 +346,21 @@ def paint_beard(p, n, rgb, pc, t):
 
 
 def paint_boots(p, n, rgb, pc, t):
-    if UNDER:                                 # bare feet
+    # Knee/shin wraps and the folded cuff lip stay leather on the base layer too
+    # (those bands are part of this mesh; painting them as skin made them look like ridges).
+    if near(rgb, PAL["boot_wrap"]) or near(rgb, PAL["leather_dark"]):
+        k = math.floor(p.z / t)
+        if p.z > 0.44 and (abs(p.z - 0.488) < t * 0.8 or abs(p.z - 0.592) < t * 0.8):
+            return mix(BOOT_WRAP, CORD, 0.4)   # one stitch around each leather band
+        if near(rgb, PAL["leather_dark"]):
+            return grain(BOOT_WRAP, p, t, 0.04)
+        return grain(BOOT_WRAP, p, t, 0.05)
+    if UNDER:                                 # bare feet (shaft and sole of this mesh)
         if p.z < 0.035 or (p.y < -0.20 and p.z < 0.06 and math.floor(p.x / t) % 3 == 0):
             return SKIN_SHADE
         return grain(SKIN, p, t, 0.03)
     if near(rgb, PAL["sole"]):
         return SOLE
-    i, j, k = cell(p, t)
-    if near(rgb, PAL["boot_wrap"]):
-        a = math.floor(side_coord(p, n) / t)
-        if (a + k) % 7 == 0 or (a - k) % 7 == 0:
-            return mix(BOOT_WRAP, CORD, 0.6)  # crossed binding on the wrap bands
-        return grain(BOOT_WRAP, p, t)
     return grain(BOOT, p, t, 0.06)
 
 
@@ -370,13 +378,15 @@ def paint_axe_bear(p, n, rgb, pc, t):
         return WOOD_GROOVE if k % 3 else WOOD_DARK  # carved spiral band
     if near(rgb, BEAR_HEAD):
         if n.x > 0.7:                         # bear face toward the blade
-            if p.x > 0.075 and abs(p.y) < 0.03 and 0.648 <= p.z < 0.660:
+            if p.x > 0.11 and abs(p.y) < 0.035 and 0.628 <= p.z < 0.650:
                 return BEAR_DARK              # mouth
-            if p.x > 0.075:
+            if p.x > 0.09:
                 return BEAR_MUZZLE
             return BEAR
         if n.z > 0.7:
             return mix(BEAR, WOOD_GROOVE, 0.35) if (i + j) % 3 == 0 else BEAR
+        if abs(n.y) > 0.7 and p.z > 0.70:
+            return BEAR_DARK if abs(p.y) > 0.055 else BEAR   # ears
         return WOOD_DARK if k % 3 == 0 else BEAR   # carved fur rows
     # haft: grain columns, a knot pattern on the carved section between the spiral turns
     a = math.floor(side_coord(p, n) / t)

@@ -155,9 +155,15 @@ def build_head(mat):
         (1.720, 0.165, 0.155, -0.010),
     ]
     mb.ztube(0, 0, head, cs=2, bevel=0.03, color=PAL["skin"])
-    # nose block, brow ridge, ears (face detail stays in texture)
+    # nose block, ears (face detail stays in texture)
     mb.box((0, -0.198, 1.552), (0.066, 0.05, 0.085), 0.01, color=PAL["skin"])
-    mb.box((0, -0.186, 1.628), (0.30, 0.03, 0.035), 0.008, color=PAL["ginger_dark"])
+    # heavy block brows (concept 2.0): one ridge over each eye, outer end higher, inner end
+    # down into the furrow. They sit above the painted eyes (z < 1.61) and in front of the hair.
+    for s in (-1, 1):
+        rot = Matrix.Rotation(-s * math.radians(16), 3, "Y")
+        mb.box((s * 0.092, -0.224, 1.650), (0.168, 0.072, 0.056), 0.009, rot=rot,
+               color=PAL["ginger_dark"])
+    mb.box((0, -0.208, 1.628), (0.055, 0.046, 0.032), 0.006, color=PAL["ginger_dark"])
     for s in (-1, 1):
         mb.box((s * 0.188, 0.01, 1.565), (0.03, 0.07, 0.09), 0.008, color=PAL["skin"])
     return mb.finish(mat)
@@ -186,39 +192,64 @@ def loft(mb, samples, cs, color):
     return mb.tube(rings, cs=cs, color=color)
 
 
+def beard_back(z):
+    """Chest-facing Y of the beard. Local vest front, plus extra air lower down where a
+    head nod swings the tip toward the vest (check_rig wants >= 3 mm on Idle and Walk)."""
+    zc = min(max(z, 0.90), 1.39)
+    extra = BEARD_CLEAR + max(0.0, 1.24 - z) * 0.18
+    return -(interp(VEST, zc, 2) + 0.014 + extra)
+
+
 def build_beard(mat):
-    """Blocky beard (concept 2.0): a jaw mass and sideburns that sit on the face, a chunky
-    drooping moustache, and a stepped square spade down the chest with tufts on each step.
-    The spade is a straight tube: its back is one flat plane BEARD_CLEAR in front of the vest."""
+    """Wide jaw beard (concept 2.0) that hangs on the chest and ends in a three-strand
+    braid with a bead. The chest-facing side stays in front of the vest."""
     mb = L.MeshBuilder("chopper_beard")
     G, D = PAL["ginger"], PAL["ginger_dark"]
     clear = vest_front(1.08, 1.52) + BEARD_CLEAR
-    # jaw mass: back buried in the head, bottom above the collar; the front slopes from the
-    # spade at the chin back to the lip, so the side view has no shelf
+    # jaw mass: wide at the cheeks, back buried in the head, front meeting the chest beard
     back = 0.12
     jaw = [(z, hw, (back - front) / 2, (back + front) / 2)
-           for z, hw, front in ((1.425, 0.196, -(clear + 0.040)), (1.47, 0.205, -(clear + 0.020)),
-                                (1.515, 0.200, -0.240))]
+           for z, hw, front in ((1.425, 0.245, -(clear + 0.040)), (1.47, 0.250, -(clear + 0.020)),
+                                (1.515, 0.230, -0.240))]
     mb.ztube(0, 0, jaw, cs=3, bevel=0.06, color=G)
     # sideburns from the jaw up to the brow (under the helmet band)
     for s in (-1, 1):
-        mb.box((s * 0.195, -0.075, 1.555), (0.045, 0.19, 0.17), 0.012, color=D)
-    # stepped spade: (z bottom, z top, half width, half depth); each tier wider than the one below
-    tiers = [(1.17, 1.219, 0.060, 0.016), (1.219, 1.279, 0.105, 0.018),
-             (1.279, 1.339, 0.150, 0.020), (1.339, 1.455, 0.190, 0.023)]
-    rows = []
-    for k, (z0, z1, hw, hd) in enumerate(tiers):
-        z0 = z0 + (0.004 if k else 0.0)
-        rows.append((z0, hw, hd, -(clear + hd)))
-        rows.append((z1, hw, hd, -(clear + hd)))
-    mb.ztube(0, 0, rows, cs=2, bevel=0.012, color=G,
-             color_fn=lambda p: D if p.y < -(clear + 0.02) and any(abs(p.z - t[0]) < 0.012 for t in tiers) else None)
-    # tufts hanging from the outer corners of every tier (the jagged stepped edge)
-    for (z0, z1, hw, hd), col in zip(tiers, (G, D, G, D)):
-        for s in (-1, 1):
-            x = s * (hw - (0.030 if hw > 0.07 else 0.032))
-            tz = 0.045
-            mb.box((x, -(clear + hd), z0 - tz / 2 + 0.008), (0.05, 2 * hd, tz), 0.008, color=col)
+        mb.box((s * 0.230, -0.070, 1.555), (0.055, 0.20, 0.18), 0.012, color=D)
+    # wide chest beard, tapering smoothly into the braid. A hard step folds the
+    # unwrap onto itself. Back face is beard_back(z).
+    chest = [(1.165, 0.048, 0.016), (1.21, 0.085, 0.018), (1.26, 0.130, 0.020),
+             (1.31, 0.170, 0.022), (1.36, 0.205, 0.024), (1.41, 0.228, 0.026),
+             (1.455, 0.230, 0.026)]
+    rows = [(z, hw, hd, beard_back(z) - hd) for z, hw, hd in chest]
+    mb.ztube(0, 0, rows, cs=2, bevel=0.014, color=G)
+    # braid: three strands of straight prisms along a twist. A continuous twisted
+    # tube unwraps onto itself; short straight pieces do not.
+    pieces = 6
+    turns, orbit, strand_r = 1.5, 0.018, 0.014
+    z_top, z_bot = 1.175, 1.045
+    for s in range(3):
+        centers = []
+        for i in range(pieces + 1):
+            t = i / pieces
+            z = z_bot + (z_top - z_bot) * t
+            ang = 2 * math.pi * (turns * (1.0 - t) + s / 3.0)
+            ox = orbit * math.cos(ang)
+            oy = orbit * math.sin(ang)
+            cy = beard_back(z) - strand_r - orbit + oy
+            centers.append(Vector((ox, cy, z)))
+        col = G if s != 1 else D
+        for i in range(pieces):
+            a, b = centers[i], centers[i + 1]
+            d = b - a
+            u, v, _w = L.basis(d)
+            mb.tube([(a, u, v, strand_r, strand_r, strand_r * 0.4),
+                     (b, u, v, strand_r, strand_r, strand_r * 0.4)],
+                    cs=2, cap0=False, cap1=False, color=col)
+    # amber bead under the braid, still in front of the chest
+    bz = 1.012
+    by = beard_back(bz) - 0.034
+    mb.box((0, by, bz), (0.052, 0.052, 0.046), 0.012, color=BEAD)
+    mb.box((0, by, bz + 0.030), (0.030, 0.030, 0.012), 0.004, color=D)
     # moustache: a block under the nose and two drooping ends
     mb.box((0, -0.255, 1.508), (0.11, 0.07, 0.036), 0.008, color=MOUSTACHE)
     for s in (-1, 1):
@@ -228,32 +259,47 @@ def build_beard(mat):
 
 
 MOUSTACHE = (0.88, 0.44, 0.13)   # lighter ginger so the moustache reads apart from the beard
+BEAD = (0.86, 0.62, 0.28)         # amber bead on the braid
 BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~5 deg in Walk)
 
 
+def _hair_keys():
+    """(z, half-width, half-depth, y centre). One cap: nape, over the ears, crown at 1.80."""
+    return [
+        (1.400, 0.100, 0.048, 0.118),
+        (1.460, 0.155, 0.085, 0.078),
+        (1.520, 0.205, 0.125, 0.040),
+        (1.575, 0.232, 0.162, 0.012),   # covers the ears (outer x ~0.20)
+        (1.640, 0.220, 0.168, -0.006),
+        (1.700, 0.190, 0.150, -0.012),
+        (1.750, 0.130, 0.105, -0.012),
+        (1.785, 0.062, 0.050, -0.010),
+        (1.800, 0.018, 0.014, -0.008),
+    ]
+
+
 def build_hair(mat):
-    """One swept cap (concept 2.0). Rings stay horizontal so the top is exactly 1.80 m
-    and the cap unwraps like the other tubes. Strand lines are painted."""
+    """Thick rounded cap (concept 2.0). One tube from the nape over the ears to a crown
+    whose top ring is exactly 1.80 m. Not a slab: the section shrinks down the neck and
+    rounds off at the crown. Strand lines are painted."""
     mb = L.MeshBuilder("chopper_hair")
     G, D = PAL["ginger"], PAL["ginger_dark"]
-    dome = []
-    for i in range(18):
-        t = i / 17.0
-        z = 1.695 + 0.105 * t
-        spread = math.sin(t * math.pi) ** 0.55
-        hw = 0.045 + 0.135 * spread * (1.0 - 0.4 * t)
-        hd = 0.04 + 0.115 * spread
-        dy = -0.035 * t
-        if i == 17:
-            z, hw, hd, dy = 1.800, 0.038, 0.030, -0.03
-        dome.append((z, hw, hd, dy))
-    mb.ztube(0, 0, dome, cs=6, bevel=0.015, color=G)
-    mb.box((0, -0.155, 1.725), (0.28, 0.055, 0.045), 0.01, color=G)
-    # Full head of hair (character sheet): a thick block over the crown and a mass down the back and sides.
-    mb.ztube(0, 0, [(1.665, 0.200, 0.192), (1.70, 0.207, 0.199), (1.765, 0.207, 0.199), (1.79, 0.192, 0.184),
-                    (1.80, 0.150, 0.140)], cs=2, bevel=0.03, color=G)
-    mb.box((0, 0.098, 1.575), (0.414, 0.212, 0.25), 0.03, color=G)
-    mb.box((0, 0.196, 1.50), (0.30, 0.03, 0.10), 0.012, color=D)
+    keys = _hair_keys()
+    n = 20
+    rings = []
+    for i in range(n):
+        z = keys[0][0] + (keys[-1][0] - keys[0][0]) * i / (n - 1)
+        for a, b in zip(keys, keys[1:]):
+            if a[0] <= z <= b[0] + 1e-9:
+                f = 0.0 if b[0] == a[0] else (z - a[0]) / (b[0] - a[0])
+                f = f * f * (3.0 - 2.0 * f)
+                rings.append((z, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f,
+                              a[3] + (b[3] - a[3]) * f))
+                break
+    rings[0] = keys[0]
+    rings[-1] = (1.800, keys[-1][1], keys[-1][2], keys[-1][3])
+    mb.ztube(0, 0, rings, cs=6, bevel=0.055, color=G,
+             color_fn=lambda p: D if p.z < 1.50 and p.y > 0.08 else None)
     return mb.finish(mat)
 
 SHIRT = [
@@ -405,15 +451,19 @@ def build_boots(mat):
     mb = L.MeshBuilder("chopper_boots")
     for s in (-1, 1):
         x0 = s * LEG_X
-        # one smooth shaft. The crossed wraps are painted on the cuff, not stacked rings.
+        # shaft up to the ankle. The cuff is a separate fold rolled out over the top.
         shaft = []
-        for z in (0.05, 0.14, 0.26, 0.36, 0.40, 0.43):
-            raise_ = 0.012 if z >= 0.40 else 0.0
-            hw = interp(LEG, z, 1) + 0.010 + raise_
-            hd = interp(LEG, z, 2) + 0.010 + raise_
+        for z in (0.05, 0.14, 0.24, 0.34, 0.40):
+            hw = interp(LEG, z, 1) + 0.012
+            hd = interp(LEG, z, 2) + 0.012
             shaft.append((z, hw, hd))
-        mb.ztube(x0, 0, shaft, cs=2, bevel=0.03, cap0=False, cap1=False, color=PAL["boot"],
-                 color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.395 else None)
+        mb.ztube(x0, 0, shaft, cs=2, bevel=0.03, cap0=False, cap1=False, color=PAL["boot"])
+        # folded cuff: wider than the shaft, flaring out and pinching at the rolled lip
+        cuff = []
+        for z, flare in ((0.28, 0.010), (0.34, 0.020), (0.39, 0.034), (0.425, 0.042), (0.445, 0.026)):
+            cuff.append((z, interp(LEG, min(z, 0.44), 1) + flare, interp(LEG, min(z, 0.44), 2) + flare))
+        mb.ztube(x0, 0, cuff, cs=2, bevel=0.012, cap0=False, cap1=False, color=PAL["boot"],
+                 color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.40 else None)
         # foot, as a tube running heel -> toe (axis -Y)
         w = -Y
         v = Z
@@ -428,9 +478,16 @@ def build_boots(mat):
         # sole and instep strap
         mb.box((x0, -0.055, 0.0175), (0.272, 0.40, 0.035), 0.008, color=PAL["sole"])
         mb.box((x0, -0.07, 0.15), (0.262, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
-        for z0, z1 in ((0.455, 0.505), (0.56, 0.60)):
-            wrap = [(z, interp(LEG, z, 1) + 0.016, interp(LEG, z, 2) + 0.016) for z in (z0, z1)]
-            mb.ztube(x0, 0, wrap, cs=2, bevel=0.01, color=PAL["boot_wrap"])
+        # leather knee and shin wraps: thick bands, not ridges on the leg
+        for z0, z1, extra in ((0.455, 0.520, 0.030), (0.555, 0.630, 0.034)):
+            mid = (z0 + z1) / 2
+            wrap = [(z0, interp(LEG, z0, 1) + extra * 0.75, interp(LEG, z0, 2) + extra * 0.75),
+                    (mid, interp(LEG, mid, 1) + extra, interp(LEG, mid, 2) + extra),
+                    (z1, interp(LEG, z1, 1) + extra * 0.75, interp(LEG, z1, 2) + extra * 0.75)]
+            mb.ztube(x0, 0, wrap, cs=2, bevel=0.012, color=PAL["boot_wrap"])
+            hd = interp(LEG, mid, 2) + extra
+            mb.box((x0, -(hd + 0.008), mid), (0.09, 0.014, (z1 - z0) * 0.62), 0.004,
+                   color=PAL["leather_dark"])
     return mb.finish(mat)
 
 

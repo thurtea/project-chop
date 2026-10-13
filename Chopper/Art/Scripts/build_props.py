@@ -122,20 +122,20 @@ def block(mb, lo, hi, color):
 
 
 def bear_blade_outline():
-    """Single bearded blade on +X, (x, z). Starts at the top of the eye, runs out along the
-    top edge to the upper spike, down the convex cutting edge to the beard tip, then back up
-    the beard's underside to the bottom of the eye."""
-    return [(0.040, 0.622), (0.100, 0.645), (0.165, 0.680), (0.222, 0.738),   # top edge -> spike
-            (0.252, 0.676), (0.270, 0.610), (0.276, 0.535), (0.268, 0.460),   # cutting edge
-            (0.246, 0.395), (0.212, 0.345), (0.170, 0.318),                     # beard tip
-            (0.138, 0.356), (0.106, 0.412), (0.074, 0.462), (0.040, 0.498)]    # beard underside
+    """Single bearded blade on +X, (x, z). Large head (concept 2.0): from the eye out to a
+    high spike, down a long cutting edge to a deep beard, then back to the eye. Kept inside
+    the haft length so Z stays the long axis."""
+    return [(0.058, 0.615), (0.150, 0.650), (0.250, 0.690), (0.340, 0.728),   # top edge -> spike
+            (0.372, 0.655), (0.398, 0.555), (0.400, 0.455), (0.378, 0.365),   # cutting edge
+            (0.348, 0.305), (0.265, 0.275), (0.185, 0.295),                     # beard tip
+            (0.120, 0.355), (0.078, 0.445), (0.058, 0.535)]                    # beard underside
 
 
 # warm carved wood (concept 1.5 haft is lighter and warmer than the double axe's)
 BEAR_WOOD = (0.72, 0.42, 0.19)
 BEAR_CARVE = (0.42, 0.22, 0.09)
 BEAR_HEAD = (0.80, 0.50, 0.23)
-EDGE_IDX = range(3, 11)   # outline edges j -> j+1 that form the cutting edge (lighter steel)
+EDGE_IDX = range(3, 10)   # outline edges j -> j+1 that form the cutting edge (lighter steel)
 
 
 def build_axe_bear(mat):
@@ -147,36 +147,39 @@ def build_axe_bear(mat):
     # haft: octagonal, warm wood, short dark wrap and iron cap at the butt
     # (the grip stays as thin as chopper_axe's inside the fist, z -0.15..0.15)
     haft = [(-0.170, 0.019), (-0.160, 0.023), (-0.100, 0.023), (-0.094, 0.020),
-            (0.150, 0.021), (0.230, 0.033), (0.640, 0.033)]     # carved section 1.375x the old 0.024
+            (0.150, 0.021), (0.200, 0.022), (0.230, 0.033), (0.640, 0.033)]  # 0.200 stays inside the grip-axis probe
     # above the grip the section is a regular octagon (bevel = hw * (2 - sqrt 2)) so the
     # carved spiral stands proud by the same amount all the way round
     rings = [(Vector((0, 0, z)), X, Y, hw, hw, 0.007 if z < 0.2 else hw * (2 - math.sqrt(2)))
              for z, hw in haft]
     mb.tube(rings, cs=1, cap0=True, cap1=True, color=BEAR_WOOD,
             color_fn=lambda p: PAL["leather_dark"] if p.z < -0.095 else None)
-    # carved spiral band: a raised helical strip, 2 turns over z 0.20..0.47
-    n, turns, z0, z1, r = 24, 2.0, 0.25, 0.47, 0.0350
+    # carved spiral: short separate wraps (one connected helix packs overlapping UVs).
+    # Proud of the octagon, clear of the grip (z < 0.15).
+    pieces, seg, turns, z0, z1, r = 6, 3, 2.5, 0.22, 0.52, 0.040
+    n = pieces * seg
     pts, nrms = [], []
     for i in range(n + 1):
         a = 2 * math.pi * turns * i / n
-        pts.append((r * math.cos(a), r * math.sin(a), z0 + (z1 - z0) * i / n))
-        nrms.append((math.cos(a), math.sin(a), 0.0))
-    srings = []
-    for i in range(n + 1):
-        p = Vector(pts[i])
-        t = (Vector(pts[min(i + 1, n)]) - Vector(pts[max(i - 1, 0)])).normalized()
-        v = Vector(nrms[i])
-        v = (v - t * v.dot(t)).normalized()
-        u = v.cross(t)
-        srings.append((p, u, v, 0.008, 0.0045, 0.0))
-    mb.tube(srings, cs=0, color=BEAR_CARVE)
+        pts.append(Vector((r * math.cos(a), r * math.sin(a), z0 + (z1 - z0) * i / n)))
+        nrms.append(Vector((math.cos(a), math.sin(a), 0.0)))
+    for p in range(pieces):
+        srings = []
+        i0 = max(0, p * seg - (1 if p else 0))
+        for i in range(i0, p * seg + seg + 1):
+            t = (pts[min(i + 1, n)] - pts[max(i - 1, 0)]).normalized()
+            v = nrms[i]
+            v = (v - t * v.dot(t)).normalized()
+            u = v.cross(t)
+            srings.append((pts[i], u, v, 0.009, 0.0055, 0.0))
+        mb.tube(srings, cs=0, cap0=False, cap1=False, color=BEAR_CARVE)
     # iron eye around the haft, squared poll on the back (-X), top cap under the bear
     mb.box((0, 0, 0.56), (0.092, 0.080, 0.13), 0.006, color=PAL["steel_dark"])
     block(mb, (-0.088, -0.030, 0.512), (-0.044, 0.030, 0.608), PAL["steel_dark"])
     block(mb, (-0.098, -0.034, 0.505), (-0.086, 0.034, 0.615), PAL["steel"])   # poll face
-    # blade: dark iron face, lighter steel cutting edge
+    # blade: dark iron face, lighter steel cutting edge (larger single blade)
     outline = bear_blade_outline()
-    faces = plate(mb, outline, 0.004, 0.011, 0.012, PAL["steel_dark"])
+    faces = plate(mb, outline, 0.005, 0.014, 0.016, PAL["steel_dark"])
     segs = [(Vector(outline[j]), Vector(outline[j + 1])) for j in EDGE_IDX]
 
     def near_edge(f):
@@ -189,16 +192,18 @@ def build_axe_bear(mat):
                 return True
         return False
     mb.paint([f for f in faces if near_edge(f)], PAL["steel"])
-    # carved bear head on the top end of the haft, looking out over the blade (+X)
+    # carved bear head. The ears are the top of the prop and must land on z=0.742
+    # (check_rig's imported bounds).
     W, WD = BEAR_HEAD, BEAR_CARVE
-    mb.box((0, 0, 0.678), (0.130, 0.112, 0.096), 0.008, color=W)                 # skull
-    mb.box((0.072, 0, 0.666), (0.056, 0.072, 0.056), 0.006, color=W)             # snout
-    block(mb, (0.080, -0.014, 0.671), (0.090, 0.014, 0.687), WD)                 # nose
-    block(mb, (0.042, -0.032, 0.694), (0.050, -0.014, 0.704), WD)                # eyes
-    block(mb, (0.042, 0.014, 0.694), (0.050, 0.032, 0.704), WD)
+    mb.box((0.01, 0, 0.655), (0.168, 0.116, 0.108), 0.010, color=W)              # skull
+    mb.box((0.098, 0, 0.642), (0.078, 0.086, 0.062), 0.008, color=W)             # snout
+    block(mb, (0.125, -0.016, 0.644), (0.140, 0.016, 0.666), WD)                 # nose
+    block(mb, (0.048, -0.046, 0.688), (0.070, -0.016, 0.708), WD)                # eyes
+    block(mb, (0.048, 0.016, 0.688), (0.070, 0.046, 0.708), WD)
+    block(mb, (0.036, -0.052, 0.704), (0.088, 0.052, 0.722), W)                  # brow shelf
     for s in (-1, 1):
-        block(mb, (-0.026, s * 0.044 - 0.013, 0.718), (0.004, s * 0.044 + 0.013, 0.742), W)   # ears
-    block(mb, (-0.054, -0.034, 0.642), (-0.046, 0.034, 0.706), WD)              # mane ridge at the back
+        block(mb, (-0.012, s * 0.048 - 0.012, 0.655), (0.026, s * 0.048 + 0.012, 0.742), W)  # ears
+    block(mb, (-0.072, -0.040, 0.600), (-0.054, 0.040, 0.700), WD)              # mane ridge at the back
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
     return mb.finish(mat)
 

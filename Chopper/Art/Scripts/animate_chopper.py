@@ -47,7 +47,7 @@ CROUCH_IDLE_LEN = 40
 AIR_LEN = 20
 LAND_LEN = 18
 ROLL_LEN = 24          # 0.80 s; PlayerAnimator.RollClipSeconds must match
-ROLL_SKIN = 0.20       # m from the joints out to the surface of the head, back and boots
+ROLL_SKIN = 0.23       # m from the joints out to the surface; boots gained a folded cuff and thick wraps
 SWIM_IDLE_LEN = 40
 SWIM_LEN = 24
 ATTACK1_LEN = 22       # diagonal chop from over the right shoulder, one-shot
@@ -449,8 +449,10 @@ def roll_pose(rig, f):
     feet = {sd: T((0, -0.10 * tuck, 0.25 * tuck * tuck)) for sd in ("Left", "Right")}
     hips_off = Vector((0.0, 0.0, -0.48 * tuck))
     hips_off, deltas, feet = body_turn(hips_off, deltas, feet, rig, X, turn, (0.0, 0.0, 0.50))
-    # rolls along the ground: lift the turned block so its lowest joint (plus the head and body thickness) stays on it
-    if turn > 0.0:
+    # rolls along the ground: lift the tucked block so its lowest joint (plus the head,
+    # back and the boot wraps) stays above the ground. The stand-up is still tucked after
+    # the somersault has finished, so this is not only while turn > 0.
+    if tuck > 0.01:
         M, _ = rig.solve(hips_off, deltas, feet)
         low = min(min(m.translation.z, (m @ Vector((0, rig.length[n], 0))).z) for n, m in M.items()) - ROLL_SKIN
         if low < 0.0:

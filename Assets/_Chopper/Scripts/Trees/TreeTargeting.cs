@@ -25,5 +25,20 @@ namespace Chopper.Trees
             if (lateral > swingRadius + trunkRadius) return -1f;
             return along;
         }
+
+        // A log lying on the ground from a to b: the nearest of points along it, every half meter.
+        public static float SegmentHitDistance(Vector3 origin, Vector3 aim, float swingRange, float swingRadius,
+            Vector3 a, Vector3 b, float logRadius)
+        {
+            float length = Vector3.Distance(a, b);
+            int steps = Mathf.Max(1, Mathf.CeilToInt(length / 0.5f));
+            float best = -1f;
+            for (int i = 0; i <= steps; i++)
+            {
+                float d = HitDistance(origin, aim, swingRange, swingRadius, Vector3.Lerp(a, b, i / (float)steps), logRadius);
+                if (d >= 0f && (best < 0f || d < best)) best = d;
+            }
+            return best;
+        }
     }
 }

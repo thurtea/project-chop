@@ -177,7 +177,11 @@ def window_hole(ix, iz):
 
 
 def roof_cells():
-    """Thatch on the slope. Blender -Y is the high edge (Unity +Z)."""
+    """Thatch on the slope. Blender -Y is the high edge (Unity +Z).
+
+    Each course hangs one cell onto the next row at the same height, so neighbouring courses share
+    a full face. A single layer only touched the next course at a corner, and the sky showed through.
+    """
     out = {}
     for ix in range(-4, 4):
         for iy in range(-4, 4):
@@ -187,8 +191,13 @@ def roof_cells():
             shingle = (ix + 4 + (iy % 2)) // 2
             h = (shingle * 5 + iy * 3 + 1) % 6
             color = (THATCH, THATCH_DARK, THATCH, THATCH_LIGHT, THATCH, THATCH_DARK)[h]
-            # the shingle's lower edge row of cells (the exposed butt) a shade darker reads as the overlap
             out[(ix, iy, base)] = color
+            # the hung cell is the dark butt of the course above, written in a second pass
+    for ix in range(-4, 4):
+        for iy in range(-4, 3):
+            y1 = (iy + 1) * S
+            base = int(round((1.0 - y1) / S))
+            out[(ix, iy + 1, base)] = THATCH_DARK
     return out
 
 
@@ -289,6 +298,14 @@ def main():
     hole = (0, 0, 0) not in door and (-3, 0, 0) in door and (0, 0, 7) in door and any(l[3] < S for l in door_logs)
     ok = ok and hole
     lines.append("  [%s] doorway is open at the bottom and closed at the lintel" % ("PASS" if hole else "FAIL"))
+    roof = pieces[4][1]
+    sealed = True
+    for ix in range(-4, 4):
+        for iy in range(-4, 3):
+            if not any((ix, iy, iz) in roof and (ix, iy + 1, iz) in roof for iz in range(0, 12)):
+                sealed = False
+    ok = ok and sealed
+    lines.append("  [%s] roof courses share a face (no corner-only step)" % ("PASS" if sealed else "FAIL"))
     lines.append("SUMMARY %s" % ("ALL PASS" if ok else "FAILED"))
     os.makedirs(os.path.dirname(REPORT), exist_ok=True)
     with open(REPORT, "w", encoding="utf-8") as handle:

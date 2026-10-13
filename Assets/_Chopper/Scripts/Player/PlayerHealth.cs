@@ -22,7 +22,7 @@ namespace Chopper.Player
         // What put the player down last, for the death screen.
         private readonly SyncVar<int> _cause = new SyncVar<int>();
 
-        public enum DeathCause { Enemy, FallingTree, Fall }
+        public enum DeathCause { Enemy, FallingTree, Fall, Burn }
 
         [SerializeField] private GameConfig _config;
 
@@ -31,6 +31,7 @@ namespace Chopper.Player
         private PlayerMovementValidator _validator;
         private CharacterController _controller;
         private float _respawnAt;
+        private float _burnElapsed;
 
         public static IReadOnlyList<PlayerHealth> All => _all;
         public static PlayerHealth Local { get; private set; }
@@ -154,6 +155,13 @@ namespace Chopper.Player
             if (damage > 0) ServerApply(damage, DeathCause.Fall, false);
         }
 
+        // Server only. Flame ticks (BurnRules). Armor and a block do not stop a fire you are standing in.
+        public void ServerBurn(int damage)
+        {
+            if (_down.Value || damage <= 0) return;
+            ServerApply(damage, DeathCause.Burn, false);
+        }
+
         private void ServerApply(int rawDamage, DeathCause cause, bool armor)
         {
             float reduction = armor && _upgrades != null ? _upgrades.ArmorReduction : 0f;
@@ -216,6 +224,11 @@ namespace Chopper.Player
 
         private void Update()
         {
+            if (IsServerInitialized && !_down.Value)
+            {
+                int burn = BurnRules.Tick(ref _burnElapsed, Time.deltaTime, Campfire.IsInFlame(transform.position));
+                if (burn > 0) ServerBurn(burn);
+            }
             if (!IsServerInitialized || !_down.Value || LivesRules.IsOut(_lives.Value, _config.FiniteLives) || Time.time < _respawnAt) return;
             ServerRespawn();
         }

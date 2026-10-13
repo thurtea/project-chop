@@ -152,12 +152,13 @@ namespace Chopper.Networking
             }
             axe.ServerResolveHit(aim);
             yield return null;
-            Check(wood.Carried == config.GetWoodForSize(TreeSize.Small), $"{punches} punches fell a small tree ({wood.Carried} wood)");
+            int fellWood = LogRules.FellWood(config.GetWoodForSize(TreeSize.Small));
+            Check(wood.Carried == fellWood, $"{punches} punches fell a small tree ({wood.Carried} wood, the log still holds the rest)");
             Check(axe.Durability == config.AxeDurability, "punching does not wear the axe");
 
             // Wood deposited at a broken hut repairs it first; the rest goes into the store.
             wood.ServerAddWood(2);
-            int partWood = config.GetWoodForSize(TreeSize.Small) + 2;
+            int partWood = fellWood + 2;
             hut.ServerDeposit(wood);
             yield return null;
             Check(hut.RepairWoodHave == partWood && !hut.IsRepaired && hut.WoodStore == 0, $"{partWood} of {hut.RepairWoodNeeded} wood in, hut still broken ({hut.RepairWoodHave})");
@@ -368,8 +369,8 @@ namespace Chopper.Networking
                     yield return null;
                     if (hit < hitsNeeded) Check(wood.Carried == expectedWood, $"{size} tree {id} hit {hit}/{hitsNeeded} leaves wood at {expectedWood}");
                 }
-                expectedWood += config.GetWoodForSize(size);
-                Check(wood.Carried == expectedWood, $"{size} tree felled in {hitsNeeded} hits, wood {wood.Carried} (expected {expectedWood})");
+                expectedWood += LogRules.FellWood(config.GetWoodForSize(size));
+                Check(wood.Carried == expectedWood, $"{size} tree felled in {hitsNeeded} hits, wood {wood.Carried} (expected {expectedWood}, the log still holds the rest)");
                 TreeManager.Instance.ServerChop(wood, origin, aim);
             }
 

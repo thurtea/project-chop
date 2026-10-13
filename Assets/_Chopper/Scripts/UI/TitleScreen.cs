@@ -152,7 +152,8 @@ namespace Chopper.UI
             var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(RawImage), typeof(AspectRatioFitter)).GetComponent<RawImage>();
             backdrop.rectTransform.SetParent(_canvas.transform, false);
             UiKit.Stretch(backdrop.rectTransform);
-            var shot = Resources.Load<Texture2D>("Branding/title");
+            var shot = Resources.Load<Texture2D>("Branding/chopper-cover");
+            if (shot == null) shot = Resources.Load<Texture2D>("Branding/title");
             backdrop.texture = shot != null ? shot : BackdropTexture();
             backdrop.raycastTarget = false;
             var fitter = backdrop.GetComponent<AspectRatioFitter>();
@@ -165,12 +166,25 @@ namespace Chopper.UI
             shade.texture = ShadeTexture();
             shade.raycastTarget = false;
 
-            Text title = UiKit.Heading(_canvas.transform, "CHOPPER", 120, TextAnchor.MiddleCenter, UiKit.Ink);
-            UiKit.Place(title.rectTransform, new Vector2(MenuX, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(800f, 160f));
-            var outline = title.gameObject.AddComponent<Shadow>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.65f);
-            outline.effectDistance = new Vector2(3f, -4f);
-            _branding.Add(title.gameObject);
+            var logo = Resources.Load<Texture2D>("Branding/chopper-logo");
+            if (logo != null)
+            {
+                var mark = new GameObject("Logo", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+                mark.rectTransform.SetParent(_canvas.transform, false);
+                mark.texture = logo;
+                mark.raycastTarget = false;
+                UiKit.Place(mark.rectTransform, new Vector2(MenuX, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -24f), new Vector2(300f, 300f));
+                _branding.Add(mark.gameObject);
+            }
+            else
+            {
+                Text title = UiKit.Heading(_canvas.transform, "CHOPPER", 120, TextAnchor.MiddleCenter, UiKit.Ink);
+                UiKit.Place(title.rectTransform, new Vector2(MenuX, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(800f, 160f));
+                var outline = title.gameObject.AddComponent<Shadow>();
+                outline.effectColor = new Color(0f, 0f, 0f, 0.65f);
+                outline.effectDistance = new Vector2(3f, -4f);
+                _branding.Add(title.gameObject);
+            }
 
             // The build version in a corner, so testers can tell which build they are running.
             Text version = UiKit.Label(_canvas.transform, "v" + Application.version, 16, TextAnchor.LowerRight, UiKit.Dim);

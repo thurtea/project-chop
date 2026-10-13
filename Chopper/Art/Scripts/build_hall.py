@@ -139,62 +139,119 @@ BARGE = srgb(92, 56, 30)         # barge boards, posts and crossed gable ends (c
 GABLE = (srgb(126, 84, 46), srgb(140, 94, 52), srgb(112, 74, 40))
 
 
+def _sheet(m, a, b, c, d, color):
+    """Both windings of one quad, so a grazing view cannot cull a hole."""
+    m.add([a, b, c, d], [(0, 1, 2, 3), (0, 3, 2, 1)], color)
+
+
 def gable_roof(m, along, c_across, half, l0, l1, eave, ridge, rows=9, board=0.55, thick=0.07,
                cross_ends=(True, True), cross_ext=0.95, beam=0.11):
-    """Two roof slopes of plank courses. along = 'x' or 'y' is the ridge direction. Each course is
-    lifted at its lower edge, so the rows read as overlapping shingles; a dark butt face shows the step.
-    Thick barge boards run up both rakes of each end and carry on past the peak into a crossed X."""
+    """Two roof slopes. along = 'x' or 'y' is the ridge direction.
+
+    Each course is a slab parallel to the slope and runs up under the next course, so the rows
+    overlap in plan instead of meeting at a corner. A continuous ceiling under the courses is
+    what the loft looks up at. A ridge plug closes the knife edge where the two slopes meet.
+    Thick barge boards run up both rakes and carry on past the peak into a crossed X.
+    """
     def pt(t, u, side, lift=0.0):
         a = c_across + side * half * (1.0 - t)
         z = eave + (ridge - eave) * t + lift
         return (u, a, z) if along == "x" else (a, u, z)
 
+    def slab(side, t0, t1, u0, u1, lift0, lift1, color, butt=None):
+        """Solid slice of one slope. butt colours the downhill end."""
+        def p(t, u, lift):
+            return pt(t, u, side, lift)
+        _sheet(m, p(t0, u0, lift1), p(t0, u1, lift1), p(t1, u1, lift1), p(t1, u0, lift1), color)
+        _sheet(m, p(t0, u0, lift0), p(t0, u1, lift0), p(t1, u1, lift0), p(t1, u0, lift0), color)
+        _sheet(m, p(t0, u0, lift0), p(t0, u1, lift0), p(t0, u1, lift1), p(t0, u0, lift1), butt or color)
+        _sheet(m, p(t1, u0, lift0), p(t1, u1, lift0), p(t1, u1, lift1), p(t1, u0, lift1), color)
+        _sheet(m, p(t0, u0, lift0), p(t1, u0, lift0), p(t1, u0, lift1), p(t0, u0, lift1), color)
+        _sheet(m, p(t0, u1, lift0), p(t1, u1, lift0), p(t1, u1, lift1), p(t0, u1, lift1), color)
+
     length = l1 - l0
+    lap = 0.72
+    step = 0.016
     for side in (-1, 1):
+        # Ceiling: one slab for the whole slope, past the ridge so the two sides cross at the peak.
+        slab(side, 0.0, 1.06, l0, l1, -0.02, 0.02, THATCH_DARK)
         for row in range(rows):
-            t0, t1 = row / rows, (row + 1) / rows
+            t0 = row / rows
+            t1 = (row + 1) / rows
+            t_hi = 1.0 if row == rows - 1 else min(1.0, t1 + lap / rows)
+            lift1 = 0.045 + thick + row * step
+            lift0 = lift1 - thick
             n = max(1, int(round(length / board)))
             stagger = 0.5 if row % 2 else 0.0
             cuts = {l0 + (k + stagger) * length / n for k in range(n + 1)}
             edges = sorted({l0, l1} | {c for c in cuts if l0 < c < l1})
-            # dark underlay just under the boards: the gaps between boards show it as seams
-            m.quad_up(pt(t0, l0, side, thick - 0.015), pt(t0, l1, side, thick - 0.015),
-                      pt(t1, l1, side, -0.015), pt(t1, l0, side, -0.015), BUTT, back=THATCH_DARK)
-            gap = 0.025
+            gap = 0.02
             for k, (u0, u1) in enumerate(zip(edges, edges[1:])):
                 color = BOARD[(k * 2 + row * 3 + (k * k) % 3) % len(BOARD)]
                 a0 = u0 + (gap if u0 > l0 else 0.0)
                 a1 = u1 - (gap if u1 < l1 else 0.0)
-                m.quad_up(pt(t0, a0, side, thick), pt(t0, a1, side, thick), pt(t1, a1, side, 0.0),
-                          pt(t1, a0, side, 0.0), color, back=THATCH_DARK)
-            # butt edge of the course, both sides so it shows from below and above
-            m.quad_up(pt(t0, l0, side, 0.0), pt(t0, l1, side, 0.0), pt(t0, l1, side, thick),
-                      pt(t0, l0, side, thick), BUTT, back=BUTT)
-    # ridge cap
-    a, b = pt(1.0, l0 - 0.05, 1, thick + 0.02), pt(1.0, l1 + 0.05, 1, thick + 0.02)
+                if a1 - a0 < 0.05:
+                    continue
+                slab(side, t0, t_hi, a0, a1, lift0, lift1, color, butt=BUTT)
+    # Plug the peak. The ceiling slabs cross above it; this fills the loft side of the knife edge.
+    plug = 0.22
+    if along == "x":
+        m.box(l0 - 0.02, l1 + 0.02, c_across - plug, c_across + plug, ridge - 0.2, ridge + 0.05, THATCH_DARK)
+    else:
+        m.box(c_across - plug, c_across + plug, l0 - 0.02, l1 + 0.02, ridge - 0.2, ridge + 0.05, THATCH_DARK)
+    # ridge cap on top of the courses
+    a, b = pt(1.0, l0 - 0.05, 1, thick + 0.08), pt(1.0, l1 + 0.05, 1, thick + 0.08)
     m.prism(a, b, beam * 0.9, BARGE, end=BARGE, sides=4)
     # barge boards up both rakes; past the peak they cross into an X
     for u, show in ((l0 - 0.06, cross_ends[0]), (l1 + 0.06, cross_ends[1])):
         for side in (-1, 1):
-            s0 = pt(0.0, u, side, thick + 0.04)
-            s1 = pt(1.0, u, side, thick + 0.04)
+            s0 = pt(0.0, u, side, thick + 0.06)
+            s1 = pt(1.0, u, side, thick + 0.06)
             d = tuple(s1[i] - s0[i] for i in range(3))
-            dl = math.sqrt(sum(c * c for c in d))
+            dl = math.sqrt(sum(c * c for c in d)) or 1.0
             ext = cross_ext if show else beam
             e = tuple(s1[i] + d[i] / dl * ext for i in range(3))
             m.prism(s0, e, beam, BARGE, end=LOG_END if show else BARGE, sides=4)
 
 
 def gable_planks(m, along, c_across, half, at, eave, ridge, width=0.38, depth=0.08, z_from=None):
-    """Vertical boards filling a gable triangle (in the plane along = at)."""
+    """Vertical boards filling a gable triangle (in the plane along = at).
+
+    A solid triangle sits in the boards so the peak and the joints between boards cannot open
+    onto the sky. The peak runs into the roof instead of stopping short of it.
+    """
     z0 = eave - 0.05 if z_from is None else z_from
-    n = int(2 * half / width)
+    peak_z = ridge + 0.03
+    span = 0.06
+
+    def corner(across, z, sign):
+        if along == "x":
+            return (at + sign, across, z)
+        return (across, at + sign, z)
+
+    d = 0.02
+    front = [
+        corner(c_across - half, z0, d), corner(c_across + half, z0, d),
+        corner(c_across + span, peak_z, d), corner(c_across - span, peak_z, d),
+    ]
+    back = [
+        corner(c_across - half, z0, -d), corner(c_across + half, z0, -d),
+        corner(c_across + span, peak_z, -d), corner(c_across - span, peak_z, -d),
+    ]
+    _sheet(m, front[0], front[1], front[2], front[3], GABLE[1])
+    _sheet(m, back[0], back[1], back[2], back[3], GABLE[1])
+    _sheet(m, front[0], back[0], back[1], front[1], GABLE[0])
+    _sheet(m, front[0], front[3], back[3], back[0], GABLE[0])
+    _sheet(m, front[1], back[1], back[2], front[2], GABLE[0])
+    _sheet(m, front[3], front[2], back[2], back[3], GABLE[0])
+
+    n = max(1, int(math.ceil((2 * half) / width - 1e-9)))
     for k in range(n):
-        a0 = c_across - half + k * width
-        a1 = a0 + width
+        a0 = c_across - half + k * (2 * half) / n
+        a1 = c_across - half + (k + 1) * (2 * half) / n
         mid = abs((a0 + a1) / 2 - c_across)
-        top = eave + (ridge - eave) * max(0.0, 1.0 - mid / half) - 0.04
-        if top <= z0:
+        top = eave + (ridge - eave) * max(0.0, 1.0 - mid / half) + 0.02
+        if top <= z0 + 0.02:
             continue
         col = GABLE[k % len(GABLE)]
         if along == "x":
@@ -322,7 +379,7 @@ def build():
     gable_roof(m, "x", 0.0, eave_y, -W - 0.4, W + 0.4, EAVE, RIDGE, rows=11, board=0.6, thick=0.08,
                cross_ext=1.1, beam=0.13)
     for x in (-W + 0.02, W - 0.02):
-        gable_planks(m, "x", 0.0, eave_y * 0.97, x, EAVE, RIDGE, z_from=EAVE - 0.08)
+        gable_planks(m, "x", 0.0, eave_y, x, EAVE, RIDGE, z_from=EAVE - 0.08)
 
     # Dormer on the ridge, left of centre like the concept, its gable to the front, with its own crosses.
     dx0, dx1 = -3.2, -1.8
@@ -334,7 +391,7 @@ def build():
     gable_roof(m, "y", (dx0 + dx1) / 2, (dx1 - dx0) / 2 + 0.2, -1.05, 1.05, d_eave, d_ridge, rows=4,
                board=0.45, thick=0.06, cross_ext=0.55, beam=0.08)
     for y in (-0.86, 0.86):
-        gable_planks(m, "y", (dx0 + dx1) / 2, (dx1 - dx0) / 2, y, d_eave, d_ridge, width=0.24, depth=0.06)
+        gable_planks(m, "y", (dx0 + dx1) / 2, (dx1 - dx0) / 2 + 0.2, y, d_eave, d_ridge, width=0.24, depth=0.06)
 
     # Porch: deck in front of the door (the pieces collide with it), square posts on a beam, and a
     # cross-gable whose ridge runs out from the main roof, with plank gable and crossed ends at the front.
@@ -353,7 +410,7 @@ def build():
           p_eave + 0.06, POST)
     gable_roof(m, "y", pc, phalf + 0.15, deck_y0 - 0.35, -D + 0.9, p_eave, p_ridge, rows=6, board=0.5,
                thick=0.07, cross_ends=(True, False), cross_ext=0.8, beam=0.1)
-    gable_planks(m, "y", pc, phalf - 0.05, deck_y0 + 0.18, p_eave + 0.06, p_ridge, width=0.3, depth=0.06)
+    gable_planks(m, "y", pc, phalf + 0.15, deck_y0 + 0.18, p_eave + 0.06, p_ridge, width=0.3, depth=0.06)
     # four treads from the terrace (1.67) up to the deck
     for i in range(4):
         z0 = 1.67 + i * 0.08
@@ -414,13 +471,32 @@ def main():
         path_mode="STRIP",
         add_leaf_bones=False,
     )
-    # Front is -Y, the roof ridge is the highest point, the foundation is the lowest.
-    ok = tris > 1000 and max(zs) > 6.5 and min(zs) > 1.5 and max(ys) > 5.5 and max(xs) > 6.0
+    # Front is +Y after the flip. Rays from the loft must hit the roof, including along the ridge
+    # toward the gable peak (the old courses let those through).
+    dg = bpy.context.evaluated_depsgraph_get()
+    missed = 0
+    tried = 0
+    for ix in range(-6, 7):
+        for iy in range(-4, 5):
+            x, y = ix * 0.85, iy * 0.7
+            if abs(y) > 3.2 or abs(x) > 5.6:
+                continue
+            tried += 1
+            if not obj.ray_cast(Vector((x, y, 4.55)), Vector((0, 0, 1)), distance=3.5, depsgraph=dg)[0]:
+                missed += 1
+    for z, y in ((6.55, 0.0), (6.4, 0.35), (6.15, 0.9), (5.85, 1.6), (6.5, -0.4)):
+        tried += 1
+        if not obj.ray_cast(Vector((0.0, y, z)), Vector((1, 0, 0)), distance=8, depsgraph=dg)[0]:
+            missed += 1
+    roof_ok = missed == 0
+    # Front is -Y before the flip; after it the roof ridge is the highest point, the foundation the lowest.
+    ok = tris > 1000 and max(zs) > 6.5 and min(zs) > 1.5 and max(ys) > 5.5 and max(xs) > 6.0 and roof_ok
     lines = [
         "Hub hall",
         "=" * 60,
         "  tris %d" % tris,
         "  x %.2f..%.2f  y %.2f..%.2f  z %.2f..%.2f" % (min(xs), max(xs), min(ys), max(ys), min(zs), max(zs)),
+        "  [%s] loft rays hit the roof (%d/%d)" % ("PASS" if roof_ok else "FAIL", tried - missed, tried),
         "SUMMARY %s" % ("ALL PASS" if ok else "FAILED"),
     ]
     os.makedirs(os.path.dirname(REPORT), exist_ok=True)
@@ -451,6 +527,21 @@ def main():
     world = bpy.data.worlds.new("W")
     scene.world = world
     scene.render.film_transparent = False
+    bpy.ops.render.render(write_still=True)
+    print("rendered", scene.render.filepath)
+    # Loft, looking along the roof toward the gable peak, under a bright sky.
+    world.use_nodes = True
+    bg = world.node_tree.nodes.get("Background")
+    if bg is None:
+        bg = world.node_tree.nodes.new("ShaderNodeBackground")
+        world.node_tree.links.new(bg.outputs["Background"], world.node_tree.nodes["World Output"].inputs["Surface"])
+    bg.inputs[0].default_value = (0.42, 0.72, 0.98, 1.0)
+    bg.inputs[1].default_value = 1.4
+    cam.location = (-2.2, 0.35, 5.15)
+    target = Vector((4.2, 0.05, 6.45))
+    cam.rotation_euler = (target - Vector(cam.location)).to_track_quat("-Z", "Y").to_euler()
+    cam_data.lens = 28
+    scene.render.filepath = os.path.join(ART, "Renders", "hut_preview_up.png")
     bpy.ops.render.render(write_still=True)
     print("rendered", scene.render.filepath)
 
