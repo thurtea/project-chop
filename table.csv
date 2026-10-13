@@ -1,0 +1,33 @@
+Priority,Animation,Used in Chopper for,Plays now,Already installed (could swap in),Get from if missing,Search / clip,Status
+1,Swim forward,Swimming in the pond and sea,Chopper's own blocky take Swim (animate_chopper.py),Mixamo_Motions/swim.fbx; Quaternius UAL Swim_Fwd_Loop,Mixamo,"Swimming",User: looks unnatural. Swap to an installed clip first
+1,Swim idle (tread water),Floating still,Chopper's own take SwimIdle,Mixamo_Motions/swim_idle.fbx; Quaternius UAL Swim_Idle_Loop,Mixamo,"Treading Water",User: looks unnatural. Swap to an installed clip first
+1,Chop tree (axe),Chopping trees (Chop state),Chopper's own take Attack_1 (one-shot),Quaternius UAL TreeChopping_Loop,Survival Animset Pro vol.1 (Kubold); Mixamo,"chop / axe swing / wood chopping",User: looks unnatural. Need a real one-handed overhead chop
+1,Axe combo 1-3,Three-hit melee combo,Chopper's own takes Attack_1/2/3 (axe kept off the face since 2026-10-13),Mixamo_Motions/attack_1.fbx attack_2.fbx attack_3.fbx; Quaternius UAL Sword_Regular_A/B/C,RPG Character Mecanim Animation Pack Free; KayKit Character Animations,"one hand melee attack combo",User: looks unnatural
+2,Block,Holding block,Library Sword_Idle + GuardPose (axe raised across the chest),Quaternius UAL Sword_Idle,RPG Character Mecanim Animation Pack Free; KayKit Character Animations,"block idle / shield block",Guard pose works ([Guard] RESULT PASS); a real block clip would read better
+2,Parry,Timed block that staggers the attacker,HitReact clip + GuardPose shove,none,RPG Character Mecanim Animation Pack Free; KayKit Character Animations,"parry",Missing
+2,Hit reaction,Taking a hit,Chopper's own take HitReact,none,KayKit Character Animations; Mixamo,"hit reaction front / back",Polish
+2,Dodge roll,Dodge with i-frames,Chopper's own take Roll,none,Movement Animset Pro (Kubold); Mixamo,"dodge roll",OK for now
+2,Gather / pick up,Herbs and plants,Chopper's own take Gather,Kevin Iglesias Work/Gathering/HumanM@Gathering01-03.fbx,Grab & Carry Animation Pack,"pick up",Installed alternative ready
+2,Mine (pickaxe),Mining veins,Kevin Iglesias Work/Mining/HumanM@MiningOneHand01_R - Wall.fbx,same,Survival Animset Pro vol.1 (Kubold),"pickaxe",Library clip in use
+2,Fish cast / wait / reel / catch,Fishing,Chopper's own takes FishCast/FishWait/FishFight/FishCatch,Kevin Iglesias Work/Fishing (Begin/Loop/Stop/Throw/Fighting/PullOut),Survival Animset Pro vol.1 (Kubold),"fishing",Installed alternative ready
+3,Idle,Standing,Chopper's own take Idle,Mixamo_Motions/idle.fbx; Kevin Iglesias Idles,Basic Motions Free (Kevin Iglesias),"idle",OK
+3,Walk / Run / Sprint,Moving,Chopper's own takes Walk/Run/Sprint,Mixamo_Motions/walk.fbx run.fbx sprint.fbx; KevinIglesias_HumanBasicMotions Run01/Sprint01,Basic Motions Free (Kevin Iglesias),"walk / run / sprint",OK
+3,Crouch idle / walk,Sneaking,Chopper's own takes CrouchIdle/CrouchWalk,Mixamo_Motions/crouch_walk.fbx,Movement Animset Pro (Kubold),"crouch",OK
+3,Jump / fall / land,Double jump and falls,Chopper's own takes Air/LandHard,Mixamo_Motions/fall.fbx land_hard.fbx,Basic Motions Free (Kevin Iglesias),"jump / falling / hard landing",OK
+3,Death,Dying,Chopper's own take Death,Mixamo_Motions/death.fbx,Mixamo,"death",OK
+3,Build / hammer,Hammer placing pieces,none,Kevin Iglesias Work/Hammering/HumanM@HammeringGround01_R (Begin/Loop/Stop),Survival Animset Pro vol.1 (Kubold),"hammering",Installed but not wired
+3,Climb ladder,Mine ladder exit,none (teleport),none,Movement Animset Pro (Kubold); Mixamo,"climbing ladder",Missing
+3,Carry item,Axe held at rest,Library Idle_Torch_Loop on the arm layer,Quaternius UAL Idle_Torch_Loop,Grab & Carry Animation Pack,"carry",OK
+4,Eat / drink,Food and herbs,none,none,200+ Camp Animations,"eating / drinking",Missing
+4,Sleep / sit by fire,Beds and campfire,none,none,200+ Camp Animations,"sleeping / sitting",Missing
+4,Emotes (wave / point),Co-op,none,Kevin Iglesias Social,KayKit Character Animations; Mixamo,"wave / point",Installed but not wired
+
+Source,Best For,Notes,Link / Search
+Mixamo (Adobe),Quick free locomotion + basic actions,"Download FBX, set to Humanoid in Unity, use “In Place” or root-motion as needed. Great starter set.",mixamo.com
+KayKit Character Animations,Free 161 humanoid anims,"Idle, movement, melee, interactions. CC0, works with most rigs.",itch.io (Kay Lousberg)
+RPG Character Mecanim Animation Pack Free,88 free clips,Locomotion + combat foundation.,Unity Asset Store
+Basic Motions Free (Kevin Iglesias),Clean locomotion,Walk/run/idle/jump.,Unity Asset Store
+Survival Animset Pro vol.1 (Kubold),Dedicated survival actions,"Chopping, mining, crafting, camp life (78 motions). Paid but excellent.",Unity Asset Store
+200+ Camp Animations,Cozy survival / camp,"Eating, cooking, sitting, sleeping, fire-tending.",Unity Asset Store
+Grab & Carry Animation Pack,Loot & transport,"Pick-up, carry, drop.",Unity Asset Store
+Movement Animset Pro (Kubold),Advanced locomotion,"180+ clips including crouch, climb, jump, slide.",Unity Asset Store

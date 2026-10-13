@@ -41,12 +41,12 @@ namespace Chopper.World.Generation
         public const int MineCount = 4;
         // Below the crypts (-200) and their arenas (-230).
         public const float FloorY = -320f;
-        public const float CellSize = 12f;
-        public const float RoomSize = 8f;
-        public const float RoomHeight = 4.2f;
+        public const float CellSize = 24f;
+        public const float RoomSize = 16f;
+        public const float RoomHeight = 6.5f;
         public const float WallThickness = 0.8f;
-        public const float GalleryWidth = 2.8f;
-        public const float GalleryHeight = 3.1f;
+        public const float GalleryWidth = 5.5f;
+        public const float GalleryHeight = 4.5f;
         private const int MaxReach = 2;
         private const float PostSize = 0.32f;
         private const float BeamDepth = 0.36f;
@@ -304,6 +304,8 @@ namespace Chopper.World.Generation
                 Vector3 b = Tangent(across);
                 Vector3 post = c + b * (RoomSize * 0.5f - PostSize);
                 Lanterns.Add(new CryptLantern { Position = post - b * (PostSize * 0.5f + 0.05f) + Vector3.up * LanternHeight, Yaw = YawOf(-b) });
+                Vector3 otherPost = c - b * (RoomSize * 0.5f - PostSize);
+                Lanterns.Add(new CryptLantern { Position = otherPost + b * (PostSize * 0.5f + 0.05f) + Vector3.up * LanternHeight, Yaw = YawOf(b) });
                 if (room == deepest)
                 {
                     Vector3 a = Normal(across);

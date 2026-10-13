@@ -124,11 +124,26 @@ def log_shade(row, segment):
     return (LOG_DARK, LOG, LOG, LOG_LIGHT, LOG)[h]
 
 
+BOARD_SHADES = (srgb(150, 102, 60), srgb(136, 92, 54), srgb(160, 112, 68), srgb(126, 84, 48))
+BOARD_JOINT = srgb(88, 56, 30)
+BOARD_LEN = 4
+
+
 def floor_cells():
+    """Boards along X, one per 0.25 m row, joints staggered."""
     out = {}
-    for ix in range(-4, 4):
-        for iy in range(-4, 4):
-            out[(ix, iy, 0)] = PLANK if (ix + iy) % 2 == 0 else PLANK_DARK
+    for iy in range(-4, 4):
+        stagger = (iy * 3) % BOARD_LEN
+        for ix in range(-4, 4):
+            k = ix + 4 + stagger
+            board, along = divmod(k, BOARD_LEN)
+            base = BOARD_SHADES[(board * 5 + iy * 3) % len(BOARD_SHADES)]
+            if along == BOARD_LEN - 1:
+                color = BOARD_JOINT if (board + iy) % 2 == 0 else tuple(c * 0.72 for c in base)
+            else:
+                grain = 1.0 + 0.05 * (((ix * 7 + iy * 11) % 3) - 1)
+                color = tuple(c * grain for c in base)
+            out[(ix, iy, 0)] = color
     return out
 
 

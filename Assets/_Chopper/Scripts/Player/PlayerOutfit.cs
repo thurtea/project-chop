@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Chopper.Player
 {
-    // The two looks of Chopper (user, 2026-10-12): everyone starts unarmoured (hair, plaid, vest, trousers, boots); with
+    // The looks of Chopper (user, 2026-10-12): everyone starts unarmoured (hair, plaid, vest, trousers, boots); with
     // an armour kit used (PlayerUpgrades.Armoured) the helmet, chainmail, bracers and the shield on the back show, and the
     // hair hides under the helmet. Every client runs this for every player it sees. Nothing here is networked.
     public class PlayerOutfit : MonoBehaviour
@@ -11,12 +11,18 @@ namespace Chopper.Player
         private static readonly string[] ArmourParts = { "chopper_helmet", "chopper_chainmail", "chopper_bracers", "chopper_shield" };
         private const string Hair = "chopper_hair";
         // The everyday outfit (W9-01): shown once it is picked up on the shore (PlayerUpgrades.Dressed). Without it
-        // Chopper wears his trousers and boots only.
-        private static readonly string[] OutfitParts = { "chopper_shirt", "chopper_vest", "chopper_belt" };
+        // Chopper wears his base layer (undershirt and braies): the shirt and body with the base-layer atlas.
+        private static readonly string[] OutfitParts = { "chopper_vest", "chopper_belt" };
+        private static readonly string[] BaseLayerParts = { "chopper_shirt", "chopper_body" };
+        private const string BaseLayerAtlas = "Character/chopper_atlas_under";
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static Texture2D _baseLayer;
 
         private readonly List<Renderer> _armour = new List<Renderer>();
         private readonly List<Renderer> _hair = new List<Renderer>();
         private readonly List<Renderer> _outfit = new List<Renderer>();
+        private readonly List<Renderer> _baseLayerRenderers = new List<Renderer>();
+        private MaterialPropertyBlock _block;
         private PlayerUpgrades _upgrades;
 
         public bool ShowsArmour { get; private set; }
@@ -29,6 +35,7 @@ namespace Chopper.Player
                 if (IsArmour(renderer.transform)) _armour.Add(renderer);
                 else if (renderer.gameObject.name == Hair) _hair.Add(renderer);
                 else if (System.Array.IndexOf(OutfitParts, renderer.gameObject.name) >= 0) _outfit.Add(renderer);
+                else if (System.Array.IndexOf(BaseLayerParts, renderer.gameObject.name) >= 0) _baseLayerRenderers.Add(renderer);
             }
         }
 
@@ -50,7 +57,26 @@ namespace Chopper.Player
             foreach (Renderer renderer in _hair) if (renderer != null) renderer.enabled = !ShowsArmour;
             bool dressed = _upgrades == null || _upgrades.Dressed;
             foreach (Renderer renderer in _outfit) if (renderer != null) renderer.enabled = dressed;
+            if (_block == null) _block = new MaterialPropertyBlock();
+            if (_baseLayer == null) _baseLayer = Resources.Load<Texture2D>(BaseLayerAtlas);
+            foreach (Renderer renderer in _baseLayerRenderers)
+            {
+                if (renderer == null) continue;
+                renderer.enabled = true;
+                // Per slot, so PlayerHitFlash's slot blocks keep the texture.
+                for (int i = 0; i < renderer.sharedMaterials.Length; i++)
+                {
+                    Material material = renderer.sharedMaterials[i];
+                    Texture own = material != null && material.HasProperty(BaseMapId) ? material.GetTexture(BaseMapId) : null;
+                    Texture wanted = dressed || _baseLayer == null ? own : _baseLayer;
+                    if (wanted == null) continue;
+                    renderer.GetPropertyBlock(_block, i);
+                    _block.SetTexture(BaseMapId, wanted);
+                    renderer.SetPropertyBlock(_block, i);
+                }
+            }
         }
+
 
         // A mounted prop (the shield) keeps its mesh on a child, so the part's name may be on a parent.
         private bool IsArmour(Transform t)

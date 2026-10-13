@@ -406,6 +406,33 @@ namespace Chopper.World.Generation
 
         private static readonly float[] TileMeters = { 2f, 2.4f, 2f, 1f, 1f };
         private static readonly float[] MineTileMeters = { 4f, 3f, 4f, 1f, 1.2f };
+        // Crypt and mine surfaces in the terrain block material: linear colour per CryptMaterial, block type in alpha.
+        private static readonly Color[] CryptBlockColors =
+        {
+            BlockColor(0.19f, 0.19f, 0.20f, 2), BlockColor(0.13f, 0.13f, 0.13f, 2), BlockColor(0.10f, 0.10f, 0.11f, 2),
+            BlockColor(0f, 0f, 0f, 2), BlockColor(0.24f, 0.107f, 0.04f, 1)
+        };
+        private static readonly Color[] MineBlockColors =
+        {
+            BlockColor(0.20f, 0.18f, 0.15f, 2), BlockColor(0.16f, 0.09f, 0.045f, 1), BlockColor(0.12f, 0.11f, 0.10f, 2),
+            BlockColor(0f, 0f, 0f, 2), BlockColor(0.24f, 0.107f, 0.04f, 1)
+        };
+
+        private static Color BlockColor(float r, float g, float b, int type) => new Color(r, g, b, type / 8f + 1f / 16f);
+
+        private static Material _blockMaterial;
+
+        private static Material BlockMaterial()
+        {
+            if (_blockMaterial != null) return _blockMaterial;
+            _blockMaterial = Resources.Load<Material>("M_Blocks");
+            if (_blockMaterial == null)
+            {
+                Shader shader = Shader.Find("Chopper/Block");
+                if (shader != null) _blockMaterial = new Material(shader) { name = "M_Blocks" };
+            }
+            return _blockMaterial;
+        }
         private static readonly Color LanternColor = new Color(1f, 0.62f, 0.3f);
         private const float LanternRange = 13f;
         private const float LanternIntensity = 4.5f;
@@ -423,8 +450,8 @@ namespace Chopper.World.Generation
             {
                 var crypt = new GameObject(plan.Name).transform;
                 crypt.SetParent(root, false);
-                BuildBlocks(crypt, "Entrance", plan.EntranceBoxes, graphics, graphics ? CryptMaterials() : null, TileMeters);
-                BuildBlocks(crypt, "Rooms", plan.Boxes, graphics, graphics ? CryptMaterials() : null, TileMeters);
+                BuildBlocks(crypt, "Entrance", plan.EntranceBoxes, graphics, graphics ? CryptMaterials() : null, TileMeters, CryptBlockColors);
+                BuildBlocks(crypt, "Rooms", plan.Boxes, graphics, graphics ? CryptMaterials() : null, TileMeters, CryptBlockColors);
                 if (graphics)
                 {
                     foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(crypt, lantern, false);
@@ -436,7 +463,8 @@ namespace Chopper.World.Generation
         }
 
         // One collider per block, and (with graphics) one mesh per material with the texture tiled in meters.
-        private void BuildBlocks(Transform parent, string name, List<CryptBox> boxes, bool graphics, Material[] materials, float[] tiles)
+        private void BuildBlocks(Transform parent, string name, List<CryptBox> boxes, bool graphics, Material[] materials, float[] tiles,
+            Color[] blockColors = null)
         {
             var root = new GameObject(name);
             root.transform.SetParent(parent, false);
@@ -460,14 +488,15 @@ namespace Chopper.World.Generation
                 for (int m = 0; m < materials.Length; m++)
                 {
                     if (materials[m] == null) continue;
-                    Mesh mesh = BuildBoxMesh(inGroup, (CryptMaterial)m, tiles[m]);
+                    Material blocks = blockColors != null && (CryptMaterial)m != CryptMaterial.Void ? BlockMaterial() : null;
+                    Mesh mesh = BuildBoxMesh(inGroup, (CryptMaterial)m, tiles[m], blocks != null ? blockColors[m] : (Color?)null);
                     if (mesh == null) continue;
                     var part = new GameObject($"{(CryptMaterial)m}_{group}");
                     part.transform.SetParent(root.transform, false);
                     part.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                     part.AddComponent<MeshFilter>().sharedMesh = mesh;
                     var meshRenderer = part.AddComponent<MeshRenderer>();
-                    meshRenderer.sharedMaterial = materials[m];
+                    meshRenderer.sharedMaterial = blocks != null ? blocks : materials[m];
                     meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
                     part.isStatic = true;
                 }
@@ -518,8 +547,8 @@ namespace Chopper.World.Generation
             {
                 var mine = new GameObject(plan.Name).transform;
                 mine.SetParent(root, false);
-                BuildBlocks(mine, "Portal", plan.EntranceBoxes, graphics, materials, MineTileMeters);
-                BuildBlocks(mine, "Chambers", plan.Boxes, graphics, materials, MineTileMeters);
+                BuildBlocks(mine, "Portal", plan.EntranceBoxes, graphics, materials, MineTileMeters, MineBlockColors);
+                BuildBlocks(mine, "Chambers", plan.Boxes, graphics, materials, MineTileMeters, MineBlockColors);
                 if (!graphics)
                 {
                     veinId += plan.Veins.Count;
@@ -529,19 +558,107 @@ namespace Chopper.World.Generation
                 foreach (CryptLantern lantern in plan.Lanterns) PlaceLantern(mine, lantern, true);
                 Color glow = MineGlow(plan.Zone);
                 foreach (MineVein vein in plan.Veins) PlaceVein(mine, vein, veinId++, glow);
-                if (_assets.RailModel != null)
-                    foreach (MineProp rail in plan.Rails) PlaceStretched(_assets.RailModel, mine, rail.Position, rail.Yaw, rail.Length, 0.02f);
-                if (_assets.CartModel != null)
-                    foreach (MineProp cart in plan.Carts) PlaceModel(_assets.CartModel, mine, cart.Position, cart.Yaw, cart.Length, 0f);
-                if (_assets.BarrelModel != null)
-                    foreach (MineProp barrel in plan.Barrels) PlaceModel(_assets.BarrelModel, mine, barrel.Position, barrel.Yaw, barrel.Length, 0f);
-                if (_assets.LadderModel != null)
-                {
-                    var ladder = new GameObject("Ladder");
-                    ladder.transform.SetParent(mine, false);
-                    ladder.transform.SetPositionAndRotation(plan.LadderSpot, Quaternion.Euler(0f, plan.LadderYaw, 0f));
-                    PlaceByHeight(_assets.LadderModel, ladder.transform, MinePlan.RoomHeight + 0.4f);
-                }
+                foreach (MineProp rail in plan.Rails) PlaceBlockProp(mine, "Rails", rail.Position, rail.Yaw, RailParts(rail.Length), false);
+                foreach (MineProp cart in plan.Carts) PlaceBlockProp(mine, "Cart", cart.Position, cart.Yaw, CartParts(cart.Length), true);
+                foreach (MineProp barrel in plan.Barrels) PlaceBlockProp(mine, "Barrel", barrel.Position, barrel.Yaw, BarrelParts(barrel.Length), true);
+                PlaceBlockProp(mine, "Ladder", plan.LadderSpot, plan.LadderYaw, LadderParts(MinePlan.RoomHeight + 0.4f), false);
+            }
+        }
+
+        private static readonly Color PropTimber = BlockColor(0.24f, 0.107f, 0.04f, 1);
+        private static readonly Color PropTimberDark = BlockColor(0.14f, 0.062f, 0.024f, 1);
+        private static readonly Color PropIron = BlockColor(0.06f, 0.06f, 0.065f, 2);
+        private static readonly Color PropSteel = BlockColor(0.2f, 0.2f, 0.21f, 2);
+
+        private static (Vector3 center, Vector3 size, Color color) Part(float x, float y, float z, float sx, float sy, float sz, Color color) =>
+            (new Vector3(x, y, z), new Vector3(sx, sy, sz), color);
+
+        private static List<(Vector3, Vector3, Color)> LadderParts(float height)
+        {
+            var parts = new List<(Vector3, Vector3, Color)>
+            {
+                Part(-0.3f, height * 0.5f, 0f, 0.12f, height, 0.12f, PropTimber),
+                Part(0.3f, height * 0.5f, 0f, 0.12f, height, 0.12f, PropTimber)
+            };
+            for (float y = 0.3f; y < height - 0.1f; y += 0.35f) parts.Add(Part(0f, y, 0f, 0.6f, 0.08f, 0.1f, PropTimberDark));
+            return parts;
+        }
+
+        private static readonly Color PropFlame = BlockColor(1f, 0.55f, 0.2f, 2);
+
+        private static List<(Vector3, Vector3, Color)> LanternParts()
+        {
+            return new List<(Vector3, Vector3, Color)>
+            {
+                Part(0f, 0.1f, 0.3f, 0.12f, 0.06f, 0.5f, PropIron),
+                Part(0f, 0.0f, 0.55f, 0.26f, 0.06f, 0.26f, PropIron),
+                Part(0f, 0.2f, 0.55f, 0.18f, 0.3f, 0.18f, PropFlame),
+                Part(0f, 0.38f, 0.55f, 0.26f, 0.06f, 0.26f, PropIron)
+            };
+        }
+
+        private static List<(Vector3, Vector3, Color)> RailParts(float length)
+        {
+            var parts = new List<(Vector3, Vector3, Color)>
+            {
+                Part(-0.35f, 0.09f, 0f, 0.06f, 0.06f, length, PropSteel),
+                Part(0.35f, 0.09f, 0f, 0.06f, 0.06f, length, PropSteel)
+            };
+            for (float z = -length * 0.5f + 0.3f; z < length * 0.5f; z += 0.6f) parts.Add(Part(0f, 0.03f, z, 1f, 0.06f, 0.16f, PropTimberDark));
+            return parts;
+        }
+
+        private static List<(Vector3, Vector3, Color)> CartParts(float length)
+        {
+            var parts = new List<(Vector3, Vector3, Color)>
+            {
+                Part(0f, 0.65f, 0f, 0.9f, 0.7f, length, PropTimber),
+                Part(0f, 1.02f, 0f, 1f, 0.06f, length + 0.1f, PropIron)
+            };
+            foreach (float x in new[] { -0.5f, 0.5f })
+                foreach (float z in new[] { -length * 0.3f, length * 0.3f })
+                    parts.Add(Part(x, 0.18f, z, 0.1f, 0.36f, 0.36f, PropIron));
+            return parts;
+        }
+
+        private static List<(Vector3, Vector3, Color)> BarrelParts(float size)
+        {
+            float w = size * 0.85f, h = size * 1.3f;
+            return new List<(Vector3, Vector3, Color)>
+            {
+                Part(0f, h * 0.5f, 0f, w, h, w, PropTimber),
+                Part(0f, h * 0.2f, 0f, w + 0.04f, 0.08f, w + 0.04f, PropIron),
+                Part(0f, h * 0.8f, 0f, w + 0.04f, 0.08f, w + 0.04f, PropIron)
+            };
+        }
+
+        private void PlaceBlockProp(Transform parent, string name, Vector3 position, float yaw, List<(Vector3 center, Vector3 size, Color color)> parts, bool solid)
+        {
+            Material material = BlockMaterial();
+            if (material == null) return;
+            var root = new GameObject(name);
+            root.transform.SetParent(parent, false);
+            root.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+            var bounds = new Bounds(parts[0].center, parts[0].size);
+            var byColor = new Dictionary<Color, List<CryptBox>>();
+            foreach ((Vector3 center, Vector3 size, Color color) in parts)
+            {
+                bounds.Encapsulate(new Bounds(center, size));
+                if (!byColor.TryGetValue(color, out List<CryptBox> boxes)) byColor[color] = boxes = new List<CryptBox>();
+                boxes.Add(new CryptBox { Center = center, Size = size, Rotation = Quaternion.identity, Material = CryptMaterial.Timber });
+            }
+            foreach (KeyValuePair<Color, List<CryptBox>> group in byColor)
+            {
+                var part = new GameObject("Part");
+                part.transform.SetParent(root.transform, false);
+                part.AddComponent<MeshFilter>().sharedMesh = BuildBoxMesh(group.Value, CryptMaterial.Timber, 1f, group.Key);
+                part.AddComponent<MeshRenderer>().sharedMaterial = material;
+            }
+            if (solid)
+            {
+                BoxCollider box = root.AddComponent<BoxCollider>();
+                box.center = bounds.center;
+                box.size = bounds.size;
             }
         }
 
@@ -656,19 +773,6 @@ namespace Chopper.World.Generation
             }
         }
 
-        // A model laid along its longest side to a length, centered on a point, its foot on that point's height.
-        private static void PlaceStretched(GameObject model, Transform parent, Vector3 position, float yaw, float length, float sink)
-        {
-            GameObject instance = PlaceModel(model, parent, position, yaw, 1f, sink);
-            Bounds natural = WorldBounds(instance);
-            Vector3 local = instance.transform.InverseTransformVector(natural.size);
-            bool alongX = Mathf.Abs(local.x) > Mathf.Abs(local.z);
-            Vector3 scale = instance.transform.localScale;
-            float factor = length / Mathf.Max(0.01f, Mathf.Max(natural.size.x, natural.size.z));
-            if (alongX) scale.x *= factor;
-            else scale.z *= factor;
-            instance.transform.localScale = scale;
-        }
 
         // The crypt materials from WorldAssets, or plain stand ins when the assets have not been rebuilt yet
         // (Rebuild Network Scenes fills them in), so the stone is never invisible.
@@ -696,9 +800,10 @@ namespace Chopper.World.Generation
 
         // Every box of one material as a single mesh in world space. UVs are the face's own coordinates in meters
         // divided by the tile size, so bricks keep their size on long and short walls alike.
-        public static Mesh BuildBoxMesh(List<CryptBox> boxes, CryptMaterial material, float tileMeters)
+        public static Mesh BuildBoxMesh(List<CryptBox> boxes, CryptMaterial material, float tileMeters, Color? blockColor = null)
         {
             var vertices = new List<Vector3>();
+            var colors = new List<Color>();
             var normals = new List<Vector3>();
             var uvs = new List<Vector2>();
             var triangles = new List<int>();
@@ -723,6 +828,7 @@ namespace Chopper.World.Generation
                         Vector3 local = faceCenter + u * (su * uHalf) + v * (sv * vHalf);
                         vertices.Add(box.Center + box.Rotation * local);
                         normals.Add(box.Rotation * n);
+                        if (blockColor.HasValue) colors.Add(blockColor.Value);
                         uvs.Add(new Vector2(su * uHalf + uHalf, sv * vHalf + vHalf) / tileMeters);
                     }
                     // Clockwise seen from outside, which is the front face in Unity.
@@ -739,6 +845,7 @@ namespace Chopper.World.Generation
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
             mesh.SetUVs(0, uvs);
+            if (blockColor.HasValue) mesh.SetColors(colors);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
             mesh.RecalculateTangents();
@@ -752,10 +859,10 @@ namespace Chopper.World.Generation
             var pivot = new GameObject("Lantern");
             pivot.transform.SetParent(parent, false);
             pivot.transform.SetPositionAndRotation(lantern.Position, Quaternion.Euler(0f, lantern.Yaw, 0f));
-            if (_assets.LanternModel != null) PlaceByHeight(_assets.LanternModel, pivot.transform, 0.55f);
+            PlaceBlockProp(pivot.transform, "Model", lantern.Position, lantern.Yaw, LanternParts(), false);
             var lightGo = new GameObject("Light");
             lightGo.transform.SetParent(pivot.transform, false);
-            lightGo.transform.localPosition = new Vector3(0f, 0.1f, 0.35f);
+            lightGo.transform.localPosition = new Vector3(0f, 0.2f, 0.8f);
             Light light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = LanternColor;
@@ -790,16 +897,6 @@ namespace Chopper.World.Generation
             return glint;
         }
 
-        // Instantiates a model under a pivot, scaled to a height, its footprint centered on the pivot.
-        private static void PlaceByHeight(GameObject model, Transform pivot, float height)
-        {
-            GameObject instance = Instantiate(model, pivot);
-            Bounds natural = WorldBounds(instance);
-            instance.transform.localScale = Vector3.one * (height / Mathf.Max(0.01f, natural.size.y));
-            Bounds scaled = WorldBounds(instance);
-            instance.transform.position += pivot.position - scaled.center;
-            foreach (Collider collider in instance.GetComponentsInChildren<Collider>()) Destroy(collider);
-        }
 
 
         // ---------- Spawns and trees ----------

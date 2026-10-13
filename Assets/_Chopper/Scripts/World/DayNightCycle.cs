@@ -17,13 +17,14 @@ namespace Chopper.World
     {
         private const float SyncInterval = 1f;
         private const float SunLowPitch = 30f;
-        private const float SunHighPitch = 62f;
+        private const float SunHighPitch = 46f;
         private const float SunStartYaw = -70f;
         private const float SunEndYaw = 110f;
         private const float MoonPitch = 42f;
         private const float MoonYaw = 290f;
         private const float NoonIntensity = 1.45f;
         private const float LowSunIntensity = 1.1f;
+        private const float LowSunSpan = 0.75f;
         private const float MoonIntensity = 1.0f;
         private const float NightSkyExposure = 0.08f;
         private const float DayExposure = 0.45f;
@@ -37,7 +38,7 @@ namespace Chopper.World
         // W5-02b Valheim grade (was 1, 0.66, 0.42): a warmer, more golden low sun.
         private static readonly Color SunriseColor = new Color(1f, 0.60f, 0.34f);
         // W5-02b concept 1 look (was 1, 0.93, 0.80): a warmer sun.
-        private static readonly Color NoonColor = new Color(1f, 0.90f, 0.74f);
+        private static readonly Color NoonColor = new Color(1f, 0.87f, 0.68f);
         private static readonly Color MoonColor = new Color(0.50f, 0.62f, 1f);
         private static readonly Color NightFilter = new Color(0.66f, 0.76f, 1f);
         // W5-02b Valheim grade (was 0.62, 0.68, 0.78): cooler sky fill, so shadows read blue against the warm sun.
@@ -254,8 +255,8 @@ namespace Chopper.World
                 _sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(sunPitch, MoonPitch, d), Mathf.Lerp(sunYaw, MoonYaw, d), 0f);
             }
 
-            // How low the sun is, 1 at sunrise and sunset, 0 from mid morning to mid afternoon.
-            float lowSun = 1f - Mathf.SmoothStep(0f, 1f, elevation / 0.45f);
+            // How low the sun is, 1 at sunrise and sunset, 0 around midday.
+            float lowSun = 1f - Mathf.SmoothStep(0f, 1f, elevation / LowSunSpan);
             HazeTint = Color.Lerp(Color.Lerp(NoonHaze, LowSunHaze, lowSun), Color.white, d);
 
             RenderSettings.ambientSkyColor = Color.Lerp(Color.Lerp(LightingSky, NightSky, d), CryptSky, u) * weather.Ambient;

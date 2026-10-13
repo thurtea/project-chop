@@ -1348,7 +1348,6 @@ namespace Chopper.Networking
                     if (t.name == "upperarm_l") shoulderL = t;
                     if (t.name == "upperarm_r") shoulderR = t;
                 }
-                // Chopper's own rig has other bone names (Hips, LeftUpperArm): take them from the humanoid Avatar.
                 Animator guardAnimator = guard.GetComponentInParent<Animator>();
                 if (guardAnimator != null && guardAnimator.isHuman)
                 {
@@ -4337,17 +4336,27 @@ namespace Chopper.Networking
             for (int piece = 0; piece < 2; piece++)
             {
                 Vector3 target = WorldStart.KitSpot(piece);
-                while (Time.time - start < 45f)
+                float pieceStart = Time.time;
+                while (Time.time - pieceStart < 45f)
                 {
                     Vector3 to = target - wood.transform.position;
                     to.y = 0f;
-                    if (to.magnitude < 1.1f) break;
+                    if (to.magnitude < 0.7f)
+                    {
+                        InputSystem.QueueStateEvent(pad, new GamepadState());
+                        break;
+                    }
                     float yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
                     cam.SnapYaw(yaw);
                     InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up });
                     yield return null;
                 }
                 if (piece == 0) yield return Shot(folder, "arrival_2_on_the_bank");
+                foreach (GroundItem item in GroundItem.All)
+                    if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit))
+                        Debug.Log($"[Arrival] piece {piece}: {item.Kind} at {item.transform.position:F1}, {Vector3.Distance(item.transform.position, wood.transform.position):F2} m");
+                GroundItem reach = GroundItem.GearInReach(wood.transform.position, wood.gameObject);
+                Debug.Log($"[Arrival] piece {piece}: player {wood.transform.position:F1}, kit spot {target:F1}, in reach {(reach != null ? reach.Kind.ToString() : "none")}, blocked {UiState.GameplayBlocked}");
                 float pressUntil = Time.time + 0.35f;
                 while (Time.time < pressUntil)
                 {
@@ -4356,6 +4365,8 @@ namespace Chopper.Networking
                 }
                 InputSystem.QueueStateEvent(pad, new GamepadState());
                 yield return new WaitForSeconds(0.35f);
+                ui.DebugShow(0);
+                yield return new WaitForSecondsRealtime(0.4f);
             }
             InputSystem.QueueStateEvent(pad, new GamepadState());
             InputSystem.RemoveDevice(pad);

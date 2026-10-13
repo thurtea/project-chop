@@ -206,6 +206,8 @@ namespace Chopper.Player
                 case HitOutcome.Blocked:
                     CombatFx.Sparks(spot, new Color(1.4f, 1.1f, 0.6f, 1f), 9);
                     Sfx.Play(ProceduralSfx.Block, transform.position + Vector3.up, 0.9f, 1f, 0.08f);
+                    PlayerAnimator blockAnim = GetComponent<PlayerAnimator>();
+                    if (blockAnim != null) blockAnim.PlayBlocked();
                     break;
                 case HitOutcome.Dodged:
                     CombatFx.Dust(transform.position + Vector3.up * 0.3f, new Color(0.9f, 0.9f, 0.85f, 0.5f), 4);

@@ -27,6 +27,9 @@ namespace Chopper.Player
         // How far the hips sink, in meters. The legs are solved so the feet stay planted, which bends the knees.
         public const float CrouchDrop = 0.09f;
         private const float EnterSeconds = 0.16f;
+        private const float ShoveSeconds = 0.26f;
+        private const float ShoveLeanDegrees = 12f;
+        private static readonly Vector3 ShoveArm = new Vector3(0f, 0.45f, 0.40f);
         private const float ExitSeconds = 0.14f;
 
         private Transform _pelvis, _spine1, _spine2, _spine3, _neck, _head;
@@ -51,6 +54,17 @@ namespace Chopper.Player
         public bool Raised { get; set; }
 
         public float Weight => _weight;
+
+        private float _shoveAmount;
+        private float _shoveStart = -10f;
+        private float _shove;
+
+        // +1 parry thrust, negative a block knocked back.
+        public void Shove(float amount)
+        {
+            _shoveAmount = amount;
+            _shoveStart = Time.time;
+        }
 
         private void Awake()
         {
@@ -77,8 +91,7 @@ namespace Chopper.Player
             _thighR = FindDeep(transform, "thigh_r");
             _calfR = FindDeep(transform, "calf_r");
             _footR = FindDeep(transform, "foot_r");
-            // Chopper's own rig names its bones Hips, Spine, Chest, RightHand and so on, so none of the names above
-            // match and the guard never posed. Fall back to the humanoid Avatar's bones.
+            // Chopper's own rig uses humanoid names (Hips, Spine, RightHand).
             if (_spine1 == null || _upperR == null || _handR == null) FindHumanoid();
             _found = _spine1 != null && _spine2 != null && _spine3 != null && _neck != null && _upperL != null && _lowerL != null
                      && _handL != null && _upperR != null && _lowerR != null && _handR != null;
@@ -119,6 +132,8 @@ namespace Chopper.Player
             float target = Raised ? 1f : 0f;
             float seconds = Raised ? EnterSeconds : ExitSeconds;
             _weight = Mathf.MoveTowards(_weight, target, Time.deltaTime / seconds);
+            float since = (Time.time - _shoveStart) / ShoveSeconds;
+            _shove = since < 1f ? _shoveAmount * Mathf.Sin(Mathf.PI * Mathf.Sqrt(Mathf.Max(0f, since))) : 0f;
             UndoUntouched();
             if (_weight <= 0.0005f) return;
             Remember(_before, ref _pelvisBefore);
@@ -190,7 +205,7 @@ namespace Chopper.Player
 
             // Torso first, because the arms hang from it: straighten the spine toward one fixed lean, so the result does
             // not depend on the animation underneath. The head keeps looking ahead.
-            float lean = LeanDegrees * Mathf.Deg2Rad;
+            float lean = (LeanDegrees + ShoveLeanDegrees * _shove) * Mathf.Deg2Rad;
             Vector3 torso = (up * Mathf.Cos(lean) + forward * Mathf.Sin(lean)).normalized;
             Aim(_spine1, _spine2, torso, blend);
             Aim(_spine2, _spine3, torso, blend);
@@ -198,7 +213,7 @@ namespace Chopper.Player
             if (_head != null) _head.rotation = Quaternion.AngleAxis(-LeanDegrees * blend * 0.7f, right) * _head.rotation;
 
             // The axe arm brings the hand in front of the chest, then the wrist turns the handle up and across.
-            Aim(_upperR, _lowerR, ToWorld(AxeUpperArm, right, up, forward), blend);
+            Aim(_upperR, _lowerR, ToWorld(AxeUpperArm + ShoveArm * _shove, right, up, forward), blend);
             Aim(_lowerR, _handR, ToWorld(AxeForearm, right, up, forward), blend);
             if (FindAxe())
             {

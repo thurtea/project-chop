@@ -682,6 +682,25 @@ def main():
     prop_pass("Idle (every 4th frame)", list(range(1, 62, 4)), "Idle")
     prop_pass("Walk (every 2nd frame)", list(range(1, 32, 2)), "Walk")
 
+    # FishCast is left out: fishing stows the axe.
+    for take in ("Attack_1", "Attack_2", "Attack_3", "HitReact", "Gather"):
+        set_action(rig, take)
+        cnt, worst, where = 0, 0.0, {}
+        for f in range(1, TAKES[take] + 2):
+            sc.frame_set(f)
+            bpy.context.view_layer.update()
+            bp = [bear.matrix_world @ c for c in bear_local]
+            for ob in body_like:
+                c, w = penetration(bp, [ob], allow=in_fist_b)
+                if c:
+                    cnt += c
+                    worst = max(worst, w)
+                    where.setdefault(ob.name, []).append(f)
+        DIAG.clear()
+        check(cnt == 0, "%s (every frame): bear axe clear of head, beard, helmet, body and clothing outside the fist "
+              "(penetrating verts %d, deepest %.1f mm%s)" % (take, cnt, 1000 * worst,
+              "".join(", %s frames %s" % (k, sorted(set(v))) for k, v in where.items())))
+
     attach(shield, rig, "Shield_Back")
     rig.data.pose_position = "REST"
     bpy.context.view_layer.update()

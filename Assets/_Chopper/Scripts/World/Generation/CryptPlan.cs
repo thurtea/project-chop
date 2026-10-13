@@ -56,13 +56,14 @@ namespace Chopper.World.Generation
     {
         // The rooms lie this far below the hut floor, under their entrance, well out of sight of the surface.
         public const float FloorY = -200f;
-        public const float CellSize = 14f;
-        public const float RoomSize = 10f;
-        public const float RoomHeight = 4.6f;
+        // Reach 2 keeps a crypt within 50 m of its stairs, under WorldGen.CryptMinSpacing / 2.
+        public const float CellSize = 20f;
+        public const float RoomSize = 15f;
+        public const float RoomHeight = 6f;
         public const float WallThickness = 0.6f;
-        public const float CorridorWidth = 3.2f;
-        public const float DoorHeight = 3.4f;
-        private const int MaxReach = 3;
+        public const float CorridorWidth = 5f;
+        public const float DoorHeight = 4.4f;
+        private const int MaxReach = 2;
         private const int StairSteps = 7;
         private const float StairRise = 0.4f;
         private const float StairRun = 0.55f;

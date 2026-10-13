@@ -22,6 +22,7 @@ from chopper_lib import PAL  # noqa: E402
 
 TEXEL_M = 0.016          # character pixel (m)
 TEXEL_FINE = 0.012       # face front and bear axe
+SUPER = 3                # atlas texels per painted pixel, per axis
 MOUSTACHE = (0.88, 0.44, 0.13)                       # = build_chopper.MOUSTACHE
 HELM_BONE = (0.86, 0.80, 0.66)                       # = build_chopper.BONE
 BEAR_WOOD, BEAR_CARVE, BEAR_HEAD = (0.72, 0.42, 0.19), (0.42, 0.22, 0.09), (0.80, 0.50, 0.23)  # build_props
@@ -159,7 +160,34 @@ def plaid(i, j):
     return RED
 
 
+# Base layer atlas (undershirt and braies), baked by uv_atlas.write_under_atlas.
+UNDER = False
+LINEN = S(214, 200, 170)
+LINEN_SEAM = S(170, 154, 124)
+UNDER_SLEEVE = 0.15        # m along the arm from the shoulder joint
+UNDER_BRAIES_Z = 0.66      # braies hem height (m); bare legs below, down to the boots
+
+
+def linen(p, n, t):
+    c = LINEN if math.floor(p.z / t) % 2 else dark(LINEN, 0.96)
+    return grain(c, p, t, 0.04)
+
+
+def paint_under_shirt(p, n, rgb, pc, t):
+    if abs(pc.x) > 0.05:
+        ta, _ = arm_coords(p, n, 1.0 if pc.x > 0 else -1.0)
+        if ta > UNDER_SLEEVE + t:
+            return grain(SKIN, p, t, 0.03)
+        if ta > UNDER_SLEEVE:
+            return LINEN_SEAM
+    if near(rgb, PAL["shirt_dark"]):          # collar and hem
+        return LINEN_SEAM
+    return linen(p, n, t)
+
+
 def paint_shirt(p, n, rgb, pc, t):
+    if UNDER:
+        return paint_under_shirt(p, n, rgb, pc, t)
     if abs(pc.x) > 0.05:                      # sleeve: plaid runs along and around the arm
         ta, ac = arm_coords(p, n, 1.0 if pc.x > 0 else -1.0)
         c = plaid(math.floor(ta / t), math.floor(ac / t))
@@ -247,6 +275,12 @@ def paint_belt(p, n, rgb, pc, t):
 
 
 def paint_body(p, n, rgb, pc, t):
+    if UNDER and near(rgb, PAL["trousers"]):
+        if p.z < UNDER_BRAIES_Z - t:
+            return grain(SKIN, p, t, 0.03)
+        if p.z < UNDER_BRAIES_Z:
+            return LINEN_SEAM
+        return linen(p, n, t)
     if near(rgb, PAL["trousers"]):
         c = TROUSERS
         if abs(pc.x) > 0.05 and abs(side_coord(p, n) - pc.x) < 0.5 * t and abs(n.x) > 0.7:

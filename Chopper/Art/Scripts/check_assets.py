@@ -3,11 +3,15 @@
 Run:  blender -b -P check_assets.py
 """
 import os
+import sys
 
 import bmesh
 import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from atlas_paint import SUPER  # noqa: E402
 
 ART = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 FILES = [os.path.join(ART, "Blender", "chopper_character.blend"),
@@ -228,7 +232,7 @@ def uv_stats(ob, uv):
                 seen[key] = (p.index, uvk)
     n_isl = len({find(i) for i in range(len(me.polygons))})
     dens = 2048 * (uva / world) ** 0.5 if world > 0 else 0.0
-    DENSITY[ob.name] = dens
+    DENSITY[ob.name] = dens / SUPER        # painted pixels per metre
     out(f"    uv layout  : {n_isl} islands for {len(me.polygons)} faces "
         f"({len(me.polygons) / max(1, n_isl):.1f} faces per island), texel density {dens:.0f} px/m")
     check(f"{ob.name} UVs are connected islands, not one cell per face ({len(me.polygons) / max(1, n_isl):.1f} faces per island)",

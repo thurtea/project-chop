@@ -199,7 +199,19 @@ namespace Chopper.Player
 
         // A hit that got through, and a parry. The clips are in and still need polish.
         public void PlayHit() => PlayTrigger(HitId);
-        public void PlayParry() => PlayTrigger(ParryId);
+        public void PlayParry()
+        {
+            PlayTrigger(ParryId);
+            GuardJolt(1f);
+        }
+
+        public void PlayBlocked() => GuardJolt(-0.5f);
+
+        private void GuardJolt(float amount)
+        {
+            if (_guard == null && _animator != null) _guard = _animator.GetComponent<GuardPose>();
+            if (_guard != null) _guard.Shove(amount);
+        }
 
         private void PlayTrigger(int id)
         {

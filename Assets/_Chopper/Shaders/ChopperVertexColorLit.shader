@@ -42,6 +42,8 @@ Shader "Chopper/VertexColorLit"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -94,6 +96,19 @@ Shader "Chopper/VertexColorLit"
                 half wrap = saturate(_Wrap);
                 half ndl = saturate(dot(n, mainLight.direction) * (1 - wrap) + wrap);
                 half3 direct = mainLight.color * (ndl * mainLight.shadowAttenuation * mainLight.distanceAttenuation);
+                #if defined(_ADDITIONAL_LIGHTS)
+                {
+                    InputData inputData = (InputData)0;
+                    inputData.positionWS = i.positionWS;
+                    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.positionCS);
+                    uint pixelLightCount = GetAdditionalLightsCount();
+                    LIGHT_LOOP_BEGIN(pixelLightCount)
+                        Light extra = GetAdditionalLight(lightIndex, i.positionWS);
+                        half extraNdl = saturate(dot(n, extra.direction) * (1 - wrap) + wrap);
+                        direct += extra.color * (extra.distanceAttenuation * extraNdl);
+                    LIGHT_LOOP_END
+                }
+                #endif
                 half3 ambient = SampleSH(n) * _AmbientStrength;
 
                 half3 c = albedo * (direct + ambient);

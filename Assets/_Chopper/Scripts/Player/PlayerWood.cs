@@ -156,7 +156,7 @@ namespace Chopper.Player
 
         private bool TryTakeGear()
         {
-            if (GroundItem.GearInReach(transform.position) == null) return false;
+            if (GroundItem.GearInReach(transform.position, gameObject) == null) return false;
             Gathered?.Invoke();
             TakeGearServerRpc();
             return true;
@@ -165,7 +165,7 @@ namespace Chopper.Player
         [ServerRpc]
         private void TakeGearServerRpc()
         {
-            GroundItem gear = GroundItem.GearInReach(transform.position);
+            GroundItem gear = GroundItem.GearInReach(transform.position, gameObject);
             if (gear != null) gear.ServerTryTake(this);
         }
 

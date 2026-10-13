@@ -40,9 +40,13 @@ namespace Chopper.Tests.EditMode
             Assert.AreEqual(1, MiningRules.NextChain(0, 0f, MiningRules.ComboWindow));
             Assert.AreEqual(1, MiningRules.NextChain(2, MiningRules.ComboWindow + 0.1f, MiningRules.ComboWindow));
             Assert.AreEqual(3, MiningRules.NextChain(2, MiningRules.GlintPeriod, MiningRules.ComboWindow));
-            Assert.AreEqual(3f, MiningRules.ComboProgress(StrikeQuality.Clean, 3), 0.001f);
-            Assert.Less(MiningRules.ComboProgress(StrikeQuality.Clean, 1), 0.5f);
-            Assert.AreEqual("Combo", MiningRules.ComboWord(StrikeQuality.Clean, 3));
+            // Every strike pays in full; the combo adds damage (+25 % a link, at most double).
+            Assert.AreEqual(1f, MiningRules.ComboProgress(StrikeQuality.Clean, 1), 0.001f);
+            Assert.AreEqual(1.5f, MiningRules.ComboProgress(StrikeQuality.Clean, 3), 0.001f);
+            Assert.AreEqual(2f, MiningRules.ComboProgress(StrikeQuality.Clean, 12), 0.001f);
+            Assert.Greater(MiningRules.ComboProgress(StrikeQuality.Good, 4), MiningRules.ComboProgress(StrikeQuality.Good, 1));
+            Assert.AreEqual("Clean", MiningRules.ComboWord(StrikeQuality.Clean, 1));
+            Assert.AreEqual("Clean x3", MiningRules.ComboWord(StrikeQuality.Clean, 3));
         }
 
         [Test]

@@ -99,3 +99,12 @@ pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour GuardTest   # expect:
 ```
 - Look for: in the `guard_*` shots, the axe comes up in front of the chest with the haft slanting up to the left, the left hand on the haft, knees a little bent, the head of the axe clear of the face and helmet. In play (hold the Block key), the same pose, and it drops cleanly when you let go.
 - Report: the RESULT line, and PASS or FAIL for the look with a shot name or video time.
+
+### HW-13 Golden-hour light (look; after HW-7, which rebuilds the game with this code)
+The midday sun now stands lower (46 deg, was 62) and a little more golden, and the warm morning and evening haze lasts longer into the day.
+```powershell
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Concept   # shots in the late afternoon
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Site      # shots near midday
+```
+- Look for: warm gold light on the hut, trees and the character with longer shadows; block faces show a clear lit side and a shaded side; shade still reads cool blue, not muddy; distant hills fade into the haze. Nothing too orange or too dark at midday.
+- Report: KEEP, or TOO WARM, TOO DARK or TOO FLAT, with a shot name. Paste the last printed lines of each tour.

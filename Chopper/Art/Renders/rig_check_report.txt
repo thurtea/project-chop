@@ -1,9 +1,9 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (4340972 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32348 bytes)
-  [PASS] file exists: Export\chopper_axe_bear.fbx (30764 bytes)
-  [PASS] file exists: Export\chopper_shield.fbx (40508 bytes)
+  [PASS] file exists: Export\chopper.fbx (4537532 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32636 bytes)
+  [PASS] file exists: Export\chopper_axe_bear.fbx (30700 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (40524 bytes)
 
 RAW FBX: chopper.fbx
 ------------------------------------------------------------------------
@@ -32,7 +32,8 @@ RAW FBX: chopper.fbx
   [PASS] take FishCast present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
   [PASS] take FishFight present, frames 0.00-20.00 (expected 0-20 = 0.67 s at 30 fps)
   [PASS] take FishCatch present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
-  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
+  [PASS] take Gather present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
+  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'Gather', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'Gather', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
 
 IMPORTED chopper.fbx
 ------------------------------------------------------------------------
@@ -200,13 +201,13 @@ TAKE Swim (imported)
 TAKE Attack_1 (imported)
   [PASS] action for take Attack_1 found (chopper_rig|Attack_1)
   [PASS] imported frame range 1-23 (expected 1-23)
-  [PASS] Attack_1 moves (body vertex delta mid-clip 1.377 m)
+  [PASS] Attack_1 moves (body vertex delta mid-clip 1.317 m)
   [PASS] Attack_1: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE Attack_2 (imported)
   [PASS] action for take Attack_2 found (chopper_rig|Attack_2)
   [PASS] imported frame range 1-23 (expected 1-23)
-  [PASS] Attack_2 moves (body vertex delta mid-clip 1.190 m)
+  [PASS] Attack_2 moves (body vertex delta mid-clip 1.153 m)
   [PASS] Attack_2: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE Attack_3 (imported)
@@ -250,6 +251,12 @@ TAKE FishCatch (imported)
   [PASS] FishCatch moves (body vertex delta mid-clip 0.832 m)
   [PASS] FishCatch: feet stay above Z=-0.02 (lowest -0.0000)
 
+TAKE Gather (imported)
+  [PASS] action for take Gather found (chopper_rig|Gather)
+  [PASS] imported frame range 1-31 (expected 1-31)
+  [PASS] Gather moves (body vertex delta mid-clip 0.713 m)
+  [PASS] Gather: feet stay above Z=-0.02 (lowest -0.0000)
+
 PROPS
 ------------------------------------------------------------------------
   [PASS] chopper_axe.fbx imports as exactly one mesh named chopper_axe (got [('chopper_axe', 'MESH')])
@@ -283,6 +290,11 @@ PROPS ON SOCKETS (identity local transform relative to the socket bone)
   [PASS] Walk (every 2nd frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Walk (every 2nd frame): axe grip point inside the right-hand bounds
   [PASS] Walk (every 2nd frame): bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Attack_1 (every frame): bear axe clear of head, beard, helmet, body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Attack_2 (every frame): bear axe clear of head, beard, helmet, body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Attack_3 (every frame): bear axe clear of head, beard, helmet, body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] HitReact (every frame): bear axe clear of head, beard, helmet, body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
+  [PASS] Gather (every frame): bear axe clear of head, beard, helmet, body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Shield_Back rest: shield clear of the body and sitting on the back (penetrating 0, deepest 0.0 mm, mean Y 0.534)
 
 CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)
@@ -312,4 +324,4 @@ BEARD CLEARANCE (beard vertices vs vest, shirt and body)
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 
 ========================================================================
-SUMMARY: 207 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 217 PASS, 0 FAIL -> ALL PASS

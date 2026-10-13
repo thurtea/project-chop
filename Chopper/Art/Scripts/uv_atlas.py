@@ -32,7 +32,7 @@ import numpy as np
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from atlas_paint import TEXEL_M, detail, loop_color, texel_m  # noqa: E402
+from atlas_paint import SUPER, TEXEL_M, detail, loop_color, texel_m  # noqa: E402
 
 ART = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 CHAR = os.path.join(ART, "Blender", "chopper_character.blend")
@@ -259,8 +259,8 @@ def pack(layout, D):
 
 
 def fit(layout):
-    """Fixed density: one texel per TEXEL_M metres (pixel art). Fails if it does not fit."""
-    D = 1.0 / TEXEL_M
+    """Fixed density: SUPER texels per TEXEL_M metres (one painted pixel is SUPER x SUPER texels). Fails if it does not fit."""
+    D = SUPER / TEXEL_M
     t = pack(layout, D)
     if t is None or t > SIZE - 2 * MARGIN:
         raise SystemExit("atlas does not fit at %.1f cm per texel" % (100 * TEXEL_M))
@@ -434,9 +434,9 @@ def process(path, names, layout, D, buf, island_px, overlaps, report):
     for ob in obs:
         parts = [p for p in layout if p["obj"] == ob.name]
         d = texel_density(ob)
-        report.append("%-18s faces=%4d parts=%3d islands=%4d density=%5.1f px/m = %.2f cm per texel"
+        report.append("%-18s faces=%4d parts=%3d islands=%4d density=%5.1f px/m = %.2f cm per painted pixel"
                       % (ob.name, len(ob.data.polygons), len(parts),
-                         sum(len(p["islands"]) for p in parts), d, 100.0 / d))
+                         sum(len(p["islands"]) for p in parts), d, 100.0 * SUPER / d))
     bake(obs, buf, island_px, overlaps)
     bpy.context.preferences.filepaths.save_version = 0
     bpy.ops.wm.save_as_mainfile(filepath=path)
@@ -447,6 +447,35 @@ def linear_to_srgb(a):
     return np.where(a <= 0.0031308, a * 12.92, 1.055 * np.power(a, 1.0 / 2.4) - 0.055)
 
 
+UNDER_ATLAS = os.path.join(TEX, "chopper_atlas_under.png")
+UNDER_OBJECTS = ["chopper_shirt", "chopper_body"]
+
+
+def write_under_atlas(buf, layout, D):
+    """Same atlas with the shirt and body painted as the base layer (atlas_paint.UNDER)."""
+    import atlas_paint
+    global TRI_OWNER, CLAIM
+    under = buf.copy()
+    TRI_OWNER = np.full(SIZE * SIZE, -1, dtype=np.int64)
+    CLAIM = np.zeros(SIZE * SIZE, dtype=np.int8)
+    island_px = np.zeros(SIZE * SIZE, dtype=np.int8)
+    bpy.ops.wm.open_mainfile(filepath=CHAR)
+    atlas_paint.UNDER = True
+    try:
+        bake([bpy.data.objects[n] for n in UNDER_OBJECTS], under, island_px, [])
+    finally:
+        atlas_paint.UNDER = False
+    dilate(under, island_px, DILATE)
+    rgb = linear_to_srgb(under[:, :3])
+    out = np.concatenate([rgb, np.ones((SIZE * SIZE, 1))], axis=1).astype(np.float32)
+    img = bpy.data.images.new("chopper_atlas_under", SIZE, SIZE, alpha=False)
+    img.pixels.foreach_set(out.ravel())
+    img.filepath_raw = UNDER_ATLAS
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+
+
 def main():
     os.makedirs(TEX, exist_ok=True)
     layout = []
@@ -454,9 +483,9 @@ def main():
     collect(PROPS, PROP_OBJECTS, layout)
     D = fit(layout)
     report = ["Chopper atlas UV report",
-              "size %d, pixel art: one texel = %.1f cm (%.1f px/m), finer on the face front and the bear axe "
-              "(atlas_paint.texel_m); part gap %d px, inner gap %d px, edge padding %d px (copied edge texels)"
-              % (SIZE, 100 * TEXEL_M, D, PART_GAP, INNER_GAP, DILATE)]
+              "size %d, pixel art: one painted pixel = %.1f cm = %d x %d texels (%.1f texels/m), finer on the face front and the "
+              "bear axe (atlas_paint.texel_m); part gap %d px, inner gap %d px, edge padding %d px (copied edge texels)"
+              % (SIZE, 100 * TEXEL_M, SUPER, SUPER, D, PART_GAP, INNER_GAP, DILATE)]
     # the edge padding copies the edge texels; fill_gutter then fills the rest from the nearest islands
     buf = np.tile(np.array([0.0134, 0.0100, 0.0086, 1.0]), (SIZE * SIZE, 1))
     island_px = np.zeros(SIZE * SIZE, dtype=np.int8)
@@ -479,6 +508,8 @@ def main():
     img.save()
     bpy.data.images.remove(img)
     report.append("wrote " + ATLAS)
+    write_under_atlas(buf, layout, D)
+    report.append("wrote " + UNDER_ATLAS)
     text = "\n".join(report) + "\n"
     with open(TILES_TXT, "w", encoding="utf-8") as fh:
         fh.write(text)

@@ -45,6 +45,8 @@ Shader "Chopper/Block"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -95,6 +97,8 @@ Shader "Chopper/Block"
                 int type = (int)floor(i.color.a * 8.0);
                 // One shade per 1/16 m texel in 3D (nudged inside the face), so cliff faces get pixels, not streaks.
                 float3 cell3 = floor(i.positionWS * 16.0 - n0 * 0.5);
+                // Wrapped so the hash keeps its precision far from the origin (crypts at y -200 striped).
+                cell3 -= 256.0 * floor(cell3 / 256.0);
                 float h = Hash21(cell3.xz + cell3.y * float2(17.0, 31.0));
                 float h2 = Hash21(cell3.zx * 1.37 + cell3.y * float2(5.0, 11.0));
                 half shade = h < 0.25 ? _Dark : (h < 0.75 ? 1.0 : _Light);
@@ -132,6 +136,18 @@ Shader "Chopper/Block"
                 // sunlight on sides keeps shaded dirt brown and the grass lip green, like the concept's cliffs.
                 if (!isTop) ndl = max(ndl, 0.3h);
                 half3 direct = mainLight.color * (ndl * mainLight.shadowAttenuation * mainLight.distanceAttenuation);
+                #if defined(_ADDITIONAL_LIGHTS)
+                {
+                    InputData inputData = (InputData)0;
+                    inputData.positionWS = i.positionWS;
+                    inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(i.positionCS);
+                    uint pixelLightCount = GetAdditionalLightsCount();
+                    LIGHT_LOOP_BEGIN(pixelLightCount)
+                        Light extra = GetAdditionalLight(lightIndex, i.positionWS);
+                        direct += extra.color * (extra.distanceAttenuation * saturate(dot(n, extra.direction)));
+                    LIGHT_LOOP_END
+                }
+                #endif
                 half3 ambient = SampleSH(n);
                 // A low sun leaves flat tops in deep shadow. A little fill keeps the block colour readable.
                 half3 c = albedo * (direct + ambient + 0.22);

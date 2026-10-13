@@ -121,14 +121,24 @@ namespace Chopper.World
         public const float GearPickupRadius = 2.2f;
 
         // The nearest axe or outfit the player could take, within reach (flat). Null if none.
-        public static GroundItem GearInReach(Vector3 position)
+        // With a taker, gear it cannot take (a second axe, a second outfit) is skipped.
+        public static GroundItem GearInReach(Vector3 position, GameObject taker = null)
         {
+            bool hasAxe = false, dressed = false;
+            if (taker != null)
+            {
+                PlayerAxe axe = taker.GetComponent<PlayerAxe>();
+                PlayerUpgrades upgrades = taker.GetComponent<PlayerUpgrades>();
+                hasAxe = axe != null && axe.HasAxe;
+                dressed = upgrades != null && upgrades.Dressed;
+            }
             GroundItem best = null;
             float bestSqr = GearPickupRadius * GearPickupRadius;
             foreach (GroundItem item in _all)
             {
                 if (item == null) continue;
                 if (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit) continue;
+                if ((item.Kind == GroundItemKind.Axe && hasAxe) || (item.Kind == GroundItemKind.Outfit && dressed)) continue;
                 if (Time.time < item._readyAt) continue;
                 Vector3 offset = item.transform.position - position;
                 if (Mathf.Abs(offset.y) > MaxHeightGap) continue;

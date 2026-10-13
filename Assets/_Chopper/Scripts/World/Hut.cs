@@ -74,6 +74,9 @@ namespace Chopper.World
         private void Start()
         {
             DressCabin();
+            // The NavMesh was baked before the house existed.
+            var surface = FindAnyObjectByType<Unity.AI.Navigation.NavMeshSurface>();
+            if (surface != null && surface.navMeshData != null) surface.UpdateNavMesh(surface.navMeshData);
         }
 
         // The hub house (user, 2026-10-12, matched to chopper-3D-concept-2.0.jpg): a wide, low log house for two under

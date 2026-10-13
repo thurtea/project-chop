@@ -23,6 +23,7 @@ Status values: `PASS`, `FAIL`, `SKIP`, or for decisions the answer itself (for e
 | HW-10 | Arrival tour: [Arrival] RESULT |  |  |  |
 | HW-11 | The new start, played |  |  |  |
 | HW-12 | Block guard on Chopper: [Guard] RESULT and look |  |  |  |
+| HW-13 | Golden-hour light: KEEP, TOO WARM, TOO DARK or TOO FLAT |  |  |  |
 
 ## History
 
