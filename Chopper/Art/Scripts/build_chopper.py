@@ -80,12 +80,12 @@ ARM = [
 ]
 # Hand continues the arm tube: (t, hw [thickness], hd [front-back width], curl)
 HAND = [
-    (0.60, 0.056, 0.072, 0.0),
-    (0.64, 0.062, 0.080, 0.0),
-    (0.69, 0.062, 0.080, 0.0),   # knuckle
-    (0.72, 0.058, 0.078, 0.006),
-    (0.755, 0.054, 0.074, 0.012),
-    (0.78, 0.046, 0.066, 0.016),
+    (0.60, 0.063, 0.081, 0.0),
+    (0.64, 0.069, 0.090, 0.0),
+    (0.69, 0.069, 0.090, 0.0),   # knuckle
+    (0.72, 0.065, 0.087, 0.006),
+    (0.755, 0.060, 0.083, 0.012),
+    (0.78, 0.052, 0.074, 0.016),
 ]
 
 
@@ -138,7 +138,7 @@ def build_body(mat):
         # thumb block on the front edge of the hand
         w = (d * 0.75 - v * 0.45 + palm * 0.35).normalized()
         uu, vv, ww = L.basis(w, palm)
-        mb.box(S + d * 0.635 - v * 0.074 + palm * 0.022, (0.052, 0.05, 0.08), 0.01,
+        mb.box(S + d * 0.635 - v * 0.080 + palm * 0.024, (0.056, 0.055, 0.088), 0.01,
                rot=L.rot_from(uu, vv, ww), color=PAL["skin"])
     return mb.finish(mat)
 
@@ -263,43 +263,31 @@ BEAD = (0.86, 0.62, 0.28)         # amber bead on the braid
 BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~5 deg in Walk)
 
 
-def _hair_keys():
-    """(z, half-width, half-depth, y centre). One cap: nape, over the ears, crown at 1.80."""
-    return [
-        (1.400, 0.100, 0.048, 0.118),
-        (1.460, 0.155, 0.085, 0.078),
-        (1.520, 0.205, 0.125, 0.040),
-        (1.575, 0.232, 0.162, 0.012),   # covers the ears (outer x ~0.20)
-        (1.640, 0.220, 0.168, -0.006),
-        (1.700, 0.190, 0.150, -0.012),
-        (1.750, 0.130, 0.105, -0.012),
-        (1.785, 0.062, 0.050, -0.010),
-        (1.800, 0.018, 0.014, -0.008),
-    ]
+HAIR_BLOCKS = [  # (centre, size); the head is x +-0.182, y -0.182..0.162, z 1.41..1.72
+    ((0, -0.005, 1.760), (0.430, 0.400, 0.060)),     # crown
+    ((0, 0.000, 1.720), (0.452, 0.396, 0.050)),      # crown rim, front just above the brows
+    ((0, 0.160, 1.600), (0.420, 0.110, 0.300)),      # back
+]
+HAIR_TOP = [(-0.10, -0.09), (0.10, -0.09), (-0.10, 0.09), (0.10, 0.09)]
+FRINGE = [(-0.150, 0.105, 1.690), (-0.050, 0.095, 1.705), (0.050, 0.095, 1.695), (0.150, 0.105, 1.710)]
+BACK_LOCKS = [(-0.16, 1.440), (-0.08, 1.425), (0.0, 1.420), (0.08, 1.430), (0.16, 1.450)]
 
 
 def build_hair(mat):
-    """Thick rounded cap (concept 2.0). One tube from the nape over the ears to a crown
-    whose top ring is exactly 1.80 m. Not a slab: the section shrinks down the neck and
-    rounds off at the crown. Strand lines are painted."""
+    """Blocky hair mass (model sheet): crown with lumps on top, a fringe of locks just above the
+    brows, sides over the ears and locks down the back to the nape. Top of hair is 1.80."""
     mb = L.MeshBuilder("chopper_hair")
     G, D = PAL["ginger"], PAL["ginger_dark"]
-    keys = _hair_keys()
-    n = 20
-    rings = []
-    for i in range(n):
-        z = keys[0][0] + (keys[-1][0] - keys[0][0]) * i / (n - 1)
-        for a, b in zip(keys, keys[1:]):
-            if a[0] <= z <= b[0] + 1e-9:
-                f = 0.0 if b[0] == a[0] else (z - a[0]) / (b[0] - a[0])
-                f = f * f * (3.0 - 2.0 * f)
-                rings.append((z, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f,
-                              a[3] + (b[3] - a[3]) * f))
-                break
-    rings[0] = keys[0]
-    rings[-1] = (1.800, keys[-1][1], keys[-1][2], keys[-1][3])
-    mb.ztube(0, 0, rings, cs=6, bevel=0.055, color=G,
-             color_fn=lambda p: D if p.z < 1.50 and p.y > 0.08 else None)
+    for c, size in HAIR_BLOCKS:
+        mb.box(c, size, 0.022, color=G)
+    for x, y in HAIR_TOP:
+        mb.box((x, y, 1.780), (0.17, 0.16, 0.040), 0.012, color=G)
+    for x, w, z0 in FRINGE:
+        mb.box((x, -0.195, (z0 + 1.75) / 2), (w, 0.040, 1.75 - z0), 0.008, color=G)
+    for s in (-1, 1):
+        mb.box((s * 0.205, 0.020, 1.5825), (0.058, 0.300, 0.245), 0.014, color=G)
+    for x, z0 in BACK_LOCKS:
+        mb.box((x, 0.1775, (z0 + 1.52) / 2), (0.085, 0.095, 1.52 - z0), 0.010, color=D)
     return mb.finish(mat)
 
 SHIRT = [
@@ -397,12 +385,12 @@ def build_bracers(mat):
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
         rings = []
-        for t, extra in ((0.42, 0.013), (0.425, 0.022), (0.445, 0.022), (0.45, 0.015),
-                         (0.525, 0.015), (0.53, 0.022), (0.55, 0.022), (0.555, 0.013)):
+        for t, extra in ((0.395, 0.004), (0.40, 0.022), (0.425, 0.022), (0.43, 0.015),
+                         (0.53, 0.015), (0.535, 0.022), (0.56, 0.022), (0.565, 0.004)):
             rings.append((S + d * t, u, v, L_interp_arm(t, 1) + extra, L_interp_arm(t, 2) + extra, 0.02))
         mb.tube(rings, cs=2, cap0=False, cap1=False, color=PAL["vest"],
                 color_fn=lambda p, S=S, d=d: PAL["steel_dark"]
-                if not (0.447 < (p - S).dot(d) < 0.528) else None)
+                if not (0.428 < (p - S).dot(d) < 0.532) else None)
     return mb.finish(mat)
 
 
@@ -453,17 +441,17 @@ def build_boots(mat):
         x0 = s * LEG_X
         # shaft up to the ankle. The cuff is a separate fold rolled out over the top.
         shaft = []
-        for z in (0.05, 0.14, 0.24, 0.34, 0.40):
+        for z in (0.05, 0.14, 0.24, 0.30, 0.33):
             hw = interp(LEG, z, 1) + 0.012
             hd = interp(LEG, z, 2) + 0.012
             shaft.append((z, hw, hd))
         mb.ztube(x0, 0, shaft, cs=2, bevel=0.03, cap0=False, cap1=False, color=PAL["boot"])
         # folded cuff: wider than the shaft, flaring out and pinching at the rolled lip
         cuff = []
-        for z, flare in ((0.28, 0.010), (0.34, 0.020), (0.39, 0.034), (0.425, 0.042), (0.445, 0.026)):
-            cuff.append((z, interp(LEG, min(z, 0.44), 1) + flare, interp(LEG, min(z, 0.44), 2) + flare))
+        for z, flare in ((0.22, 0.010), (0.26, 0.020), (0.30, 0.034), (0.335, 0.042), (0.355, 0.026)):
+            cuff.append((z, interp(LEG, z, 1) + flare, interp(LEG, z, 2) + flare))
         mb.ztube(x0, 0, cuff, cs=2, bevel=0.012, cap0=False, cap1=False, color=PAL["boot"],
-                 color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.40 else None)
+                 color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.315 else None)
         # foot, as a tube running heel -> toe (axis -Y)
         w = -Y
         v = Z
@@ -478,16 +466,16 @@ def build_boots(mat):
         # sole and instep strap
         mb.box((x0, -0.055, 0.0175), (0.272, 0.40, 0.035), 0.008, color=PAL["sole"])
         mb.box((x0, -0.07, 0.15), (0.262, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
-        # leather knee and shin wraps: thick bands, not ridges on the leg
-        for z0, z1, extra in ((0.455, 0.520, 0.030), (0.555, 0.630, 0.034)):
-            mid = (z0 + z1) / 2
-            wrap = [(z0, interp(LEG, z0, 1) + extra * 0.75, interp(LEG, z0, 2) + extra * 0.75),
-                    (mid, interp(LEG, mid, 1) + extra, interp(LEG, mid, 2) + extra),
-                    (z1, interp(LEG, z1, 1) + extra * 0.75, interp(LEG, z1, 2) + extra * 0.75)]
-            mb.ztube(x0, 0, wrap, cs=2, bevel=0.012, color=PAL["boot_wrap"])
-            hd = interp(LEG, mid, 2) + extra
-            mb.box((x0, -(hd + 0.008), mid), (0.09, 0.014, (z1 - z0) * 0.62), 0.004,
-                   color=PAL["leather_dark"])
+        # one leather knee wrap (model sheet) with a steel band round its top
+        z0, z1, extra = 0.425, 0.535, 0.030
+        mid = (z0 + z1) / 2
+        wrap = [(z0, interp(LEG, z0, 1) + extra * 0.75, interp(LEG, z0, 2) + extra * 0.75),
+                (mid, interp(LEG, mid, 1) + extra, interp(LEG, mid, 2) + extra),
+                (z1, interp(LEG, z1, 1) + extra * 0.75, interp(LEG, z1, 2) + extra * 0.75)]
+        mb.ztube(x0, 0, wrap, cs=2, bevel=0.012, color=PAL["boot_wrap"])
+        band = [(z, interp(LEG, z, 1) + e, interp(LEG, z, 2) + e)
+                for z, e in ((0.500, 0.026), (0.505, 0.036), (0.525, 0.036), (0.530, 0.026))]
+        mb.ztube(x0, 0, band, cs=2, bevel=0.008, cap0=False, cap1=False, color=PAL["steel_dark"])
     return mb.finish(mat)
 
 

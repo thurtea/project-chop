@@ -1,9 +1,9 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (4577612 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32588 bytes)
-  [PASS] file exists: Export\chopper_axe_bear.fbx (30940 bytes)
-  [PASS] file exists: Export\chopper_shield.fbx (40508 bytes)
+  [PASS] file exists: Export\chopper.fbx (4564924 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32556 bytes)
+  [PASS] file exists: Export\chopper_axe_bear.fbx (30908 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (40700 bytes)
 
 RAW FBX: chopper.fbx
 ------------------------------------------------------------------------
@@ -68,10 +68,10 @@ SKIN WEIGHTS (imported)
   [PASS] chopper_beard       788 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_belt        176 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_body       1036 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_boots       808 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
+  [PASS] chopper_boots       704 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_bracers     192 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_chainmail   338 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_hair        560 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_hair        576 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_head        276 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_helmet      952 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_pauldrons   128 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
@@ -84,12 +84,12 @@ SKIN WEIGHTS (imported)
   [PASS] chopper_helmet is 100% Head
 
 REST POSE (imported)
-  bounds x -0.965..0.965  y -0.412..0.276  z -0.000..1.974
+  bounds x -0.971..0.971  y -0.412..0.276  z -0.000..1.974
   [PASS] character height 1.9742 m in [1.95, 2.15] (horns above the hair)
   [PASS] soles at Z=0 in rest (min z -0.0000)
   [PASS] character faces -Y (nose at y < -0.15)
   [PASS] rest pose is an A-pose: left upper arm 44.3 deg below horizontal
-  [PASS] rest: Weapon_R (-0.867 -0.095 0.799) inside right-hand bounds (-0.965, -0.216, 0.67)..(-0.743, -0.002, 0.917)
+  [PASS] rest: Weapon_R (-0.867 -0.095 0.799) inside right-hand bounds (-0.971, -0.228, 0.664)..(-0.743, 0.009, 0.917)
 
 TAKE Idle (imported)
   [PASS] action for take Idle found (chopper_rig|Idle)
@@ -177,7 +177,7 @@ TAKE Air (imported)
 TAKE LandHard (imported)
   [PASS] action for take LandHard found (chopper_rig|LandHard)
   [PASS] imported frame range 1-19 (expected 1-19)
-  [PASS] LandHard moves (body vertex delta mid-clip 0.428 m)
+  [PASS] LandHard moves (body vertex delta mid-clip 0.432 m)
   [PASS] LandHard: feet stay above Z=-0.02 (lowest -0.0000)
   [PASS] LandHard: whole body stays above Z=-0.06 (lowest -0.000 m at frame 3)
 
@@ -196,24 +196,24 @@ TAKE SwimIdle (imported)
 TAKE Swim (imported)
   [PASS] action for take Swim found (chopper_rig|Swim)
   [PASS] imported frame range 1-25 (expected 1-25)
-  [PASS] first and last frame identical: max vertex delta 4.69e-07 m, max bone matrix delta 3.87e-07
+  [PASS] first and last frame identical: max vertex delta 4.39e-07 m, max bone matrix delta 3.87e-07
 
 TAKE Attack_1 (imported)
   [PASS] action for take Attack_1 found (chopper_rig|Attack_1)
   [PASS] imported frame range 1-23 (expected 1-23)
-  [PASS] Attack_1 moves (body vertex delta mid-clip 1.370 m)
+  [PASS] Attack_1 moves (body vertex delta mid-clip 1.380 m)
   [PASS] Attack_1: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE Attack_2 (imported)
   [PASS] action for take Attack_2 found (chopper_rig|Attack_2)
   [PASS] imported frame range 1-23 (expected 1-23)
-  [PASS] Attack_2 moves (body vertex delta mid-clip 1.152 m)
+  [PASS] Attack_2 moves (body vertex delta mid-clip 1.153 m)
   [PASS] Attack_2: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE Attack_3 (imported)
   [PASS] action for take Attack_3 found (chopper_rig|Attack_3)
   [PASS] imported frame range 1-29 (expected 1-29)
-  [PASS] Attack_3 moves (body vertex delta mid-clip 1.409 m)
+  [PASS] Attack_3 moves (body vertex delta mid-clip 1.422 m)
   [PASS] Attack_3: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE HitReact (imported)
@@ -237,7 +237,7 @@ TAKE FishWait (imported)
 TAKE FishCast (imported)
   [PASS] action for take FishCast found (chopper_rig|FishCast)
   [PASS] imported frame range 1-25 (expected 1-25)
-  [PASS] FishCast moves (body vertex delta mid-clip 0.986 m)
+  [PASS] FishCast moves (body vertex delta mid-clip 1.003 m)
   [PASS] FishCast: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE FishFight (imported)
@@ -248,13 +248,13 @@ TAKE FishFight (imported)
 TAKE FishCatch (imported)
   [PASS] action for take FishCatch found (chopper_rig|FishCatch)
   [PASS] imported frame range 1-25 (expected 1-25)
-  [PASS] FishCatch moves (body vertex delta mid-clip 0.839 m)
+  [PASS] FishCatch moves (body vertex delta mid-clip 0.855 m)
   [PASS] FishCatch: feet stay above Z=-0.02 (lowest -0.0000)
 
 TAKE Gather (imported)
   [PASS] action for take Gather found (chopper_rig|Gather)
   [PASS] imported frame range 1-31 (expected 1-31)
-  [PASS] Gather moves (body vertex delta mid-clip 0.601 m)
+  [PASS] Gather moves (body vertex delta mid-clip 0.612 m)
   [PASS] Gather: feet stay above Z=-0.02 (lowest -0.0000)
 
 PROPS
@@ -271,22 +271,22 @@ PROPS
 
 PROPS ON SOCKETS (identity local transform relative to the socket bone)
   [PASS] rest: chopper_axe_bear grips like chopper_axe on Weapon_R: grip offset 0.0 mm, haft direction dot 0.9994, blade (perpendicular to the haft) vs chopper_axe +X blade dot 1.000, world blade dir (-0.59 -0.57 -0.58)
-  [PASS] clip detector self-test: shield sunk into the chest -> 724 verts (84 mm), axe through the leg -> 390 verts (99 mm)
+  [PASS] clip detector self-test: shield sunk into the chest -> 728 verts (84 mm), axe through the leg -> 374 verts (99 mm)
   [PASS] rest: shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
-  [PASS] rest: shield board back not floating: gap to forearm/bracer surface 29.6..29.6 mm (min over the board, per sampled frame; required 5-30 mm)
-  [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 0.000), covers 91% of hand width -0.089..0.126, bar 0.216 m)
+  [PASS] rest: shield board back not floating: gap to forearm/bracer surface 28.7..28.7 mm (min over the board, per sampled frame; required 5-30 mm)
+  [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 0.000), covers 99% of hand width -0.100..0.138, bar 0.270 m)
   [PASS] rest: axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] rest: axe grip point inside the right-hand bounds
   [PASS] rest: bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Idle (every 4th frame): shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
-  [PASS] Idle (every 4th frame): shield board back not floating: gap to forearm/bracer surface 29.6..29.6 mm (min over the board, per sampled frame; required 5-30 mm)
-  [PASS] Idle (every 4th frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 -0.000), covers 91% of hand width -0.089..0.126, bar 0.216 m)
+  [PASS] Idle (every 4th frame): shield board back not floating: gap to forearm/bracer surface 28.7..28.7 mm (min over the board, per sampled frame; required 5-30 mm)
+  [PASS] Idle (every 4th frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 -0.000), covers 99% of hand width -0.100..0.138, bar 0.270 m)
   [PASS] Idle (every 4th frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Idle (every 4th frame): axe grip point inside the right-hand bounds
   [PASS] Idle (every 4th frame): bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Walk (every 2nd frame): shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
-  [PASS] Walk (every 2nd frame): shield board back not floating: gap to forearm/bracer surface 29.6..29.6 mm (min over the board, per sampled frame; required 5-30 mm)
-  [PASS] Walk (every 2nd frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 -0.000), covers 91% of hand width -0.089..0.126, bar 0.216 m)
+  [PASS] Walk (every 2nd frame): shield board back not floating: gap to forearm/bracer surface 28.7..28.7 mm (min over the board, per sampled frame; required 5-30 mm)
+  [PASS] Walk (every 2nd frame): shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 -0.000), covers 99% of hand width -0.100..0.138, bar 0.270 m)
   [PASS] Walk (every 2nd frame): axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)
   [PASS] Walk (every 2nd frame): axe grip point inside the right-hand bounds
   [PASS] Walk (every 2nd frame): bear axe clear of body and clothing outside the fist (penetrating verts 0, deepest 0.0 mm)

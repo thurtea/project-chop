@@ -322,8 +322,8 @@ def build_shield(mat):
     # its posts stand outside the hand's width
     gz = -0.235
     for s in (-1, 1):
-        mb.box((s * 0.10, -0.044, gz), (0.016, 0.112, 0.03), 0.004, color=PAL["wood_dark"])
-    mb.box((0, 0.0, gz), (0.216, 0.026, 0.03), 0.006, color=PAL["wood_dark"])
+        mb.box((s * 0.128, -0.044, gz), (0.016, 0.112, 0.03), 0.004, color=PAL["wood_dark"])
+    mb.box((0, 0.0, gz), (0.270, 0.026, 0.03), 0.006, color=PAL["wood_dark"])
     return mb.finish(mat)
 
 

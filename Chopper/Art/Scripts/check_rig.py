@@ -581,7 +581,7 @@ def main():
         lo, hi = bbox([inv @ bp[i] for i in lhand])
         mw = shield.matrix_world
         c = inv @ (mw @ grip_centre)
-        a, b = inv @ (mw @ Vector((-0.108, 0, -0.235))), inv @ (mw @ Vector((0.108, 0, -0.235)))
+        a, b = inv @ (mw @ Vector((-0.135, 0, -0.235))), inv @ (mw @ Vector((0.135, 0, -0.235)))
         k = max(range(3), key=lambda j: abs(b[j] - a[j]))           # axis the bar runs along
         span = (max(a[k], b[k]) - min(a[k], b[k]))
         cover = (min(max(a[k], b[k]), hi[k]) - max(min(a[k], b[k]), lo[k])) / (hi[k] - lo[k])

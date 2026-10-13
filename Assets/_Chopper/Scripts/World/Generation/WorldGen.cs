@@ -74,9 +74,9 @@ namespace Chopper.World.Generation
         public const float WaterHeight = -0.75f;
         public const float BoundaryOffset = 314f;
 
-        public const float PondInnerRadius = 12f;
-        public const float PondOuterRadius = 24f;
-        public const float PondDepth = 2.5f;
+        public const float PondInnerRadius = 16f;
+        public const float PondOuterRadius = 32f;
+        public const float PondDepth = 3.5f;
 
         public const float PathStartRadius = 13f;
         public const float PathHalfWidth = 2.2f;

@@ -124,7 +124,7 @@ STEEL_LIGHT = S(196, 200, 205)
 STEEL_MID = S(132, 136, 142)
 STEEL_DARK = S(70, 72, 78)
 TROUSERS = S(70, 46, 30)
-BOOT = S(118, 72, 40)
+BOOT = S(86, 54, 32)
 BOOT_WRAP = S(82, 50, 28)
 CORD = S(166, 126, 82)
 SOLE = S(46, 30, 20)
@@ -134,10 +134,10 @@ CHEEK = S(222, 128, 108)
 EYE_WHITE = S(236, 232, 222)
 IRIS = S(52, 150, 70)
 PUPIL = S(24, 30, 26)
-GINGER = S(204, 94, 36)
-GINGER_DARK = S(150, 62, 24)
-GINGER_LIGHT = S(232, 126, 52)
-MOUSTACHE_C = S(226, 116, 46)
+GINGER = S(172, 80, 36)          # deeper copper of the model sheet
+GINGER_DARK = S(118, 50, 22)
+GINGER_LIGHT = S(210, 116, 58)
+MOUSTACHE_C = S(192, 98, 46)
 WOOD = S(176, 106, 52)
 WOOD_DARK = S(136, 80, 38)
 WOOD_GROOVE = S(92, 50, 22)
@@ -202,21 +202,27 @@ def paint_shirt(p, n, rgb, pc, t):
     return grain(c, p, t, 0.05)
 
 
-def vest_panel(a, z, t):
-    """Patchwork panel colour and whether this pixel lies on a panel seam (stitched)."""
-    # Concept 2.0: three or four big patches across the front, a few of them grey, sewn with sparse stitches.
-    row = math.floor(z / (10 * t))
-    shift = 5 if row % 2 else 0
-    col = math.floor((math.floor(a / t) + shift) / 11)
-    pa = (math.floor(a / t) + shift) % 11
-    pz = math.floor(z / t) % 10
-    hsh = h3(col, row, 5)
-    if hsh < 0.28:
-        base = PATCH[0] if hsh < 0.14 else PATCH[1]
-    else:
-        base = LEATHER[int(hsh * 97) % 3]
-    seam = pa == 0 or pz == 0
-    return base, seam, (pa if pz == 0 else pz) % 3 == 1
+# Model sheet: brown leather with a few patches, each sewn on with a stitched border and riveted corners.
+# (x0, x1, z0, z1, colour) in the warped body's metres; front patches face -Y, back patches +Y.
+VEST_PATCHES_FRONT = [(-0.36, -0.13, 1.13, 1.30, PATCH[0]), (0.12, 0.27, 0.93, 1.06, PATCH[1]),
+                      (0.20, 0.34, 1.20, 1.30, LEATHER[2])]
+VEST_PATCHES_BACK = [(-0.20, -0.02, 1.02, 1.16, PATCH[0]), (0.10, 0.30, 1.18, 1.30, LEATHER[2])]
+
+
+def vest_panel(a, z, t, patches):
+    """Colour of the vest at (a, z): a patch with its stitched border and corner rivets, or plain leather."""
+    for x0, x1, z0, z1, colour in patches:
+        if not (x0 <= a < x1 and z0 <= z < z1):
+            continue
+        ea = min(a - x0, x1 - a)
+        ez = min(z - z0, z1 - z)
+        if ea < t * 1.5 and ez < t * 1.5:
+            return STEEL_MID
+        if ea < t or ez < t:
+            k = math.floor(a / t) + math.floor(z / t)
+            return mix(SEAM, THREAD, 0.3) if k % 3 == 0 else SEAM
+        return colour
+    return LEATHER[0] if math.floor(z / (14 * t)) % 2 else mix(LEATHER[0], LEATHER[1], 0.35)
 
 
 def paint_vest(p, n, rgb, pc, t):
@@ -239,10 +245,12 @@ def paint_vest(p, n, rgb, pc, t):
     if abs(n.z) > 0.7:
         return grain(LEATHER[1], p, t)
     a = side_coord(p, n)
-    base, seam, dot = vest_panel(a, p.z, t)
-    c = base
-    if seam:
-        c = mix(SEAM, THREAD, 0.6) if dot else SEAM
+    if n.y < -0.3:
+        c = vest_panel(a, p.z, t, VEST_PATCHES_FRONT)
+    elif n.y > 0.3:
+        c = vest_panel(a, p.z, t, VEST_PATCHES_BACK)
+    else:
+        c = LEATHER[1]
     # lacing up the front: dark slit and an X of light cord, counted in pixels
     if n.y < -0.5 and 0.87 < p.z < 1.32:
         ix = round(p.x / t)
@@ -331,7 +339,7 @@ def strands(p, n, t, base, darkc, light):
 
 
 def paint_hair(p, n, rgb, pc, t):
-    base = GINGER_DARK if near(rgb, PAL["ginger_dark"]) else GINGER
+    base = mix(GINGER, GINGER_DARK, 0.35) if near(rgb, PAL["ginger_dark"]) else GINGER
     return strands(p, n, t, base, GINGER_DARK, GINGER_LIGHT)
 
 
@@ -350,8 +358,8 @@ def paint_boots(p, n, rgb, pc, t):
     # (those bands are part of this mesh; painting them as skin made them look like ridges).
     if near(rgb, PAL["boot_wrap"]) or near(rgb, PAL["leather_dark"]):
         k = math.floor(p.z / t)
-        if p.z > 0.44 and (abs(p.z - 0.488) < t * 0.8 or abs(p.z - 0.592) < t * 0.8):
-            return mix(BOOT_WRAP, CORD, 0.4)   # one stitch around each leather band
+        if 0.42 < p.z < 0.50 and abs(p.z - 0.462) < t * 0.8:
+            return mix(BOOT_WRAP, CORD, 0.4)   # one stitch round the knee wrap
         if near(rgb, PAL["leather_dark"]):
             return grain(BOOT_WRAP, p, t, 0.04)
         return grain(BOOT_WRAP, p, t, 0.05)
@@ -359,6 +367,10 @@ def paint_boots(p, n, rgb, pc, t):
         if p.z < 0.035 or (p.y < -0.20 and p.z < 0.06 and math.floor(p.x / t) % 3 == 0):
             return SKIN_SHADE
         return grain(SKIN, p, t, 0.03)
+    if near(rgb, PAL["steel_dark"]):          # steel band on the knee wrap, rivets on the front
+        if n.y < -0.5 and math.floor(p.x / t) % 4 == 0:
+            return STEEL_LIGHT
+        return grain(STEEL_MID, p, t, 0.08)
     if near(rgb, PAL["sole"]):
         return SOLE
     return grain(BOOT, p, t, 0.06)
@@ -411,16 +423,22 @@ def paint_armour(name, p, n, rgb):
         v = (z - rows[r]) / (rows[r + 1] - rows[r])
         c = math.floor(side_coord(p, n) / t) + (r % 2) * 2
         if v < 0.2:
-            return S(150, 156, 168) if c % 4 else S(104, 110, 122)
+            return S(112, 114, 118) if c % 4 else S(80, 82, 86)
         if c % 4 == 0 and v > 0.35:
-            return S(46, 50, 58)
-        return grain(S(98, 104, 118), p, t, 0.08)
+            return S(36, 38, 42)
+        return grain(S(72, 74, 78), p, t, 0.08)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)
     elif name == "chopper_bracers":
-        if abs((z * 36) - round(z * 36)) < 0.08:
-            return dark(rgb, 0.62)
+        # Model sheet: thick leather cuffs with a steel band at each end and rivets on the bands.
+        t = TEXEL_M
+        i, j, k = cell(p, t)
+        if near(rgb, PAL["steel_dark"]):
+            return STEEL_MID if (i + j + k) % 5 == 0 else grain(STEEL_DARK, p, t, 0.08)
+        if (i + k) % 7 == 0:
+            return mix(LEATHER[1], THREAD, 0.35)
+        return grain(LEATHER[1], p, t, 0.06)
     elif name == "chopper_helmet":
         # Geometry carries the skull, band, rivets and horn steps (build_helmet). Paint adds
         # the teeth on the jaw block, dark sockets, and a little grain.

@@ -995,8 +995,8 @@ namespace Chopper.Editor
             {
                 bool gearPart = renderer.gameObject.name is "chopper_helmet" or "chopper_plate" or "chopper_pauldrons";
                 renderer.sharedMaterial = gearPart ? gear : body;
-                // The base look: no helmet, chainmail or bracers (the Elite plate and pauldrons are not used). PlayerOutfit
-                // shows the armour once the player has put it on.
+                // Hidden in the prefab (the Elite plate and pauldrons are not used). PlayerOutfit shows the chainmail and
+                // bracers with the outfit and the helmet with the armour.
                 if (gearPart || renderer.gameObject.name is "chopper_chainmail" or "chopper_bracers") renderer.enabled = false;
             }
         }

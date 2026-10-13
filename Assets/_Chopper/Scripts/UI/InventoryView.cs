@@ -519,7 +519,7 @@ namespace Chopper.UI
             if (upgrades != null && upgrades.ArmourKits > 0)
                 _items.Add(new Item { Name = "Armour kit", Icon = HotbarIcons.Get("upgrade"), Tint = Color.white, Count = upgrades.ArmourKits.ToString(),
                     Description = upgrades.Armoured ? "You already wear the armour."
-                        : $"From a felled boss tree. Puts on the helmet, chainmail, bracers and shield for good: {Mathf.RoundToInt(PlayerUpgrades.ArmouredReduction * 100f)}% less damage.",
+                        : $"From a felled boss tree. Puts on the horned helmet and the shield for good: {Mathf.RoundToInt(PlayerUpgrades.ArmouredReduction * 100f)}% less damage.",
                     Action = upgrades.Armoured ? null : "Put on", Use = upgrades.Armoured ? null : upgrades.RequestUseArmourKit });
             if (upgrades != null && upgrades.DomeStones > 0)
                 _items.Add(new Item { Name = "Dome stone", Icon = HotbarIcons.Get("upgrade"), Tint = new Color(0.55f, 0.75f, 0.95f), Count = upgrades.DomeStones.ToString(),

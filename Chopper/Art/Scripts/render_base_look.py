@@ -8,7 +8,7 @@ Out:  Art/Renders/base_look_front.png, base_look_three_quarter.png, base_look_ga
       axe_bear_front.png, axe_bear_three_quarter.png, base_look_vs_concept.png
 
 Base look (concept 1.5, user decision 2026-10-11): hair, beard, head, body, shirt, vest,
-belt, boots. Armour hidden: helmet, chainmail, bracers, plate, pauldrons. The axe hangs on
+belt, chainmail, bracers, boots (model sheet, 2026-10-13). Hidden: helmet, plate, pauldrons. The axe hangs on
 Weapon_R with an identity local transform (what Unity does).
 Shading: EEVEE, both materials sample the atlas PNG with Closest interpolation (the point
 filtering Unity uses for the pixel-art atlas), one warm sun plus a cool sky fill. Back faces
@@ -28,9 +28,9 @@ import render_views as rv  # noqa: E402
 ART = rv.ART
 RIGGED = os.path.join(ART, "Blender", "chopper_rigged.blend")
 ATLAS = os.path.join(ART, "Textures", "chopper_atlas.png")
-CONCEPT = os.path.normpath(os.path.join(ART, "..", "..", "chopper-3D-concept-1.5.jpg"))
+CONCEPT = os.path.join(ART, "Concepts", "chopper-character-and-axe-3D-concept-2.0.jpg")
 OUT = rv.OUT
-ARMOUR = ("chopper_helmet", "chopper_chainmail", "chopper_bracers", "chopper_plate", "chopper_pauldrons")
+ARMOUR = ("chopper_helmet", "chopper_plate", "chopper_pauldrons")
 POSE_TAKE, POSE_FRAME = "Idle", 16
 BG = (0.80, 0.81, 0.83)
 

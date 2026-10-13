@@ -673,7 +673,7 @@ namespace Chopper.Networking
             }
 
             // Armour kit (-chopperArmour): the player starts unarmoured, a felled boss tree (EnemyDirector.ServerOnBossKilled)
-            // gives a kit, and using it from the bag shows the helmet, chainmail, bracers and shield and hides the hair.
+            // gives a kit, and using it from the bag shows the helmet and shield and hides the hair (chainmail and bracers come with the outfit).
             // Pictures before and after, and "[Armour] RESULT".
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperArmour") >= 0)
             {
@@ -702,7 +702,7 @@ namespace Chopper.Networking
                 string Look() => $"helmet {Shown("chopper_helmet")}, chainmail {Shown("chopper_chainmail")}, bracers {Shown("chopper_bracers")}, shield {Shown("chopper_shield")}, hair {Shown("chopper_hair")}, beard {Shown("chopper_beard")}, vest {Shown("chopper_vest")}";
                 float reductionBefore = kitUpgrades.ArmorReduction;
                 bool startOk = outfit != null && !kitUpgrades.Armoured && kitUpgrades.ArmourKits == 0
-                               && !Shown("chopper_helmet") && !Shown("chopper_chainmail") && !Shown("chopper_bracers") && !Shown("chopper_shield")
+                               && !Shown("chopper_helmet") && Shown("chopper_chainmail") && Shown("chopper_bracers") && !Shown("chopper_shield")
                                && Shown("chopper_hair") && Shown("chopper_vest");
                 Debug.Log($"[Armour] start: outfit view {outfit != null}, armoured {kitUpgrades.Armoured}, kits {kitUpgrades.ArmourKits}; {Look()}");
                 yield return Shot(folder, "armour_0_start");
