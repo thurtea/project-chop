@@ -682,7 +682,8 @@ def main():
     prop_pass("Idle (every 4th frame)", list(range(1, 62, 4)), "Idle")
     prop_pass("Walk (every 2nd frame)", list(range(1, 32, 2)), "Walk")
 
-    # FishCast is left out: fishing stows the axe.
+    # FishCast is left out: fishing stows the axe. The grip section may run under the sleeve cuff.
+    grip_b = lambda ob, fi, i: in_fist_b(ob, fi, i) or (ob.name == "chopper_shirt" and -0.15 < bear_local[i].z < 0.15)  # noqa: E731
     for take in ("Attack_1", "Attack_2", "Attack_3", "HitReact", "Gather"):
         set_action(rig, take)
         cnt, worst, where = 0, 0.0, {}
@@ -691,7 +692,7 @@ def main():
             bpy.context.view_layer.update()
             bp = [bear.matrix_world @ c for c in bear_local]
             for ob in body_like:
-                c, w = penetration(bp, [ob], allow=in_fist_b)
+                c, w = penetration(bp, [ob], allow=grip_b)
                 if c:
                     cnt += c
                     worst = max(worst, w)

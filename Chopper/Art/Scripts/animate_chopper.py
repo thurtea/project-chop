@@ -470,7 +470,7 @@ def death_pose(rig, f):
         a = 90.0
     deltas = {}
     block_upper(rig, deltas, 0.0, 38.0, 0.0, 0.0, 10.0, 14.0)
-    return body_turn(Vector((0.0, 0.0, 0.0)), deltas, planted(), rig, Y, a, (0.46, 0.0, 0.0))
+    return body_turn(Vector((0.0, 0.0, 0.0)), deltas, planted(), rig, Y, a, (0.56, 0.0, 0.0))
 
 
 def swim_idle_pose(rig, f):
@@ -518,14 +518,14 @@ CHOP_KEYS = {
     # The wind-ups were found by a search over the rig (hand by the right shoulder, the axe head above and behind
     # the head); the strikes end low in front, across the body.
     "Attack_1": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
-                 (0.32, 80, -45, -60, -120, -80, 14, -8, 0.0),
-                 (0.42, 85, -45, -60, -120, -85, 16, -10, 0.0),
-                 (0.56, 10, 60, -5, 0, 0, -16, 16, 0.05),
-                 (0.70, 5, 65, 0, 0, 5, -18, 18, 0.05),
+                 (0.32, 90, -45, -60, -140, -80, 14, -8, 0.0),
+                 (0.42, 95, -45, -60, -140, -85, 16, -10, 0.0),
+                 (0.56, 10, 40, -5, 0, 0, -16, 16, 0.05),
+                 (0.70, 5, 45, 0, 0, 5, -18, 18, 0.05),
                  (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
     "Attack_2": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
-                 (0.30, 135, 50, 15, 80, -45, -14, -6, 0.0),
-                 (0.40, 135, 55, 15, 80, -45, -16, -8, 0.0),
+                 (0.30, 135, 30, 15, 80, -45, -14, -6, 0.0),
+                 (0.40, 135, 35, 15, 80, -45, -16, -8, 0.0),
                  (0.54, -15, -15, 10, 0, 0, 16, 12, 0.04),
                  (0.68, -20, -20, 12, 0, 5, 18, 14, 0.04),
                  (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
@@ -631,7 +631,7 @@ def fish_pose(name, length):
 # reach low in front of the right foot, close the hand, lift it to the chest, stand up. Reach values searched on the
 # rig (hand 9 mm from a point 0.30 m above the ground, in front of the right toes, with the body bent 40 deg and
 # lowered 0.30 m).
-GATHER_REACH = (38, 90, -20, 5, 0)
+GATHER_REACH = (38, 70, -20, 5, 0)
 GATHER_LEN = 30        # one-shot, 1.0 s
 FISH_KEYS["Gather"] = [_k(0.00, (0, 0, 0, 0, 0)),
                        _k(0.38, GATHER_REACH, lean=40, drop=0.30),

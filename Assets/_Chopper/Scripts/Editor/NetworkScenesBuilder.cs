@@ -59,6 +59,10 @@ namespace Chopper.Editor
             RegeneratePrefabList();
             AssetDatabase.SaveAssets();
             Debug.Log("[Chopper] FishNet prefab list regenerated.");
+            // BuildAll resets the pieces and the hut to the old models; put the concept dressing back.
+            ChopperPieceDress.Apply();
+            ChopperPropDress.Apply();
+            AssetDatabase.SaveAssets();
 
         }
 

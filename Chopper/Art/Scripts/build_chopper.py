@@ -521,6 +521,44 @@ def build_pauldrons(mat):
     return mb.finish(mat)
 
 
+# Concept 2.0 bulk: a smooth warp over every part, so garments keep their layering. Horizontal scale by height
+# (x, y), and the arms move out with the shoulders and thicken around their own axis.
+BULK = [  # (z, kx, ky)
+    (0.00, 1.18, 1.10), (0.80, 1.18, 1.12), (0.95, 1.16, 1.12), (1.05, 1.24, 1.15),
+    (1.27, 1.30, 1.16), (1.36, 1.18, 1.10), (1.42, 1.0, 1.0), (2.50, 1.0, 1.0),
+]
+ARM_THICK = [(0.0, 1.40), (0.10, 1.30), (0.25, 1.26), (0.40, 1.12), (1.0, 1.10)]  # (t along the arm, radial scale)
+SHOULDER_OUT = SHOULDER[0] * (1.30 - 1.0)
+
+
+def bulk_point(p):
+    kx = interp(BULK, p.z, 1)
+    ky = interp(BULK, p.z, 2)
+    body = Vector((p.x * kx, p.y * ky, p.z))
+    s = 1.0 if p.x >= 0 else -1.0
+    S, d, u, v, palm = arm_frame(s)
+    rel = p - S
+    t = rel.dot(d)
+    radial = rel - d * t
+    w = smooth01((t + 0.06) / 0.10) * (1.0 - smooth01((radial.length - 0.16) / 0.06))         * smooth01((abs(p.x) - 0.26) / 0.06)
+    arm = S + Vector((s * SHOULDER_OUT, 0.0, 0.0)) + d * t + radial * interp(ARM_THICK, t, 1)
+    return body.lerp(arm, w)
+
+
+def smooth01(x):
+    x = min(1.0, max(0.0, x))
+    return x * x * (3 - 2 * x)
+
+
+def apply_bulk():
+    for ob in bpy.data.objects:
+        if ob.type != "MESH":
+            continue
+        for vert in ob.data.vertices:
+            vert.co = bulk_point(vert.co)
+        ob.data.update()
+
+
 def main():
     L.reset_scene()
     m_chop = L.make_material("M_Chopper", (0.8, 0.8, 0.8))
@@ -532,6 +570,7 @@ def main():
     for fn in (build_helmet, build_plate, build_pauldrons):
         ob = fn(m_gear)
         print(f"built {ob.name}: {L.tri_count(ob)} tris")
+    apply_bulk()
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=OUT)
     print("saved", OUT)

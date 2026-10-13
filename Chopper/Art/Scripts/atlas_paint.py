@@ -26,7 +26,7 @@ SUPER = 3                # atlas texels per painted pixel, per axis
 MOUSTACHE = (0.88, 0.44, 0.13)                       # = build_chopper.MOUSTACHE
 HELM_BONE = (0.86, 0.80, 0.66)                       # = build_chopper.BONE
 BEAR_WOOD, BEAR_CARVE, BEAR_HEAD = (0.72, 0.42, 0.19), (0.42, 0.22, 0.09), (0.80, 0.50, 0.23)  # build_props
-SHOULDER_X, SHOULDER_Z = 0.30, 1.27                  # = build_chopper.SHOULDER
+SHOULDER_X, SHOULDER_Z = 0.30 * 1.30, 1.27           # build_chopper.SHOULDER after the bulk warp
 
 
 def texel_m(name, normal, centre):

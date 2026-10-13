@@ -27,10 +27,10 @@ namespace Chopper.World
         private const float LowSunSpan = 0.75f;
         private const float MoonIntensity = 1.0f;
         private const float NightSkyExposure = 0.08f;
-        private const float DayExposure = 0.45f;
+        private const float DayExposure = 0.30f;
         private const float NightExposure = 0.15f;
         // W5-02b Valheim grade (was -8): muted, slightly desaturated greens.
-        private const float DaySaturation = -12f;
+        private const float DaySaturation = -26f;
         private const float NightSaturation = -18f;
         // W5-02b Valheim grade (was 0.22): a softer glow on the sunlit side.
         private const float DayBloom = 0.30f;

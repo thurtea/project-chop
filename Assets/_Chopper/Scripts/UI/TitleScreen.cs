@@ -16,6 +16,7 @@ namespace Chopper.UI
         private const float ReferenceWidth = 1920f;
         private const float ReferenceHeight = 1080f;
         private const float PanelWidth = 520f;
+        private const float MenuX = 0.21f;
         private static readonly Vector2 MenuButtonSize = new Vector2(360f, 58f);
         private static readonly Vector2 ButtonSize = new Vector2(340f, 56f);
         private static readonly Vector2 FooterButtonSize = new Vector2(230f, 56f);
@@ -147,32 +148,29 @@ namespace Chopper.UI
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
 
-            // A dusk sky over two misty tree lines, drawn once into a texture.
-            var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            // A picture of the game, darkened on the left where the menu sits.
+            var backdrop = new GameObject("Backdrop", typeof(RectTransform), typeof(RawImage), typeof(AspectRatioFitter)).GetComponent<RawImage>();
             backdrop.rectTransform.SetParent(_canvas.transform, false);
             UiKit.Stretch(backdrop.rectTransform);
-            backdrop.texture = BackdropTexture();
+            var shot = Resources.Load<Texture2D>("Branding/title");
+            backdrop.texture = shot != null ? shot : BackdropTexture();
             backdrop.raycastTarget = false;
+            var fitter = backdrop.GetComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = backdrop.texture.width / (float)backdrop.texture.height;
 
-            // The logo art when it is present, plain text otherwise. Only the main menu shows it.
-            var logo = Resources.Load<Sprite>("Branding/logo");
-            if (logo != null)
-            {
-                Image logoImage = UiKit.Box(_canvas.transform, "Logo", Color.white, logo);
-                logoImage.preserveAspect = true;
-                UiKit.Place(logoImage.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(340f, 340f));
-                _branding.Add(logoImage.gameObject);
-            }
-            else
-            {
-                Text title = UiKit.Heading(_canvas.transform, "CHOPPER", 110, TextAnchor.MiddleCenter, UiKit.Accent);
-                UiKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -150f), new Vector2(900f, 140f));
-                _branding.Add(title.gameObject);
-            }
+            var shade = new GameObject("Shade", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            shade.rectTransform.SetParent(_canvas.transform, false);
+            UiKit.Stretch(shade.rectTransform);
+            shade.texture = ShadeTexture();
+            shade.raycastTarget = false;
 
-            Text tagline = UiKit.Label(_canvas.transform, "Drop into the pond. Your axe and clothes are on the shore.", 22, TextAnchor.MiddleCenter, UiKit.Accent);
-            UiKit.Place(tagline.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 78f), new Vector2(1100f, 36f));
-            _branding.Add(tagline.gameObject);
+            Text title = UiKit.Heading(_canvas.transform, "CHOPPER", 120, TextAnchor.MiddleCenter, UiKit.Ink);
+            UiKit.Place(title.rectTransform, new Vector2(MenuX, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -90f), new Vector2(800f, 160f));
+            var outline = title.gameObject.AddComponent<Shadow>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.65f);
+            outline.effectDistance = new Vector2(3f, -4f);
+            _branding.Add(title.gameObject);
 
             // The build version in a corner, so testers can tell which build they are running.
             Text version = UiKit.Label(_canvas.transform, "v" + Application.version, 16, TextAnchor.LowerRight, UiKit.Dim);
@@ -228,7 +226,20 @@ namespace Chopper.UI
             UiKit.Place(back, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 90f), FooterButtonSize);
         }
 
-        // Dawn over block mountains and a pond, in the colours of concept 2.0. The old screen was a dark dusk.
+        private static Texture2D ShadeTexture()
+        {
+            const int width = 64;
+            var texture = new Texture2D(width, 1, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+            for (int x = 0; x < width; x++)
+            {
+                float u = x / (float)(width - 1);
+                float alpha = 0.88f * (1f - Mathf.SmoothStep(0f, 1f, u / 0.6f));
+                texture.SetPixel(x, 0, new Color(0.03f, 0.03f, 0.02f, alpha));
+            }
+            texture.Apply();
+            return texture;
+        }
+
         private static Texture2D BackdropTexture()
         {
             const int width = 960;
@@ -370,7 +381,7 @@ namespace Chopper.UI
         {
             // No box: the logo above, then a clean column of text buttons between two faint rules.
             _main = UiKit.Rect(_canvas.transform, "Menu");
-            UiKit.Place(_main, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, 90f), new Vector2(PanelWidth, 460f));
+            UiKit.Place(_main, new Vector2(MenuX, 0.5f), new Vector2(0.5f, 1f), new Vector2(0f, 150f), new Vector2(PanelWidth, 460f));
             RectTransform top = UiKit.Divider(_main, 420f);
             UiKit.Place(top, new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, 0f), top.sizeDelta);
             _continueButton = MenuButton("Continue", ContinueLatest);

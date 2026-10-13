@@ -182,7 +182,7 @@ def socket_matrices(info):
     # shield origin = its arm-strap centre ON the forearm axis (board back 10 cm off the axis).
     # t = 0.50 puts the grip bar (local z -0.235) at t = 0.735, inside the fist (hand t 0.60-0.78),
     # and keeps the shield's top edge clear of the shoulder when the arm swings in the walk.
-    origin = S + d * 0.50
+    origin = S + d * 0.53 - palm * 0.025
     Y = palm.normalized()
     Z = (-d).normalized()
     X = Y.cross(Z).normalized()
