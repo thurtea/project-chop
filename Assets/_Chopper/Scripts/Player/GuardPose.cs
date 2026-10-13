@@ -77,12 +77,41 @@ namespace Chopper.Player
             _thighR = FindDeep(transform, "thigh_r");
             _calfR = FindDeep(transform, "calf_r");
             _footR = FindDeep(transform, "foot_r");
+            // Chopper's own rig names its bones Hips, Spine, Chest, RightHand and so on, so none of the names above
+            // match and the guard never posed. Fall back to the humanoid Avatar's bones.
+            if (_spine1 == null || _upperR == null || _handR == null) FindHumanoid();
             _found = _spine1 != null && _spine2 != null && _spine3 != null && _neck != null && _upperL != null && _lowerL != null
                      && _handL != null && _upperR != null && _lowerR != null && _handR != null;
             _posed = new[] { _pelvis, _spine1, _spine2, _spine3, _neck, _head, _upperL, _lowerL, _handL, _upperR, _lowerR, _handR,
                              _thighL, _calfL, _footL, _thighR, _calfR, _footR };
             _before = new Quaternion[_posed.Length];
             _after = new Quaternion[_posed.Length];
+        }
+
+        private void FindHumanoid()
+        {
+            Animator animator = GetComponentInParent<Animator>();
+            if (animator == null) animator = GetComponentInChildren<Animator>();
+            if (animator == null || !animator.isHuman) return;
+            Transform Bone(HumanBodyBones bone) => animator.GetBoneTransform(bone);
+            _pelvis = Bone(HumanBodyBones.Hips);
+            _spine1 = Bone(HumanBodyBones.Spine);
+            _spine2 = Bone(HumanBodyBones.Chest);
+            _spine3 = Bone(HumanBodyBones.UpperChest);
+            _neck = Bone(HumanBodyBones.Neck);
+            _head = Bone(HumanBodyBones.Head);
+            _upperL = Bone(HumanBodyBones.LeftUpperArm);
+            _lowerL = Bone(HumanBodyBones.LeftLowerArm);
+            _handL = Bone(HumanBodyBones.LeftHand);
+            _upperR = Bone(HumanBodyBones.RightUpperArm);
+            _lowerR = Bone(HumanBodyBones.RightLowerArm);
+            _handR = Bone(HumanBodyBones.RightHand);
+            _thighL = Bone(HumanBodyBones.LeftUpperLeg);
+            _calfL = Bone(HumanBodyBones.LeftLowerLeg);
+            _footL = Bone(HumanBodyBones.LeftFoot);
+            _thighR = Bone(HumanBodyBones.RightUpperLeg);
+            _calfR = Bone(HumanBodyBones.RightLowerLeg);
+            _footR = Bone(HumanBodyBones.RightFoot);
         }
 
         private void LateUpdate()

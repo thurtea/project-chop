@@ -92,3 +92,10 @@ Host a new world in the new build.
 - Also: take the hammer (6) in the hub: every piece should be refused with "The hub stays as it is: build in the forests"; in a forest building works as before (W9-03).
 - Report: PASS or FAIL per step, and video times. Also say if the drop height (22 m) or the kit spot feels wrong.
 
+### HW-12 Block guard on Chopper (after HW-7, which rebuilds the game with this code)
+The block pose (`GuardPose`) never ran on Chopper's own rig (wrong bone names); it now uses the humanoid bones.
+```powershell
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour GuardTest   # expect: [Guard] RESULT PASS no spin
+```
+- Look for: in the `guard_*` shots, the axe comes up in front of the chest with the haft slanting up to the left, the left hand on the haft, knees a little bent, the head of the axe clear of the face and helmet. In play (hold the Block key), the same pose, and it drops cleanly when you let go.
+- Report: the RESULT line, and PASS or FAIL for the look with a shot name or video time.

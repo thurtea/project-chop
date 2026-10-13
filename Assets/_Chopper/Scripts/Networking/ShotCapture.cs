@@ -1348,6 +1348,14 @@ namespace Chopper.Networking
                     if (t.name == "upperarm_l") shoulderL = t;
                     if (t.name == "upperarm_r") shoulderR = t;
                 }
+                // Chopper's own rig has other bone names (Hips, LeftUpperArm): take them from the humanoid Avatar.
+                Animator guardAnimator = guard.GetComponentInParent<Animator>();
+                if (guardAnimator != null && guardAnimator.isHuman)
+                {
+                    if (pelvis == null) pelvis = guardAnimator.GetBoneTransform(HumanBodyBones.Hips);
+                    if (shoulderL == null) shoulderL = guardAnimator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+                    if (shoulderR == null) shoulderR = guardAnimator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+                }
                 // Where the model really faces: perpendicular to the shoulder line (left to right shoulder, up).
                 float ModelFacing()
                 {
