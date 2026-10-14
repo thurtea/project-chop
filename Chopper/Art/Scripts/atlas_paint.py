@@ -130,7 +130,6 @@ CORD = S(166, 126, 82)
 SOLE = S(46, 30, 20)
 SKIN = S(228, 168, 132)
 SKIN_SHADE = S(200, 138, 106)
-CHEEK = S(222, 128, 108)
 EYE_WHITE = S(236, 232, 222)
 IRIS = S(52, 150, 70)
 PUPIL = S(24, 30, 26)
@@ -307,14 +306,14 @@ def paint_head(p, n, rgb, pc, t):
         ax = abs(x)
         if p.y < -0.205:                      # nose block front
             return S(214, 132, 104) if z < 1.535 else SKIN
-        if 1.570 <= z < 1.606 and 0.040 <= ax < 0.100:
-            if 0.052 <= ax < 0.076:
-                return PUPIL if ax < 0.064 and z < 1.594 else IRIS
+        if 1.576 <= z < 1.598 and 0.046 <= ax < 0.094:
+            if 0.058 <= ax < 0.078:
+                return PUPIL if ax < 0.068 and z < 1.590 else IRIS
             return EYE_WHITE
-        if 1.606 <= z < 1.618 and 0.036 <= ax < 0.104:
+        if 1.598 <= z < 1.608 and 0.042 <= ax < 0.098:
+            return mix(SKIN_SHADE, GINGER_DARK, 0.45)   # heavy upper lid under the brow
+        if 1.608 <= z < 1.622 and 0.036 <= ax < 0.104:
             return SKIN_SHADE                 # shade under the brow
-        if 1.520 <= z < 1.560 and 0.064 <= ax < 0.124:
-            return CHEEK
         return grain(SKIN, p, t, 0.03)
     if abs(n.x) > 0.7 and abs(p.y) < 0.05 and 1.52 < z < 1.61:
         return SKIN_SHADE                     # ears
@@ -367,7 +366,7 @@ def paint_beard(p, n, rgb, pc, t):
     if near(rgb, MOUSTACHE):
         return strands(p, n, t, MOUSTACHE_C, GINGER, S(244, 150, 72))
     base = GINGER if near(rgb, PAL["ginger"]) else mix(GINGER, GINGER_DARK, 0.45)
-    return strands(p, n, t, base, GINGER_DARK, GINGER_LIGHT)
+    return clumps(p, n, t, mix(base, GINGER_LIGHT, 0.15), GINGER_DARK, GINGER_LIGHT)
 
 
 def paint_boots(p, n, rgb, pc, t):

@@ -39,7 +39,7 @@ namespace Chopper.World.Generation
     // peer that knows the seed builds the same island. The layout stays the same from world to world (the hut on its
     // mound at the center, the four elemental forests around it, the sea at the edge); what changes is the land.
     // Pure C# apart from Unity math types, safe to call from worker threads (WorldBuilder fills the terrain in parallel).
-    public sealed class WorldGen
+    public sealed partial class WorldGen
     {
         // ---------- Layout (meters) ----------
         public const float TerrainSize = 640f;
@@ -1065,7 +1065,7 @@ namespace Chopper.World.Generation
 
         // Rock models, counts, sizes and zone weights (Element order: hub, water, fire, earth, wind).
         private static readonly (int count, float min, float max)[] RockKinds = { (55, 2.2f, 5.5f), (55, 2.0f, 5.0f), (55, 2.0f, 5.0f) };
-        private static readonly float[] RockZoneWeights = { 0.9f, 0.7f, 1f, 1f, 0.55f };
+        private static readonly float[] RockZoneWeights = { 0.35f, 0.7f, 1f, 1f, 0.55f };
         private const float RockMinRadius = 14f;
         private const float RockMaxRadius = 246f;
 
@@ -1073,32 +1073,42 @@ namespace Chopper.World.Generation
         {
             var random = new System.Random(Seed + 1);
             var rocks = new List<RockSpot>();
-            for (int kind = 0; kind < RockKinds.Length; kind++)
+            int total = 0;
+            float min = float.MaxValue, max = 0f;
+            foreach ((int count, float lo, float hi) in RockKinds)
             {
-                (int count, float min, float max) = RockKinds[kind];
-                int placed = 0;
-                int attempts = 0;
-                while (placed < count && attempts < count * 20)
+                total += count;
+                min = Mathf.Min(min, lo);
+                max = Mathf.Max(max, hi);
+            }
+            // Groups: one big rock and a few smaller ones round it, where the ground is stony.
+            for (int attempts = 0; rocks.Count < total && attempts < total * 200; attempts++)
+            {
+                Vector2 c = RandomPointInDisc(random, RockMinRadius, RockMaxRadius);
+                int zoneIndex = (int)ZoneMap.ElementAt(c.x, c.y, HubRadius);
+                float chance = Stoniness(c.x, c.y) * RockZoneWeights[Mathf.Clamp(zoneIndex, 0, RockZoneWeights.Length - 1)];
+                if (random.NextDouble() > chance) continue;
+                int group = 1 + random.Next(4);
+                for (int i = 0; i < group && rocks.Count < total; i++)
                 {
-                    attempts++;
-                    Vector2 p = RandomPointInDisc(random, RockMinRadius, RockMaxRadius);
-                    if (Vector2.Distance(p, PondCenter) < PondOuterRadius) continue;
-                    if (InWater(p, 1.05f)) continue;
-                    if (IsInsideYard(p)) continue;
-                    if (OnPath(p.x, p.y, 3.2f)) continue;
-                    if (NearZoneGate(p, 3f)) continue;
-                    if (NearCrypt(p, 3f)) continue;
-                    if (NearMine(p, 4f)) continue;
-                    if (MountainWeight(p.x, p.y) > 0.25f) continue;
-                    int zoneIndex = (int)ZoneMap.ElementAt(p.x, p.y, HubRadius);
-                    if (random.NextDouble() > RockZoneWeights[Mathf.Clamp(zoneIndex, 0, RockZoneWeights.Length - 1)]) continue;
-                    float size = Mathf.Lerp(min, max, (float)random.NextDouble());
+                    Vector2 p = i == 0 ? c : c + RandomPointInDisc(random, 1.6f, 5f);
+                    if (!RockGround(p)) continue;
+                    float t = i == 0 ? Mathf.Lerp(0.6f, 1f, (float)random.NextDouble()) : Mathf.Lerp(0f, 0.45f, (float)random.NextDouble());
                     float yaw = (float)random.NextDouble() * 360f;
-                    rocks.Add(new RockSpot { Position = p, Model = modelCount > 0 ? kind % modelCount : 0, Size = size, Yaw = yaw });
-                    placed++;
+                    int model = modelCount > 0 ? random.Next(modelCount) : 0;
+                    rocks.Add(new RockSpot { Position = p, Model = model, Size = Mathf.Lerp(min, max, t), Yaw = yaw });
                 }
             }
             return rocks;
+        }
+
+        private bool RockGround(Vector2 p)
+        {
+            if (Vector2.Distance(p, PondCenter) < PondOuterRadius) return false;
+            if (InWater(p, 1.05f) || DistanceToShore(p.x, p.y) < 1f) return false;
+            if (IsInsideYard(p) || OnPath(p.x, p.y, 3.2f)) return false;
+            if (NearZoneGate(p, 3f) || NearCrypt(p, 3f) || NearMine(p, 4f)) return false;
+            return MountainWeight(p.x, p.y) <= 0.25f;
         }
 
         public static bool IsInsideYard(Vector2 p)
@@ -1147,8 +1157,7 @@ namespace Chopper.World.Generation
         private const float TreeMinRadius = 30f;
         private const float TreeMaxRadius = 240f;
         private const float ForestMinMargin = 3f;
-        private const int ClustersPerForest = 9;
-        private const float ClusterRadius = 38f;
+        private const float LoneTreeChance = 0.015f;
 
         // How many trees each zone gets and how they are laid out. The deep woods are dense and large, the marsh is wet,
         // the ashlands and highlands are sparse with wide gaps, the hub is an open meadow with lone trees.
@@ -1170,31 +1179,9 @@ namespace Chopper.World.Generation
             {
                 case Element.Water: return 4.5f;
                 case Element.Earth: return 4f;
-                case Element.Fire: return 9f;
-                case Element.Wind: return 10f;
-                default: return 13f;
-            }
-        }
-
-        private static float LoneFractionFor(Element zone)
-        {
-            switch (zone)
-            {
-                case Element.Fire: return 0.7f;
-                case Element.Wind: return 0.6f;
-                case Element.Earth: return 0.12f;
-                default: return 0.25f;
-            }
-        }
-
-        private static float[] SizeWeightsFor(Element zone)
-        {
-            switch (zone)
-            {
-                case Element.Earth: return new[] { 0.2f, 0.4f, 0.4f };
-                case Element.Water: return new[] { 0.3f, 0.4f, 0.3f };
-                case Element.Neutral: return new[] { 0.5f, 0.4f, 0.1f };
-                default: return new[] { 0.4f, 0.4f, 0.2f };
+                case Element.Fire: return 6f;
+                case Element.Wind: return 6.5f;
+                default: return 8f;
             }
         }
 
@@ -1212,22 +1199,8 @@ namespace Chopper.World.Generation
             int total = 0;
             foreach (Element zone in allZones) { counts[zone] = 0; total += QuotaFor(zone); }
 
-            // Clusters per forest, each inside its own quadrant.
-            var clusterCenters = new Dictionary<Element, List<Vector2>>();
-            foreach (Element forest in Forests)
-            {
-                var centers = new List<Vector2>();
-                int guard = 0;
-                while (centers.Count < ClustersPerForest && guard++ < 1000)
-                {
-                    Vector2 c = RandomPointInDisc(random, HubRadius + ForestMinMargin + ClusterRadius * 0.5f, TreeMaxRadius - ClusterRadius * 0.5f);
-                    if (ZoneMap.ElementAt(c.x, c.y, HubRadius) == forest) centers.Add(c);
-                }
-                clusterCenters[forest] = centers;
-            }
-
             int attempts = 0;
-            while (trees.Count < total && attempts < total * 400)
+            while (trees.Count < total && attempts < total * 1500)
             {
                 attempts++;
                 // Pick a zone that still has room, weighted by how many trees it still needs.
@@ -1246,34 +1219,25 @@ namespace Chopper.World.Generation
                 int[] zoneSpecies = species[(int)chosen];
                 if (zoneSpecies == null || zoneSpecies.Length == 0) { counts[chosen] = QuotaFor(chosen); continue; }
 
-                Vector2 p;
-                if (chosen == Element.Neutral)
-                {
-                    p = RandomPointInDisc(random, TreeMinRadius, HubRadius - ForestMinMargin);
-                }
-                else
-                {
-                    List<Vector2> centers = clusterCenters[chosen];
-                    if (centers.Count == 0) { counts[chosen] = QuotaFor(chosen); continue; }
-                    Vector2 center = centers[random.Next(centers.Count)];
-                    p = random.NextDouble() < LoneFractionFor(chosen)
-                        ? RandomPointInDisc(random, HubRadius + ForestMinMargin, TreeMaxRadius)
-                        : center + RandomPointInDisc(random, 0f, ClusterRadius);
-                    if (ZoneMap.ElementAt(p.x, p.y, HubRadius) != chosen) continue;
-                    if (p.magnitude < HubRadius + ForestMinMargin) continue;
-                }
+                Vector2 p = chosen == Element.Neutral
+                    ? RandomPointInDisc(random, TreeMinRadius, HubRadius - ForestMinMargin)
+                    : RandomPointInDisc(random, HubRadius + ForestMinMargin, TreeMaxRadius);
+                if (chosen != Element.Neutral && ZoneMap.ElementAt(p.x, p.y, HubRadius) != chosen) continue;
 
-                if (p.magnitude > TreeMaxRadius) continue;
                 if (InWater(p, 0.85f) || NearShore(p, TreeShoreClearance)) continue;
                 if (OnPath(p.x, p.y, 4.5f)) continue;
                 if (NearZoneGate(p, 3f)) continue;
                 // Wide enough that no canopy hangs over a crypt door.
                 if (NearCrypt(p, 9f)) continue;
                 if (MountainWeight(p.x, p.y) > 0.2f) continue;
-                if (grid.TooClose(p, SpacingFor(chosen))) continue;
+                // Groves, not an even scatter: most trees stand where the woodland is thick, a few alone in the open.
+                float woodland = Woodland(p.x, p.y);
+                float lone = p.magnitude < BeachStartRadius - 15f ? LoneTreeChance : 0f;
+                if (random.NextDouble() > lone + Mathf.Pow(woodland, 1.3f)) continue;
+                if (grid.TooClose(p, SpacingFor(chosen) * Mathf.Lerp(1.6f, 1f, woodland))) continue;
 
-                TreeSize size = PickSize(random, SizeWeightsFor(chosen));
-                int modelIndex = zoneSpecies[random.Next(zoneSpecies.Length)];
+                TreeSize size = GroveSize(random, Mathf.Min(woodland, GroveDepth(p.x, p.y)), chosen);
+                int modelIndex = StandModel(random, zoneSpecies, p);
                 float targetHeight = TreeHeights[(int)size] * (1f + ((float)random.NextDouble() * 2f - 1f) * TreeHeightJitter);
 
                 grid.Add(p);
@@ -1289,18 +1253,6 @@ namespace Chopper.World.Generation
                 });
             }
             return trees;
-        }
-
-        private static TreeSize PickSize(System.Random random, float[] weights)
-        {
-            double roll = random.NextDouble();
-            float acc = 0f;
-            for (int i = 0; i < weights.Length; i++)
-            {
-                acc += weights[i];
-                if (roll < acc) return (TreeSize)i;
-            }
-            return TreeSize.Large;
         }
 
         // A coarse grid of placed points, so the spacing test only looks at nearby trees.

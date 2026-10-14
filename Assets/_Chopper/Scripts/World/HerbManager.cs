@@ -19,14 +19,11 @@ namespace Chopper.World
         private const int FoliageSeed = 12011;
         // Decorative bushes, not pickable. Spread through the same ring as the herbs.
         private const int FoliageCount = 700;
-        private const float MinRadius = 30f;
-        private const float MaxRadius = 238f;
         private const float PickReach = 2.4f;
         // Herbs are scaled to this height whatever the model's own size.
         private const float ViewHeight = 0.7f;
         // Fabric bushes stand a little taller, above the grass.
         private const float FabricBushHeight = 1f;
-        private const float MaxSlopeDegrees = 30f;
         // Left over from the red-tinted bush. Voxel herbs keep the colours painted on the mesh.
         public static readonly Color HerbTint = Color.white;
 
@@ -87,26 +84,19 @@ namespace Chopper.World
 
         private static void AddPositions(List<Vector3> list, int seed, int count)
         {
-            var rng = new System.Random(seed ^ Chopper.World.Generation.WorldSession.Seed);
-            bool hasGround = Chopper.World.WorldGround.Exists;
-            if (hasGround)
+            Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+            if (gen == null || !Chopper.World.WorldGround.Exists) return;
+            var kind = seed == Seed ? Chopper.World.Generation.WorldGen.PlantKind.Herb
+                : seed == FabricBushSeed ? Chopper.World.Generation.WorldGen.PlantKind.Fern
+                : Chopper.World.Generation.WorldGen.PlantKind.Bush;
+            int target = list.Count + count;
+            foreach (Vector2 spot in gen.PlantSpots(kind))
             {
-                int target = list.Count + count;
-                for (int tries = 0; tries < count * 40 && list.Count < target; tries++)
-                {
-                    float angle = (float)rng.NextDouble() * Mathf.PI * 2f;
-                    float radius = Mathf.Lerp(MinRadius, MaxRadius, Mathf.Sqrt((float)rng.NextDouble()));
-                    var p = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
-                    p.y = Chopper.World.WorldGround.HeightAt(p);
-                    if (WaterSystem.DepthAt(p, out _) > 0.05f) continue;
-                    // Not on the mountains between the zones: their tops cannot be reached.
-                    if (Chopper.World.Generation.WorldSession.Gen != null && Chopper.World.Generation.WorldSession.Gen.MountainWeight(p.x, p.z) > 0.2f) continue;
-
-                    float dx = Chopper.World.WorldGround.HeightAt(p + Vector3.right * 2f) - Chopper.World.WorldGround.HeightAt(p - Vector3.right * 2f);
-                    float dz = Chopper.World.WorldGround.HeightAt(p + Vector3.forward * 2f) - Chopper.World.WorldGround.HeightAt(p - Vector3.forward * 2f);
-                    if (Mathf.Atan(Mathf.Sqrt(dx * dx + dz * dz) / 4f) * Mathf.Rad2Deg > MaxSlopeDegrees) continue;
-                    list.Add(p);
-                }
+                if (list.Count >= target) break;
+                var p = new Vector3(spot.x, 0f, spot.y);
+                p.y = Chopper.World.WorldGround.HeightAt(p);
+                if (WaterSystem.DepthAt(p, out _) > 0.05f) continue;
+                list.Add(p);
             }
         }
 

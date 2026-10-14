@@ -146,17 +146,17 @@ def build_body(mat):
 def build_head(mat):
     mb = L.MeshBuilder("chopper_head")
     head = [
-        (1.410, 0.165, 0.155, -0.010),
-        (1.425, 0.180, 0.170, -0.010),
-        (1.480, 0.182, 0.172, -0.010),
-        (1.560, 0.182, 0.172, -0.010),
-        (1.630, 0.182, 0.172, -0.010),
-        (1.705, 0.180, 0.170, -0.010),
-        (1.720, 0.165, 0.155, -0.010),
+        (1.410, 0.155, 0.155, -0.010),
+        (1.425, 0.168, 0.170, -0.010),
+        (1.480, 0.170, 0.172, -0.010),
+        (1.560, 0.170, 0.172, -0.010),
+        (1.630, 0.170, 0.172, -0.010),
+        (1.705, 0.168, 0.170, -0.010),
+        (1.720, 0.155, 0.155, -0.010),
     ]
     mb.ztube(0, 0, head, cs=2, bevel=0.03, color=PAL["skin"])
     # nose block, ears (face detail stays in texture)
-    mb.box((0, -0.198, 1.552), (0.066, 0.05, 0.085), 0.01, color=PAL["skin"])
+    mb.box((0, -0.205, 1.548), (0.074, 0.066, 0.100), 0.012, color=PAL["skin"])
     # heavy block brows (concept 2.0): one ridge over each eye, outer end higher, inner end
     # down into the furrow. They sit above the painted eyes (z < 1.61) and in front of the hair.
     for s in (-1, 1):
@@ -165,7 +165,7 @@ def build_head(mat):
                color=PAL["ginger_dark"])
     mb.box((0, -0.208, 1.628), (0.055, 0.046, 0.032), 0.006, color=PAL["ginger_dark"])
     for s in (-1, 1):
-        mb.box((s * 0.188, 0.01, 1.565), (0.03, 0.07, 0.09), 0.008, color=PAL["skin"])
+        mb.box((s * 0.176, 0.01, 1.565), (0.03, 0.07, 0.09), 0.008, color=PAL["skin"])
     return mb.finish(mat)
 
 
@@ -209,17 +209,17 @@ def build_beard(mat):
     # jaw mass: wide at the cheeks, back buried in the head, front meeting the chest beard
     back = 0.12
     jaw = [(z, hw, (back - front) / 2, (back + front) / 2)
-           for z, hw, front in ((1.425, 0.245, -(clear + 0.040)), (1.47, 0.250, -(clear + 0.020)),
-                                (1.515, 0.230, -0.240))]
+           for z, hw, front in ((1.425, 0.188, -(clear + 0.040)), (1.47, 0.192, -(clear + 0.020)),
+                                (1.515, 0.182, -0.240))]
     mb.ztube(0, 0, jaw, cs=3, bevel=0.06, color=G)
     # sideburns from the jaw up to the brow (under the helmet band)
     for s in (-1, 1):
-        mb.box((s * 0.230, -0.070, 1.555), (0.055, 0.20, 0.18), 0.012, color=D)
+        mb.box((s * 0.180, -0.070, 1.555), (0.040, 0.20, 0.18), 0.012, color=D)
     # wide chest beard, tapering smoothly into the braid. A hard step folds the
     # unwrap onto itself. Back face is beard_back(z).
-    chest = [(1.165, 0.048, 0.016), (1.21, 0.085, 0.018), (1.26, 0.130, 0.020),
-             (1.31, 0.170, 0.022), (1.36, 0.205, 0.024), (1.41, 0.228, 0.026),
-             (1.455, 0.230, 0.026)]
+    chest = [(1.165, 0.048, 0.016), (1.21, 0.078, 0.018), (1.26, 0.110, 0.020),
+             (1.31, 0.138, 0.022), (1.36, 0.160, 0.024), (1.41, 0.176, 0.026),
+             (1.455, 0.180, 0.026)]
     rows = [(z, hw, hd, beard_back(z) - hd) for z, hw, hd in chest]
     mb.ztube(0, 0, rows, cs=2, bevel=0.014, color=G)
     # braid: three strands of straight prisms along a twist. A continuous twisted
@@ -263,33 +263,30 @@ BEAD = (0.86, 0.62, 0.28)         # amber bead on the braid
 BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~5 deg in Walk)
 
 
-HAIR_BLOCKS = [  # (centre, size); the head is x +-0.182, y -0.182..0.162, z 1.41..1.72
-    ((0, 0.000, 1.715), (0.444, 0.392, 0.050)),      # rim, front just above the brows
-    ((0, 0.000, 1.750), (0.420, 0.380, 0.040)),      # crown, stepped in so the mass reads round
-    ((0, 0.005, 1.775), (0.350, 0.330, 0.030)),
-    ((0, 0.160, 1.600), (0.420, 0.110, 0.300)),      # back
-    ((0, 0.150, 1.480), (0.360, 0.090, 0.080)),      # nape
+HAIR_BLOCKS = [  # (centre, size); the head is x +-0.170, y -0.182..0.162, z 1.41..1.72
+    ((0, 0.000, 1.760), (0.380, 0.340, 0.060)),      # crown
+    ((0, -0.150, 1.745), (0.360, 0.080, 0.060)),     # swept-back roll above the forehead
+    ((0, 0.165, 1.600), (0.400, 0.110, 0.300)),      # back, down to the neck
 ]
-HAIR_TOP = [(-0.075, -0.07, 0.030), (0.075, -0.07, 0.022), (-0.075, 0.08, 0.020), (0.075, 0.08, 0.030),
-            (0.0, 0.0, 0.030)]
-FRINGE = [(-0.160, 0.090, 1.685, 0.000), (-0.085, 0.070, 1.712, 0.010), (-0.020, 0.075, 1.695, -0.012),
-          (0.050, 0.080, 1.718, 0.006), (0.120, 0.070, 1.690, -0.008), (0.180, 0.060, 1.705, 0.004)]
+ROLL_LOCKS = [(-0.125, 1.748, 0.064), (0.0, 1.756, 0.072), (0.125, 1.744, 0.060)]  # (x, centre z, height)
+HAIR_TOP = [(-0.075, -0.07, 0.030), (0.075, -0.07, 0.022), (-0.075, 0.05, 0.020), (0.075, 0.05, 0.026),
+            (0.0, -0.01, 0.030)]
 BACK_LOCKS = [(-0.16, 1.440), (-0.08, 1.425), (0.0, 1.420), (0.08, 1.430), (0.16, 1.450)]
 
 
 def build_hair(mat):
-    """Blocky hair mass (model sheet): crown with lumps on top, a fringe of locks just above the
-    brows, sides over the ears and locks down the back to the nape. Top of hair is 1.80."""
+    """Blocky hair mass (model sheet): swept back off the forehead into a full crown, falling behind the ears and
+    down the back to the nape. Top of hair is 1.80."""
     mb = L.MeshBuilder("chopper_hair")
     G, D = PAL["ginger"], PAL["ginger_dark"]
     for c, size in HAIR_BLOCKS:
         mb.box(c, size, 0.022, color=G)
     for x, y, h in HAIR_TOP:
         mb.box((x, y, 1.80 - h / 2), (0.14, 0.14, h), 0.010, color=G)
-    for x, w, z0, dy in FRINGE:
-        mb.box((x, -0.195 + dy, (z0 + 1.75) / 2), (w, 0.040, 1.75 - z0), 0.008, color=G)
+    for x, z, h in ROLL_LOCKS:
+        mb.box((x, -0.178, z), (0.110, 0.050, h), 0.010, color=G)
     for s in (-1, 1):
-        mb.box((s * 0.205, 0.020, 1.5825), (0.058, 0.300, 0.245), 0.014, color=G)
+        mb.box((s * 0.188, 0.045, 1.585), (0.050, 0.250, 0.240), 0.014, color=G)
     for x, z0 in BACK_LOCKS:
         mb.box((x, 0.1775, (z0 + 1.52) / 2), (0.085, 0.095, 1.52 - z0), 0.010, color=D)
     return mb.finish(mat)

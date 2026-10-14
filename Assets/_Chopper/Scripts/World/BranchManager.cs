@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Chopper.Player;
+using Chopper.Trees;
 using FishNet.Connection;
 using FishNet.Object;
 using UnityEngine;
@@ -17,8 +18,6 @@ namespace Chopper.World
         private const int Count = 330;
         private const int AroundHutCount = 18;
         private const int NearGateCount = 10;
-        private const float MinRadius = 16f;
-        private const float MaxRadius = 236f;
         private const float PickReach = 2.2f;
         private const float MaxSlopeDegrees = 28f;
         public const int WoodPerBranch = 1;
@@ -86,11 +85,7 @@ namespace Chopper.World
                         angle = Mathf.PI * 0.5f + ((float)rng.NextDouble() - 0.5f) * 1.6f;
                         radius = Mathf.Lerp(16f, 40f, (float)rng.NextDouble());
                     }
-                    else
-                    {
-                        angle = (float)rng.NextDouble() * Mathf.PI * 2f;
-                        radius = Mathf.Lerp(MinRadius, MaxRadius, Mathf.Sqrt((float)rng.NextDouble()));
-                    }
+                    else break;
                     var p = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
                     p.y = Chopper.World.WorldGround.HeightAt(p);
                     if (WaterSystem.DepthAt(p, out _) > 0.02f) continue;
@@ -99,6 +94,20 @@ namespace Chopper.World
                     float dx = Chopper.World.WorldGround.HeightAt(p + Vector3.right * 1.5f) - Chopper.World.WorldGround.HeightAt(p - Vector3.right * 1.5f);
                     float dz = Chopper.World.WorldGround.HeightAt(p + Vector3.forward * 1.5f) - Chopper.World.WorldGround.HeightAt(p - Vector3.forward * 1.5f);
                     if (Mathf.Atan(Mathf.Sqrt(dx * dx + dz * dz) / 3f) * Mathf.Rad2Deg > MaxSlopeDegrees) continue;
+                    list.Add(p);
+                }
+            }
+            Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+            TreeDatabase trees = Chopper.World.Generation.WorldSession.Trees;
+            if (hasGround && gen != null && trees != null)
+            {
+                var entries = new TreeEntry[trees.Count];
+                for (int i = 0; i < entries.Length; i++) entries[i] = trees.Get(i);
+                foreach (Vector2 spot in gen.BranchSpots(entries, Count - list.Count))
+                {
+                    var p = new Vector3(spot.x, 0f, spot.y);
+                    p.y = Chopper.World.WorldGround.HeightAt(p);
+                    if (WaterSystem.DepthAt(p, out _) > 0.02f) continue;
                     list.Add(p);
                 }
             }

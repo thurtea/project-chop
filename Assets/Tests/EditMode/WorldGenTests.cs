@@ -125,7 +125,7 @@ namespace Chopper.Tests.EditMode
         {
             var gen = new WorldGen(2024, HubRadius);
             List<TreeEntry> trees = gen.GenerateTrees(Species, ModelHeights);
-            Assert.Greater(trees.Count, 1300, "far fewer trees than the zone quotas");
+            Assert.Greater(trees.Count, 1000, "far fewer trees than the groves hold");
             int[] perZone = new int[5];
             foreach (TreeEntry tree in trees)
             {
