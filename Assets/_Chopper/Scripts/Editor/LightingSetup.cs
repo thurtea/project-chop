@@ -104,7 +104,7 @@ namespace Chopper.Editor
             AssetDatabase.CreateAsset(profile, ProfilePath);
 
             var tonemapping = AddComponent<Tonemapping>(profile);
-            tonemapping.mode.Override(TonemappingMode.ACES);
+            tonemapping.mode.Override(TonemappingMode.Neutral);
 
             var bloom = AddComponent<Bloom>(profile);
             bloom.threshold.Override(1.05f);
@@ -113,12 +113,12 @@ namespace Chopper.Editor
 
             var color = AddComponent<ColorAdjustments>(profile);
             color.postExposure.Override(0.45f);
-            color.contrast.Override(14f);
+            color.contrast.Override(0f);
             color.saturation.Override(-8f);
 
-            // Cool shadows and warm highlights, the moody split that Valheim leans on.
+            // Warm highlights; shadows stay neutral so dark browns do not turn maroon under the day desaturation.
             var smh = AddComponent<ShadowsMidtonesHighlights>(profile);
-            smh.shadows.Override(new Vector4(0.92f, 1.0f, 1.12f, -0.05f));
+            smh.shadows.Override(new Vector4(1f, 1f, 1f, 0f));
             smh.highlights.Override(new Vector4(1.10f, 1.02f, 0.88f, 0.05f));
 
             var balance = AddComponent<WhiteBalance>(profile);

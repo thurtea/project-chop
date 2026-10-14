@@ -125,10 +125,10 @@ def bear_blade_outline():
     """Single bearded blade on +X, (x, z). Large head (concept 2.0): from the eye out to a
     high spike, down a long cutting edge to a deep beard, then back to the eye. Kept inside
     the haft length so Z stays the long axis."""
-    return [(0.058, 0.615), (0.150, 0.650), (0.250, 0.690), (0.340, 0.728),   # top edge -> spike
-            (0.372, 0.655), (0.398, 0.555), (0.400, 0.455), (0.378, 0.365),   # cutting edge
-            (0.348, 0.305), (0.265, 0.275), (0.185, 0.295),                     # beard tip
-            (0.120, 0.355), (0.078, 0.445), (0.058, 0.535)]                    # beard underside
+    return [(0.058, 0.615), (0.150, 0.645), (0.250, 0.680), (0.345, 0.725),   # top edge -> spike
+            (0.375, 0.655), (0.398, 0.555), (0.398, 0.455), (0.380, 0.365),   # cutting edge
+            (0.350, 0.300), (0.310, 0.262), (0.270, 0.300),                     # hooked beard tip
+            (0.200, 0.395), (0.125, 0.470), (0.058, 0.525)]                    # concave underside to a narrow neck
 
 
 # warm carved wood (concept 1.5 haft is lighter and warmer than the double axe's)
@@ -188,7 +188,7 @@ def build_axe_bear(mat):
         for a, b in segs:
             ab = b - a
             t = max(0.0, min(1.0, (q - a).dot(ab) / ab.length_squared))
-            if (q - (a + ab * t)).length < 0.016:
+            if (q - (a + ab * t)).length < 0.024:
                 return True
         return False
     mb.paint([f for f in faces if near_edge(f)], PAL["steel"])

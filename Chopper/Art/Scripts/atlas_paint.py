@@ -115,7 +115,7 @@ RED_LINE = S(122, 22, 22)
 PLAID_MID = S(92, 16, 18)
 PLAID_BLACK = S(30, 10, 12)
 LEATHER = [S(124, 74, 38), S(100, 60, 30), S(142, 90, 48)]
-PATCH = [S(126, 122, 116), S(102, 100, 96)]
+PATCH = [S(108, 108, 108), S(88, 90, 92)]
 SEAM = S(58, 34, 18)
 THREAD = S(214, 190, 146)
 STRAP = S(84, 50, 26)
@@ -124,8 +124,9 @@ STEEL_LIGHT = S(196, 200, 205)
 STEEL_MID = S(132, 136, 142)
 STEEL_DARK = S(70, 72, 78)
 TROUSERS = S(70, 46, 30)
-BOOT = S(86, 54, 32)
-BOOT_WRAP = S(82, 50, 28)
+KNEE_PAD = S(96, 64, 40)
+BOOT = S(84, 56, 36)
+BOOT_WRAP = S(66, 46, 32)
 CORD = S(166, 126, 82)
 SOLE = S(46, 30, 20)
 SKIN = S(228, 168, 132)
@@ -144,6 +145,7 @@ BEAR = S(198, 132, 70)
 BEAR_MUZZLE = S(222, 168, 108)
 BEAR_DARK = S(40, 24, 14)
 WRAP = S(118, 52, 34)
+GRIP_WRAP = S(112, 34, 24)
 
 
 # ------------------------------------------------------------------ parts
@@ -203,9 +205,12 @@ def paint_shirt(p, n, rgb, pc, t):
 
 # Model sheet: brown leather with a few patches, each sewn on with a stitched border and riveted corners.
 # (x0, x1, z0, z1, colour) in the warped body's metres; front patches face -Y, back patches +Y.
-VEST_PATCHES_FRONT = [(-0.36, -0.13, 1.13, 1.30, PATCH[0]), (0.12, 0.27, 0.93, 1.06, PATCH[1]),
-                      (0.20, 0.34, 1.20, 1.30, LEATHER[2])]
-VEST_PATCHES_BACK = [(-0.20, -0.02, 1.02, 1.16, PATCH[0]), (0.10, 0.30, 1.18, 1.30, LEATHER[2])]
+VEST_PATCHES_FRONT = [(-0.40, -0.19, 1.14, 1.32, PATCH[0]), (-0.19, -0.05, 1.04, 1.22, LEATHER[2]),
+                      (-0.38, -0.17, 0.90, 1.08, PATCH[1]), (0.05, 0.22, 1.16, 1.32, LEATHER[2]),
+                      (0.22, 0.40, 1.08, 1.28, PATCH[1]), (0.06, 0.23, 0.90, 1.07, PATCH[0]),
+                      (0.25, 0.40, 0.88, 1.03, LEATHER[2])]
+VEST_PATCHES_BACK = [(-0.34, -0.12, 1.12, 1.30, PATCH[0]), (-0.12, 0.10, 0.96, 1.12, LEATHER[2]),
+                     (0.10, 0.32, 1.14, 1.30, PATCH[1]), (0.14, 0.34, 0.90, 1.04, PATCH[0])]
 
 
 def vest_panel(a, z, t, patches):
@@ -228,8 +233,8 @@ def paint_vest(p, n, rgb, pc, t):
     if near(rgb, PAL["leather_dark"]):        # crossbelt
         i, j, k = cell(p, t)
         c = STRAP
-        if (i + j + k) % 5 == 0:
-            c = mix(STRAP, THREAD, 0.45)      # stitch dots
+        if (i + j + k) % 11 == 0:
+            c = mix(STRAP, THREAD, 0.30)      # stitch dots
         return grain(c, p, t, 0.05)
     if near(rgb, PAL["steel"]):               # crossbelt buckle: steel frame, dark centre, prong
         ang = math.atan2(1.30 - 0.905, -0.19 - 0.25)
@@ -294,6 +299,10 @@ def paint_body(p, n, rgb, pc, t):
         c = TROUSERS
         if abs(pc.x) > 0.05 and abs(side_coord(p, n) - pc.x) < 0.5 * t and abs(n.x) > 0.7:
             c = dark(TROUSERS, 0.8)           # outer leg seam
+        elif abs(pc.x) > 0.05 and n.y < -0.5 and 0.38 < p.z < 0.53 and abs(p.x - pc.x) < 0.075:
+            # leather knee pad on the front of each leg, seamed round its edge
+            edge = p.z < 0.38 + t or p.z > 0.53 - t or abs(p.x - pc.x) > 0.075 - t
+            return SEAM if edge else grain(KNEE_PAD, p, t, 0.06)
         return grain(c, p, t, 0.06)
     return grain(SKIN, p, t, 0.03)
 
@@ -373,9 +382,9 @@ def paint_boots(p, n, rgb, pc, t):
     # Knee/shin wraps and the folded cuff lip stay leather on the base layer too
     # (those bands are part of this mesh; painting them as skin made them look like ridges).
     if near(rgb, PAL["boot_wrap"]) or near(rgb, PAL["leather_dark"]):
-        k = math.floor(p.z / t)
-        if 0.39 < p.z < 0.475 and abs(p.z - 0.408) < t * 0.8:
-            return mix(BOOT_WRAP, CORD, 0.4)   # one stitch round the knee wrap
+        if 0.26 < p.z < 0.38:                 # knee wrap: worn light top edge, a stitch round the middle
+            if p.z > 0.362 or abs(p.z - 0.320) < t * 0.6:
+                return mix(BOOT_WRAP, CORD, 0.35)
         if near(rgb, PAL["leather_dark"]):
             return grain(BOOT_WRAP, p, t, 0.04)
         return grain(BOOT_WRAP, p, t, 0.05)
@@ -383,10 +392,6 @@ def paint_boots(p, n, rgb, pc, t):
         if p.z < 0.035 or (p.y < -0.20 and p.z < 0.06 and math.floor(p.x / t) % 3 == 0):
             return SKIN_SHADE
         return grain(SKIN, p, t, 0.03)
-    if near(rgb, PAL["steel_dark"]):          # steel band on the knee wrap, rivets on the front
-        if n.y < -0.5 and math.floor(p.x / t) % 4 == 0:
-            return STEEL_LIGHT
-        return grain(STEEL_MID, p, t, 0.08)
     if near(rgb, PAL["sole"]):
         return SOLE
     return grain(BOOT, p, t, 0.06)
@@ -418,6 +423,8 @@ def paint_axe_bear(p, n, rgb, pc, t):
         return WOOD_DARK if k % 3 == 0 else BEAR   # carved fur rows
     # haft: grain columns, a knot pattern on the carved section between the spiral turns
     a = math.floor(side_coord(p, n) / t)
+    if -0.094 < p.z < 0.215:                  # red-brown leather wrap down the grip (model sheet), wound on a slant
+        return dark(GRIP_WRAP, 0.5) if (k + a) % 4 == 0 else grain(GRIP_WRAP, p, t, 0.06)
     if 0.24 < p.z < 0.48 and ((a + k) % 4 == 0 or (a - k) % 4 == 0):
         return WOOD_GROOVE
     if h3(a, 0, 7) < 0.3:
@@ -429,20 +436,16 @@ def paint_armour(name, p, n, rgb):
     """Armour and the unused double axe: kept sensible, not painted to the concept yet."""
     x, z = p.x, p.z
     if name == "chopper_chainmail":
-        # Scale rows (concept 2.0), one row per geometric band of build_chainmail: a pale lower
-        # lip, dark seams between scales, and every other row offset by half a scale.
+        # Ring mail (model sheet): rows of one-pixel rings, a lit ring beside a dark gap, every other row a
+        # mid-grey link row offset by one pixel.
         t = TEXEL_M
-        rows = (0.565, 0.61, 0.655, 0.70, 0.75, 0.80)
-        r = sum(1 for zr in rows if z >= zr) - 1
-        if r < 0 or r >= len(rows) - 1:
-            return S(40, 40, 44)
-        v = (z - rows[r]) / (rows[r + 1] - rows[r])
-        c = math.floor(side_coord(p, n) / t) + (r % 2) * 2
-        if v < 0.2:
-            return S(92, 92, 94) if c % 4 else S(64, 64, 66)
-        if c % 4 == 0 and v > 0.35:
-            return S(28, 28, 30)
-        return grain(S(56, 56, 58), p, t, 0.08)
+        if z < 0.575 or abs(n.z) > 0.7:
+            return S(40, 40, 44)              # hem rim
+        k = math.floor(z / t)
+        c = math.floor(side_coord(p, n) / t)
+        if k % 2:
+            return grain(S(62, 60, 60), p, t, 0.08)
+        return S(96, 94, 92) if (c + k // 2) % 2 else S(32, 31, 32)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)

@@ -11,7 +11,8 @@ using UnityEngine;
 namespace Chopper.Editor
 {
     // Batch: Chopper.Editor.PlacementMap.Draw. A top-down picture of what the generator puts in the world for seeds
-    // 1337 and 4242: ground, water, paths, trees by size, rocks, plants, branches, crypts and mines.
+    // 1337 and 4242: ground, water, dry hollows below the water line (orange), paths, trees by size, rocks, plants,
+    // branches, crypts and mines.
     // Writes Logs/homework/placement-<seed>.png and logs counts per zone.
     public static class PlacementMap
     {
@@ -33,6 +34,9 @@ namespace Chopper.Editor
             VoxelColumns columns = VoxelColumns.Build(gen);
             var tex = new Texture2D(Size, Size, TextureFormat.RGB24, false);
             var pixels = new Color32[Size * Size];
+            // Dry hollows: ground below the water line with no water surface over it, in m2 by where they lie.
+            float px2 = (2f * Half / Size) * (2f * Half / Size);
+            float dryHub = 0f, dryRing = 0f, dryPass = 0f, dryForest = 0f;
             for (int py = 0; py < Size; py++)
             {
                 for (int px = 0; px < Size; px++)
@@ -40,7 +44,16 @@ namespace Chopper.Editor
                     float x = PxToWorld(px), z = PxToWorld(py);
                     float h = gen.HeightAt(x, z);
                     Color c;
-                    if (h < WorldGen.WaterHeight) c = new Color(0.20f, 0.33f, 0.42f);
+                    if (h < WorldGen.WaterHeight && !Wet(gen, x, z))
+                    {
+                        c = new Color(0.90f, 0.45f, 0.10f);
+                        float r = Mathf.Sqrt(x * x + z * z);
+                        if (gen.DistanceToPath(x, z) < WorldGen.PassHalfWidth + WorldGen.PassWallWidth + 12f && Mathf.Abs(r - gen.RingRadius) < WorldGen.RingFootHalfWidth + 16f) dryPass += px2;
+                        else if (Mathf.Abs(r - gen.RingRadius) < WorldGen.RingFootHalfWidth + 16f) dryRing += px2;
+                        else if (r < gen.RingRadius) dryHub += px2;
+                        else dryForest += px2;
+                    }
+                    else if (h < WorldGen.WaterHeight) c = new Color(0.20f, 0.33f, 0.42f);
                     else
                     {
                         int cx = Mathf.FloorToInt(x + WorldGen.HalfSize), cz = Mathf.FloorToInt(z + WorldGen.HalfSize);
@@ -107,6 +120,7 @@ namespace Chopper.Editor
                 line.Append($" | {zone.Key} {zone.Value[0]}/{zone.Value[1]}/{zone.Value[2]}");
             line.Append($" | rocks {gen.GenerateRocks(assets.RockModels.Length).Count}");
             Debug.Log(line + $" -> {file}");
+            Debug.Log($"[Placement] seed {seed}: dry hollows below the water line (orange), m2: hub {dryHub:F0}, ring foot {dryRing:F0}, passes {dryPass:F0}, forests {dryForest:F0}");
             var sum = new Dictionary<Element, float>();
             var n = new Dictionary<Element, int>();
             var woody = new Dictionary<Element, int>();
@@ -123,6 +137,18 @@ namespace Chopper.Editor
             var cov = new System.Text.StringBuilder("[Placement] woodland per zone (mean, share over 0.5, area m2):");
             foreach (Element e in n.Keys) cov.Append($" | {e} {sum[e] / n[e]:F2} {woody[e] / (float)n[e]:F2} {n[e] * 16}");
             Debug.Log(cov.ToString());
+        }
+
+        // Under a pool's swimmable surface or out at sea.
+        static bool Wet(WorldGen gen, float x, float z)
+        {
+            if (x * x + z * z > WorldGen.BeachStartRadius * WorldGen.BeachStartRadius) return true;
+            foreach (WaterBody body in gen.WaterBodies)
+            {
+                float shore = WorldGen.ShoreEdge(body) * 1.02f;
+                if ((new Vector2(x, z) - body.Center).sqrMagnitude < shore * shore) return true;
+            }
+            return false;
         }
 
         static float PxToWorld(int p) => -Half + (p + 0.5f) * (2f * Half / Size);

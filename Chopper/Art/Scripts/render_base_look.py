@@ -39,7 +39,7 @@ def atlas_materials():
     img = bpy.data.images.load(ATLAS)
     img.colorspace_settings.name = "sRGB"
     for mat in bpy.data.materials:
-        if mat.name not in ("M_Chopper", "M_Chopper_Gear"):
+        if not mat.name.startswith("M_Chopper"):  # appended props come in as M_Chopper_Gear.001
             continue
         mat.use_nodes = True
         nt = mat.node_tree
@@ -178,6 +178,7 @@ def main():
     solo.name = "chopper_axe_bear_solo"
     sc.collection.objects.link(solo)
     solo.matrix_world = Matrix.Translation((-0.95, -0.05, 0.17))
+    atlas_materials()
     tgt = (-0.40, -0.05, 0.92)
     rv.shoot(sc, "axe_bear_front", tgt, 0, 0, 2.35)
     rv.shoot(sc, "axe_bear_three_quarter", tgt, -35, 8, 2.35)

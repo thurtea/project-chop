@@ -688,7 +688,8 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(4f);
                 ui.DebugShow(0);
                 GameUi.HudHidden = true;
-                yield return TeleportLocalPlayer(new Vector2(0f, 9f), 0f);
+                // Open ground in front of the hut ((0, 9) is under the porch roof)
+                yield return TeleportLocalPlayer(new Vector2(6f, 15f), 0f);
                 PlayerCamera armourCam = wood.GetComponent<PlayerCamera>();
                 armourCam.DebugSetDistance(3.2f);
                 armourCam.SnapYaw(180f);
@@ -851,6 +852,25 @@ namespace Chopper.Networking
                     PlayerCamera cam = PlayerCamera.Local;
                     cam.DebugSetDistance(v.dist);
                     cam.DebugSetPitch(v.pitch);
+                    cam.SnapYaw(v.camYaw);
+                    yield return new WaitForSeconds(1.5f);
+                    Debug.developerConsoleVisible = false;
+                    yield return Shot(folder, v.name);
+                }
+                // The model sheet's dressed look in midday light: no helmet or shield, front and three-quarter.
+                wood.GetComponent<PlayerUpgrades>().ServerLoadOutfit(0, false);
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.45f);
+                (float body, float camYaw, string name)[] sheetViews =
+                {
+                    (0f, 180f, "sheet_front"),
+                    (0f, 215f, "sheet_three_quarter"),
+                };
+                foreach (var v in sheetViews)
+                {
+                    yield return TeleportLocalPlayer(new Vector2(6f, 15f), v.body);
+                    PlayerCamera cam = PlayerCamera.Local;
+                    cam.DebugSetDistance(2.2f);
+                    cam.DebugSetPitch(2f);
                     cam.SnapYaw(v.camYaw);
                     yield return new WaitForSeconds(1.5f);
                     Debug.developerConsoleVisible = false;

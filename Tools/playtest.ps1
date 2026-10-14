@@ -43,7 +43,7 @@ $Steps = @(
     @{ Id = "T12"; Name = "Mine: portal, veins, ladder out"; Task = "tour"; Arg = "Mine"; Pass = "RESULT PASS"; Look = "the portal sits on flat ground you can walk to" }
     @{ Id = "T13"; Name = "Crypt: door, rooms, vault"; Task = "tour"; Arg = "Crypt"; Pass = ""; Look = "crypt_1_entrance: the door at ground level, no hill to climb" }
     @{ Id = "T14"; Name = "Fishing"; Task = "tour"; Arg = "Fishing"; Pass = ""; Look = "rod in the right hand, tension bar over the float" }
-    @{ Id = "T15"; Name = "Character against the model sheet"; Task = "tour"; Arg = "Concept"; Pass = ""; Look = "character_front beside the model sheet; colours not too bright" }
+    @{ Id = "T15"; Name = "Character against the model sheet"; Task = "tour"; Arg = "Concept"; Pass = ""; Look = "sheet_front and sheet_three_quarter beside the model sheet; browns warm, not maroon or black" }
 )
 
 function Invoke-Step($step) {

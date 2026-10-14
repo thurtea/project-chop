@@ -851,14 +851,14 @@ namespace Chopper.World.Generation
             height += fire * ridge * ridge * 13f * rise;
             height += wind * (_swells.Sample(x * 0.0035f, z * 0.0035f) - 0.5f) * 2f * 14f;
 
-            // No dry pits below the water line: only lakes and pools go under it.
-            float land = 1f - Smooth(BeachStartRadius - 20f, BeachStartRadius, r);
+            // No dry pits below the water line: only lakes and pools go under it. Held through the beach, which only
+            // reaches its own height at BeachEndRadius, and through the passes, so the paths do not dip into a hollow.
+            float land = 1f - Smooth(BeachEndRadius - 8f, BeachEndRadius, r);
             float below = DryFloor - height;
             if (below > 0f)
             {
-                // Not near the mountains: their risers and passes keep the zones apart.
+                // Not near the mountains: their risers keep the zones apart.
                 land *= 1f - Smooth(0.0f, 0.08f, MountainWeight(x, z));
-                land *= Smooth(PassHalfWidth + PassWallWidth, PassHalfWidth + PassWallWidth + 12f, DistanceToPath(x, z)) * OutsideRingBand(r) + (1f - OutsideRingBand(r));
                 height = Mathf.Lerp(height, DryFloor - below / (1f + below) * DryDip, land);
             }
 
@@ -920,8 +920,6 @@ namespace Chopper.World.Generation
 
         private const float DryFloor = WaterHeight + 0.6f;
 
-        // 1 across the mountain ring band, where the paths run through the passes.
-        private float OutsideRingBand(float r) => 1f - Smooth(RingFootHalfWidth + 6f, RingFootHalfWidth + 16f, Mathf.Abs(r - RingRadius));
         private const float DryDip = 0.4f;
         // A shore bends in by up to this share of the radius, never out past the water surface.
         private const float ShoreBend = 0.17f;
