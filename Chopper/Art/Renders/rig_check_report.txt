@@ -1,8 +1,8 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (4582988 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32508 bytes)
-  [PASS] file exists: Export\chopper_axe_bear.fbx (30892 bytes)
+  [PASS] file exists: Export\chopper.fbx (4583084 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32572 bytes)
+  [PASS] file exists: Export\chopper_axe_bear.fbx (30844 bytes)
   [PASS] file exists: Export\chopper_shield.fbx (40412 bytes)
 
 RAW FBX: chopper.fbx
@@ -271,7 +271,7 @@ PROPS
 
 PROPS ON SOCKETS (identity local transform relative to the socket bone)
   [PASS] rest: chopper_axe_bear grips like chopper_axe on Weapon_R: grip offset 0.0 mm, haft direction dot 0.9995, blade (perpendicular to the haft) vs chopper_axe +X blade dot 1.000, world blade dir (-0.58 -0.57 -0.58)
-  [PASS] clip detector self-test: shield sunk into the chest -> 681 verts (84 mm), axe through the leg -> 446 verts (99 mm)
+  [PASS] clip detector self-test: shield sunk into the chest -> 679 verts (84 mm), axe through the leg -> 446 verts (99 mm)
   [PASS] rest: shield clear of body, arm and clothing (penetrating verts 0, deepest 0.0 mm)
   [PASS] rest: shield board back not floating: gap to forearm/bracer surface 21.9..21.9 mm (min over the board, per sampled frame; required 5-30 mm)
   [PASS] rest: shield grip bar passes through the left fist (bar centre inside the hand, bar covers >= 90% of the hand width; worst frame: centre in hand frame (-0.025 0.195 0.000), covers 99% of hand width -0.100..0.137, bar 0.270 m)

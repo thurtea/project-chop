@@ -123,10 +123,10 @@ BELT = S(72, 44, 24)
 STEEL_LIGHT = S(196, 200, 205)
 STEEL_MID = S(132, 136, 142)
 STEEL_DARK = S(70, 72, 78)
-TROUSERS = S(70, 46, 30)
-KNEE_PAD = S(96, 64, 40)
-BOOT = S(84, 56, 36)
-BOOT_WRAP = S(66, 46, 32)
+TROUSERS = S(104, 70, 42)
+KNEE_PAD = S(76, 54, 38)
+BOOT = S(72, 46, 28)
+BOOT_WRAP = S(88, 74, 62)
 CORD = S(166, 126, 82)
 SOLE = S(46, 30, 20)
 SKIN = S(228, 168, 132)
@@ -396,6 +396,29 @@ def paint_boots(p, n, rgb, pc, t):
     return grain(BOOT, p, t, 0.06)
 
 
+BLADE_EDGE = [(0.345, 0.725), (0.375, 0.655), (0.398, 0.555), (0.398, 0.455), (0.380, 0.365),
+              (0.350, 0.300), (0.310, 0.262)]
+BLADE_KNOTS = [(0.232, 0.540, 0.050), (0.282, 0.500, 0.050)]
+
+
+def seg_dist(x, z, a, b):
+    ax, az = a
+    bx, bz = b
+    dx, dz = bx - ax, bz - az
+    k = max(0.0, min(1.0, ((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz)))
+    return math.hypot(x - ax - dx * k, z - az - dz * k)
+
+
+def blade_engraving(x, z, t):
+    """Light engraved lines on the dark blade face: a line following the cutting edge and an interlaced knot."""
+    if x < 0.12:
+        return False
+    d = min(seg_dist(x, z, a, b) for a, b in zip(BLADE_EDGE, BLADE_EDGE[1:]))
+    if abs(d - 0.050) < 0.6 * t and 0.30 < z < 0.70:
+        return True
+    return any(abs(abs(x - cx) + abs(z - cz) - r) < 0.6 * t for cx, cz, r in BLADE_KNOTS)
+
+
 def paint_axe_bear(p, n, rgb, pc, t):
     i, j, k = cell(p, t)
     if near(rgb, PAL["leather_dark"]):        # butt wrap
@@ -403,6 +426,8 @@ def paint_axe_bear(p, n, rgb, pc, t):
     if near(rgb, PAL["steel"]):               # worn light edge, poll face
         return STEEL_LIGHT if (k + i) % 4 else S(226, 230, 234)
     if near(rgb, PAL["steel_dark"]):          # dark iron face, eye and poll
+        if abs(n.y) > 0.7 and blade_engraving(p.x, p.z, t):
+            return STEEL_MID
         return grain(STEEL_DARK, p, t, 0.10)
     if near(rgb, BEAR_CARVE):
         if p.z > 0.66:

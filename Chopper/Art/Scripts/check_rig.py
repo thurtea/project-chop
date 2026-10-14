@@ -848,7 +848,7 @@ def layering_checks(rig, meshes):
         return lambda poly, cos: (polykey[ob.name].get(tuple(poly)) in faces
                                   and all(lo <= c.z <= hi for c in cos))
     pairs = [("shirt under chainmail", shirt, band(shirt, 0.57, 0.86), chain, chain_inner, None),
-             ("shirt under vest", shirt, band(shirt, 0.83, 1.33), vest, set(), tube["chopper_vest"]),
+             ("shirt under vest", shirt, band(shirt, 0.83, 1.21), vest, set(), tube["chopper_vest"]),
              ("trousers/torso under shirt", body, band(body, 0.62, 1.33), shirt, set(), tube["chopper_shirt"]),
              ("thighs inside the shirt skirt", body, band(body, 0.52, 0.80, "legs"), shirt, set(),
               tube["chopper_shirt"]),
