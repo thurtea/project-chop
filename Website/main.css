@@ -125,7 +125,8 @@ button:focus-visible {
 }
 
 #site-nav a:hover,
-#site-nav a[aria-current="true"] {
+#site-nav a[aria-current="true"],
+#site-nav a[aria-current="page"] {
   color: var(--text);
 }
 
@@ -133,6 +134,15 @@ main {
   max-width: var(--max);
   margin: 0 auto;
   padding: 0 1.25rem 4rem;
+}
+
+main.page {
+  padding-top: 2rem;
+}
+
+main.page > h1 {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  margin: 0 0 1.25rem;
 }
 
 .hero {
@@ -407,14 +417,20 @@ footer a:hover {
   margin: 0.15rem 0 1rem 1.5rem;
 }
 
-.cta {
+.cta,
+.actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
   margin: 1.5rem 0 0;
 }
 
-.btn {
+.actions {
+  justify-content: center;
+}
+
+.btn,
+.demo-form button {
   display: inline-block;
   background: var(--accent);
   color: var(--bg);
@@ -424,7 +440,8 @@ footer a:hover {
   border: 1px solid var(--accent);
 }
 
-.btn:hover {
+.btn:hover,
+.demo-form button:hover {
   background: var(--text);
   border-color: var(--text);
   color: var(--bg);
@@ -584,7 +601,8 @@ table {
     margin: 0 auto 1.25rem;
   }
 
-  .cta .btn {
+  .cta .btn,
+  .actions .btn {
     flex: 1 1 100%;
     text-align: center;
   }
@@ -639,4 +657,46 @@ table {
   content: "";
   display: block;
   clear: both;
+}
+
+.demo-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1rem;
+  max-width: 28rem;
+  margin-top: 1.5rem;
+}
+
+.demo-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  color: var(--muted);
+}
+
+.demo-form input,
+.demo-form textarea {
+  width: 100%;
+  background: var(--bg-raise);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.7rem;
+  font: inherit;
+}
+
+.demo-form button {
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.trap {
+  position: absolute;
+  left: -9999px;
+}
+
+#demo-status {
+  color: var(--text);
 }

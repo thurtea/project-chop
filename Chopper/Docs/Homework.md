@@ -13,9 +13,9 @@ Close the Unity editor, then in PowerShell from the repo root:
 
 ```powershell
 cd E:\Projects\project-chop
-pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1            # everything, about 15 minutes
-pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1 -Quick     # skips the art checks and the unit tests
-pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1 -ToursOnly # only the tours, on the build you already have
+pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1
+pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1 -Quick
+pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1 -ToursOnly
 ```
 
 It runs the art checks, the clip import, the player rebuild, the world checks, the unit tests, the dev build and every tour, then writes the **Automatic checks** table at the top of `Reportcard.md` (PASS, FAIL, LOOK or BLOCKED per row) and one contact sheet per tour in `Logs\homework\playtest-<date>\`. You then only play the build (HW-2) and fill your own rows.
@@ -26,12 +26,12 @@ All commands run from the repo root, `E:\Projects\project-chop`, in PowerShell (
 
 ```powershell
 cd E:\Projects\project-chop
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build                 # dev build -> "Build Finished, Result: Success", error CS lines: 0
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour BlockGround      # a Play tour -> its RESULT line, log and shots folder
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode              # unit tests -> "EditMode: Passed - total N, passed N, failed 0"
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 unity VoxelChecks.ZoneSeal   # an editor check -> "[ZoneSeal] RESULT PASS"
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 blender               # check_assets and check_rig SUMMARY lines
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 player                # rebuild Player.prefab -> "Exiting batchmode successfully now!"
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour BlockGround
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 unity VoxelChecks.ZoneSeal
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 blender
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 player
 ```
 
 Logs and shots go to `Logs\homework\`. Paste the printed lines into the report card; that is the proof the agent needs.
@@ -92,8 +92,8 @@ Host a new world in the new build.
 ### HW-13 Golden-hour light (look; after HW-7, which rebuilds the game with this code)
 The midday sun now stands lower (46 deg, was 62) and a little more golden, and the warm morning and evening haze lasts longer into the day.
 ```powershell
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Concept   # shots in the late afternoon
-pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Site      # shots near midday
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Concept
+pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour Site
 ```
 - Look for: warm gold light on the hut, trees and the character with longer shadows; block faces show a clear lit side and a shaded side; shade still reads cool blue, not muddy; distant hills fade into the haze. Nothing too orange or too dark at midday.
 - Report: KEEP, or TOO WARM, TOO DARK or TOO FLAT, with a shot name. Paste the last printed lines of each tour.
