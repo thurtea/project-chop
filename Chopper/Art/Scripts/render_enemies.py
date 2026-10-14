@@ -107,6 +107,8 @@ def elementals():
         for ob in bpy.data.objects:
             if ob.name.startswith("Leaves"):
                 ob.hide_render = ob.name != "Leaves%d" % i
+            elif ob.name == "Bark":
+                ob.hide_render = i in (1, 2, 4)
         bpy.context.view_layer.update()
         name = "elemental_%d" % i
         rv.shoot(sc, name, (0, -0.05, 1.0), -35, 8, 2.5)
@@ -115,6 +117,8 @@ def elementals():
     for ob in bpy.data.objects:
         if ob.name.startswith("Leaves"):
             ob.hide_render = ob.name != "Leaves0"
+        elif ob.name == "Bark":
+            ob.hide_render = False
     take_sheet(sc, rig, ELEMENTAL_ROWS, "elemental_takes", os.path.join(rv.OUT, "elemental_takes_sheet.png"),
                (0, 0, 0.95))
     return names

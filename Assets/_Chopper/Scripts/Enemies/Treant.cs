@@ -689,14 +689,18 @@ namespace Chopper.Enemies
             MakeGolemGlow(model);
         }
 
-        // The prefab carries one crown per element (Leaves0 is neutral). Only this enemy's element is shown.
         private void ShowElementCrown(GameObject model)
         {
-            string keep = "Leaves" + Mathf.Clamp(_element.Value, 0, 4);
+            int element = Mathf.Clamp(_element.Value, 0, 4);
+            string keep = "Leaves" + element;
+            bool fullBody = element == (int)Element.Water || element == (int)Element.Fire || element == (int)Element.Wind;
             foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
             {
-                if (!renderer.gameObject.name.StartsWith("Leaves")) continue;
-                renderer.enabled = renderer.gameObject.name.StartsWith(keep);
+                string name = renderer.gameObject.name;
+                if (name.StartsWith("Leaves"))
+                    renderer.enabled = name.StartsWith(keep);
+                else if (name.StartsWith("Bark"))
+                    renderer.enabled = !fullBody;
             }
         }
 
