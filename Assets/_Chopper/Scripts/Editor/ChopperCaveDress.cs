@@ -83,6 +83,7 @@ namespace Chopper.Editor
                 if (fbx == null) return false;
                 var model = (GameObject)PrefabUtility.InstantiatePrefab(fbx, root.transform);
                 model.name = name;
+                StandUp(name, model);
                 foreach (Collider collider in model.GetComponentsInChildren<Collider>(true)) Object.DestroyImmediate(collider);
                 var bounds = new Bounds(Vector3.zero, Vector3.zero);
                 bool any = false;
@@ -100,12 +101,71 @@ namespace Chopper.Editor
                     collider.center = bounds.center - root.transform.position;
                     collider.size = bounds.size;
                 }
-                return PrefabUtility.SaveAsPrefabAsset(root, PrefabFolder + "/" + name + ".prefab") != null;
+                bool saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabFolder + "/" + name + ".prefab") != null;
+                if (saved)
+                {
+                    Bounds b = BoundsOf(model);
+                    Debug.Log($"[CaveDress] {name} size {b.size.x:0.00} {b.size.y:0.00} {b.size.z:0.00} min {b.min.x:0.00} {b.min.y:0.00} {b.min.z:0.00} max {b.max.x:0.00} {b.max.y:0.00} {b.max.z:0.00}");
+                }
+                return saved;
             }
             finally
             {
                 Object.DestroyImmediate(root);
             }
+        }
+
+        static bool FlatOnFloor(string name)
+        {
+            return name.Contains("floor") || name.Contains("cobweb") || name.Contains("rail");
+        }
+
+        static Bounds BoundsOf(GameObject model)
+        {
+            Bounds bounds = new Bounds(Vector3.zero, Vector3.zero);
+            bool any = false;
+            foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!any) bounds = renderer.bounds;
+                else bounds.Encapsulate(renderer.bounds);
+                any = true;
+            }
+            return bounds;
+        }
+
+        static void StandUp(string name, GameObject model)
+        {
+            bool flat = FlatOnFloor(name);
+            Quaternion best = Quaternion.identity;
+            float bestScore = float.NegativeInfinity;
+            Quaternion[] options = { Quaternion.identity, Quaternion.Euler(-90f, 0f, 0f), Quaternion.Euler(90f, 0f, 0f) };
+            foreach (Quaternion rotation in options)
+            {
+                model.transform.localRotation = rotation;
+                model.transform.localPosition = Vector3.zero;
+                Bounds b = BoundsOf(model);
+                if (b.size.sqrMagnitude < 0.0001f) continue;
+                bool thinUp = b.size.y <= b.size.x + 0.001f && b.size.y <= b.size.z + 0.001f;
+                bool tallUp = b.size.y + 0.001f >= b.size.x || b.size.y + 0.001f >= b.size.z;
+                float score = flat ? (thinUp ? -b.size.y : -100f) : (tallUp ? b.size.y : -100f);
+                if (b.max.y < -0.02f) score = -100f;
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = rotation;
+                }
+            }
+            model.transform.localRotation = best;
+            model.transform.localPosition = Vector3.zero;
+            Bounds stood = BoundsOf(model);
+            if (!flat && stood.max.z <= 0.02f && stood.min.z < -0.02f)
+            {
+                model.transform.localRotation = best * Quaternion.Euler(0f, 180f, 0f);
+                stood = BoundsOf(model);
+            }
+            bool hang = name.Contains("chain") || name.Contains("dripstone") || name.Contains("cobweb");
+            float lift = hang ? -stood.max.y : -Mathf.Min(0f, stood.min.y);
+            model.transform.localPosition = new Vector3(0f, lift, 0f);
         }
     }
 }

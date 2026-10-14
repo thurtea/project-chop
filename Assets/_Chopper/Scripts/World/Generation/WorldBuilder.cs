@@ -442,9 +442,9 @@ namespace Chopper.World.Generation
         private static Material CaveStoneMaterial()
         {
             if (_caveStone != null) return _caveStone;
-            Shader shader = Shader.Find("Chopper/Block");
-            if (shader == null) return BlockMaterial();
-            _caveStone = new Material(shader) { name = "M_CaveStone" };
+            Material source = BlockMaterial();
+            if (source == null) return null;
+            _caveStone = new Material(source) { name = "M_CaveStone" };
             _caveStone.SetFloat("_Jitter", 0f);
             _caveStone.SetFloat("_Edge", 0.04f);
             _caveStone.SetFloat("_Dark", 0.94f);
