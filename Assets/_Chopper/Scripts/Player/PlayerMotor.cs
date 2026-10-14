@@ -252,6 +252,15 @@ namespace Chopper.Player
             _fallIgnored = false;
         }
 
+        // Raised on every client when this player makes the second jump in the air (the flip).
+        public event System.Action AirJumped;
+
+        [ServerRpc]
+        private void AirJumpServerRpc() => AirJumpObserversRpc();
+
+        [ObserversRpc(ExcludeOwner = true)]
+        private void AirJumpObserversRpc() => AirJumped?.Invoke();
+
         [ServerRpc]
         private void FallServerRpc(float height)
         {
@@ -347,6 +356,8 @@ namespace Chopper.Player
                     _airJumpsLeft--;
                     _verticalVelocity = _config.JumpLaunchSpeed;
                     AirJumpCount++;
+                    AirJumped?.Invoke();
+                    if (IsClientInitialized) AirJumpServerRpc();
                 }
                 _verticalVelocity -= _config.PlayerGravity * Time.deltaTime;
             }

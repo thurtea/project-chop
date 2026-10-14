@@ -12,7 +12,7 @@ namespace Chopper.World
         public const float SwimDepth = 1.25f;
         public const float WadeDepth = 0.18f;
         // Body height that stays under the surface while swimming (feet this far below the surface).
-        public const float SwimFloatDepth = 1.05f;
+        public const float SwimFloatDepth = 0.70f;
         // Feet higher than this over the surface are in the air, not in the water (a fall or a jump over a pond).
         public const float SurfaceReach = 0.3f;
         public const float WadeSpeedMultiplier = 0.82f;

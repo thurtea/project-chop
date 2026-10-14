@@ -84,6 +84,89 @@ namespace Chopper.Editor
             if (!pass) EditorApplication.Exit(1);
         }
 
+        // Batch: Chopper.Editor.VoxelChecks.EntranceReach. Every crypt and mine door must be reachable on foot from the
+        // path network with a single jump (1.2 m) and the 0.65 m step, no double jump and no building. Logs "[Entrances] RESULT".
+        const float WalkClimb = 1.85f;
+
+        public static void EntranceReach()
+        {
+            bool pass = true;
+            foreach (int seed in new[] { 1337, 4242, 7, 2026 })
+            {
+                var gen = new WorldGen(seed, 110f);
+                VoxelColumns columns = VoxelColumns.Build(gen);
+                int n = VoxelColumns.Resolution;
+                var onPath = new System.Collections.Generic.List<int>();
+                for (int z = 0; z < n; z++)
+                    for (int x = 0; x < n; x++)
+                        if (gen.DistanceToPath(VoxelColumns.WorldX(x) + 0.5f, VoxelColumns.WorldZ(z) + 0.5f) < WorldGen.PathHalfWidth) onPath.Add(z * n + x);
+                bool[] reached = Reach(columns, onPath, WalkClimb);
+                int count = 0, outsideRing = 0;
+                for (int i = 0; i < reached.Length; i++) if (reached[i]) { count++; if (Radius(i, n) > gen.RingRadius + WorldGen.RingFootHalfWidth + 4f) outsideRing++; }
+                Debug.Log($"[Entrances] seed {seed}: {count} columns reached on foot from {onPath.Count} path columns, {outsideRing} outside the ring (ring {gen.RingRadius:F0} m), start top {columns.TopY(n / 2, n / 2):F1}");
+                var doors = new System.Collections.Generic.List<(string, Vector3)>();
+                for (int i = 0; i < gen.Crypts.Length; i++) doors.Add(($"crypt {i}", new CryptPlan(gen, i).DoorSpot));
+                for (int i = 0; i < gen.Mines.Length; i++) doors.Add(($"mine {i}", new MinePlan(gen, i).DoorSpot));
+                foreach ((string name, Vector3 door) in doors)
+                {
+                    bool ok = false;
+                    int dx0 = Mathf.FloorToInt(door.x + WorldGen.HalfSize), dz0 = Mathf.FloorToInt(door.z + WorldGen.HalfSize);
+                    for (int z = dz0 - 2; z <= dz0 + 2 && !ok; z++)
+                        for (int x = dx0 - 2; x <= dx0 + 2 && !ok; x++)
+                            ok = columns.Inside(x, z) && reached[z * n + x] && Mathf.Abs(columns.TopY(x, z) - door.y) < 1.2f;
+                    float best = float.MaxValue, bestTop = 0f;
+                    for (int z = dz0 - 30; z <= dz0 + 30; z++)
+                        for (int x = dx0 - 30; x <= dx0 + 30; x++)
+                        {
+                            if (!columns.Inside(x, z) || !reached[z * n + x]) continue;
+                            float dd = (x - dx0) * (x - dx0) + (z - dz0) * (z - dz0);
+                            if (dd < best) { best = dd; bestTop = columns.TopY(x, z); }
+                        }
+                    string near = best < float.MaxValue ? $"nearest reached column {Mathf.Sqrt(best):F0} m away, top {bestTop:F1}" : "nothing reached within 30 m";
+                    float doorTop = columns.Inside(dx0, dz0) ? columns.TopY(dx0, dz0) : 0f;
+                    float lowest = doorTop;
+                    for (int z = dz0 - 3; z <= dz0 + 3; z++)
+                        for (int x = dx0 - 3; x <= dx0 + 3; x++)
+                            if (columns.Inside(x, z)) lowest = Mathf.Min(lowest, columns.TopY(x, z));
+                    bool raised = door.y - lowest > 1.85f;
+                    ok &= !raised;
+                    Debug.Log($"[Entrances] seed {seed} {name} at ({door.x:F0}, {door.y:F1}, {door.z:F0}), column top {doorTop:F1}, lowest ground within 3 m {lowest:F1}{(raised ? " (door raised above the ground)" : "")}: {(ok ? "on foot" : "UNREACHABLE without building")}, {near}");
+                    pass &= ok;
+                }
+            }
+            Debug.Log("[Entrances] RESULT " + (pass ? "PASS" : "FAIL"));
+            if (!pass) EditorApplication.Exit(1);
+        }
+
+        static bool[] Reach(VoxelColumns columns, System.Collections.Generic.List<int> starts, float climb)
+        {
+            int n = VoxelColumns.Resolution;
+            var seen = new bool[n * n];
+            var queue = new System.Collections.Generic.Queue<int>();
+            foreach (int s in starts)
+            {
+                seen[s] = true;
+                queue.Enqueue(s);
+            }
+            int[] dx = { 1, -1, 0, 0 }, dz = { 0, 0, 1, -1 };
+            while (queue.Count > 0)
+            {
+                int c = queue.Dequeue();
+                int cx = c % n, cz = c / n;
+                float top = columns.TopY(cx, cz);
+                for (int d = 0; d < 4; d++)
+                {
+                    int nx = cx + dx[d], nz = cz + dz[d];
+                    if (!columns.Inside(nx, nz)) continue;
+                    int ni = nz * n + nx;
+                    if (seen[ni] || columns.TopY(nx, nz) - top > climb) continue;
+                    seen[ni] = true;
+                    queue.Enqueue(ni);
+                }
+            }
+            return seen;
+        }
+
         static float Radius(int i, int n)
         {
             float x = VoxelColumns.WorldX(i % n) + 0.5f, z = VoxelColumns.WorldZ(i / n) + 0.5f;

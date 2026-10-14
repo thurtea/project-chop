@@ -611,6 +611,9 @@ namespace Chopper.World.Generation
         private const float CryptMaxRadius = BeachStartRadius - 22f;
         private const float CryptMinSpacing = 110f;
         private const float CryptMaxSlope = 0.22f;
+        // The entrance stands on level ground: flat inside the pad radius, easing back to the land by the blend.
+        public const float CryptPadRadius = CryptPlan.ClearRadius;
+        public const float CryptPadBlend = 16f;
 
         // Three crypt entrances, each in a different forest, out past the hub where the woods are thick. Their doors
         // face the hut. The tiers (more rooms, more guardians, better loot) are shuffled across them.
@@ -640,7 +643,8 @@ namespace Chopper.World.Generation
                     foreach (CryptSite other in sites) if (Vector2.Distance(other.Position, p) < CryptMinSpacing) crowded = true;
                     if (crowded) continue;
                     float yaw = Mathf.Atan2(-p.x, -p.y) * Mathf.Rad2Deg;
-                    sites.Add(new CryptSite { Position = p, Yaw = yaw, Zone = forest, Tier = sites.Count + 1 });
+                    Vector2 front = p - p.normalized * (CryptPlan.EntranceDepth * 0.5f + 1.5f);
+                    sites.Add(new CryptSite { Position = p, Yaw = yaw, Zone = forest, Tier = sites.Count + 1, Ground = Mathf.Max(HeightAt(p.x, p.y), HeightAt(front.x, front.y)) });
                     break;
                 }
             }
@@ -714,10 +718,28 @@ namespace Chopper.World.Generation
                 if (MountainWeight(ahead.x, ahead.y) > (last ? 0.35f : 0.2f)) continue;
                 float ground = HeightAt(ahead.x, ahead.y);
                 if (ground < WaterHeight + (last ? 0.4f : 1f) || HeightAt(p.x, p.y) - ground > maxDrop) continue;
+                // The pad must be walked up to: no riser taller than a jump on the way out in front of the portal.
+                if (!last && !WalkableAhead(p, away, ground)) continue;
                 site = new MineSite { Position = p, Yaw = Mathf.Atan2(away.x, away.y) * Mathf.Rad2Deg, Forest = forest, Ground = ground, PadCenter = p + away * MinePadAhead };
                 return true;
             }
             return false;
+        }
+
+        private const float ApproachLength = 16f;
+        private const float ApproachMaxStep = 1.6f;
+
+        private bool WalkableAhead(Vector2 p, Vector2 away, float ground)
+        {
+            float previous = ground;
+            for (float k = MineGroundAhead + 2f; k <= MineGroundAhead + ApproachLength; k += 2f)
+            {
+                Vector2 q = p + away * k;
+                float h = HeightAt(q.x, q.y);
+                if (Mathf.Abs(h - previous) > ApproachMaxStep) return false;
+                previous = h;
+            }
+            return true;
         }
 
         // Trees standing in front of a portal step aside to the edge of its clearing. They are moved, never removed, so
@@ -869,6 +891,14 @@ namespace Chopper.World.Generation
                     // into the ridge on seed 4242 (VoxelChecks.ZoneSeal).
                     float lift = (height - site.Ground) * Smooth(MinePadRadius, MinePadBlend, d);
                     height = site.Ground + Mathf.Round(lift / MountainStep) * MountainStep;
+                }
+            }
+            if (Crypts != null)
+            {
+                foreach (CryptSite site in Crypts)
+                {
+                    float d = Vector2.Distance(new Vector2(x, z), site.Position);
+                    if (d < CryptPadBlend) height = Mathf.Lerp(site.Ground, height, Smooth(CryptPadRadius, CryptPadBlend, d));
                 }
             }
             return height;

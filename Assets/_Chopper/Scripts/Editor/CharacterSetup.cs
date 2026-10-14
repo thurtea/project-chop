@@ -176,9 +176,9 @@ namespace Chopper.Editor
             for (int i = 0; i < layers.Length; i++) if (layers[i].name == "Chop") layerIndex = i;
             if (layerIndex < 0) throw new System.InvalidOperationException("Chop layer missing");
             AnimatorStateMachine machine = layers[layerIndex].stateMachine;
-            AnimationClip flinch = ChopperTake("HitReact");
+            AnimationClip flinch = KayKitImport.Clip(KayKitImport.GeneralPath, KayKitImport.Flinch) ?? ChopperTake("HitReact");
             bool hit = EnsureReaction(machine, "HitReact", "Hit", flinch);
-            bool parry = EnsureReaction(machine, "Parry", "Parry", flinch);
+            bool parry = EnsureReaction(machine, "Parry", "Parry", KayKitImport.Clip(KayKitImport.MeleePath, KayKitImport.Parry) ?? flinch);
             controller.layers = layers;
             EditorUtility.SetDirty(controller);
             AssetDatabase.SaveAssets();
@@ -635,7 +635,7 @@ namespace Chopper.Editor
             AnimatorState swing = machine.AddState("Swing");
             // Chopper's own one-handed axe chops (animate_chopper.py, user 2026-10-12: Valheim-like); the library's sword
             // combo only when chopper.fbx is not there.
-            swing.motion = ChopperTake("Attack_1") ?? Slot("attack_1", "Sword_Regular_A");
+            swing.motion = KayKitImport.Clip(KayKitImport.MeleePath, KayKitImport.StrikeA) ?? ChopperTake("Attack_1") ?? Slot("attack_1", "Sword_Regular_A");
             swing.speedParameterActive = true;
             swing.speedParameter = "SwingSpeed";
             machine.defaultState = empty;
@@ -702,11 +702,11 @@ namespace Chopper.Editor
 
             // Combo: a backhand (the slash played backwards), then a heavy finisher; fists alternate jab and cross.
             AnimatorState backhand = machine.AddState("Swing2");
-            backhand.motion = ChopperTake("Attack_2") ?? Slot("attack_2", "Sword_Regular_B");
+            backhand.motion = KayKitImport.Clip(KayKitImport.MeleePath, KayKitImport.StrikeB) ?? ChopperTake("Attack_2") ?? Slot("attack_2", "Sword_Regular_B");
             backhand.speedParameterActive = true;
             backhand.speedParameter = "SwingSpeed";
             AnimatorState finisher = machine.AddState("Swing3");
-            finisher.motion = ChopperTake("Attack_3") ?? Slot("attack_3", "Sword_Regular_C");
+            finisher.motion = KayKitImport.Clip(KayKitImport.MeleePath, KayKitImport.StrikeC) ?? ChopperTake("Attack_3") ?? Slot("attack_3", "Sword_Regular_C");
             finisher.speedParameterActive = true;
             finisher.speedParameter = "SwingSpeed";
             AnimatorState chop = machine.AddState("Chop");
@@ -725,12 +725,12 @@ namespace Chopper.Editor
             cross.motion = FindClip("Punch_Cross");
             cross.speedParameterActive = true;
             cross.speedParameter = "SwingSpeed";
-            // First-pass flinches. HitReact is Chopper's own take and still needs polish; the parry reuses it until it has its own.
+            // Flinch and parry: KayKit's blocky Hit_A and Melee_Block_Attack, Chopper's own take if the pack is missing.
             AnimatorState hit = machine.AddState("HitReact");
-            AnimationClip hitClip = ChopperTake("HitReact");
+            AnimationClip hitClip = KayKitImport.Clip(KayKitImport.GeneralPath, KayKitImport.Flinch) ?? ChopperTake("HitReact");
             hit.motion = hitClip != null ? hitClip : chop.motion;
             AnimatorState parry = machine.AddState("Parry");
-            parry.motion = hit.motion;
+            parry.motion = KayKitImport.Clip(KayKitImport.MeleePath, KayKitImport.Parry) ?? hit.motion;
 
             var strikes = new[]
             {

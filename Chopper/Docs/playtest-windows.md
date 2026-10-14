@@ -4,6 +4,8 @@ A run-through to play yourself, record a video, and take the website screenshots
 
 ## 1. Start the game
 
+Before you play, run `Tools\playtest.ps1` (see `Homework.md`, HW-7): it rebuilds the game and runs every automatic check.
+
 Pick one:
 
 - **Unity editor:** open `E:\Projects\project-chop` in Unity 6000.5.10f1 from Unity Hub. Open `Assets/_Chopper/Scenes/Boot.unity` and press Play.
@@ -42,13 +44,13 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 ## 4. Checklist
 
 ### A. Character and movement (first minute)
-- [ ] The title screen shows the cover art and the Chopper logo (cabin, axes, ribbon), and the exe icon is that same mark.
+- [ ] The title screen shows the meadow and hut backdrop with "CHOPPER" written at the top left (no logo picture).
 - [ ] You arrive by falling from the sky into the hub pond, in a short grey tunic and shorts, bare feet, with no axe.
-- [ ] Swim to the bank toward the house. The stroke should read as swimming, not a stiff flap. Climb out.
+- [ ] Swim to the bank toward the house. The stroke should read as swimming, and the head and shoulders stay above the water. Climb out.
 - [ ] The outfit (plaid shirt, patched vest, belt) and the bear-head axe lie on the bank: walk over them to put them on.
 - [ ] Dressed, he reads closer to the model sheet: thick ginger hair down the neck, heavy brows, a wide beard with a braid, rolled sleeves, knee wraps, folded boot cuffs, a larger carved axe. Note anything that still looks like a block (ears poking out, a small blade).
 - [ ] Walk, run, sprint, crouch: blocky and firm, no floppy limbs.
-- [ ] Jump, then double jump in the air. A third press in the air does nothing.
+- [ ] Jump, then double jump in the air: the second jump is a front flip. A third press in the air does nothing.
 - [ ] Roll (Left Alt).
 - [ ] The axe is held head up, blade forward, both standing and walking.
 - [ ] Chop a tree: the trunk above the stump falls and lands as a log. You get only some of the wood when it falls. Chop the log on the ground for the rest. Chop the stump three times to clear it. The fallen trunk should not sink, and nothing underground should show.
@@ -93,12 +95,13 @@ Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `
 
 ### G. Night, enemies and armour
 - [ ] At night tree enemies wake and come at you. Guard (right click) and roll work against them.
+- [ ] The axe combo is three blocky strikes (diagonal, horizontal, overhead chop); getting hit plays a short flinch.
 - [ ] `boss` makes a grove warden. Fell it: it drops an armour kit. Use the kit from the bag (Tab).
 - [ ] With armour on: skull helmet with bone horns, chainmail with scale rows, bracers and the shield on the back. The hair hides under the helmet; the beard stays.
 
 ### H. Crypts and mines
-- [ ] `crypts` lists them; `tp crypt 1` takes you to a door. Go in, take the stairs, find the vault and loot, and come back up.
-- [ ] Mines sit in notches at the mountain foot. Go through the portal, strike a vein (it glows), and keep a find.
+- [ ] `crypts` lists them; `tp crypt 1` takes you to a door. The door stands on level ground (in a new world). Go in, take the stairs, find the vault and loot, and come back up.
+- [ ] Mines sit in notches at the mountain foot, and you can walk up to the portal without building. Go through the portal, strike a vein (it glows), and keep a find.
 - [ ] Climb out by the ladder in the first chamber (E at its foot): you come back up beside the mine's portal. (The earlier "ladder does nothing" came from the test tour's teleport, not the game; check it here.)
 
 ### I. Co-op (if a second PC is free)

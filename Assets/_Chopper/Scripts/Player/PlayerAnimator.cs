@@ -51,10 +51,10 @@ namespace Chopper.Player
         // Chopper's own chops (animate_chopper.py): Attack_1 and Attack_2 22 frames, Attack_3 28 frames, at 30 fps. The tree
         // chop is Attack_1.
         private const float ChopClipSeconds = 22f / 30f;
-        // The Mixamo swings, cut to their wind up and recovery (CharacterSetup.SlotTrim): about a second each.
-        private const float ComboAClipSeconds = 22f / 30f;
-        private const float ComboBClipSeconds = 22f / 30f;
-        private const float ComboCClipSeconds = 28f / 30f;
+        // The KayKit one-handed strikes (KayKitImport): diagonal slice, horizontal slice, overhead chop.
+        private const float ComboAClipSeconds = 1.0f;
+        private const float ComboBClipSeconds = 1.367f;
+        private const float ComboCClipSeconds = 1.067f;
         private const float PunchClipSeconds = 0.87f;
         private const float ChopFillsCooldown = 0.95f;
         // The top of the locomotion blend (the sprint loop's speed in CharacterSetup); faster than this, the loop plays
@@ -117,6 +117,8 @@ namespace Chopper.Player
             if (_mining != null) _mining.StrikePlayed += OnMiningStrike;
             if (_combat == null) _combat = GetComponent<PlayerCombat>();
             if (_combat != null) _combat.RollPlayed += OnRollPlayed;
+            if (_motor == null) _motor = GetComponent<PlayerMotor>();
+            if (_motor != null) _motor.AirJumped += OnAirJumped;
             if (_inventory == null) _inventory = GetComponent<PlayerInventory>();
             if (_inventory != null) _inventory.Healed += OnHealed;
             if (_wood == null) _wood = GetComponent<PlayerWood>();
@@ -148,12 +150,55 @@ namespace Chopper.Player
             _animator.SetTrigger(RollId);
         }
 
+        // The double jump is a front flip: the model turns once round its hips while the body rises.
+        private const float FlipSeconds = 0.5f;
+        private const float FlipPivotHeight = 0.9f;
+        private float _flipStart = float.NegativeInfinity;
+        private bool _flipping;
+        private Quaternion _flipBaseRotation;
+        private Vector3 _flipBasePosition;
+
+        public bool IsFlipping => _flipping;
+
+        private void OnAirJumped()
+        {
+            _flipStart = Time.time;
+            Sfx.Play(ProceduralSfx.Swing, transform.position + Vector3.up, 0.45f, 1.3f, 0.05f);
+        }
+
+        private void LateUpdate()
+        {
+            if (_animator == null || _animator.transform == transform) return;
+            Transform model = _animator.transform;
+            float t = (Time.time - _flipStart) / FlipSeconds;
+            if (t >= 0f && t < 1f)
+            {
+                if (!_flipping)
+                {
+                    _flipBaseRotation = model.localRotation;
+                    _flipBasePosition = model.localPosition;
+                    _flipping = true;
+                }
+                Quaternion spin = Quaternion.AngleAxis(360f * (t * t * (3f - 2f * t)), Vector3.right);
+                Vector3 pivot = Vector3.up * FlipPivotHeight;
+                model.localRotation = spin * _flipBaseRotation;
+                model.localPosition = _flipBasePosition + pivot - spin * pivot;
+            }
+            else if (_flipping)
+            {
+                model.localRotation = _flipBaseRotation;
+                model.localPosition = _flipBasePosition;
+                _flipping = false;
+            }
+        }
+
         private void OnDisable()
         {
             if (_axe != null) _axe.SwingPlayed -= OnSwingPlayed;
             if (_axe != null) _axe.StowPlayed -= OnStowPlayed;
             if (_mining != null) _mining.StrikePlayed -= OnMiningStrike;
             if (_combat != null) _combat.RollPlayed -= OnRollPlayed;
+            if (_motor != null) _motor.AirJumped -= OnAirJumped;
             if (_inventory != null) _inventory.Healed -= OnHealed;
             if (_wood != null) _wood.Gathered -= OnGathered;
         }

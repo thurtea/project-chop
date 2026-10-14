@@ -750,7 +750,14 @@ namespace Chopper.Networking
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
                 yield return new WaitForSeconds(4f);
                 ui.DebugShow(0);
-                yield return TeleportLocalPlayer(new Vector2(0f, 9f), 0f);
+                // Open sky, clear of the hut porch and of trees.
+                Vector2 open = new Vector2(0f, 40f);
+                for (int tries = 0; tries < 60; tries++)
+                {
+                    Vector2 candidate = new Vector2(-30f + tries * 1.7f, 30f + (tries % 7) * 3f);
+                    if (!TreeManager.Instance.ServerFindTree(new Vector3(candidate.x, 0f, candidate.y), Vector3.forward, out _, out _)) { open = candidate; break; }
+                }
+                yield return TeleportLocalPlayer(open, 0f);
                 yield return new WaitForSeconds(1.5f);
                 PlayerMotor jumper = wood.GetComponent<PlayerMotor>();
                 PlayerStamina jumpStamina = wood.GetComponent<PlayerStamina>();
@@ -794,7 +801,11 @@ namespace Chopper.Networking
                 baseY = wood.transform.position.y;
                 peak = baseY;
                 yield return Press();
-                yield return Press();
+                InputSystem.QueueStateEvent(jumpPad, new GamepadState().WithButton(GamepadButton.South));
+                for (float t = 0f; t < 0.2f; t += Time.deltaTime) { peak = Mathf.Max(peak, wood.transform.position.y); yield return null; }
+                InputSystem.QueueStateEvent(jumpPad, new GamepadState());
+                bool flipping = wood.GetComponent<PlayerAnimator>().IsFlipping;
+                yield return Shot(folder, "doublejump_flip");
                 yield return Land();
                 float again = peak - baseY;
                 int afterAgain = jumper.AirJumpCount;
@@ -802,10 +813,11 @@ namespace Chopper.Networking
 
                 Debug.Log($"[DoubleJump] single peak {single:F2} m, air jumps {afterSingle}");
                 Debug.Log($"[DoubleJump] double peak {twice:F2} m, air jumps {afterDouble}, after a third press {afterThird}");
+                Debug.Log($"[DoubleJump] flip playing 0.2 s after the second jump: {flipping}");
                 Debug.Log($"[DoubleJump] after landing, double peak {again:F2} m, air jumps {afterAgain}, stamina {(jumpStamina != null ? jumpStamina.Current.ToString("F0") : "-")}");
                 bool jumpOk = single > 0.9f && single < 1.5f && afterSingle == 0
                               && afterDouble == 1 && afterThird == 1 && twice > single + 0.7f
-                              && afterAgain == 2 && again > single + 0.7f;
+                              && afterAgain == 2 && again > single + 0.7f && flipping;
                 Debug.Log("[DoubleJump] RESULT " + (jumpOk ? "PASS" : "FAIL"));
                 Application.Quit(jumpOk ? 0 : 1);
                 yield break;

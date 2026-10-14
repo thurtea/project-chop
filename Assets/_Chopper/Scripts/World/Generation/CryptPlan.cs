@@ -12,6 +12,8 @@ namespace Chopper.World.Generation
         public Element Zone;
         // 1 to 3: more rooms, more guardians and better loot.
         public int Tier;
+        // The height of the level pad the entrance stands on (the higher of its centre and the ground before its door).
+        public float Ground;
     }
 
     // Timber is only used by the mines (posts, beams and the portal).
