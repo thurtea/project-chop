@@ -1,0 +1,105 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Chopper.World.Generation
+{
+    public static class CaveShell
+    {
+        public const float Cut = 2.4f;
+
+        public static void Append(List<CryptBox> boxes, int group, Vector3 center, Vector3 size, Quaternion rotation, CryptMaterial material)
+        {
+            boxes.Add(new CryptBox { Center = center, Size = size, Rotation = rotation, Material = material, Group = group });
+        }
+
+        public static void Chamfers(List<CryptBox> boxes, int group, Vector3 center, float half, float height, float cut)
+        {
+            foreach (float sx in new[] { 1f, -1f })
+            {
+                foreach (float sz in new[] { 1f, -1f })
+                {
+                    Vector3 outward = new Vector3(sx, 0f, sz).normalized;
+                    float y = height * 0.5f;
+                    Vector3 corner = center + new Vector3(sx * half, y, sz * half);
+                    Vector3 mid = center + new Vector3(sx * (half - cut * 0.5f), y, sz * (half - cut * 0.5f));
+                    float span = cut * 1.41421356f;
+                    float depth = Vector3.Distance(corner, mid) + 0.08f;
+                    Append(boxes, group, (corner + mid) * 0.5f, new Vector3(span, height, depth), Quaternion.LookRotation(outward), CryptMaterial.Wall);
+                }
+            }
+        }
+
+        public static void FloorRelief(List<CryptBox> boxes, int group, Vector3 origin, float half, int seed, float pathHalf, float inset, System.Func<Vector3, bool> skip)
+        {
+            for (float x = -half + 1.4f; x <= half - 1.4f; x += 1.6f)
+            {
+                for (float z = -half + 1.15f; z <= half - 1.15f; z += 1.35f)
+                {
+                    int h = Hash(seed, Mathf.RoundToInt(x * 10f), Mathf.RoundToInt(z * 10f));
+                    float ox = ((h % 5) - 2) * 0.18f;
+                    float oz = (((h / 5) % 5) - 2) * 0.14f;
+                    var local = new Vector3(x + ox, 0f, z + oz);
+                    float ax = Mathf.Abs(local.x);
+                    float az = Mathf.Abs(local.z);
+                    bool centre = ax < pathHalf && az < pathHalf;
+                    bool againstWall = ax > half - 3.1f || az > half - 3.1f;
+                    bool doorway = (az > half - 2.4f && ax < 2.6f) || (ax > half - 2.4f && az < 2.6f);
+                    bool propCorner = ax > half - inset && az > half - inset;
+                    if (centre || !againstWall || doorway || propCorner) continue;
+                    if (skip != null && skip(local)) continue;
+                    float rise = (h % 3) == 0 ? 0.48f : 0.24f;
+                    float w = (h % 2) == 0 ? 1.15f : 0.72f;
+                    float d = (h % 2) == 0 ? 0.78f : 1.05f;
+                    Append(boxes, group, origin + new Vector3(local.x, rise * 0.5f, local.z), new Vector3(w, rise, d), Quaternion.identity, CryptMaterial.Floor);
+                }
+            }
+        }
+
+        public static void WallRelief(List<CryptBox> boxes, int group, Vector3 origin, float half, float height, int seed, System.Func<Vector2Int, bool> solid)
+        {
+            Vector2Int[] sides = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
+            foreach (Vector2Int side in sides)
+            {
+                if (!solid(side)) continue;
+                Vector3 n = new Vector3(side.x, 0f, side.y);
+                Vector3 t = new Vector3(side.y, 0f, -side.x);
+                for (int i = -3; i <= 3; i++)
+                {
+                    int h = Hash(seed, side.x * 11 + i, side.y * 17);
+                    if (i != 0 && (h % 5) == 0) continue;
+                    float along = i * 1.7f + ((h % 5) - 2) * 0.12f;
+                    if (Mathf.Abs(along) > half - Cut - 0.4f) continue;
+                    float depth = (h % 3) == 0 ? 0.85f : 0.55f;
+                    float bh = 0.9f + (h % 4) * 0.55f;
+                    float by = i == 0 ? 1.65f : (h % 3) * 0.35f;
+                    if (by + bh > height - 0.5f) bh = height - 0.6f - by;
+                    if (bh < 0.4f) continue;
+                    Vector3 at = origin + n * (half - depth * 0.5f) + t * along + Vector3.up * (by + bh * 0.5f);
+                    float yaw = Mathf.Atan2(n.x, n.z) * Mathf.Rad2Deg + ((h % 5) - 2) * 5f;
+                    Append(boxes, group, at, new Vector3(0.85f + (h % 3) * 0.28f, bh, depth), Quaternion.Euler(0f, yaw, 0f), CryptMaterial.Wall);
+                }
+            }
+        }
+
+        public static void CeilingNibs(List<CryptBox> boxes, int group, Vector3 origin, float half, float height, float cut)
+        {
+            foreach (float sx in new[] { 1f, -1f })
+            {
+                foreach (float sz in new[] { 1f, -1f })
+                {
+                    Vector3 at = origin + new Vector3(sx * (half - cut * 0.65f), height - 0.4f, sz * (half - cut * 0.65f));
+                    Append(boxes, group, at, new Vector3(1.8f, 0.8f, 1.5f), Quaternion.identity, CryptMaterial.Ceiling);
+                }
+            }
+        }
+
+        public static int Hash(int a, int b, int c)
+        {
+            unchecked
+            {
+                int h = a * 73856093 ^ b * 19349663 ^ c * 83492791;
+                return h & 0x7fffffff;
+            }
+        }
+    }
+}

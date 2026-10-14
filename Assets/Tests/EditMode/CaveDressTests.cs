@@ -44,11 +44,15 @@ namespace Chopper.Tests.EditMode
             int arches = 0;
             int panels = 0;
             int floors = 0;
+            int turned = 0;
+            foreach (CryptBox box in plan.Boxes)
+                if (box.Rotation != Quaternion.identity) turned++;
             foreach (CavePiece piece in plan.Dressing)
             {
                 if (piece.Name == CaveDress.CryptArch) arches++;
                 if (piece.Name.StartsWith("prop_crypt_wall_") && piece.Name != CaveDress.CryptTrim) panels++;
                 if (piece.Name.StartsWith("prop_crypt_floor_")) floors++;
+                if (piece.Name == CaveDress.ArenaPillar) Assert.Fail("arena columns are gone");
                 if (!piece.Solid) continue;
                 for (int room = 0; room < plan.Rooms.Count; room++)
                 {
@@ -60,22 +64,48 @@ namespace Chopper.Tests.EditMode
                 Vector3 arena = piece.Position - plan.ArenaCenter;
                 if (Mathf.Abs(arena.y) > 3f) continue;
                 Assert.IsFalse(CaveDress.BlocksWalkingCross(arena, 2.5f), piece.Name + " in the arena");
-                if (piece.Name == CaveDress.ArenaPillar || piece.Name == CaveDress.CryptRubble)
+                if (piece.Name == CaveDress.CryptRubble)
                     Assert.Greater(new Vector2(arena.x, arena.z).magnitude, 9f, piece.Name);
             }
             Assert.Greater(arches, 0);
-            Assert.Greater(panels, plan.Rooms.Count * 8, "wall spans are covered, not one decal");
-            Assert.Greater(floors, plan.Rooms.Count * 16, "the floor is tiled, not one slab");
+            Assert.AreEqual(0, panels, "walls are the chamfered shell, not a panel grid");
+            Assert.AreEqual(0, floors, "the floor is stone relief, not a checker");
+            Assert.Greater(turned, plan.Rooms.Count * 4, "room corners are cut");
+            float half = CryptPlan.RoomSize * 0.5f;
+            for (int room = 0; room < plan.Rooms.Count; room++)
+            {
+                Vector3 c = plan.RoomCenter(room);
+                Assert.IsFalse(Inside(plan, c + Vector3.up), "the room centre stays open");
+                foreach (float sx in new[] { 1f, -1f })
+                    foreach (float sz in new[] { 1f, -1f })
+                        Assert.IsTrue(Inside(plan, c + new Vector3(sx * (half - 0.35f), 1f, sz * (half - 0.35f))), "the corner is stone");
+            }
+        }
+
+        private static bool Inside(CryptPlan plan, Vector3 point)
+        {
+            foreach (CryptBox box in plan.Boxes)
+            {
+                Vector3 d = Quaternion.Inverse(box.Rotation) * (point - box.Center);
+                Vector3 h = box.Size * 0.5f;
+                if (Mathf.Abs(d.x) < h.x && Mathf.Abs(d.y) < h.y && Mathf.Abs(d.z) < h.z) return true;
+            }
+            return false;
         }
 
         private static void AssertMineClear(MinePlan plan)
         {
             int rails = 0;
             int carts = 0;
+            int timber = 0;
+            int turned = 0;
+            foreach (CryptBox box in plan.Boxes)
+                if (box.Rotation != Quaternion.identity) turned++;
             foreach (CavePiece piece in plan.Dressing)
             {
                 if (piece.Name == CaveDress.Rail) rails++;
                 if (piece.Name == CaveDress.MineCart) carts++;
+                if (piece.Name == CaveDress.MineTimber) timber++;
                 if (!piece.Solid) continue;
                 for (int room = 0; room < plan.Rooms.Count; room++)
                 {
@@ -89,6 +119,8 @@ namespace Chopper.Tests.EditMode
             }
             Assert.AreEqual(plan.Links.Count, rails);
             Assert.AreEqual(1, carts);
+            Assert.AreEqual(0, timber, "chamber walls are stone relief, not a timber grid");
+            Assert.Greater(turned, plan.Rooms.Count * 4, "chamber corners are cut");
         }
     }
 }

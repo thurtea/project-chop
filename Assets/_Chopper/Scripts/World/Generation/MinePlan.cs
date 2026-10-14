@@ -157,6 +157,13 @@ namespace Chopper.World.Generation
 
         private static Vector3 Tangent(Vector2Int side) => new Vector3(side.y, 0f, -side.x);
 
+        private bool OnLadder(Vector3 local)
+        {
+            float along = Vector3.Dot(local, Normal(LadderSide));
+            float side = Vector3.Dot(local, Tangent(LadderSide));
+            return along > RoomSize * 0.5f - 2.2f && Mathf.Abs(side) < 1.4f;
+        }
+
         private static float YawOf(Vector3 direction) => Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
 
         private static Vector3 SizeOn(Vector2Int side, float thickness, float length, float height)
@@ -214,6 +221,13 @@ namespace Chopper.World.Generation
                         Add(mouth + t * s * (GalleryWidth * 0.5f + PostSize * 0.5f) + Vector3.up * (GalleryHeight * 0.5f), new Vector3(PostSize, GalleryHeight, PostSize), CryptMaterial.Timber);
                     Add(mouth + Vector3.up * (GalleryHeight + BeamDepth * 0.5f), SizeOn(side, PostSize, GalleryWidth + 2f * PostSize, BeamDepth), CryptMaterial.Timber);
                 }
+                int shellSeed = Index * 6151 + room * 503 + Mathf.RoundToInt(c.x);
+                CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
+                CaveShell.FloorRelief(Boxes, _group, c, RoomSize * 0.5f, shellSeed, 3.4f, 2.4f, local =>
+                    room == 0 && OnLadder(local));
+                CaveShell.WallRelief(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, side =>
+                    !SideOpen(room, side) && !(room == 0 && side == LadderSide));
+                CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
             }
 
             // Galleries fill only the gap between the chambers' outer wall faces, with a timber frame halfway along.
@@ -325,28 +339,11 @@ namespace Chopper.World.Generation
             {
                 var random = new System.Random(seed + room * 503);
                 Vector3 origin = RoomCenter(room);
-                const float bury = 0.08f;
-                float face = RoomSize * 0.5f + bury;
+                float face = RoomSize * 0.5f + 0.08f;
                 foreach (Vector2Int side in Directions)
                 {
-                    Vector3 n = Normal(side);
-                    bool ladder = room == 0 && side == LadderSide;
-                    if (SideOpen(room, side))
-                    {
-                        CaveDress.AddWall(Dressing, CaveDress.MineFrame, origin, n, face, 0f, 0f, false);
-                        float span = RoomSize * 0.5f - GalleryWidth * 0.5f;
-                        var scale = new Vector3(span / 3f, 1f, 1f);
-                        float along = GalleryWidth * 0.5f + span * 0.5f;
-                        foreach (float sign in new[] { 1f, -1f })
-                            CaveDress.AddWall(Dressing, CaveDress.MineTimber, origin, n, face, sign * along, 0f, true, false, scale);
-                        continue;
-                    }
-                    for (int i = 0; i < 5; i++)
-                    {
-                        float along = -6f + i * 3f;
-                        if (ladder && Mathf.Abs(along) < 1.6f) continue;
-                        CaveDress.AddWall(Dressing, CaveDress.MineTimber, origin, n, face, along, 0f, true);
-                    }
+                    if (!SideOpen(room, side)) continue;
+                    CaveDress.AddWall(Dressing, CaveDress.MineFrame, origin, Normal(side), face, 0f, 0f, false);
                 }
 
                 List<Vector2Int> solid = SolidSides(room);
@@ -355,7 +352,7 @@ namespace Chopper.World.Generation
                     Vector2Int oreSide = solid[random.Next(solid.Count)];
                     float oreSign = random.Next(2) == 0 ? 1f : -1f;
                     // Proud of the timber so the seam is not painted on the same plane.
-                    CaveDress.AddWall(Dressing, CaveDress.MineOre, origin, Normal(oreSide), RoomSize * 0.5f - 0.55f, 6.4f * oreSign, 1.25f, true);
+                    CaveDress.AddWall(Dressing, CaveDress.MineOre, origin, Normal(oreSide), RoomSize * 0.5f - 0.55f, 4.0f * oreSign, 1.25f, true);
                 }
 
                 int corner = random.Next(4);
