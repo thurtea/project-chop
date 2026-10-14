@@ -9,6 +9,7 @@ Shader "Chopper/VertexColorLit"
         _AmbientStrength ("Ambient Strength", Range(0, 2)) = 1
         _UseAtlas ("Use Atlas", Float) = 1
         _Wrap ("Wrap Light", Range(0, 1)) = 0.42
+        _Under ("Base Layer", Float) = 0
     }
 
     SubShader
@@ -22,6 +23,7 @@ Shader "Chopper/VertexColorLit"
             half _AmbientStrength;
             half _UseAtlas;
             half _Wrap;
+            half _Under;
         CBUFFER_END
         TEXTURE2D(_BaseMap);
         SAMPLER(sampler_BaseMap);
@@ -52,6 +54,7 @@ Shader "Chopper/VertexColorLit"
                 float4 positionOS : POSITION;
                 float3 normalOS   : NORMAL;
                 float2 uv         : TEXCOORD0;
+                float2 uv1        : TEXCOORD1;
                 half4  color      : COLOR;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -63,6 +66,7 @@ Shader "Chopper/VertexColorLit"
                 float3 normalWS   : TEXCOORD1;
                 half   fogFactor  : TEXCOORD2;
                 float2 uv         : TEXCOORD3;
+                float  under      : TEXCOORD4;
                 half4  color      : COLOR;
             };
 
@@ -76,13 +80,14 @@ Shader "Chopper/VertexColorLit"
                 o.normalWS = TransformObjectToWorldNormal(v.normalOS);
                 o.fogFactor = ComputeFogFactor(p.positionCS.z);
                 o.uv = v.uv;
+                o.under = v.uv1.x;
                 o.color = v.color;
                 return o;
             }
 
             half4 frag (Varyings i) : SV_Target
             {
-                half3 vc = i.color.rgb;
+                half3 vc = lerp(i.color.rgb, half3(i.uv.x, i.uv.y, i.under), _Under);
                 half3 tex = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
                 #if !defined(UNITY_COLORSPACE_GAMMA)
                 vc = SRGBToLinear(vc);

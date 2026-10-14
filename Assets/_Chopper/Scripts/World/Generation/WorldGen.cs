@@ -531,30 +531,52 @@ namespace Chopper.World.Generation
 
         public static float ShoreEdge(WaterBody body) => body.SurfaceRadius > 1f ? body.SurfaceRadius : body.Radius;
 
+        public const float FishingReach = 6f;
+        private const float FishingDepth = 0.4f;
+
+        public int FishableWaterAt(Vector2 p)
+        {
+            for (int i = 0; i < WaterBodies.Length; i++)
+            {
+                float shore = ShoreEdge(WaterBodies[i]) * 1.02f;
+                if ((p - WaterBodies[i].Center).sqrMagnitude < shore * shore && HeightAt(p.x, p.y) < WaterHeight - FishingDepth) return i;
+            }
+            return -1;
+        }
+
+        private bool NearestWater(Vector2 player, out Vector2 point, out int body)
+        {
+            for (float d = 0f; d <= FishingReach; d += 0.75f)
+            {
+                int steps = d < 0.1f ? 1 : 24;
+                for (int k = 0; k < steps; k++)
+                {
+                    float a = k * Mathf.PI * 2f / steps;
+                    point = player + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * d;
+                    body = FishableWaterAt(point);
+                    if (body >= 0) return true;
+                }
+            }
+            point = player;
+            body = -1;
+            return false;
+        }
+
         // True on a bank: the hub pond, a marsh pool, a forest lake, or the sea beach. The caller still rejects
         // swimming and the crypts.
         public bool TryFishingSpot(Vector2 player, out FishWater water, out Vector2 center, out float edge)
         {
+            if (NearestWater(player, out _, out int index))
+            {
+                WaterBody body = WaterBodies[index];
+                water = FishingWater(body);
+                center = body.Center;
+                edge = ShoreEdge(body);
+                return true;
+            }
             water = FishWater.Pond;
             center = PondCenter;
             edge = PondOuterRadius;
-            float best = float.MaxValue;
-            bool found = false;
-            foreach (WaterBody body in WaterBodies)
-            {
-                float shore = ShoreEdge(body);
-                float distance = Vector2.Distance(player, body.Center);
-                if (distance < shore * 0.82f || distance > shore + 4.5f) continue;
-                float score = Mathf.Abs(distance - shore);
-                if (score >= best) continue;
-                best = score;
-                found = true;
-                water = FishingWater(body);
-                center = body.Center;
-                edge = shore;
-            }
-            if (found) return true;
-
             float r = player.magnitude;
             if (r >= SeaInnerRadius - 16f && r <= SeaInnerRadius + 2f && !NearMountain(player, 8f))
             {
@@ -571,7 +593,7 @@ namespace Chopper.World.Generation
         {
             var player = new Vector2(playerPosition.x, playerPosition.z);
             var aim = new Vector2(target.x, target.z);
-            if (!TryFishingSpot(player, out FishWater water, out Vector2 center, out float edge))
+            if (!TryFishingSpot(player, out FishWater water, out _, out _))
             {
                 target.y = WaterHeight;
                 return target;
@@ -588,11 +610,18 @@ namespace Chopper.World.Generation
                 if (bob.magnitude > SeaInnerRadius + 22f) bob = bob.normalized * (SeaInnerRadius + 22f);
                 return new Vector3(bob.x, WaterHeight, bob.y);
             }
-            Vector2 offset = aim - center;
-            float limit = edge * 0.72f;
-            if (offset.sqrMagnitude < 0.01f || offset.magnitude > limit)
-                offset = (offset.sqrMagnitude > 0.01f ? offset.normalized : Vector2.right) * limit;
-            return new Vector3(center.x + offset.x, WaterHeight, center.y + offset.y);
+            NearestWater(player, out Vector2 nearest, out _);
+            Vector2 along = aim - player;
+            float reach = Mathf.Clamp(along.magnitude, 3f, 18f);
+            along = along.sqrMagnitude > 0.25f ? along.normalized : (nearest - player).normalized;
+            for (float d = reach; d >= 1f; d -= 0.5f)
+            {
+                Vector2 p = player + along * d;
+                if (FishableWaterAt(p) >= 0) return new Vector3(p.x, WaterHeight, p.y);
+            }
+            Vector2 into = (nearest - player).sqrMagnitude > 0.01f ? (nearest - player).normalized : Vector2.right;
+            Vector2 bobber = FishableWaterAt(nearest + into * 2f) >= 0 ? nearest + into * 2f : nearest;
+            return new Vector3(bobber.x, WaterHeight, bobber.y);
         }
 
         public bool InWater(Vector2 p, float radiusFraction)
@@ -851,8 +880,7 @@ namespace Chopper.World.Generation
             height += fire * ridge * ridge * 13f * rise;
             height += wind * (_swells.Sample(x * 0.0035f, z * 0.0035f) - 0.5f) * 2f * 14f;
 
-            // No dry pits below the water line: only lakes and pools go under it. Held through the beach, which only
-            // reaches its own height at BeachEndRadius, and through the passes, so the paths do not dip into a hollow.
+            // No dry pits below the water line: only lakes and pools go under it.
             float land = 1f - Smooth(BeachEndRadius - 8f, BeachEndRadius, r);
             float below = DryFloor - height;
             if (below > 0f)

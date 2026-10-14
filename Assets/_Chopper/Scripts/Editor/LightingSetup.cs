@@ -116,7 +116,6 @@ namespace Chopper.Editor
             color.contrast.Override(0f);
             color.saturation.Override(-8f);
 
-            // Warm highlights; shadows stay neutral so dark browns do not turn maroon under the day desaturation.
             var smh = AddComponent<ShadowsMidtonesHighlights>(profile);
             smh.shadows.Override(new Vector4(1f, 1f, 1f, 0f));
             smh.highlights.Override(new Vector4(1.10f, 1.02f, 0.88f, 0.05f));

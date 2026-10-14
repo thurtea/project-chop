@@ -106,12 +106,11 @@ namespace Chopper.UI
             return null;
         }
 
-        // Title music, only when a music-title recording is present in Resources/Audio.
         private void UpdateMusic()
         {
             if (_music == null)
             {
-                AudioClip[] clips = Chopper.Audio.SoundBank.All("music-title");
+                AudioClip[] clips = Chopper.Audio.SoundBank.All("music-night-1");
                 if (clips.Length == 0) return;
                 _music = gameObject.AddComponent<AudioSource>();
                 _music.clip = clips[0];
@@ -120,7 +119,7 @@ namespace Chopper.UI
                 _music.volume = 0f;
                 _music.Play();
             }
-            float target = _shown ? UserSettings.MusicVolume * 0.5f : 0f;
+            float target = _shown ? UserSettings.MusicVolume * 0.9f : 0f;
             _music.volume = Mathf.MoveTowards(_music.volume, target, Time.unscaledDeltaTime * 0.5f);
         }
 

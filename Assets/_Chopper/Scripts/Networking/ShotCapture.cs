@@ -688,7 +688,6 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(4f);
                 ui.DebugShow(0);
                 GameUi.HudHidden = true;
-                // Open ground in front of the hut ((0, 9) is under the porch roof)
                 yield return TeleportLocalPlayer(new Vector2(6f, 15f), 0f);
                 PlayerCamera armourCam = wood.GetComponent<PlayerCamera>();
                 armourCam.DebugSetDistance(3.2f);
@@ -857,7 +856,6 @@ namespace Chopper.Networking
                     Debug.developerConsoleVisible = false;
                     yield return Shot(folder, v.name);
                 }
-                // The model sheet's dressed look in midday light: no helmet or shield, front and three-quarter.
                 wood.GetComponent<PlayerUpgrades>().ServerLoadOutfit(0, false);
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.45f);
                 (float body, float camYaw, string name)[] sheetViews =
@@ -1332,7 +1330,7 @@ namespace Chopper.Networking
                         if (stillFor >= 0.25f && stillFor - Time.deltaTime < 0.25f)
                         {
                             freezes++;
-                            Debug.Log($"[Move] FREEZE {leg.label}: stopped at {now:F1} with the stick held");
+                            Debug.Log($"[Move] FREEZE {leg.label}: stopped at {now:F1} with the stick held; ui blocked {UiState.GameplayBlocked}, fishing {wood.GetComponent<PlayerFishing>().Busy}, swimming {wood.GetComponent<PlayerMotor>().IsSwimming}, down {wood.GetComponent<PlayerHealth>().IsDown}, controller {wood.GetComponent<CharacterController>().enabled}");
                             var freezeColumns = Chopper.World.Voxel.VoxelColumns.Current;
                             if (freezeColumns != null)
                             {

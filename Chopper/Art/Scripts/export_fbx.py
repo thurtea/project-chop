@@ -78,6 +78,8 @@ def smooth_forms():
     limit = math.radians(55.0)
     for name in PARTS:
         me = bpy.data.objects[name].data
+        if "UnderRG" in me.uv_layers:
+            continue
         bm = bmesh.new()
         bm.from_mesh(me)
         bm.normal_update()

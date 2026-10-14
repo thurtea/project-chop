@@ -652,7 +652,7 @@ namespace Chopper.Player
             Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
             if (gen == null) return true;
             if (_serverWater == FishWater.Sea) return p.magnitude > Chopper.World.Generation.WorldGen.SeaInnerRadius + 3f;
-            return gen.InWater(p, 0.85f);
+            return gen.FishableWaterAt(p) >= 0;
         }
 
         [ServerRpc]

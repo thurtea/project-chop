@@ -11,8 +11,7 @@ using UnityEngine;
 namespace Chopper.Editor
 {
     // Batch: Chopper.Editor.PlacementMap.Draw. A top-down picture of what the generator puts in the world for seeds
-    // 1337 and 4242: ground, water, dry hollows below the water line (orange), paths, trees by size, rocks, plants,
-    // branches, crypts and mines.
+    // 1337 and 4242: ground, water, paths, trees by size, rocks, plants, branches, crypts and mines.
     // Writes Logs/homework/placement-<seed>.png and logs counts per zone.
     public static class PlacementMap
     {
@@ -34,7 +33,6 @@ namespace Chopper.Editor
             VoxelColumns columns = VoxelColumns.Build(gen);
             var tex = new Texture2D(Size, Size, TextureFormat.RGB24, false);
             var pixels = new Color32[Size * Size];
-            // Dry hollows: ground below the water line with no water surface over it, in m2 by where they lie.
             float px2 = (2f * Half / Size) * (2f * Half / Size);
             float dryHub = 0f, dryRing = 0f, dryPass = 0f, dryForest = 0f;
             for (int py = 0; py < Size; py++)
@@ -139,7 +137,6 @@ namespace Chopper.Editor
             Debug.Log(cov.ToString());
         }
 
-        // Under a pool's swimmable surface or out at sea.
         static bool Wet(WorldGen gen, float x, float z)
         {
             if (x * x + z * z > WorldGen.BeachStartRadius * WorldGen.BeachStartRadius) return true;

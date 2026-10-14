@@ -39,7 +39,7 @@ def atlas_materials():
     img = bpy.data.images.load(ATLAS)
     img.colorspace_settings.name = "sRGB"
     for mat in bpy.data.materials:
-        if not mat.name.startswith("M_Chopper"):  # appended props come in as M_Chopper_Gear.001
+        if not mat.name.startswith("M_Chopper"):
             continue
         mat.use_nodes = True
         nt = mat.node_tree

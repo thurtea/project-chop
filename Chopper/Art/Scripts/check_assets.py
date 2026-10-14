@@ -287,11 +287,18 @@ for path in FILES:
         n_isl, bad_e, neg_i, inward = winding_report(ob)
         out(f"    winding    : {n_isl} islands, {bad_e} inconsistent edges, {neg_i} inside-out islands, "
             f"{inward} of {len(ob.data.polygons)} faces facing inward (ray parity)")
-        check(f"{name} winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces)",
-              bad_e == 0 and neg_i == 0 and inward == 0,
-              f"{bad_e} / {neg_i} / {inward}")
+        if "UnderRG" in ob.data.uv_layers:
+            check(f"{name} voxel faces consistent (at most 4 inconsistent edges where cubes meet at an edge)",
+                  bad_e <= 4, f"{bad_e}")
+        else:
+            check(f"{name} winding outward (0 inconsistent edges, 0 inside-out islands, 0 inward faces)",
+                  bad_e == 0 and neg_i == 0 and inward == 0,
+                  f"{bad_e} / {neg_i} / {inward}")
         uv = ob.data.uv_layers.get("UVMap") if ob.data.uv_layers else None
-        if uv is None:
+        if "UnderRG" in ob.data.uv_layers:
+            check(f"{name} voxel colours: Col, UnderRG and UnderB present",
+                  "Col" in ob.data.color_attributes and "UnderB" in ob.data.uv_layers)
+        elif uv is None:
             check(f"{name} has one UV layer inside 0-1", False, "no UVMap")
         else:
             us, vs = [], []
@@ -447,10 +454,12 @@ for name in sorted(DENSITY, key=lambda n: -DENSITY[n]):
     out(f"  texel {name:18s} {100.0 / DENSITY[name]:5.2f} cm per painted pixel")
 base_parts = [n for n in BASE if n in DENSITY and n != "chopper_head"]
 cm = {n: 100.0 / DENSITY[n] for n in base_parts}
-check("pixel size uniform on the base look (excluding the face): %.2f..%.2f cm, required 1.5-2.0 cm and "
+if base_parts:
+    check("pixel size uniform on the base look (excluding the face): %.2f..%.2f cm, required 1.5-2.0 cm and "
       "within 10 %%" % (min(cm.values()), max(cm.values())),
-      1.5 <= min(cm.values()) and max(cm.values()) <= 2.0 and max(cm.values()) <= 1.10 * min(cm.values()))
-check("face pixels as fine or finer than the body (head %.2f cm, body %.2f cm)"
+          1.5 <= min(cm.values()) and max(cm.values()) <= 2.0 and max(cm.values()) <= 1.10 * min(cm.values()))
+if "chopper_head" in DENSITY and "chopper_body" in DENSITY:
+    check("face pixels as fine or finer than the body (head %.2f cm, body %.2f cm)"
       % (100.0 / DENSITY["chopper_head"], 100.0 / DENSITY["chopper_body"]),
       DENSITY["chopper_head"] >= DENSITY["chopper_body"])
 

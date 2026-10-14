@@ -72,6 +72,7 @@ namespace Chopper.Player
         private Vector3 _horizontalVelocity;
         private float _wetSeconds;
         private bool _swimming;
+        private const float SwimEntryDepth = 0.3f;
         private float _mantleUntil;
 
         // Owner only. Seconds of Wet left (WetRules): 0 is dry.
@@ -301,8 +302,8 @@ namespace Chopper.Player
             float waterDepth = WaterSystem.DepthAt(transform.position, out float surfaceY);
             // Only in the water, not anywhere over it: the arrival drop (W9-01) falls 22 m into the pond, and over deep
             // water the swim buoyancy used to catch the player in mid air and lower them slowly.
-            if (waterDepth > 0f && transform.position.y > surfaceY + WaterSystem.SurfaceReach) waterDepth = 0f;
-            bool swimming = waterDepth >= WaterSystem.SwimDepth;
+            if (waterDepth > 0f && transform.position.y > surfaceY + (_swimming ? WaterSystem.SurfaceReach : 0f)) waterDepth = 0f;
+            bool swimming = waterDepth >= WaterSystem.SwimDepth && (_swimming || transform.position.y <= surfaceY - SwimEntryDepth);
             bool wading = !swimming && waterDepth >= WaterSystem.WadeDepth;
             _swimming = swimming;
             UpdateWet(waterDepth);

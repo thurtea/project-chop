@@ -476,8 +476,15 @@ def write_under_atlas(buf, layout, D):
     bpy.data.images.remove(img)
 
 
+def atlas_objects():
+    bpy.ops.wm.open_mainfile(filepath=CHAR)
+    return [n for n in CHAR_OBJECTS if "UnderRG" not in bpy.data.objects[n].data.uv_layers]
+
+
 def main():
     os.makedirs(TEX, exist_ok=True)
+    CHAR_OBJECTS[:] = atlas_objects()
+    UNDER_OBJECTS[:] = [n for n in UNDER_OBJECTS if n in CHAR_OBJECTS]
     layout = []
     collect(CHAR, CHAR_OBJECTS, layout)
     collect(PROPS, PROP_OBJECTS, layout)
@@ -508,7 +515,15 @@ def main():
     img.save()
     bpy.data.images.remove(img)
     report.append("wrote " + ATLAS)
-    write_under_atlas(buf, layout, D)
+    if UNDER_OBJECTS:
+        write_under_atlas(buf, layout, D)
+    else:
+        img = bpy.data.images.new("chopper_atlas_under", SIZE, SIZE, alpha=False)
+        img.pixels.foreach_set(out.ravel())
+        img.filepath_raw = UNDER_ATLAS
+        img.file_format = "PNG"
+        img.save()
+        bpy.data.images.remove(img)
     report.append("wrote " + UNDER_ATLAS)
     text = "\n".join(report) + "\n"
     with open(TILES_TXT, "w", encoding="utf-8") as fh:

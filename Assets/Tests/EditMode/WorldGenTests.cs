@@ -76,7 +76,10 @@ namespace Chopper.Tests.EditMode
                     Vector2 outward = body.Center.sqrMagnitude > 1f ? body.Center.normalized : Vector2.right;
                     Vector2 bank = body.Center + outward * (body.SurfaceRadius + 2f);
                     Assert.Greater(gen.HeightAt(bank.x, bank.y), WorldGen.WaterHeight + 0.25f, $"seed {seed}: {zone} bank is under water");
-                    Assert.IsTrue(gen.TryFishingSpot(bank, out FishWater water, out _, out _), $"seed {seed}: {zone} bank is not a fishing spot");
+                    float waterline = 0f;
+                    while (waterline < body.Radius && gen.HeightAt(body.Center.x + outward.x * waterline, body.Center.y + outward.y * waterline) < WorldGen.WaterHeight) waterline += 0.25f;
+                    Vector2 shore = body.Center + outward * (waterline + 1.5f);
+                    Assert.IsTrue(gen.TryFishingSpot(shore, out FishWater water, out _, out _), $"seed {seed}: {zone} shore is not a fishing spot");
                     Assert.AreEqual(FishingRules.FromElement(zone), water);
                     Vector2 ramp = body.Center + outward * (body.Radius * 0.75f);
                     Assert.Less(gen.SlopeAt(ramp.x, ramp.y, 1f), 1f, $"seed {seed}: {zone} shore is steeper than 45 degrees");
@@ -86,7 +89,9 @@ namespace Chopper.Tests.EditMode
             }
 
             var pondWorld = new WorldGen(4242, HubRadius);
-            Vector2 pondBank = pondWorld.PondCenter + Vector2.right * (WorldGen.PondOuterRadius + 1.5f);
+            float pondLine = 0f;
+            while (pondLine < WorldGen.PondOuterRadius && pondWorld.HeightAt(pondWorld.PondCenter.x + pondLine, pondWorld.PondCenter.y) < WorldGen.WaterHeight) pondLine += 0.25f;
+            Vector2 pondBank = pondWorld.PondCenter + Vector2.right * (pondLine + 1.5f);
             Assert.IsTrue(pondWorld.TryFishingSpot(pondBank, out FishWater pond, out _, out _));
             Assert.AreEqual(FishWater.Pond, pond);
             Vector2 beach = Vector2.up * (WorldGen.SeaInnerRadius - 6f);

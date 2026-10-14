@@ -16,6 +16,7 @@ namespace Chopper.Player
         private static readonly string[] BaseLayerParts = { "chopper_shirt", "chopper_body", "chopper_boots" };
         private const string BaseLayerAtlas = "Character/chopper_atlas_under";
         private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
+        private static readonly int UnderId = Shader.PropertyToID("_Under");
         private static Texture2D _baseLayer;
 
         private readonly List<Renderer> _armour = new List<Renderer>();
@@ -69,9 +70,9 @@ namespace Chopper.Player
                     Material material = renderer.sharedMaterials[i];
                     Texture own = material != null && material.HasProperty(BaseMapId) ? material.GetTexture(BaseMapId) : null;
                     Texture wanted = dressed || _baseLayer == null ? own : _baseLayer;
-                    if (wanted == null) continue;
                     renderer.GetPropertyBlock(_block, i);
-                    _block.SetTexture(BaseMapId, wanted);
+                    _block.SetFloat(UnderId, dressed ? 0f : 1f);
+                    if (wanted != null) _block.SetTexture(BaseMapId, wanted);
                     renderer.SetPropertyBlock(_block, i);
                 }
             }

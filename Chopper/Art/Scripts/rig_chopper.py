@@ -12,6 +12,7 @@ Weights are assigned explicitly from one smooth weight field per body region
 (torso, arm, leg, head). Clothing islands use the same field as the body part they
 cover, so the layers stay apart when the joints bend. No automatic weights.
 """
+import json
 import math
 import os
 
@@ -22,6 +23,7 @@ from mathutils import Matrix, Vector
 ART = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 SRC = os.path.join(ART, "Blender", "chopper_character.blend")
 OUT = os.path.join(ART, "Blender", "chopper_rigged.blend")
+JOINTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chopper_joints.json")
 
 PARTS = ["chopper_body", "chopper_head", "chopper_beard", "chopper_hair", "chopper_shirt",
          "chopper_vest", "chopper_belt", "chopper_bracers", "chopper_chainmail", "chopper_boots",
@@ -105,8 +107,8 @@ def measure(body):
     for idx in arms:
         rc = ring_centroids(me, idx)
         arm_rings = rc[:12]                     # ARM table rows (t = -0.05 .. 0.575)
-        c, d = fit_line(arm_rings)
-        S = arm_rings[2]                        # t = 0.00 ring = shoulder joint
+        c, d = fit_line(arm_rings[4:])
+        S = c + d * (arm_rings[2] - c).dot(d)  # t = 0.00 ring = shoulder joint
         side = "Left" if S.x > 0 else "Right"
         hand_tip = rc[-1]
         info[side + "Arm"] = dict(S=S, d=d, tip=(hand_tip - S).dot(d))
@@ -168,7 +170,7 @@ def socket_matrices(info):
     out = {}
     # Weapon_R: grip centre of the right fist. Axe: +Z haft (toward the head), X blades, Y thickness.
     S, d, v, palm = arm_frame(info, "Right")
-    grip = S + d * 0.685 + palm * 0.006
+    grip = S + d * 0.70 + palm * 0.006
     # haft runs across the fist (thumb side = front), cocked 30 deg up toward the elbow;
     # the "up" part leans 30 deg outward (wrist extension) so the head clears the hip.
     up = (-d * math.cos(math.radians(30)) - palm * math.sin(math.radians(30))).normalized()
@@ -458,10 +460,75 @@ def fix_inverted_islands(log):
         bm.free()
 
 
+def build_armature_from_joints(path):
+    joints = json.load(open(path))
+    arm_data = bpy.data.armatures.new(RIG)
+    arm_data.display_type = "OCTAHEDRAL"
+    rig = bpy.data.objects.new(RIG, arm_data)
+    bpy.context.scene.collection.objects.link(rig)
+    rig.show_in_front = True
+    bpy.context.view_layer.objects.active = rig
+    rig.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    eb = arm_data.edit_bones
+    for name, j in joints.items():
+        b = eb.new(name)
+        b.head, b.tail = Vector(j["head"]), Vector(j["tail"])
+        b.align_roll(Vector(j["roll_z"]))
+        b.use_deform = j["deform"]
+    for name, j in joints.items():
+        if j["parent"]:
+            b = eb[name]
+            b.parent = eb[j["parent"]]
+            b.use_connect = ((eb[j["parent"]].tail - b.head).length < 1e-6 and j["deform"]
+                             and name not in ("LeftUpperLeg", "RightUpperLeg"))
+    bpy.ops.object.mode_set(mode="OBJECT")
+    for pb in rig.pose.bones:
+        pb.rotation_mode = "QUATERNION"
+    info = {}
+    for side in ("Left", "Right"):
+        S = Vector(joints[side + "UpperArm"]["head"])
+        d = (Vector(joints[side + "LowerArm"]["head"]) - S).normalized()
+        info[side + "Arm"] = dict(S=S, d=d, tip=(Vector(joints[side + "Hand"]["tail"]) - S).dot(d))
+    return rig, info
+
+
+def attach(rig, ob):
+    ob.parent = rig
+    ob.parent_type = "OBJECT"
+    ob.matrix_parent_inverse = Matrix.Identity(4)
+    mod = ob.modifiers.new("Armature", "ARMATURE")
+    mod.object = rig
+    mod.use_vertex_groups = True
+    mod.use_deform_preserve_volume = False
+
+
+def main_voxel():
+    rig, info = build_armature_from_joints(JOINTS)
+    log = ["chopper_rig build log (voxel, joints from chopper_joints.json)"]
+    voxel = [n for n in PARTS if "UnderRG" in bpy.data.objects[n].data.uv_layers]
+    for name in voxel:
+        ob = bpy.data.objects[name]
+        attach(rig, ob)
+        log.append("  %-18s verts=%5d (weights from the voxel build)" % (name, len(ob.data.vertices)))
+    rest = [n for n in PARTS if n not in voxel]
+    saved = PARTS[:]
+    PARTS[:] = rest
+    skin(rig, info, log)
+    PARTS[:] = saved
+    print("\n".join(log))
+    bpy.context.preferences.filepaths.save_version = 0
+    bpy.ops.wm.save_as_mainfile(filepath=OUT)
+    print("saved", OUT)
+
+
 def main():
     bpy.ops.wm.open_mainfile(filepath=SRC)
     scene = bpy.context.scene
     scene.render.fps = 30
+    if "UnderRG" in bpy.data.objects["chopper_body"].data.uv_layers:
+        main_voxel()
+        return
     body = bpy.data.objects["chopper_body"]
     info = measure(body)
     log = ["chopper_rig build log", "mesh winding:"]

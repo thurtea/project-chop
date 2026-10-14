@@ -974,7 +974,7 @@ namespace Chopper.Editor
         {
             var shader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/_Chopper/Shaders/ChopperVertexColorLit.shader");
             var atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(ChopperAtlasPath);
-            Material Body(string matName)
+            Material Body(string matName, bool useAtlas)
             {
                 string path = "Assets/_Chopper/Materials/Character/" + matName + ".mat";
                 var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -984,13 +984,13 @@ namespace Chopper.Editor
                     AssetDatabase.CreateAsset(mat, path);
                 }
                 mat.shader = shader;
-                mat.SetFloat("_UseAtlas", 1f);
+                mat.SetFloat("_UseAtlas", useAtlas ? 1f : 0f);
                 mat.SetTexture("_BaseMap", atlas);
                 mat.SetColor("_BaseColor", Color.white);
                 return mat;
             }
-            Material body = Body("M_Chopper");
-            Material gear = Body("M_Chopper_Gear");
+            Material body = Body("M_Chopper", true);
+            Material gear = Body("M_Chopper_Gear", true);
             foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
             {
                 bool gearPart = renderer.gameObject.name is "chopper_helmet" or "chopper_plate" or "chopper_pauldrons";

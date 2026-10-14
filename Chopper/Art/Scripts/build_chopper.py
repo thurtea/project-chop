@@ -124,10 +124,10 @@ def build_body(mat):
         return PAL["trousers"] if p.z < 0.87 else None
 
     # torso + neck, open at the top (inside the head)
-    mb.ztube(0, 0, TORSO, cs=2, bevel=0.035, cap1=False, color=PAL["skin"], color_fn=torso_color)
+    mb.ztube(0, 0, TORSO, cs=2, bevel=0.065, cap1=False, color=PAL["skin"], color_fn=torso_color)
     # legs (trousers), open at the top (inside the pelvis)
     for s in (-1, 1):
-        mb.ztube(s * LEG_X, 0, LEG, cs=2, bevel=0.03, cap1=False, color=PAL["trousers"])
+        mb.ztube(s * LEG_X, 0, LEG, cs=2, bevel=0.045, cap1=False, color=PAL["trousers"])
     # arms + hands as one tube each
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
@@ -270,8 +270,8 @@ BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~
 
 
 HAIR_BLOCKS = [  # (centre, size); the head is x +-0.170, y -0.182..0.162, z 1.41..1.72
-    ((0, 0.000, 1.735), (0.410, 0.350, 0.060)),      # crown, wider than the head at the temples
-    ((0, 0.005, 1.772), (0.320, 0.300, 0.040)),      # stepped in above it, so the top reads domed
+    ((0, 0.000, 1.735), (0.410, 0.350, 0.060)),      # crown
+    ((0, 0.005, 1.772), (0.320, 0.300, 0.040)),
     ((0, -0.150, 1.745), (0.360, 0.080, 0.060)),     # swept-back roll above the forehead
     ((0, 0.165, 1.600), (0.400, 0.110, 0.300)),      # back, down to the neck
 ]
@@ -295,8 +295,8 @@ def build_hair(mat):
     for x, z, h in ROLL_LOCKS:
         mb.box((x, -0.178, z), (0.110, 0.050, h), 0.010, color=G)
     for s in (-1, 1):
-        mb.box((s * 0.196, 0.030, 1.570), (0.058, 0.280, 0.270), 0.014, color=G)   # over the ears to the jaw
-        mb.box((s * 0.200, 0.060, 1.470), (0.050, 0.200, 0.080), 0.012, color=D)   # lower locks
+        mb.box((s * 0.196, 0.030, 1.570), (0.058, 0.280, 0.270), 0.014, color=G)
+        mb.box((s * 0.200, 0.060, 1.470), (0.050, 0.200, 0.080), 0.012, color=D)
     for x, z0 in BACK_LOCKS:
         mb.box((x, 0.1775, (z0 + 1.52) / 2), (0.085, 0.095, 1.52 - z0), 0.010, color=D)
     return mb.finish(mat)
@@ -311,7 +311,7 @@ SHIRT = [
 
 def build_shirt(mat):
     mb = L.MeshBuilder("chopper_shirt")
-    mb.ztube(0, 0, SHIRT, cs=2, bevel=0.035, cap0=False, cap1=False, color=PAL["shirt"],
+    mb.ztube(0, 0, SHIRT, cs=2, bevel=0.065, cap0=False, cap1=False, color=PAL["shirt"],
              color_fn=lambda p: PAL["shirt_dark"] if p.z < 0.558 or p.z > 1.385 else None)
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
@@ -351,7 +351,7 @@ def build_vest(mat):
             return PAL["patch"]
         return None
 
-    mb.ztube(0, 0, VEST, cs=2, bevel=0.04, cap0=False, cap1=False, color=PAL["vest"], color_fn=vest_color)
+    mb.ztube(0, 0, VEST, cs=2, bevel=0.07, cap0=False, cap1=False, color=PAL["vest"], color_fn=vest_color)
 
     # diagonal strap: character's right shoulder (-X) to left hip (+X), front and back
     def surf_y(x, z, side):
@@ -368,7 +368,7 @@ def build_vest(mat):
             (-0.19, 0.175, 1.36)]
     mb.path_strip(over, [(0, -0.7, 0.7), (0, -0.4, 0.9), (0, 0, 1), (0, 0.4, 0.9), (0, 0.7, 0.7)],
                   0.056, 0.006, PAL["leather_dark"], cs=1, bevel=0.003)
-    # square ring buckle on the chest (open frame, the strap shows through)
+    # strap buckle on the chest
     ang = math.atan2(1.30 - 0.905, -0.19 - 0.25)
     rot = Matrix.Rotation(-ang, 3, "Y")
     cx, cz = 0.03, 1.10
@@ -383,7 +383,7 @@ def build_vest(mat):
 def build_belt(mat):
     mb = L.MeshBuilder("chopper_belt")
     belt = [(0.800, 0.268, 0.180), (0.805, 0.282, 0.194), (0.895, 0.282, 0.194), (0.900, 0.262, 0.180)]
-    mb.ztube(0, 0, belt, cs=2, bevel=0.04, cap0=False, cap1=False, color=PAL["leather_dark"])
+    mb.ztube(0, 0, belt, cs=2, bevel=0.07, cap0=False, cap1=False, color=PAL["leather_dark"])
     # buckle, keeper, hanging tongue
     mb.box((0, -0.204, 0.85), (0.115, 0.026, 0.105), 0.01, color=PAL["steel"])
     mb.box((0.10, -0.200, 0.85), (0.035, 0.02, 0.10), 0.006, color=PAL["vest"])
@@ -418,8 +418,8 @@ def build_chainmail(mat):
              (0.80, 0.266, 0.180), (0.87, 0.258, 0.172)]
     split_below = 0.70  # front slit from the hem up to here
     gap = 0.022
-    rings_o = [(Vector((0, 0, z)), X, Y, hw, hd, 0.04) for z, hw, hd in outer]
-    rings_i = [(Vector((0, 0, z)), X, Y, hw - 0.011, hd - 0.011, 0.03) for z, hw, hd in outer]
+    rings_o = [(Vector((0, 0, z)), X, Y, hw, hd, 0.07) for z, hw, hd in outer]
+    rings_i = [(Vector((0, 0, z)), X, Y, hw - 0.011, hd - 0.011, 0.06) for z, hw, hd in outer]
     skip = lambda i: outer[i + 1][0] <= split_below + 1e-6  # noqa: E731
     vo, fo = mb.tube(rings_o, cs=2, gap=gap, cap0=False, cap1=False, color=PAL["chain"], skip=skip)
     vi, fi = mb.tube(rings_i, cs=2, gap=gap, cap0=False, cap1=False, color=PAL["chain"], skip=skip)
@@ -441,7 +441,6 @@ def build_chainmail(mat):
 
 
 def build_boots(mat):
-    """Short chunky boots with a cuff, a shin strap and a thick wrap under the knee (model sheet)."""
     mb = L.MeshBuilder("chopper_boots")
 
     def band(x0, z0, z1, extra, color, bevel=0.012):
@@ -454,12 +453,12 @@ def build_boots(mat):
     for s in (-1, 1):
         x0 = s * LEG_X
         shaft = [(z, interp(LEG, z, 1) + 0.016, interp(LEG, z, 2) + 0.016) for z in (0.05, 0.10, 0.14, 0.17, 0.19)]
-        mb.ztube(x0, 0, shaft, cs=2, bevel=0.03, cap0=False, cap1=False, color=PAL["boot"])
+        mb.ztube(x0, 0, shaft, cs=2, bevel=0.045, cap0=False, cap1=False, color=PAL["boot"])
         cuff = [(z, interp(LEG, z, 1) + flare, interp(LEG, z, 2) + flare * 0.45)
                 for z, flare in ((0.120, 0.014), (0.145, 0.022), (0.175, 0.027), (0.195, 0.020))]
         mb.ztube(x0, 0, cuff, cs=2, bevel=0.010, cap0=False, cap1=False, color=PAL["boot"],
                  color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.180 else None)
-        # foot, as a tube running heel -> toe (axis -Y), with a raised toe cap
+        # foot, as a tube running heel -> toe (axis -Y)
         w = -Y
         v = Z
         u = v.cross(w)
@@ -578,11 +577,11 @@ def build_pauldrons(mat):
 # Concept 2.0 bulk: a smooth warp over every part, so garments keep their layering. Horizontal scale by height
 # (x, y), and the arms move out with the shoulders and thicken around their own axis.
 BULK = [  # (z, kx, ky)
-    (0.00, 1.18, 1.10), (0.80, 1.18, 1.12), (0.95, 1.16, 1.12), (1.05, 1.24, 1.15),
-    (1.27, 1.30, 1.16), (1.36, 1.18, 1.10), (1.42, 1.0, 1.0), (2.50, 1.0, 1.0),
+    (0.00, 1.18, 1.10), (0.80, 1.18, 1.12), (0.95, 1.12, 1.12), (1.05, 1.14, 1.15),
+    (1.27, 1.18, 1.16), (1.36, 1.12, 1.10), (1.42, 1.0, 1.0), (2.50, 1.0, 1.0),
 ]
 ARM_THICK = [(0.0, 1.40), (0.10, 1.30), (0.25, 1.26), (0.40, 1.12), (1.0, 1.10)]  # (t along the arm, radial scale)
-SHOULDER_OUT = SHOULDER[0] * (1.30 - 1.0)
+SHOULDER_OUT = 0.13
 
 
 def bulk_point(p):

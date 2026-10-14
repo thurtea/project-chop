@@ -127,8 +127,8 @@ def bear_blade_outline():
     the haft length so Z stays the long axis."""
     return [(0.058, 0.615), (0.150, 0.645), (0.250, 0.680), (0.345, 0.725),   # top edge -> spike
             (0.375, 0.655), (0.398, 0.555), (0.398, 0.455), (0.380, 0.365),   # cutting edge
-            (0.350, 0.300), (0.310, 0.262), (0.270, 0.300),                     # hooked beard tip
-            (0.200, 0.395), (0.125, 0.470), (0.058, 0.525)]                    # concave underside to a narrow neck
+            (0.350, 0.300), (0.310, 0.262), (0.270, 0.300),                     # beard tip
+            (0.200, 0.395), (0.125, 0.470), (0.058, 0.525)]                    # beard underside
 
 
 # warm carved wood (concept 1.5 haft is lighter and warmer than the double axe's)
@@ -210,9 +210,9 @@ def build_axe_bear(mat):
 
 # ------------------------------------------------------------------ shield
 SH_W = 0.65
-SH_TOP = 0.40
+SH_TOP = 0.36
 SH_BOT = -0.55
-SH_SIDE = SH_TOP - 0.95 * 0.45      # where the straight sides end
+SH_SIDE = -0.0275                   # where the straight sides end
 SH_CHAMFER = 0.055
 SH_CURVE = 0.04 / (SH_W / 2) ** 2   # edges sit 4 cm behind the centre
 

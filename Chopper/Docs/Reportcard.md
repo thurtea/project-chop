@@ -12,32 +12,32 @@ The **Automatic checks** section is written by `Tools\playtest.ps1`; do not edit
 <!-- playtest:start -->
 ## Automatic checks
 
-Filled by `Tools\playtest.ps1` on 2026-10-14 00:39 (11 min). Do not edit by hand; run the script again.
+Filled by `Tools\playtest.ps1` on 2026-10-14 02:08 (12 min). Do not edit by hand; run the script again.
 
 | ID | Check | Status | Printed line | Log |
 |---|---|---|---|---|
 | A1 | Art: check_assets and check_rig | PASS | `check_assets: SUMMARY: 137 PASS, 0 FAIL -> ALL PASS / check_rig: SUMMARY: 217 PASS, 0 FAIL -> ALL PASS` | `` |
-| A2 | KayKit strike and flinch clips import | PASS | `[KayKit] RESULT PASS` | `Logs\homework\unity-KayKitImport_Apply-1014-0028.log` |
-| A3 | Player prefab rebuild | PASS | `Exiting batchmode successfully now!` | `Logs\homework\player-1014-0028.log` |
-| A4 | Zones sealed, passes open | PASS | `[ZoneSeal] RESULT PASS` | `Logs\homework\unity-VoxelChecks_ZoneSeal-1014-0029.log` |
-| A5 | Crypt and mine doors reachable on foot | PASS | `[Entrances] RESULT PASS` | `Logs\homework\unity-VoxelChecks_EntranceReach-1014-0029.log` |
-| A6 | EditMode unit tests | PASS | `EditMode: Passed - total 302, passed 302, failed 0` | `Logs\homework\editmode-1014-0029.log` |
-| A7 | Dev build | PASS | `Build Finished, Result: Success.` | `Logs\homework\build-1014-0029.log` |
-| T1 | Title screen | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Title-1014-0030` | `Logs\homework\tour-Title-1014-0030.log` |
-| T2 | Arrival: drop into the pond, kit on the bank | PASS | `[Arrival] RESULT PASS` | `Logs\homework\tour-Arrival-1014-0030.log` |
-| T3 | Swimming | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Swim-1014-0031` | `Logs\homework\tour-Swim-1014-0031.log` |
-| T4 | Double jump with the flip | PASS | `[DoubleJump] RESULT PASS` | `Logs\homework\tour-DoubleJump-1014-0031.log` |
-| T5 | Axe combo (KayKit strikes) | PASS | `[Combo] RESULT PASS (6 of 6 swings playing a strike on the Chop layer)` | `Logs\homework\tour-Combo-1014-0032.log` |
-| T6 | Combat: enemy engages, staggers, falls; group takes turns | PASS | `[Combat] RESULT PASS (engaged True, staggered True, down True, group True)` | `Logs\homework\tour-Combat-1014-0032.log` |
-| T7 | Block guard | PASS | `[Guard] RESULT PASS no spin (largest body turn in one straight move 80 degrees, axe wobble standing still 3.3 degrees, upper body drift standing still 0.1 degrees)` | `Logs\homework\tour-GuardTest-1014-0033.log` |
-| T8 | Armour kit | PASS | `[Armour] RESULT PASS` | `Logs\homework\tour-Armour-1014-0034.log` |
-| T9 | Movement: no teleports or freezes | PASS | `[Move] RESULT host teleports 0, freezes 3, speed check snap backs 0, biggest step 0.08 m` | `Logs\homework\tour-MoveTest-1014-0034.log` |
-| T10 | Block ground and building rules | PASS | `[BlockGround] RESULT PASS (feet checked 5, worst 0.080 m; trees off 0; climbed out of the pond True; building True)` | `Logs\homework\tour-BlockGround-1014-0035.log` |
-| T11 | Hut: floors, stairs, enemies can leave | PASS | `[House] RESULT PASS` | `Logs\homework\tour-House-1014-0036.log` |
-| T12 | Mine: portal, veins, ladder out | PASS | `[Mine] RESULT PASS (out by the ladder)` | `Logs\homework\tour-Mine-1014-0036.log` |
-| T13 | Crypt: door, rooms, vault | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Crypt-1014-0037` | `Logs\homework\tour-Crypt-1014-0037.log` |
-| T14 | Fishing | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Fishing-1014-0038` | `Logs\homework\tour-Fishing-1014-0038.log` |
-| T15 | Character against the model sheet | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Concept-1014-0039` | `Logs\homework\tour-Concept-1014-0039.log` |
+| A2 | KayKit strike and flinch clips import | PASS | `[KayKit] RESULT PASS` | `Logs\homework\unity-KayKitImport_Apply-1014-0156.log` |
+| A3 | Player prefab rebuild | PASS | `Exiting batchmode successfully now!` | `Logs\homework\player-1014-0157.log` |
+| A4 | Zones sealed, passes open | PASS | `[ZoneSeal] RESULT PASS` | `Logs\homework\unity-VoxelChecks_ZoneSeal-1014-0157.log` |
+| A5 | Crypt and mine doors reachable on foot | PASS | `[Entrances] RESULT PASS` | `Logs\homework\unity-VoxelChecks_EntranceReach-1014-0157.log` |
+| A6 | EditMode unit tests | PASS | `EditMode: Passed - total 302, passed 302, failed 0` | `Logs\homework\editmode-1014-0158.log` |
+| A7 | Dev build | PASS | `Build Finished, Result: Success.` | `Logs\homework\build-1014-0158.log` |
+| T1 | Title screen | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Title-1014-0158` | `Logs\homework\tour-Title-1014-0158.log` |
+| T2 | Arrival: drop into the pond, kit on the bank | PASS | `[Arrival] RESULT PASS` | `Logs\homework\tour-Arrival-1014-0159.log` |
+| T3 | Swimming | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Swim-1014-0159` | `Logs\homework\tour-Swim-1014-0159.log` |
+| T4 | Double jump with the flip | PASS | `[DoubleJump] RESULT PASS` | `Logs\homework\tour-DoubleJump-1014-0200.log` |
+| T5 | Axe combo (KayKit strikes) | PASS | `[Combo] RESULT PASS (6 of 6 swings playing a strike on the Chop layer)` | `Logs\homework\tour-Combo-1014-0200.log` |
+| T6 | Combat: enemy engages, staggers, falls; group takes turns | PASS | `[Combat] RESULT PASS (engaged True, staggered True, down True, group True)` | `Logs\homework\tour-Combat-1014-0201.log` |
+| T7 | Block guard | PASS | `[Guard] RESULT PASS no spin (largest body turn in one straight move 80 degrees, axe wobble standing still 3.3 degrees, upper body drift standing still 0.1 degrees)` | `Logs\homework\tour-GuardTest-1014-0201.log` |
+| T8 | Armour kit | PASS | `[Armour] RESULT PASS` | `Logs\homework\tour-Armour-1014-0202.log` |
+| T9 | Movement: no teleports or freezes | PASS | `[Move] RESULT host teleports 0, freezes 3, speed check snap backs 0, biggest step 0.08 m` | `Logs\homework\tour-MoveTest-1014-0202.log` |
+| T10 | Block ground and building rules | PASS | `[BlockGround] RESULT PASS (feet checked 5, worst 0.080 m; trees off 0; climbed out of the pond True; building True)` | `Logs\homework\tour-BlockGround-1014-0203.log` |
+| T11 | Hut: floors, stairs, enemies can leave | PASS | `[House] RESULT PASS` | `Logs\homework\tour-House-1014-0204.log` |
+| T12 | Mine: portal, veins, ladder out | PASS | `[Mine] RESULT PASS (out by the ladder)` | `Logs\homework\tour-Mine-1014-0205.log` |
+| T13 | Crypt: door, rooms, vault | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Crypt-1014-0206` | `Logs\homework\tour-Crypt-1014-0206.log` |
+| T14 | Fishing | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Fishing-1014-0207` | `Logs\homework\tour-Fishing-1014-0207.log` |
+| T15 | Character against the model sheet | LOOK | `shots: E:\Projects\project-chop\Logs\homework\tour-Concept-1014-0207` | `Logs\homework\tour-Concept-1014-0207.log` |
 
 ### Shots to look at
 
@@ -45,21 +45,21 @@ Open each contact sheet. Put anything that looks wrong in your rows below.
 
 | ID | Check | Contact sheet | Look for |
 |---|---|---|---|
-| T1 | Title screen | `Logs\homework\playtest-1014-0028\T1-Title.jpg` | CHOPPER in the heading font over the meadow and hut, menu Continue..Exit |
-| T2 | Arrival: drop into the pond, kit on the bank | `Logs\homework\playtest-1014-0028\T2-Arrival.jpg` | head and shoulders above water while swimming; dressed shot |
-| T3 | Swimming | `Logs\homework\playtest-1014-0028\T3-Swim.jpg` | the head and shoulders clear of the water |
-| T4 | Double jump with the flip | `Logs\homework\playtest-1014-0028\T4-DoubleJump.jpg` | doublejump_flip: Chopper mid front flip |
-| T5 | Axe combo (KayKit strikes) | `Logs\homework\playtest-1014-0028\T5-Combo.jpg` | three different strikes, axe head up, blade forward |
-| T6 | Combat: enemy engages, staggers, falls; group takes turns | `Logs\homework\playtest-1014-0028\T6-Combat.jpg` | windup, hit, fall, the group spread round the player |
-| T7 | Block guard | `Logs\homework\playtest-1014-0028\T7-GuardTest.jpg` | axe across the chest, left hand on the haft |
-| T8 | Armour kit | `Logs\homework\playtest-1014-0028\T8-Armour.jpg` | dressed: no helmet; armoured: helmet and shield, hair hidden |
-| T9 | Movement: no teleports or freezes | `Logs\homework\playtest-1014-0028\T9-MoveTest.jpg` |  |
-| T10 | Block ground and building rules | `Logs\homework\playtest-1014-0028\T10-BlockGround.jpg` |  |
-| T11 | Hut: floors, stairs, enemies can leave | `Logs\homework\playtest-1014-0028\T11-House.jpg` | floors on every level, no light between the log courses |
-| T12 | Mine: portal, veins, ladder out | `Logs\homework\playtest-1014-0028\T12-Mine.jpg` | the portal sits on flat ground you can walk to |
-| T13 | Crypt: door, rooms, vault | `Logs\homework\playtest-1014-0028\T13-Crypt.jpg` | crypt_1_entrance: the door at ground level, no hill to climb |
-| T14 | Fishing | `Logs\homework\playtest-1014-0028\T14-Fishing.jpg` | rod in the right hand, tension bar over the float |
-| T15 | Character against the model sheet | `Logs\homework\playtest-1014-0028\T15-Concept.jpg` | sheet_front and sheet_three_quarter beside the model sheet; browns warm, not maroon or black |
+| T1 | Title screen | `Logs\homework\playtest-1014-0156\T1-Title.jpg` | CHOPPER in the heading font over the meadow and hut, menu Continue..Exit |
+| T2 | Arrival: drop into the pond, kit on the bank | `Logs\homework\playtest-1014-0156\T2-Arrival.jpg` | head and shoulders above water while swimming; dressed shot |
+| T3 | Swimming | `Logs\homework\playtest-1014-0156\T3-Swim.jpg` | the head and shoulders clear of the water |
+| T4 | Double jump with the flip | `Logs\homework\playtest-1014-0156\T4-DoubleJump.jpg` | doublejump_flip: Chopper mid front flip |
+| T5 | Axe combo (KayKit strikes) | `Logs\homework\playtest-1014-0156\T5-Combo.jpg` | three different strikes, axe head up, blade forward |
+| T6 | Combat: enemy engages, staggers, falls; group takes turns | `Logs\homework\playtest-1014-0156\T6-Combat.jpg` | windup, hit, fall, the group spread round the player |
+| T7 | Block guard | `Logs\homework\playtest-1014-0156\T7-GuardTest.jpg` | axe across the chest, left hand on the haft |
+| T8 | Armour kit | `Logs\homework\playtest-1014-0156\T8-Armour.jpg` | dressed: no helmet; armoured: helmet and shield, hair hidden |
+| T9 | Movement: no teleports or freezes | `Logs\homework\playtest-1014-0156\T9-MoveTest.jpg` |  |
+| T10 | Block ground and building rules | `Logs\homework\playtest-1014-0156\T10-BlockGround.jpg` |  |
+| T11 | Hut: floors, stairs, enemies can leave | `Logs\homework\playtest-1014-0156\T11-House.jpg` | floors on every level, no light between the log courses |
+| T12 | Mine: portal, veins, ladder out | `Logs\homework\playtest-1014-0156\T12-Mine.jpg` | the portal sits on flat ground you can walk to |
+| T13 | Crypt: door, rooms, vault | `Logs\homework\playtest-1014-0156\T13-Crypt.jpg` | crypt_1_entrance: the door at ground level, no hill to climb |
+| T14 | Fishing | `Logs\homework\playtest-1014-0156\T14-Fishing.jpg` | rod in the right hand, tension bar over the float |
+| T15 | Character against the model sheet | `Logs\homework\playtest-1014-0156\T15-Concept.jpg` | sheet_front and sheet_three_quarter beside the model sheet; browns warm, not maroon or black |
 <!-- playtest:end -->
 
 ## Current

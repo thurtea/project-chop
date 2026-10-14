@@ -190,6 +190,10 @@ def toward(rig, bone, target, deg):
     return d.cross(t).normalized()
 
 
+ARM_IN = 14.0
+ARM_IN_MAX = 35.0
+
+
 def arm_base(rig, deltas, adduct, elbow_l, elbow_r):
     # lower the arms from the A-pose toward the body
     for side in ("Left", "Right"):
@@ -211,7 +215,7 @@ def block_upper(rig, deltas, lean, adduct, swing, phase, elbow_l, elbow_r):
     deltas["Chest"] = R(X, lean * 0.4)
     deltas["Neck"] = R(X, -lean * 0.5)
     deltas["Head"] = R(X, -lean * 0.5)
-    arm_base(rig, deltas, adduct, elbow_l, elbow_r)
+    arm_base(rig, deltas, min(adduct + ARM_IN, max(adduct, ARM_IN_MAX)), elbow_l, elbow_r)
     c1 = math.cos(2 * math.pi * phase)
     deltas["LeftUpperArm"] = R(X, swing * c1) @ deltas["LeftUpperArm"]
     deltas["RightUpperArm"] = R(X, -swing * c1) @ deltas["RightUpperArm"]

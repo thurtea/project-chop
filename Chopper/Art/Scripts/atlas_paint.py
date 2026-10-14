@@ -300,7 +300,6 @@ def paint_body(p, n, rgb, pc, t):
         if abs(pc.x) > 0.05 and abs(side_coord(p, n) - pc.x) < 0.5 * t and abs(n.x) > 0.7:
             c = dark(TROUSERS, 0.8)           # outer leg seam
         elif abs(pc.x) > 0.05 and n.y < -0.5 and 0.38 < p.z < 0.53 and abs(p.x - pc.x) < 0.075:
-            # leather knee pad on the front of each leg, seamed round its edge
             edge = p.z < 0.38 + t or p.z > 0.53 - t or abs(p.x - pc.x) > 0.075 - t
             return SEAM if edge else grain(KNEE_PAD, p, t, 0.06)
         return grain(c, p, t, 0.06)
@@ -382,7 +381,7 @@ def paint_boots(p, n, rgb, pc, t):
     # Knee/shin wraps and the folded cuff lip stay leather on the base layer too
     # (those bands are part of this mesh; painting them as skin made them look like ridges).
     if near(rgb, PAL["boot_wrap"]) or near(rgb, PAL["leather_dark"]):
-        if 0.26 < p.z < 0.38:                 # knee wrap: worn light top edge, a stitch round the middle
+        if 0.26 < p.z < 0.38:
             if p.z > 0.362 or abs(p.z - 0.320) < t * 0.6:
                 return mix(BOOT_WRAP, CORD, 0.35)
         if near(rgb, PAL["leather_dark"]):
@@ -423,7 +422,7 @@ def paint_axe_bear(p, n, rgb, pc, t):
         return WOOD_DARK if k % 3 == 0 else BEAR   # carved fur rows
     # haft: grain columns, a knot pattern on the carved section between the spiral turns
     a = math.floor(side_coord(p, n) / t)
-    if -0.094 < p.z < 0.215:                  # red-brown leather wrap down the grip (model sheet), wound on a slant
+    if -0.094 < p.z < 0.215:
         return dark(GRIP_WRAP, 0.5) if (k + a) % 4 == 0 else grain(GRIP_WRAP, p, t, 0.06)
     if 0.24 < p.z < 0.48 and ((a + k) % 4 == 0 or (a - k) % 4 == 0):
         return WOOD_GROOVE
@@ -436,11 +435,9 @@ def paint_armour(name, p, n, rgb):
     """Armour and the unused double axe: kept sensible, not painted to the concept yet."""
     x, z = p.x, p.z
     if name == "chopper_chainmail":
-        # Ring mail (model sheet): rows of one-pixel rings, a lit ring beside a dark gap, every other row a
-        # mid-grey link row offset by one pixel.
         t = TEXEL_M
         if z < 0.575 or abs(n.z) > 0.7:
-            return S(40, 40, 44)              # hem rim
+            return S(40, 40, 44)
         k = math.floor(z / t)
         c = math.floor(side_coord(p, n) / t)
         if k % 2:
