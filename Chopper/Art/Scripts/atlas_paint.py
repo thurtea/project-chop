@@ -253,9 +253,9 @@ def paint_vest(p, n, rgb, pc, t):
     # lacing up the front: dark slit and an X of light cord, counted in pixels
     if n.y < -0.5 and 0.87 < p.z < 1.32:
         ix = round(p.x / t)
-        r = math.floor(p.z / t) % 4
-        if abs(ix) <= 2:
-            if abs(ix) == abs(2 - r):
+        r = math.floor(p.z / t) % 6
+        if abs(ix) <= 3:
+            if abs(abs(ix) - abs(3 - r)) < 1:
                 return THREAD
             if ix == 0:
                 return S(36, 20, 10)
@@ -465,6 +465,9 @@ def paint_armour(name, p, n, rgb):
             return grain(S(222, 208, 176), p, t, 0.08)
         if near(rgb, PAL["steel_dark"]):
             return S(26, 26, 30) if z > 1.66 and abs(x) < 0.07 and n.y < -0.5 else STEEL_DARK
+        if near(rgb, PAL["chain"]):              # mail neck guard: rings in rows
+            i, j, k = cell(p, t)
+            return S(92, 92, 94) if (i + j + k + (k % 2)) % 2 else S(50, 50, 54)
         return grain(rgb, p, t, 0.06)
     elif name == "chopper_axe":
         if abs(x) > 0.06 and z > 0.40 and abs(n.y) > 0.5 and (int(x * 40) + int(z * 40)) % 5 == 0:

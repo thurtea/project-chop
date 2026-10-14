@@ -62,8 +62,10 @@ function Invoke-Title {
 $rows = @()
 $sheets = @()
 foreach ($step in $Steps) {
-    if ($ToursOnly -and $step.Task -ne "tour" -and $step.Task -ne "title") { continue }
-    if ($Quick -and $step.Art) { continue }
+    if (($ToursOnly -and $step.Task -ne "tour" -and $step.Task -ne "title") -or ($Quick -and $step.Art)) {
+        $rows += "| $($step.Id) | $($step.Name) | SKIPPED ($(if ($Quick) { '-Quick' } else { '-ToursOnly' })) | | |"
+        continue
+    }
     Write-Host "== $($step.Id) $($step.Name)"
     $lines = if ($step.Task -eq "title") { Invoke-Title } else { Invoke-Step $step }
     $lines | ForEach-Object { Write-Host "   $_" }

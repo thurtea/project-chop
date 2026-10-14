@@ -1,9 +1,9 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (4563804 bytes)
-  [PASS] file exists: Export\chopper_axe.fbx (32348 bytes)
+  [PASS] file exists: Export\chopper.fbx (4583308 bytes)
+  [PASS] file exists: Export\chopper_axe.fbx (32620 bytes)
   [PASS] file exists: Export\chopper_axe_bear.fbx (30924 bytes)
-  [PASS] file exists: Export\chopper_shield.fbx (40636 bytes)
+  [PASS] file exists: Export\chopper_shield.fbx (40700 bytes)
 
 RAW FBX: chopper.fbx
 ------------------------------------------------------------------------
@@ -65,15 +65,15 @@ IMPORTED chopper.fbx
   [PASS] chopper_vest parented to chopper_rig with an Armature modifier
 
 SKIN WEIGHTS (imported)
-  [PASS] chopper_beard       788 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_beard      1044 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_belt        176 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_body       1036 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_boots       704 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_bracers     192 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_chainmail   338 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
-  [PASS] chopper_hair        576 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_hair        640 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_head        276 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
-  [PASS] chopper_helmet      952 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
+  [PASS] chopper_helmet     1048 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 1)
   [PASS] chopper_pauldrons   128 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 2)
   [PASS] chopper_plate       212 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
   [PASS] chopper_shirt       420 verts: unweighted 0, >4 influences 0, not normalized 0 (max influences 3)
@@ -315,7 +315,7 @@ CLOTHING LAYERS (surface samples of the inner layer vs the outer garment)
   [PASS] Walk: thighs inside the chainmail on 31 frames (surface samples outside: 0, worst 0.0 mm at frame None)
 
 BEARD CLEARANCE (beard vertices vs vest, shirt and body)
-  [PASS] rest: beard clear of vest, shirt and body on 1 frames (closest 22.7 mm to chopper_vest at frame 1)
+  [PASS] rest: beard clear of vest, shirt and body on 1 frames (closest 18.3 mm to chopper_vest at frame 1)
   [PASS] Idle: beard clear of vest, shirt and body on 21 frames (closest 21.9 mm to chopper_vest at frame 7)
   [PASS] Walk: beard clear of vest, shirt and body on 31 frames (closest 21.9 mm to chopper_vest at frame 1)
   [INFO] Run (info): beard clear of vest, shirt and body on 11 frames (closest 16.3 mm to chopper_vest at frame 5)

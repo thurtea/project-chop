@@ -222,6 +222,11 @@ def build_beard(mat):
              (1.455, 0.180, 0.026)]
     rows = [(z, hw, hd, beard_back(z) - hd) for z, hw, hd in chest]
     mb.ztube(0, 0, rows, cs=2, bevel=0.014, color=G)
+    # curls along the sides and the bottom, so the outline is lumpy like the sheet's
+    for z, side in BEARD_CURLS:
+        hw, hd = interp(chest, z, 1), interp(chest, z, 2)
+        mb.box((side * (hw - 0.008), beard_back(z) - hd - 0.004, z), (0.052, 2 * hd, 0.050), 0.010,
+               color=G if int(z * 100) % 2 else D)
     # braid: three strands of straight prisms along a twist. A continuous twisted
     # tube unwraps onto itself; short straight pieces do not.
     pieces = 6
@@ -260,6 +265,7 @@ def build_beard(mat):
 
 MOUSTACHE = (0.88, 0.44, 0.13)   # lighter ginger so the moustache reads apart from the beard
 BEAD = (0.86, 0.62, 0.28)         # amber bead on the braid
+BEARD_CURLS = [(1.20, -1), (1.21, 1), (1.27, -1), (1.29, 1), (1.35, -1), (1.34, 1), (1.42, -1), (1.41, 1)]
 BEARD_CLEAR = 0.035      # m in front of the vest + crossbelt (head nods up to ~5 deg in Walk)
 
 
@@ -283,6 +289,8 @@ def build_hair(mat):
         mb.box(c, size, 0.022, color=G)
     for x, y, h in HAIR_TOP:
         mb.box((x, y, 1.80 - h / 2), (0.14, 0.14, h), 0.010, color=G)
+    for s in (-1, 1):
+        mb.box((s * 0.188, -0.040, 1.722), (0.052, 0.200, 0.070), 0.012, color=G)
     for x, z, h in ROLL_LOCKS:
         mb.box((x, -0.178, z), (0.110, 0.050, h), 0.010, color=G)
     for s in (-1, 1):
@@ -534,6 +542,10 @@ def build_helmet(mat):
             _vr, faces = mb.tube(rings, cs=1, color=col)
             if k < n - 2:
                 mb.paint(faces[:8], HORN_DARK)       # the narrow lip at the base of each step
+    # mail neck guard hanging from the dome: the back of the head and behind the ears
+    mb.box((0, 0.135, 1.530), (0.360, 0.100, 0.170), 0.012, color=PAL["chain"])
+    for s in (-1, 1):
+        mb.box((s * 0.185, 0.080, 1.535), (0.050, 0.160, 0.160), 0.010, color=PAL["chain"])
     return mb.finish(mat)
 
 

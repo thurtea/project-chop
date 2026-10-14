@@ -851,6 +851,17 @@ namespace Chopper.World.Generation
             height += fire * ridge * ridge * 13f * rise;
             height += wind * (_swells.Sample(x * 0.0035f, z * 0.0035f) - 0.5f) * 2f * 14f;
 
+            // No dry pits below the water line: only lakes and pools go under it.
+            float land = 1f - Smooth(BeachStartRadius - 20f, BeachStartRadius, r);
+            float below = DryFloor - height;
+            if (below > 0f)
+            {
+                // Not near the mountains: their risers and passes keep the zones apart.
+                land *= 1f - Smooth(0.0f, 0.08f, MountainWeight(x, z));
+                land *= Smooth(PassHalfWidth + PassWallWidth, PassHalfWidth + PassWallWidth + 12f, DistanceToPath(x, z)) * OutsideRingBand(r) + (1f - OutsideRingBand(r));
+                height = Mathf.Lerp(height, DryFloor - below / (1f + below) * DryDip, land);
+            }
+
             if (WaterBodies != null)
             {
                 foreach (WaterBody body in WaterBodies)
@@ -859,6 +870,9 @@ namespace Chopper.World.Generation
                     float dz = z - body.Center.y;
                     float distance = Mathf.Sqrt(dx * dx + dz * dz);
                     if (distance >= body.Radius) continue;
+                    float wobble = Mathf.Lerp(ShoreWobble(body, dx, dz, distance), 1f, Smooth(ShoreEdge(body), body.Radius, distance));
+                    if (wobble > 1f) wobble = Mathf.Lerp(wobble, 1f, Smooth(0f, 0.06f, MountainWeight(x, z)));
+                    distance = Mathf.Min(body.Radius, distance * wobble);
                     if (body.Deep)
                     {
                         float floor = WaterHeight - body.Depth;
@@ -902,6 +916,22 @@ namespace Chopper.World.Generation
                 }
             }
             return height;
+        }
+
+        private const float DryFloor = WaterHeight + 0.6f;
+
+        // 1 across the mountain ring band, where the paths run through the passes.
+        private float OutsideRingBand(float r) => 1f - Smooth(RingFootHalfWidth + 6f, RingFootHalfWidth + 16f, Mathf.Abs(r - RingRadius));
+        private const float DryDip = 0.4f;
+        // A shore bends in by up to this share of the radius, never out past the water surface.
+        private const float ShoreBend = 0.17f;
+
+        private float ShoreWobble(WaterBody body, float dx, float dz, float distance)
+        {
+            if (distance < 0.01f) return 1f;
+            float ux = dx / distance, uz = dz / distance;
+            float n = _patches.Sample(body.Center.x * 0.013f + ux * 1.6f, body.Center.y * 0.013f + uz * 1.6f);
+            return 1f + ShoreBend * Mathf.Clamp01((n - 0.5f) * 2.5f + 0.5f);
         }
 
         public float SlopeAt(float x, float z, float step)
