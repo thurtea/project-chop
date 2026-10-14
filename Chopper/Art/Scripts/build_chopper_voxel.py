@@ -96,7 +96,7 @@ SHORTS = rgb(78, 78, 80)
 
 
 def plaid(a, b):
-    a, b = a % 6, b % 6
+    a, b = (a // 2) % 6, (b // 2) % 6
     da, db = a < 2, b < 2
     if da and db:
         return PLAID_BLACK
@@ -669,11 +669,11 @@ def hair_in(lp, wp):
 
 
 def hair_color(i, j, k, n, nw, c):
-    a = h3(i // 2, j // 2, k // 3)
+    a = h3(i // 4, j // 4, k // 4)
     col = GINGER_DARK if a < 0.22 else GINGER_LIGHT if a > 0.82 else GINGER
     if nw.z < -0.5:
         col = GINGER_DARK
-    return grain(col, i, j, k, 0.07), (0, 0, 0)
+    return col, (0, 0, 0)
 
 
 def vest_front_y(z):
@@ -688,7 +688,7 @@ def beard_in(lp, wp):
         return False
     t = (1.54 - z) / 0.41
     half = 0.175 - 0.115 * t * t
-    lump = (h3(math.floor(x / 0.04), 7, math.floor(z / 0.04)) - 0.5) * 0.03
+    lump = 0.0
     if abs(x) > half + lump:
         return False
     back = vest_front_y(z) - 0.05 if z < 1.42 else -0.12
@@ -711,9 +711,9 @@ def beard_color(i, j, k, n, nw, c):
         return grain(MOUSTACHE, i, j, k, 0.06), (0, 0, 0)
     if c.z < 1.07:
         return BEAD, (0, 0, 0)
-    a = h3(i // 2, j // 2, k // 3)
+    a = h3(i // 4, j // 4, k // 4)
     col = GINGER_DARK if a < 0.25 else GINGER_LIGHT if a > 0.85 else GINGER
-    return grain(col, i, j, k, 0.07), (0, 0, 0)
+    return col, (0, 0, 0)
 
 
 # ------------------------------------------------------------------ assembly

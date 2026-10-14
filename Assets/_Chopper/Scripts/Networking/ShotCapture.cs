@@ -3557,26 +3557,29 @@ namespace Chopper.Networking
             ui.DebugConsole("spawn 6");
             ui.DebugShow(0);
             yield return new WaitForSeconds(2.5f);
-            PlayerCamera.Local.DebugSetDistance(9f);
+            PlayerCamera.Local.SnapYaw(180f);
+            PlayerCamera.Local.DebugSetDistance(6f);
             yield return new WaitForSeconds(1f);
             yield return Shot(folder, "fly_3b_night_hut");
-            // Then out in the open, facing the nearest enemy, to see its glow.
             foreach (Treant t in new System.Collections.Generic.List<Treant>(Treant.All)) t.ServerDespawn();
-            ui.DebugConsole("tp 0 45");
-            ui.DebugConsole("spawn 8");
-            ui.DebugShow(0);
-            yield return new WaitForSeconds(1.5f);
-            Treant nearest = null;
-            foreach (Treant t in Treant.All)
+            Treant woodBody = EnemyDirector.Instance.ServerSpawn(Element.Neutral, TreeSize.Medium, false, new Vector3(-1.3f, WorldGround.HeightAt(-1.3f, 48f), 48f));
+            Treant fireBody = EnemyDirector.Instance.ServerSpawn(Element.Fire, TreeSize.Medium, false, new Vector3(1.3f, WorldGround.HeightAt(1.3f, 48f), 48f));
+            if (woodBody != null) woodBody.ServerActivate();
+            if (fireBody != null) fireBody.ServerActivate();
+            yield return new WaitForSeconds(0.4f);
+            Vector3 pair = Vector3.zero;
+            int shown = 0;
+            if (woodBody != null) { pair += woodBody.transform.position; shown++; }
+            if (fireBody != null) { pair += fireBody.transform.position; shown++; }
+            if (shown > 0)
             {
-                if (nearest == null || (t.transform.position - wood.transform.position).sqrMagnitude < (nearest.transform.position - wood.transform.position).sqrMagnitude) nearest = t;
-            }
-            if (nearest != null)
-            {
-                Vector3 toEnemy = nearest.transform.position - wood.transform.position;
-                PlayerCamera.Local.SnapYaw(Mathf.Atan2(toEnemy.x, toEnemy.z) * Mathf.Rad2Deg);
-                PlayerCamera.Local.DebugSetDistance(4f);
-                yield return new WaitForSeconds(0.8f);
+                pair /= shown;
+                Vector3 stand = new Vector3(pair.x - 1.5f, 0f, pair.z - 3.2f);
+                float face = Mathf.Atan2(pair.x - stand.x, pair.z - stand.z) * Mathf.Rad2Deg;
+                yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), face);
+                PlayerCamera.Local.DebugSetPitch(8f);
+                PlayerCamera.Local.DebugSetDistance(3.2f);
+                yield return new WaitForSeconds(0.6f);
                 yield return Shot(folder, "fly_3c_night_enemy");
             }
             ui.DebugConsole("day");

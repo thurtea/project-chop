@@ -58,6 +58,26 @@ def atlas_materials():
         mat.use_backface_culling = True
 
 
+def use_vertex_colors():
+    mat = bpy.data.materials.new("M_Chopper_Voxel")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    nt.nodes.clear()
+    attr = nt.nodes.new("ShaderNodeVertexColor")
+    attr.layer_name = "Col"
+    bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.inputs["Roughness"].default_value = 0.85
+    outn = nt.nodes.new("ShaderNodeOutputMaterial")
+    nt.links.new(attr.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(bsdf.outputs["BSDF"], outn.inputs["Surface"])
+    mat.use_backface_culling = True
+    for ob in bpy.data.objects:
+        if ob.type != "MESH" or ob.data.color_attributes.get("Col") is None:
+            continue
+        ob.data.materials.clear()
+        ob.data.materials.append(mat)
+
+
 def setup_eevee(sc):
     for eng in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT"):
         try:
@@ -163,6 +183,7 @@ def main():
     axe.matrix_parent_inverse = Matrix.Translation((0, -rig.data.bones["Weapon_R"].length, 0))
     axe.matrix_basis = Matrix.Identity(4)
     atlas_materials()
+    use_vertex_colors()
     bpy.context.view_layer.update()
 
     tgt = (0, -0.05, 0.92)
