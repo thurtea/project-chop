@@ -102,6 +102,9 @@ namespace Chopper.Player
                 _sceneCamera.SetActive(false);
             }
             _camera.gameObject.SetActive(true);
+            // 0.3 m near plane corners stick out past the 0.3 m wall sphere at this field of view, so tight
+            // orbits clip through stair treads. 0.1 m keeps those corners inside the sphere.
+            _camera.nearClipPlane = 0.1f;
             ApplyCursor();
             UserSettings.Apply();
             UpdateCameraTransform();
