@@ -68,6 +68,7 @@ namespace Chopper.World
         private Material _skyRuntime;
         private ColorAdjustments _colorAdjustments;
         private Bloom _bloom;
+        private ShadowsMidtonesHighlights _grade;
         private static readonly int ExposureId = Shader.PropertyToID("_Exposure");
         private static readonly int AtmosphereId = Shader.PropertyToID("_AtmosphereThickness");
         private static readonly int SkyTintId = Shader.PropertyToID("_SkyTint");
@@ -249,8 +250,11 @@ namespace Chopper.World
             if (_sun != null)
             {
                 Color sunColor = Color.Lerp(SunriseColor, NoonColor, elevation);
+                bool forest = ZoneTracker.Current != Element.Neutral && u < 0.35f;
+                if (forest) sunColor = Color.Lerp(sunColor, new Color(1f, 0.70f, 0.38f), 0.4f);
                 _sun.color = Color.Lerp(sunColor, MoonColor, d);
-                _sun.intensity = Mathf.Lerp(Mathf.Lerp(LowSunIntensity, NoonIntensity, elevation), MoonIntensity, d) * (1f - u) * weather.Sun;
+                float canopy = forest ? 0.42f : 1f;
+                _sun.intensity = Mathf.Lerp(Mathf.Lerp(LowSunIntensity, NoonIntensity, elevation), MoonIntensity, d) * (1f - u) * weather.Sun * canopy;
                 _sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(sunPitch, MoonPitch, d), Mathf.Lerp(sunYaw, MoonYaw, d), 0f);
             }
 
@@ -258,17 +262,33 @@ namespace Chopper.World
             float lowSun = 1f - Mathf.SmoothStep(0f, 1f, elevation / LowSunSpan);
             HazeTint = Color.Lerp(Color.Lerp(NoonHaze, LowSunHaze, lowSun), Color.white, d);
 
-            RenderSettings.ambientSkyColor = Color.Lerp(Color.Lerp(LightingSky, NightSky, d), CryptSky, u) * weather.Ambient;
-            RenderSettings.ambientEquatorColor = Color.Lerp(Color.Lerp(Color.Lerp(LightingEquator, LowSunEquator, lowSun * 0.6f), NightEquator, d), CryptEquator, u) * weather.Ambient;
-            RenderSettings.ambientGroundColor = Color.Lerp(Color.Lerp(LightingGround, NightGround, d), CryptGround, u) * weather.Ambient;
+            bool inForest = ZoneTracker.Current != Element.Neutral && u < 0.35f;
+            Color skyAmbient = Color.Lerp(Color.Lerp(LightingSky, NightSky, d), CryptSky, u);
+            Color equatorAmbient = Color.Lerp(Color.Lerp(Color.Lerp(LightingEquator, LowSunEquator, lowSun * 0.6f), NightEquator, d), CryptEquator, u);
+            Color groundAmbient = Color.Lerp(Color.Lerp(LightingGround, NightGround, d), CryptGround, u);
+            if (inForest)
+            {
+                skyAmbient = Color.Lerp(skyAmbient, new Color(0.16f, 0.24f, 0.38f), 0.78f);
+                equatorAmbient = Color.Lerp(equatorAmbient, new Color(0.28f, 0.36f, 0.52f), 0.7f);
+                groundAmbient = Color.Lerp(groundAmbient, new Color(0.46f, 0.30f, 0.16f), 0.45f);
+            }
+            RenderSettings.ambientSkyColor = skyAmbient * weather.Ambient;
+            RenderSettings.ambientEquatorColor = equatorAmbient * weather.Ambient;
+            RenderSettings.ambientGroundColor = groundAmbient * weather.Ambient;
             if (_skyRuntime != null)
             {
-                if (_skyRuntime.HasProperty(ExposureId)) _skyRuntime.SetFloat(ExposureId, Mathf.Lerp(1.3f, NightSkyExposure, d) * weather.Sky);
+                if (_skyRuntime.HasProperty(ExposureId))
+                {
+                    float skyExposure = Mathf.Lerp(1.3f, NightSkyExposure, d) * weather.Sky;
+                    if (inForest) skyExposure *= 0.42f;
+                    _skyRuntime.SetFloat(ExposureId, skyExposure);
+                }
                 // A thicker atmosphere at a low sun paints the long orange horizon of morning and evening.
                 // W11-08: a thicker, warmer noon sky so the horizon is pale gold, not hard blue.
                 if (_skyRuntime.HasProperty(AtmosphereId)) _skyRuntime.SetFloat(AtmosphereId, Mathf.Lerp(1.45f, 1.75f, lowSun));
                 // An overcast sky loses its blue and its warm low sun tint and turns flat grey.
                 Color tint = Color.Lerp(new Color(0.64f, 0.56f, 0.46f), new Color(0.62f, 0.48f, 0.36f), lowSun);
+                if (inForest) tint = Color.Lerp(tint, new Color(0.38f, 0.48f, 0.62f), 0.7f);
                 if (_skyRuntime.HasProperty(SkyTintId)) _skyRuntime.SetColor(SkyTintId, Color.Lerp(tint, OvercastSky, weather.Overcast));
                 if (_skyRuntime.HasProperty(GroundColorId)) _skyRuntime.SetColor(GroundColorId, Color.Lerp(SeaHorizon, SeaHorizon * 0.15f, d));
                 // The visible sun is the block disc (BlockSky). This disc in the skybox stays a small glow behind it.
@@ -277,11 +297,38 @@ namespace Chopper.World
 
             if (_colorAdjustments != null)
             {
-                _colorAdjustments.postExposure.value = Mathf.Lerp(Mathf.Lerp(DayExposure, NightExposure, d), CryptExposure, u);
-                _colorAdjustments.colorFilter.value = Color.Lerp(Color.white, NightFilter, d);
-                _colorAdjustments.saturation.value = Mathf.Lerp(DaySaturation, NightSaturation, d) + weather.Saturation;
+                float exposure = Mathf.Lerp(Mathf.Lerp(DayExposure, NightExposure, d), CryptExposure, u);
+                if (inForest) exposure -= 0.55f;
+                _colorAdjustments.postExposure.value = exposure;
+                Color filter = Color.Lerp(Color.white, NightFilter, d);
+                if (inForest) filter = filter * new Color(0.82f, 0.90f, 1.08f);
+                _colorAdjustments.colorFilter.value = filter;
+                _colorAdjustments.saturation.value = Mathf.Lerp(DaySaturation, NightSaturation, d) + weather.Saturation + (inForest ? -8f : 0f);
             }
-            if (_bloom != null) _bloom.intensity.value = Mathf.Lerp(DayBloom, NightBloom, d);
+            if (_bloom != null) _bloom.intensity.value = inForest ? Mathf.Lerp(0.62f, 0.78f, d) : Mathf.Lerp(DayBloom, NightBloom, d);
+            if (_grade != null)
+            {
+                _grade.shadows.value = inForest ? new Vector4(0.70f, 0.80f, 1.16f, -0.04f) : new Vector4(1f, 1f, 1f, 0f);
+                _grade.highlights.value = inForest ? new Vector4(1.28f, 0.94f, 0.55f, 0.18f) : new Vector4(1.10f, 1.02f, 0.88f, 0.05f);
+            }
+            ApplyShafts(inForest, d);
+        }
+
+        private void ApplyShafts(bool inForest, float darkness)
+        {
+            Camera cam = Camera.main;
+            float strength = 0f;
+            float ahead = 0f;
+            Vector2 sunUv = new Vector2(0.5f, 0.8f);
+            if (inForest && cam != null && _sun != null)
+            {
+                Vector3 toSun = -_sun.transform.forward;
+                Vector3 vp = cam.WorldToViewportPoint(cam.transform.position + toSun * 400f);
+                sunUv = new Vector2(vp.x, vp.y);
+                ahead = vp.z > 0f ? 1f : 0f;
+                strength = ahead * Mathf.Lerp(0.9f, 0.38f, darkness);
+            }
+            Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, strength));
         }
 
         private void FindVolume()
@@ -291,6 +338,7 @@ namespace Chopper.World
             // Reading profile gives this scene its own copy, so the shared asset is never changed at runtime.
             volume.profile.TryGet(out _colorAdjustments);
             volume.profile.TryGet(out _bloom);
+            volume.profile.TryGet(out _grade);
         }
     }
 }

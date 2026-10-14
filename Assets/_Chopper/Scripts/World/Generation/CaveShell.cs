@@ -93,6 +93,69 @@ namespace Chopper.World.Generation
             }
         }
 
+        public static void CeilingCourses(List<CryptBox> boxes, int group, Vector3 origin, float half, float height)
+        {
+            float bottom = 3.2f;
+            float top = height - 0.2f;
+            float hang = Mathf.Max(0.8f, top - bottom);
+            float y = bottom + hang * 0.5f;
+            Vector2Int[] sides = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
+            foreach (Vector2Int side in sides)
+            {
+                Vector3 n = new Vector3(side.x, 0f, side.y);
+                Vector3 t = new Vector3(side.y, 0f, -side.x);
+                foreach (float s in new[] { 1f, -1f })
+                {
+                    float span = half * 0.42f;
+                    Vector3 at = origin + n * (half - 1.15f) + t * s * (half * 0.40f) + Vector3.up * y;
+                    Vector3 size = new Vector3(Mathf.Abs(n.z) * span + Mathf.Abs(n.x) * 1.5f, hang, Mathf.Abs(n.x) * span + Mathf.Abs(n.z) * 1.5f);
+                    Append(boxes, group, at, size, Quaternion.identity, CryptMaterial.Ceiling);
+                }
+            }
+        }
+
+        public static void MouthSteps(List<CryptBox> boxes, int group, Vector3 mouth, Vector3 tangent, Vector3 normal, float width, float openingHeight)
+        {
+            for (int step = 0; step < 3; step++)
+            {
+                float inset = 0.85f + step * 0.4f;
+                float drop = 0.9f + step * 0.45f;
+                float y = openingHeight - drop * 0.5f;
+                if (y - drop * 0.5f < 1.55f) continue;
+                foreach (float s in new[] { 1f, -1f })
+                {
+                    Vector3 at = mouth + tangent * s * (width * 0.5f - inset * 0.5f) + normal * 0.2f + Vector3.up * y;
+                    Vector3 size = new Vector3(
+                        Mathf.Abs(tangent.x) * inset + Mathf.Abs(normal.x) * 0.85f,
+                        drop,
+                        Mathf.Abs(tangent.z) * inset + Mathf.Abs(normal.z) * 0.85f);
+                    Append(boxes, group, at, size, Quaternion.identity, CryptMaterial.Wall);
+                }
+            }
+        }
+
+        public static void CorridorJog(List<CryptBox> boxes, int group, Vector3 mid, Vector3 tangent, Vector3 along, float length, float width, float height)
+        {
+            Vector3 pinch = mid + along * (length * 0.12f);
+            foreach (float s in new[] { 1f, -1f })
+            {
+                Vector3 at = pinch + tangent * s * (width * 0.5f - 0.42f) + Vector3.up * (height * 0.58f);
+                float bh = Mathf.Max(1.1f, height * 0.55f);
+                Vector3 size = new Vector3(
+                    Mathf.Abs(along.x) * 1.35f + Mathf.Abs(tangent.x) * 0.85f,
+                    bh,
+                    Mathf.Abs(along.z) * 1.35f + Mathf.Abs(tangent.z) * 0.85f);
+                Append(boxes, group, at, size, Quaternion.identity, CryptMaterial.Wall);
+            }
+            float drop = 1.05f;
+            Vector3 ceil = mid + Vector3.up * (height - drop * 0.35f);
+            Vector3 csize = new Vector3(
+                Mathf.Abs(along.x) * (length * 0.42f) + Mathf.Abs(tangent.x) * (width * 0.62f),
+                drop,
+                Mathf.Abs(along.z) * (length * 0.42f) + Mathf.Abs(tangent.z) * (width * 0.62f));
+            Append(boxes, group, ceil, csize, Quaternion.identity, CryptMaterial.Ceiling);
+        }
+
         public static int Hash(int a, int b, int c)
         {
             unchecked

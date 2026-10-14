@@ -27,6 +27,8 @@ namespace Chopper.UI
         private Vector2 _lastFloat;
         private float _lastFloatAt = float.NegativeInfinity;
         private readonly UiKit.Bar _tension;
+        private LineRenderer _tensionArc;
+        private LineRenderer _lineArc;
         private readonly Text _debug;
         private readonly Text _cue;
         private const float CueHold = 0.6f;
@@ -40,13 +42,8 @@ namespace Chopper.UI
             _root = UiKit.Rect(hud, "Fishing");
             UiKit.Place(_root, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -330f), new Vector2(Width, 60f));
 
-            _tension = UiKit.MakeBar(_root, "Tension", new Vector2(Width, 12f), UiKit.Accent, false);
-            UiKit.Place(_tension.Root, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, 0f), _tension.Root.sizeDelta);
-            // Marks where the line turns risky and critical, so the zones read without color.
-            AddMark(_tension.Root, FishingRules.RiskyTension);
-            AddMark(_tension.Root, FishingRules.CriticalTension);
-
-            // Development only (DebugShowValues): the fight's raw numbers for tuning.
+            _tension = UiKit.MakeBar(_root, "Tension", new Vector2(84f, 84f), UiKit.Accent, false);
+            _tension.Root.gameObject.SetActive(false);
             _debug = UiKit.Label(_root, string.Empty, 14, TextAnchor.UpperLeft, UiKit.Dim, true);
             UiKit.Place(_debug.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(Width, 40f));
             _root.gameObject.SetActive(false);
@@ -113,20 +110,81 @@ namespace Chopper.UI
             mark.rectTransform.anchoredPosition = Vector2.zero;
         }
 
+        private static LineRenderer MakeArc(string name, float width)
+        {
+            var go = new GameObject(name);
+            var line = go.AddComponent<LineRenderer>();
+            line.useWorldSpace = true;
+            line.loop = false;
+            line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            line.receiveShadows = false;
+            line.widthMultiplier = width;
+            line.numCapVertices = 4;
+            line.positionCount = 2;
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+            if (shader != null)
+            {
+                var mat = new Material(shader);
+                if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
+                if (mat.HasProperty("_Color")) mat.color = Color.white;
+                line.material = mat;
+            }
+            go.SetActive(false);
+            return line;
+        }
+
+        private static void DrawArc(LineRenderer line, Vector3 center, Vector3 right, Vector3 up, float radius, float amount, Color color)
+        {
+            const int steps = 28;
+            int count = Mathf.Max(2, Mathf.RoundToInt(Mathf.Clamp01(amount) * (steps - 1)) + 1);
+            line.positionCount = count;
+            for (int i = 0; i < count; i++)
+            {
+                float t = i / (float)(steps - 1);
+                float ang = Mathf.Lerp(200f, -20f, t) * Mathf.Deg2Rad;
+                line.SetPosition(i, center + (right * Mathf.Cos(ang) + up * Mathf.Sin(ang)) * radius);
+            }
+            line.startColor = color;
+            line.endColor = color;
+            if (line.material != null)
+            {
+                if (line.material.HasProperty("_BaseColor")) line.material.SetColor("_BaseColor", color);
+                if (line.material.HasProperty("_Color")) line.material.color = color;
+            }
+            line.gameObject.SetActive(true);
+        }
+
         public void Refresh(PlayerFishing fishing)
         {
             RefreshCue(fishing);
             bool show = fishing != null && fishing.CurrentStage == PlayerFishing.Stage.Fighting && fishing.ResultText.Length == 0
                         && !UiState.InventoryOpen && !UiState.MapOpen;
             if (_root.gameObject.activeSelf != show) _root.gameObject.SetActive(show);
-            if (!show) return;
+            if (!show)
+            {
+                if (_tensionArc != null) _tensionArc.gameObject.SetActive(false);
+                if (_lineArc != null) _lineArc.gameObject.SetActive(false);
+                return;
+            }
 
             if (FloatOnScreen(fishing, out Vector2 above)) _root.anchoredPosition = above + Vector2.up * BarAboveFloat;
             Fight fight = fishing.CurrentFight;
             float tension = Mathf.Clamp01(fight.Tension);
             TensionZone zone = FishingRules.Zone(tension);
-            _tension.Fill.fillAmount = tension;
-            _tension.Fill.color = zone == TensionZone.Safe ? Calm : zone == TensionZone.Risky ? Strained : Breaking;
+            Color arc = zone == TensionZone.Safe ? Calm : zone == TensionZone.Risky ? Strained : Breaking;
+            if (_tensionArc == null)
+            {
+                _tensionArc = MakeArc("TensionArc", 0.045f);
+                _lineArc = MakeArc("LineArc", 0.022f);
+            }
+            Camera camera = Camera.main;
+            Vector3 right = camera != null ? camera.transform.right : Vector3.right;
+            Vector3 bob = fishing.BobberWorld;
+            Vector3 center = bob + right * 0.7f + Vector3.up * 0.48f;
+            DrawArc(_tensionArc, center, right, Vector3.up, 0.34f, tension, arc);
+            float line = fight.StartDistance > 0.05f ? Mathf.Clamp01(fight.Distance / fight.StartDistance) : tension;
+            DrawArc(_lineArc, center, right, Vector3.up, 0.5f, line, new Color(0.96f, 0.82f, 0.32f, 1f));
             _debug.text = PlayerFishing.DebugShowValues
                 ? $"tension {fight.Tension:F2}  distance {fight.Distance:F1}/{fight.StartDistance:F1}  time {fight.Elapsed:F1}s  {fishing.Phase}"
                 : string.Empty;

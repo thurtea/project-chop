@@ -989,7 +989,7 @@ namespace Chopper.Editor
                 mat.SetColor("_BaseColor", Color.white);
                 return mat;
             }
-            Material body = Body("M_Chopper", false);
+            Material body = Body("M_Chopper", true);
             Material gear = Body("M_Chopper_Gear", true);
             foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
             {

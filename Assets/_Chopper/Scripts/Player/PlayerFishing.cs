@@ -601,6 +601,25 @@ namespace Chopper.Player
             _fight.Tension = tension;
             _fight.Elapsed = elapsed;
         }
+
+        public int DebugSchoolCount => _schoolView != null ? _schoolView.Count : 0;
+
+        public void DebugPoseSchool(Vector3 lure)
+        {
+            if (_schoolView == null) _schoolView = new FishSchoolView();
+            if (_schoolView.Count == 0) _schoolView.Begin(new[] { (int)FishKind.Pike }, new[] { 4f }, new[] { new Vector3(lure.x, lure.z, (int)SchoolFishState.Following) });
+            _schoolView.Pose(lure);
+        }
+
+        public void DebugHoldJump()
+        {
+            if (_schoolView != null) _schoolView.HoldJump();
+        }
+
+        public void DebugSinkSchool(float below)
+        {
+            if (_schoolView != null) _schoolView.Sink(below);
+        }
 #endif
 
         // ---------- Server ----------

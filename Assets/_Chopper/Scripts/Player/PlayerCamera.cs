@@ -47,6 +47,9 @@ namespace Chopper.Player
         private float _kick;
         private Vector3 _kickDirection;
         private float _crouchBlend;
+        private bool _holdPose;
+        private Vector3 _holdPosition;
+        private Quaternion _holdRotation;
         private PlayerMotor _motor;
         // While flying (developer console) the camera may pull much further back to look over the land.
         private const float FlyingMaxDistance = 60f;
@@ -76,6 +79,18 @@ namespace Chopper.Player
             _smoothedPivot = PivotPosition();
             _distance = _targetDistance;
             _collisionDistance = 100f;
+        }
+
+        public void DebugHold(Vector3 position, Quaternion rotation)
+        {
+            _holdPose = true;
+            _holdPosition = position;
+            _holdRotation = rotation;
+        }
+
+        public void DebugRelease()
+        {
+            _holdPose = false;
         }
 
         // Adds camera shake in meters; the strongest recent value wins so rapid hits do not stack up.
@@ -205,6 +220,12 @@ namespace Chopper.Player
 
         private void UpdateCameraTransform()
         {
+            if (_holdPose)
+            {
+                _camera.fieldOfView = UserSettings.FieldOfView;
+                _camera.transform.SetPositionAndRotation(_holdPosition, _holdRotation);
+                return;
+            }
             float dt = Time.deltaTime;
             float crouchTarget = _motor != null && _motor.IsCrouching ? 1f : 0f;
             _crouchBlend = Mathf.MoveTowards(_crouchBlend, crouchTarget, dt * 6f);
@@ -248,7 +269,12 @@ namespace Chopper.Player
                 // below the surface, where the pond turned into a grey wall.
                 if (Chopper.World.WaterSystem.DepthAt(position, out float surfaceY) > 0f && position.y < surfaceY + MinHeightAboveWater)
                 {
-                    position.y = surfaceY + MinHeightAboveWater;
+                    float feetDepth = Chopper.World.WaterSystem.DepthAt(_smoothedPivot, out _);
+                    if (_pitch > 25f && feetDepth > 0.35f)
+                    {
+                        if (position.y < surfaceY - 0.9f) position.y = surfaceY - 0.9f;
+                    }
+                    else position.y = surfaceY + MinHeightAboveWater;
                 }
             }
 

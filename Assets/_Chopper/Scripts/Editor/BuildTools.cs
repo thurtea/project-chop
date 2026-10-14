@@ -99,6 +99,7 @@ namespace Chopper.Editor
         private static bool Build(Platform platform, bool development, string folder)
         {
             Directory.CreateDirectory(folder);
+            LightingSetup.EnsureForestShafts();
 
             PlayerSettings.productName = ProductName;
             PlayerSettings.bundleVersion = Version;

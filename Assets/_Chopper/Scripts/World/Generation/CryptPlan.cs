@@ -354,6 +354,7 @@ namespace Chopper.World.Generation
                     float lintel = RoomHeight - DoorHeight;
                     Vector3 lintelCenter = c + n * (RoomSize * 0.5f + WallThickness * 0.5f) + Vector3.up * (DoorHeight + lintel * 0.5f);
                     Add(lintelCenter, SizeOn(side, WallThickness, CorridorWidth, lintel), CryptMaterial.Wall);
+                    CaveShell.MouthSteps(Boxes, _group, c + n * (RoomSize * 0.5f), t, n, CorridorWidth, DoorHeight);
                 }
                 int shellSeed = Index * 7919 + room * 503 + Mathf.RoundToInt(c.x);
                 CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
@@ -362,6 +363,7 @@ namespace Chopper.World.Generation
                 CaveShell.WallRelief(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, side =>
                     !SideOpen(room, side) && !(room == 0 && side == StairsSide));
                 CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
+                CaveShell.CeilingCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight);
             }
 
             // Corridors fill only the gap between two rooms' outer wall faces. Reaching into the walls would put their
@@ -380,6 +382,7 @@ namespace Chopper.World.Generation
                     Vector3 wall = mid + t * s * (CorridorWidth * 0.5f + WallThickness * 0.5f) + Vector3.up * (DoorHeight * 0.5f);
                     Add(wall, SizeOn(side, length, WallThickness, DoorHeight), CryptMaterial.Wall);
                 }
+                CaveShell.CorridorJog(Boxes, _group, mid, t, Normal(side), length, CorridorWidth, DoorHeight);
             }
         }
 

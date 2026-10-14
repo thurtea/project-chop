@@ -40,10 +40,10 @@ namespace Chopper.World
         {
             switch (zone)
             {
-                case Element.Water: return new Color(0.58f, 0.70f, 0.68f);
-                case Element.Fire: return new Color(0.66f, 0.50f, 0.44f);
-                case Element.Earth: return new Color(0.42f, 0.52f, 0.42f);
-                case Element.Wind: return new Color(0.84f, 0.86f, 0.80f);
+                case Element.Water: return new Color(0.40f, 0.52f, 0.62f);
+                case Element.Fire: return new Color(0.46f, 0.32f, 0.30f);
+                case Element.Earth: return new Color(0.24f, 0.32f, 0.30f);
+                case Element.Wind: return new Color(0.58f, 0.66f, 0.74f);
                 // W11-08: warm meadow haze, so the distance reads pale gold instead of cool green.
                 default: return new Color(0.80f, 0.76f, 0.66f);
             }
@@ -56,10 +56,10 @@ namespace Chopper.World
         {
             switch (zone)
             {
-                case Element.Water: return 0.0075f;
-                case Element.Fire: return 0.0060f;
-                case Element.Earth: return 0.0062f;
-                case Element.Wind: return 0.0040f;
+                case Element.Water: return 0.0120f;
+                case Element.Fire: return 0.0110f;
+                case Element.Earth: return 0.0130f;
+                case Element.Wind: return 0.0090f;
                 // W11-08 thicker hub mist (was 0.0060). Half fog near 88 m.
                 default: return 0.0095f;
             }

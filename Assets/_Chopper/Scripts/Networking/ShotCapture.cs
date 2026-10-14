@@ -2555,18 +2555,41 @@ namespace Chopper.Networking
                     yield return new WaitForSeconds(0.9f);
                 }
                 yield return Shot(folder, "fish_3b_following");
+                Vector3 lure = fishing.BobberWorld;
+                fishing.DebugPoseSchool(lure);
+                Debug.Log($"[Fishing] school {fishing.DebugSchoolCount} bobber {lure.y:F2}");
+                Vector3 watch = lure + new Vector3(-2.6f, 0.9f, 0.2f);
+                cam.DebugHold(watch, Quaternion.LookRotation((lure + Vector3.up * 0.55f) - watch));
+                yield return new WaitForSeconds(0.42f);
+                ui.DebugShow(0);
+                yield return Shot(folder, "fish_3d_jump");
+                fishing.DebugSinkSchool(0.32f);
+                Vector3 under = lure + new Vector3(1.5f, -0.38f, 0.2f);
+                cam.DebugHold(under, Quaternion.LookRotation((lure + Vector3.down * 0.32f) - under));
+                yield return new WaitForSeconds(0.4f);
+                ui.DebugShow(0);
+                yield return Shot(folder, "fish_3c_under");
+                cam.DebugRelease();
+                cam.DebugSetPitch(8f);
+                cam.DebugSetDistance(4f);
+                cam.SnapYaw(270f);
+                yield return TeleportLocalPlayer(bank, 270f);
                 fishing.DebugBiteNow();
                 yield return new WaitForSeconds(0.2f);
                 yield return Shot(folder, "fish_4_bite");
                 fishing.DebugHook();
                 yield return new WaitForSeconds(0.4f);
                 fishing.DebugSetTension(0.7f, 0.5f);
-                yield return null;
+                lure = fishing.BobberWorld;
+                Vector3 fightCam = lure + new Vector3(-2.3f, 1.15f, -0.35f);
+                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.up * 0.45f) - fightCam));
+                yield return new WaitForSeconds(0.35f);
                 yield return Shot(folder, "fish_5_reeling");
                 FishSpecies pike = fishing.SpeciesOf(FishKind.Pike);
                 fishing.DebugSetTension(0.4f, pike.CalmSeconds + pike.PullSeconds + 0.2f);
                 yield return new WaitForSeconds(0.25f);
                 yield return Shot(folder, "fish_6_thrashing");
+                cam.DebugRelease();
                 fishing.DebugSnap();
                 yield return new WaitForSeconds(0.3f);
                 yield return Shot(folder, "fish_7_snapped");
@@ -3356,10 +3379,10 @@ namespace Chopper.Networking
                     ("zone_earth", new Vector2(hub + 45f, 0f), 90f),
                     ("zone_fire", new Vector2(0f, -(hub + 45f)), 180f),
                     ("zone_wind", new Vector2(-(hub + 45f), 0f), 270f),
-                    ("zone_water_deep", new Vector2(10f, hub + 120f), 0f),
-                    ("zone_earth_deep", new Vector2(hub + 120f, 10f), 90f),
-                    ("zone_fire_deep", new Vector2(10f, -(hub + 120f)), 180f),
-                    ("zone_wind_deep", new Vector2(-(hub + 120f), 10f), 270f),
+                    ("zone_water_deep", new Vector2(10f, hub + 120f), 180f),
+                    ("zone_earth_deep", new Vector2(hub + 120f, 10f), 270f),
+                    ("zone_fire_deep", new Vector2(10f, -(hub + 120f)), 0f),
+                    ("zone_wind_deep", new Vector2(-(hub + 120f), 10f), 90f),
                 };
                 // Plant some saplings in front of the camera so the sapling counter and the sprouts can be checked.
                 if (EnemyDirector.Instance != null)
@@ -3369,8 +3392,19 @@ namespace Chopper.Networking
                 foreach (var stop in stops)
                 {
                     yield return TeleportLocalPlayer(stop.position, stop.yaw);
+                    if (stop.name != "zone_hub" && stop.name != "zone_hub_edge") PlayerCamera.Local.DebugSetPitch(-16f);
+                    else PlayerCamera.Local.DebugSetPitch(8f);
                     yield return new WaitForSeconds(1.2f);
                     yield return Shot(folder, stop.name);
+                }
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, 0.35f);
+                yield return new WaitForSeconds(0.6f);
+                foreach (var stop in new[] { stops[6], stops[7] })
+                {
+                    yield return TeleportLocalPlayer(stop.position, stop.yaw);
+                    PlayerCamera.Local.DebugSetPitch(-16f);
+                    yield return new WaitForSeconds(2.4f);
+                    yield return Shot(folder, stop.name + "_night");
                 }
                 Debug.Log("[Shot] done");
                 Application.Quit(0);
@@ -3551,7 +3585,6 @@ namespace Chopper.Networking
             float height = wood.transform.position.y - ground;
             Debug.Log($"[Fly] {(!tools.Flying && !motor.IsFlying && Mathf.Abs(height) < 0.6f ? "PASS" : "FAIL")} landing from inside the hill puts the player on the ground ({height:F2} m above it)");
 
-            // Night at the hut: the torch posts are lit and the elemental enemies glow in their colors.
             ui.DebugConsole("tp hut");
             ui.DebugConsole("night");
             ui.DebugConsole("spawn 6");

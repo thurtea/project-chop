@@ -215,11 +215,7 @@ namespace Chopper.World.Generation
                     Add(wall - t * shift, SizeOn(side, WallThickness, segment, RoomHeight), CryptMaterial.Wall);
                     float lintel = RoomHeight - GalleryHeight;
                     Add(c + n * (RoomSize * 0.5f + WallThickness * 0.5f) + Vector3.up * (GalleryHeight + lintel * 0.5f), SizeOn(side, WallThickness, GalleryWidth, lintel), CryptMaterial.Wall);
-                    // The timber frame of the gallery mouth, on the chamber side.
-                    Vector3 mouth = c + n * (RoomSize * 0.5f - PostSize * 0.5f);
-                    foreach (float s in new[] { 1f, -1f })
-                        Add(mouth + t * s * (GalleryWidth * 0.5f + PostSize * 0.5f) + Vector3.up * (GalleryHeight * 0.5f), new Vector3(PostSize, GalleryHeight, PostSize), CryptMaterial.Timber);
-                    Add(mouth + Vector3.up * (GalleryHeight + BeamDepth * 0.5f), SizeOn(side, PostSize, GalleryWidth + 2f * PostSize, BeamDepth), CryptMaterial.Timber);
+                    CaveShell.MouthSteps(Boxes, _group, c + n * (RoomSize * 0.5f), t, n, GalleryWidth, GalleryHeight);
                 }
                 int shellSeed = Index * 6151 + room * 503 + Mathf.RoundToInt(c.x);
                 CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
@@ -228,6 +224,7 @@ namespace Chopper.World.Generation
                 CaveShell.WallRelief(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, side =>
                     !SideOpen(room, side) && !(room == 0 && side == LadderSide));
                 CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
+                CaveShell.CeilingCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight);
             }
 
             // Galleries fill only the gap between the chambers' outer wall faces, with a timber frame halfway along.
@@ -243,9 +240,9 @@ namespace Chopper.World.Generation
                 foreach (float s in new[] { 1f, -1f })
                 {
                     Add(mid + t * s * (GalleryWidth * 0.5f + WallThickness * 0.5f) + Vector3.up * (GalleryHeight * 0.5f), SizeOn(side, length, WallThickness, GalleryHeight), CryptMaterial.Wall);
-                    Add(mid + t * s * (GalleryWidth * 0.5f - PostSize * 0.5f) + Vector3.up * (GalleryHeight * 0.5f), new Vector3(PostSize, GalleryHeight, PostSize), CryptMaterial.Timber);
                 }
-                Add(mid + Vector3.up * (GalleryHeight - BeamDepth * 0.5f), SizeOn(side, PostSize, GalleryWidth, BeamDepth), CryptMaterial.Timber);
+                CaveShell.MouthSteps(Boxes, _group, mid, t, Normal(side), GalleryWidth, GalleryHeight);
+                CaveShell.CorridorJog(Boxes, _group, mid, t, Normal(side), length, GalleryWidth, GalleryHeight);
                 // One gallery-length rail. The mesh is placed from Dressing; this record stays for the plan.
                 Rails.Add(new MineProp { Position = mid, Yaw = YawOf(Normal(side)), Length = 6.4f });
             }

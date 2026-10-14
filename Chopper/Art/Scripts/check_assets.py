@@ -33,7 +33,7 @@ ALLOWED_MATS = {"chopper_character.blend": {"M_Chopper", "M_Chopper_Gear"},
 BUDGETS = [
     ("body+head+shirt+vest+belt+bracers+chainmail+boots",
      ["chopper_body", "chopper_head", "chopper_shirt", "chopper_vest", "chopper_belt", "chopper_bracers",
-      "chopper_chainmail", "chopper_boots"], 15000, 40000),
+      "chopper_chainmail", "chopper_boots"], 4000, 12000),
     ("beard", ["chopper_beard"], 400, 6000),
     ("hair", ["chopper_hair"], 1000, 3000),
     ("axe", ["chopper_axe"], 300, 1000),

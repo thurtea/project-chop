@@ -137,6 +137,52 @@ namespace Chopper.Editor
             return profile;
         }
 
+        public static void EnsureForestShafts()
+        {
+            const string shaderPath = "Assets/_Chopper/Shaders/ForestShafts.shader";
+            const string matPath = "Assets/_Chopper/Materials/M_ForestShafts.mat";
+            Shader shader = AssetDatabase.LoadAssetAtPath<Shader>(shaderPath);
+            if (shader == null) shader = Shader.Find("Hidden/Chopper/ForestShafts");
+            if (shader == null)
+            {
+                Debug.LogWarning("[LightingSetup] Forest shaft shader missing.");
+                return;
+            }
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (mat == null)
+            {
+                mat = new Material(shader) { name = "M_ForestShafts" };
+                AssetDatabase.CreateAsset(mat, matPath);
+            }
+            else if (mat.shader != shader)
+            {
+                mat.shader = shader;
+                EditorUtility.SetDirty(mat);
+            }
+
+            var renderer = AssetDatabase.LoadAssetAtPath<UniversalRendererData>("Assets/Settings/PC_Renderer.asset");
+            if (renderer == null) return;
+            foreach (ScriptableRendererFeature existing in renderer.rendererFeatures)
+            {
+                if (existing is FullScreenPassRendererFeature pass && pass.passMaterial == mat) return;
+            }
+            var feature = ScriptableObject.CreateInstance<FullScreenPassRendererFeature>();
+            feature.name = "ForestShafts";
+            feature.hideFlags = HideFlags.HideInHierarchy;
+            feature.passMaterial = mat;
+            feature.injectionPoint = FullScreenPassRendererFeature.InjectionPoint.BeforeRenderingPostProcessing;
+            feature.fetchColorBuffer = true;
+            feature.requirements = ScriptableRenderPassInput.Depth;
+            feature.passIndex = 0;
+            AssetDatabase.AddObjectToAsset(feature, renderer);
+            renderer.rendererFeatures.Add(feature);
+            AssetDatabase.SaveAssets();
+            System.Reflection.MethodInfo update = typeof(ScriptableRendererData).GetMethod("UpdateMap", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            update?.Invoke(renderer, null);
+            EditorUtility.SetDirty(renderer);
+            AssetDatabase.SaveAssets();
+        }
+
         private static T AddComponent<T>(VolumeProfile profile) where T : VolumeComponent
         {
             T component = profile.Add<T>(true);

@@ -150,14 +150,14 @@ GRIP_WRAP = S(112, 34, 24)
 
 # ------------------------------------------------------------------ parts
 def plaid(i, j):
-    """Red and black buffalo plaid with a thin line, period 7 px on both axes."""
-    a, b = i % 7, j % 7
-    da, db = a in (0, 1), b in (0, 1)
+    """Red and black buffalo plaid with a thin line, period 11 px on both axes."""
+    a, b = i % 11, j % 11
+    da, db = a in (0, 1, 2), b in (0, 1, 2)
     if da and db:
         return PLAID_BLACK
     if da or db:
         return PLAID_MID
-    if a == 4 or b == 4:
+    if a == 6 or b == 6:
         return RED_LINE
     return RED
 
@@ -230,7 +230,7 @@ def paint_shirt(p, n, rgb, pc, t):
             c = plaid(math.floor(p.x / t), math.floor(p.y / t))
     if near(rgb, PAL["shirt_dark"]):          # cuffs, hem and collar a shade darker
         c = dark(c, 0.72)
-    return grain(c, p, t, 0.05)
+    return c
 
 
 # Model sheet: brown leather with a few patches, each sewn on with a stitched border and riveted corners.
@@ -383,11 +383,11 @@ def clumps(p, n, t, base, darkc, light):
     else:
         col = math.floor(side_coord(p, n) / t)
         row = math.floor(p.z / t)
-    ci = col // 2
-    cj = (row + (ci % 2)) // 3
+    ci = col // 5
+    cj = (row + (ci % 2)) // 7
     hsh = h3(ci, cj, 23)
     c = mix(base, darkc, 0.35) if hsh < 0.3 else mix(base, light, 0.35) if hsh > 0.8 else base
-    if abs(n.z) <= 0.7 and (row + (ci % 2)) % 3 == 0:
+    if abs(n.z) <= 0.7 and (row + (ci % 2)) % 7 == 0:
         return mix(c, darkc, 0.6)
     return c
 
@@ -492,11 +492,12 @@ def paint_armour(name, p, n, rgb):
         t = TEXEL_M
         if z < 0.575 or abs(n.z) > 0.7:
             return S(40, 40, 44)
-        k = math.floor(z / t)
-        c = math.floor(side_coord(p, n) / t)
-        if k % 2:
-            return grain(S(62, 60, 60), p, t, 0.08)
-        return S(96, 94, 92) if (c + k // 2) % 2 else S(32, 31, 32)
+        ring = 4
+        lk = math.floor(z / t) % ring
+        lc = math.floor(side_coord(p, n) / t) % ring
+        if lk == 0 or lc == 0 or lk == ring - 1 or lc == ring - 1:
+            return S(36, 36, 40)
+        return S(108, 106, 104) if ((math.floor(z / (t * ring)) + math.floor(side_coord(p, n) / (t * ring))) % 2) == 0 else S(72, 70, 68)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)
