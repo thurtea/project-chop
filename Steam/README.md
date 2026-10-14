@@ -48,7 +48,23 @@ Steam asks for the game name to be readable on store and library capsules. Only 
 | Community icon | 184×184 | `Website/favicon_io-chopper/android-chrome-192x192.png` (or the 512) | **Fits.** Downscale only |
 | Client icon | ICO with 16, 24, 32, 48, 64, 96, 128 and 256 | `Website/favicon_io-chopper/favicon.ico` | **Candidate.** It holds 16, 32 and 48 only. The missing sizes (24, 64, 96, 128, 256) would be downscaled from `android-chrome-512x512.png`. That ICO has not been built yet |
 
+## Exported 2026-10-14 (`Steam/images/`)
+
+From the user's art: `banner-chopper.png` (2560×1037, the title screen with the name and the menu) and `chopper-cover.jpg` (686×752, same bytes as `Website/Chopper-Character-Cover.jpg`). Crop boxes are in source pixels.
+
+| File | From | Crop | Scale | Status |
+|---|---|---|---|---|
+| `header_capsule_920x430.jpg` | banner | 175,0 – 905,341 (title band) | 1.26× up | **Candidate.** Name readable, but tight to the letters, and the menu's gold rule shows along the bottom |
+| `library_header_920x430.jpg` | banner | same as the header | 1.26× up | **Candidate.** Same file as the header |
+| `small_capsule_462x174.jpg` | banner | 170,0 – 910,279 | down | **Fits.** Name fills the capsule |
+| `main_capsule_1232x706.jpg` | banner | 0,0 – 1810,1037 | down | **Candidate.** Name and hut, but the menu buttons (Continue … Exit) are in it |
+| `page_background_1438x810.jpg` | banner | 1000,0 – 2560,879 (right side, no text) | down | **Fits** |
+| `vertical_capsule_748x896.jpg` | cover | 29,0 – 657,752 | 1.19× up | **Candidate.** No name on it |
+| `library_capsule_600x900.jpg` | cover | 92,0 – 593,752 | 1.20× up | **Candidate.** No name on it |
+
+Still **empty**: library hero (3840×1240: the widest text-free band is 1560 px), library logo (1280×720 PNG with transparency: the wordmark is painted onto the scene), screenshots (from the game), client ICO sizes.
+
 ## Not done here
 
-- No Steam images have been exported, cropped or uploaded. The table shows which file to start from.
+- Nothing has been uploaded to Steamworks.
 - Every **Empty** slot needs new art with the name on it, or a game screenshot (hero). That is the user's decision.

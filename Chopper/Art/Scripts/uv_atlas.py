@@ -476,6 +476,34 @@ def write_under_atlas(buf, layout, D):
     bpy.data.images.remove(img)
 
 
+DRAUGR_ATLAS = os.path.join(TEX, "chopper_atlas_draugr.png")
+
+
+def write_draugr_atlas(buf):
+    import atlas_paint
+    global TRI_OWNER, CLAIM
+    draugr = buf.copy()
+    TRI_OWNER = np.full(SIZE * SIZE, -1, dtype=np.int64)
+    CLAIM = np.zeros(SIZE * SIZE, dtype=np.int8)
+    island_px = np.zeros(SIZE * SIZE, dtype=np.int8)
+    old = atlas_paint.swap_palette(atlas_paint.DRAUGR)
+    try:
+        for path, names in ((CHAR, CHAR_OBJECTS), (PROPS, PROP_OBJECTS)):
+            bpy.ops.wm.open_mainfile(filepath=path)
+            bake([bpy.data.objects[n] for n in names], draugr, island_px, [])
+    finally:
+        atlas_paint.swap_palette(old)
+    dilate(draugr, island_px, DILATE)
+    rgb = linear_to_srgb(draugr[:, :3])
+    out = np.concatenate([rgb, np.ones((SIZE * SIZE, 1))], axis=1).astype(np.float32)
+    img = bpy.data.images.new("chopper_atlas_draugr", SIZE, SIZE, alpha=False)
+    img.pixels.foreach_set(out.ravel())
+    img.filepath_raw = DRAUGR_ATLAS
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+
+
 def atlas_objects():
     bpy.ops.wm.open_mainfile(filepath=CHAR)
     return [n for n in CHAR_OBJECTS if "UnderRG" not in bpy.data.objects[n].data.uv_layers]
@@ -525,6 +553,8 @@ def main():
         img.save()
         bpy.data.images.remove(img)
     report.append("wrote " + UNDER_ATLAS)
+    write_draugr_atlas(buf)
+    report.append("wrote " + DRAUGR_ATLAS)
     text = "\n".join(report) + "\n"
     with open(TILES_TXT, "w", encoding="utf-8") as fh:
         fh.write(text)

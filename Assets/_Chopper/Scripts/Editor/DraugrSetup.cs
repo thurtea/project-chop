@@ -24,6 +24,7 @@ namespace Chopper.Editor
 
         public static GameObject Build()
         {
+            if (ChopperRigEnemy.DraugrReady) return BuildOnChopper();
             var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterSetup.ModelPath);
             if (fbx == null)
             {
@@ -58,6 +59,22 @@ namespace Chopper.Editor
 
             AttachSword(model.transform, root.transform);
 
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        private static GameObject BuildOnChopper()
+        {
+            Material material = ChopperRigEnemy.Material("M_Draugr", ChopperRigEnemy.DraugrAtlasPath);
+            GameObject root = ChopperRigEnemy.Instantiate("Draugr", CharacterSetup.ChopperModelPath, ControllerPath, 0.9f,
+                out GameObject model);
+            foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
+            {
+                renderer.sharedMaterial = material;
+                renderer.enabled = renderer.gameObject.name is not ("chopper_hair" or "chopper_plate" or "chopper_pauldrons");
+            }
+            ChopperRigEnemy.MountDoubleAxe(model.transform, material);
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             return saved;

@@ -37,6 +37,7 @@ namespace Chopper.Editor
 
         public static GameObject Build()
         {
+            if (ChopperRigEnemy.ElementalReady) return BuildOnChopper();
             var fbx = AssetDatabase.LoadAssetAtPath<GameObject>(CharacterSetup.ModelPath);
             var body = AssetDatabase.LoadAssetAtPath<GameObject>(BodyFbx);
             if (fbx == null || body == null)
@@ -66,6 +67,18 @@ namespace Chopper.Editor
             foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
             Dress(model.transform, body);
 
+            GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
+            Object.DestroyImmediate(root);
+            return saved;
+        }
+
+        private static GameObject BuildOnChopper()
+        {
+            ChopperRigEnemy.PrepareElemental();
+            Material material = ChopperRigEnemy.Material("M_Elemental", null);
+            GameObject root = ChopperRigEnemy.Instantiate("Golem", ChopperRigEnemy.ElementalPath, ControllerPath, 0.8f,
+                out GameObject model);
+            foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true)) renderer.sharedMaterial = material;
             GameObject saved = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             return saved;

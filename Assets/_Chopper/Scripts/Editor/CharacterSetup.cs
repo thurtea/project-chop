@@ -1114,7 +1114,7 @@ namespace Chopper.Editor
         // Copies a prop FBX from the art project's exports when it is missing or different, and imports it like the body:
         // axis conversion not baked, as in the art project (ChopperImport), scale 1, mesh
         // read/write on (the checks sample vertices), no imported materials (the atlas material is assigned here).
-        private static GameObject PrepareChopperProp(string assetPath)
+        internal static GameObject PrepareChopperProp(string assetPath)
         {
             string source = Path.Combine(ArtExportFolder, Path.GetFileName(assetPath));
             if (File.Exists(source) && (!File.Exists(assetPath) || !File.ReadAllBytes(source).SequenceEqual(File.ReadAllBytes(assetPath))))
@@ -1145,7 +1145,7 @@ namespace Chopper.Editor
         // up). So the root turn is reset and that half turn is put back on the mount. Position 0, scale 1.
         public static readonly Quaternion BakedSocketTurn = Quaternion.Euler(0f, 180f, 0f);
 
-        private static GameObject MountProp(GameObject prop, Transform parent, string name, Material material)
+        internal static GameObject MountProp(GameObject prop, Transform parent, string name, Material material)
         {
             var item = (GameObject)PrefabUtility.InstantiatePrefab(prop, parent);
             item.name = name;

@@ -4,7 +4,7 @@ The landing page for Chopper, a co-op survival game in Unity. Published at https
 
 Plain HTML, CSS and a little JavaScript, with no build step.
 
-The page says what the game is, and that one developer is building it in Unity with Claude Code and Cursor. The Gallery section is empty until screenshots from the finished look pass are ready. The old page pictures are not linked.
+The page says what the game is, and that one developer is building it in Unity with Claude Code and Cursor. The banner is the top band of the user's title-screen art (`banner-chopper.png`, cropped above the menu). The gallery shows the user's art: the title screen, the model sheet, the hut concept and the armoured cover. In-game screenshots join it when the user supplies them.
 
 ## Files
 

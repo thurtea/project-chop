@@ -10,6 +10,7 @@ Shader "Chopper/VertexColorLit"
         _UseAtlas ("Use Atlas", Float) = 1
         _Wrap ("Wrap Light", Range(0, 1)) = 0.42
         _Under ("Base Layer", Float) = 0
+        _EmissionColor ("Emission", Color) = (0, 0, 0, 1)
     }
 
     SubShader
@@ -24,6 +25,7 @@ Shader "Chopper/VertexColorLit"
             half _UseAtlas;
             half _Wrap;
             half _Under;
+            half4 _EmissionColor;
         CBUFFER_END
         TEXTURE2D(_BaseMap);
         SAMPLER(sampler_BaseMap);
@@ -116,7 +118,7 @@ Shader "Chopper/VertexColorLit"
                 #endif
                 half3 ambient = SampleSH(n) * _AmbientStrength;
 
-                half3 c = albedo * (direct + ambient);
+                half3 c = albedo * (direct + ambient) + _EmissionColor.rgb;
                 c = MixFog(c, i.fogFactor);
                 return half4(c, 1);
             }

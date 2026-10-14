@@ -171,6 +171,36 @@ UNDER_SLEEVE = 0.15        # m along the arm from the shoulder joint
 UNDER_BRAIES_Z = 0.56      # shorts hem height (m); bare legs and feet below
 
 
+DRAUGR = {
+    "SKIN": S(140, 152, 142), "SKIN_SHADE": S(108, 120, 112),
+    "GINGER": S(150, 148, 140), "GINGER_DARK": S(92, 90, 86), "GINGER_LIGHT": S(198, 196, 188),
+    "MOUSTACHE_C": S(172, 170, 162),
+    "EYE_WHITE": S(26, 30, 36), "IRIS": S(120, 232, 255), "PUPIL": S(214, 252, 255),
+    "RED": S(84, 42, 38), "RED_LINE": S(60, 32, 30), "PLAID_MID": S(46, 28, 28), "PLAID_BLACK": S(22, 16, 16),
+    "LEATHER": [S(72, 54, 40), S(58, 44, 32), S(86, 64, 46)], "PATCH": [S(82, 82, 80), S(66, 66, 66)],
+    "SEAM": S(34, 26, 20), "THREAD": S(120, 112, 96), "STRAP": S(50, 38, 28), "BELT": S(44, 34, 26),
+    "STEEL_LIGHT": S(156, 122, 92), "STEEL_MID": S(112, 84, 62), "STEEL_DARK": S(62, 50, 42),
+    "TROUSERS": S(62, 52, 44), "KNEE_PAD": S(50, 42, 36), "BOOT": S(46, 38, 32), "BOOT_WRAP": S(72, 66, 60),
+    "SOLE": S(30, 26, 22), "CORD": S(108, 96, 80),
+    "WOOD": S(112, 94, 76), "WOOD_DARK": S(84, 70, 56), "WOOD_GROOVE": S(54, 44, 36),
+    "WRAP": S(70, 44, 36), "GRIP_WRAP": S(66, 36, 30),
+}
+
+
+def swap_palette(values):
+    g = globals()
+    old = {k: g[k] for k in values}
+    old["VEST_PATCHES_FRONT"], old["VEST_PATCHES_BACK"] = VEST_PATCHES_FRONT, VEST_PATCHES_BACK
+    g.update(values)
+    pairs = [(old[k][i], g[k][i]) for k in ("PATCH", "LEATHER") if k in values for i in range(len(old[k]))]
+
+    def col(c):
+        return next((b for a, b in pairs if a == c), c)
+    for name in ("VEST_PATCHES_FRONT", "VEST_PATCHES_BACK"):
+        g[name] = [(x0, x1, z0, z1, col(c)) for x0, x1, z0, z1, c in old[name]]
+    return old
+
+
 def linen(p, n, t):
     c = LINEN if math.floor(p.z / t) % 2 else dark(LINEN, 0.96)
     return grain(c, p, t, 0.04)
@@ -410,7 +440,6 @@ def seg_dist(x, z, a, b):
 
 
 def blade_engraving(x, z, t):
-    """Light engraved lines on the dark blade face: a line following the cutting edge and an interlaced knot."""
     if x < 0.12:
         return False
     d = min(seg_dist(x, z, a, b) for a, b in zip(BLADE_EDGE, BLADE_EDGE[1:]))
