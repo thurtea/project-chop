@@ -1,12 +1,13 @@
 using Chopper.Core;
+using Chopper.Player;
 using Chopper.World.Generation;
 using UnityEngine;
 
 namespace Chopper.World
 {
-    // One vein in a mine wall: rock with chunks of ore in the mine's colour. The ore brightens and dulls with the
-    // vein's rhythm (MiningRules.Glint) so a strike can still be timed. There is no point light. Once this player
-    // has worked the vein today the ore goes dull until dawn.
+    // One vein in a mine wall: rock with chunks of ore in the mine's colour. While this player works it the ore flashes
+    // the strike beats (RhythmRules) and the strikes throw sparks, chips or dust. There is no point light. Once this
+    // player has worked the vein today the ore goes dull until dawn.
     public class MineVeinView : MonoBehaviour
     {
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
@@ -26,12 +27,28 @@ namespace Chopper.World
             _ore = ore != null ? ore.GetComponent<Renderer>() : null;
             _block = new MaterialPropertyBlock();
             MineWorld.Changed += Refresh;
+            PlayerMining.RhythmCue += OnCue;
             Refresh();
         }
 
         private void OnDestroy()
         {
             MineWorld.Changed -= Refresh;
+            PlayerMining.RhythmCue -= OnCue;
+        }
+
+        private void OnCue(int vein, RhythmHit hit, bool bar)
+        {
+            if (vein != Vein || _ore == null) return;
+            Vector3 at = _ore.bounds.center + transform.forward * 0.15f;
+            if (bar)
+            {
+                CombatFx.Sparks(at, Glow, 30);
+                CombatFx.Chips(at, Glow);
+            }
+            else if (hit == RhythmHit.OnBeat) CombatFx.Sparks(at, Glow, 12);
+            else if (hit == RhythmHit.OffBeat) CombatFx.Chips(at, new Color(0.45f, 0.43f, 0.40f));
+            else CombatFx.Dust(at, new Color(0.55f, 0.52f, 0.48f), 8);
         }
 
         private void Refresh()
@@ -43,8 +60,9 @@ namespace Chopper.World
         private void Update()
         {
             if (_spent || _ore == null) return;
-            float glint = MiningRules.Glint(MiningClock.Now, Vein);
-            Paint(Mathf.Lerp(0.55f, 1f, glint));
+            PlayerMining mining = PlayerMining.Local;
+            bool worked = mining != null && mining.EngagedVein == Vein;
+            Paint(worked ? Mathf.Lerp(0.5f, 1.35f, RhythmRules.Pulse(Time.time - mining.RhythmStart)) : 0.6f);
         }
 
         private void Paint(float brightness)

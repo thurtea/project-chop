@@ -12,9 +12,9 @@ using UnityEngine;
 namespace Chopper.Player
 {
     // Mining, a pastime like fishing: the finds carried and the biggest of each kind (both kept in the save), the
-    // portals and ladders of the mines, and working a vein. The owner swings the pickaxe at a vein when its crack
-    // glows (MiningRules.Glint, by the shared MiningClock), judges the strike there and shows one word (Clean, Good,
-    // Rough), and the server adds it up: a few clean strikes free the find, a rough one can crack it. Each player may
+    // portals and ladders of the mines, and working a vein. The owner engages a vein and strikes to RhythmRules'
+    // beat, the vein flashing the beats, and the server adds it up: a few clean strikes free the find, a full bar
+    // counts double, a rough one can crack it. Each player may
     // work every vein once a day (MineManager). Fishing feeds in too: a glowworm carried is bait, and a landed fish
     // now and then brings up a geode or an old pick head.
     public class PlayerMining : NetworkBehaviour
@@ -42,29 +42,29 @@ namespace Chopper.Player
         private int _serverStrikes;
         private int _serverClean;
         private float _serverNextStrike;
-        private int _chain;
-        private int _chainVein = -1;
-        private int _serverChain;
-        private float _serverChainAt = float.NegativeInfinity;
+        private int _engagedVein = -1;
+        private float _rhythmStart;
+        private float _engagedActionAt;
+        private int _rhythmBar = -1;
+        private int _rhythmMask;
 
         public static PlayerMining Local { get; private set; }
 
         // Raised on every client when this player swings the pickaxe (the animator plays the chop).
         public event System.Action StrikePlayed;
 
-        public bool PickOut => Time.time - _lastStrikeAt < PickOutSeconds;
+        public bool PickOut => Engaged || Time.time - _lastStrikeAt < PickOutSeconds;
+
+        public bool Engaged => _engagedVein >= 0;
+        public int EngagedVein => _engagedVein;
+        public float RhythmStart => _rhythmStart;
+
+        public static event System.Action<int, RhythmHit, bool> RhythmCue;
 
         // One word that pops up and fades, like fishing's: Clean, Good, Rough, Cracked, or the find. Owner only.
         public string CueWord { get; private set; } = string.Empty;
         public bool CueGood { get; private set; }
         public float CueAt { get; private set; } = float.NegativeInfinity;
-
-        private void Cue(string word, bool good)
-        {
-            CueWord = word;
-            CueGood = good;
-            CueAt = Time.time;
-        }
 
         private void Awake()
         {
@@ -161,7 +161,18 @@ namespace Chopper.Player
         public bool TryInteract()
         {
             if (!IsOwner) return false;
+            if (Engaged)
+            {
+                Disengage();
+                return true;
+            }
             Vector3 position = transform.position;
+            int near = MineWorld.VeinInReach(position, transform.forward);
+            if (near >= 0 && !MineWorld.SpentHere(near))
+            {
+                Engage(near);
+                return true;
+            }
             if (MineWorld.DoorInReach(position) >= 0)
             {
                 EnterServerRpc();
@@ -196,27 +207,52 @@ namespace Chopper.Player
             if (!IsOwner) return false;
             if (_health != null && _health.IsDown) return false;
             if (_combat != null && (_combat.IsBlocking || _combat.IsRolling)) return false;
-            int vein = MineWorld.VeinInReach(transform.position, aim);
-            if (vein < 0) return false;
-            if (Time.time < _nextStrikeAt) return true;
-            if (MineWorld.SpentHere(vein))
+            if (!Engaged)
             {
-                Cue("Worked out", false);
-                _nextStrikeAt = Time.time + MiningRules.StrikeCooldown;
+                int near = MineWorld.VeinInReach(transform.position, aim);
+                if (near < 0) return false;
+                if (!MineWorld.SpentHere(near)) Engage(near);
                 return true;
             }
-            _nextStrikeAt = Time.time + MiningRules.StrikeCooldown;
-            StrikeQuality quality = MiningRules.Judge(MiningRules.Glint(MiningClock.Now, vein), HasPickHead);
-            if (vein != _chainVein)
-            {
-                _chain = 0;
-                _chainVein = vein;
-            }
-            _chain = MiningRules.NextChain(_chain, Time.time - _lastStrikeAt, MiningRules.ComboWindow);
-            Cue(MiningRules.ComboWord(quality, _chain), quality != StrikeQuality.Rough);
+            int vein = _engagedVein;
+            if (Time.time < _nextStrikeAt) return true;
+            _nextStrikeAt = Time.time + RhythmRules.Beat * 0.6f;
+            _engagedActionAt = Time.time;
+            float since = Time.time - _rhythmStart;
+            RhythmHit hit = RhythmRules.Judge(since);
+            if (hit == RhythmHit.OffBeat && HasPickHead && Mathf.Abs(since - RhythmRules.BeatIndex(since) * RhythmRules.Beat) <= RhythmRules.Window * 2f)
+                hit = RhythmHit.OnBeat;
+            bool bar = RhythmRules.Register(ref _rhythmBar, ref _rhythmMask, since, hit);
+            StrikeQuality quality = MiningRules.FromRhythm(hit);
             PlayStrike(quality);
-            StrikeServerRpc(vein, (int)quality);
+            RhythmCue?.Invoke(vein, hit, bar);
+            StrikeServerRpc(vein, (int)quality, bar);
             return true;
+        }
+
+        private void Engage(int vein)
+        {
+            _engagedVein = vein;
+            _rhythmStart = Time.time + RhythmRules.LeadIn;
+            _engagedActionAt = Time.time;
+            _rhythmBar = -1;
+            _rhythmMask = 0;
+            _lastStrikeAt = Time.time;
+        }
+
+        private void Disengage()
+        {
+            _engagedVein = -1;
+        }
+
+        private void Update()
+        {
+            if (!IsOwner || !Engaged) return;
+            bool other = (_combat != null && (_combat.GuardRaised || _combat.IsRolling)) || Keybinds.WasPressed(KeyAction.Jump)
+                         || (_health != null && _health.IsDown);
+            bool away = !MineWorld.VeinNear(_engagedVein, transform.position, 2.5f);
+            bool idle = Time.time - _engagedActionAt > RhythmRules.LeadIn + 6f;
+            if (other || away || idle || MineWorld.SpentHere(_engagedVein)) Disengage();
         }
 
         private void PlayStrike(StrikeQuality quality)
@@ -229,14 +265,14 @@ namespace Chopper.Player
         }
 
         [ServerRpc]
-        private void StrikeServerRpc(int vein, int quality)
+        private void StrikeServerRpc(int vein, int quality, bool bar)
         {
-            ServerStrike(vein, (StrikeQuality)Mathf.Clamp(quality, 0, 2), false);
+            ServerStrike(vein, (StrikeQuality)Mathf.Clamp(quality, 0, 2), false, bar);
         }
 
         // Server only. One strike at a vein, as judged by the owner. Returns the find freed (-1 for none yet, -2 when
         // the find cracked). ignoreChecks is for tests.
-        public int ServerStrike(int vein, StrikeQuality quality, bool ignoreChecks)
+        public int ServerStrike(int vein, StrikeQuality quality, bool ignoreChecks, bool bar = false)
         {
             if (vein < 0 || vein >= MineWorld.Veins.Count) return -1;
             if (!ignoreChecks)
@@ -246,7 +282,7 @@ namespace Chopper.Player
             }
             MineManager manager = MineManager.Instance;
             if (manager == null || manager.HasWorked(vein, this)) return -1;
-            _serverNextStrike = Time.time + MiningRules.StrikeCooldown * 0.8f;
+            _serverNextStrike = Time.time + RhythmRules.Beat * 0.5f;
             StrikeObserversRpc();
 
             if (vein != _serverVein)
@@ -255,10 +291,7 @@ namespace Chopper.Player
                 _serverProgress = 0f;
                 _serverStrikes = 0;
                 _serverClean = 0;
-                _serverChain = 0;
             }
-            _serverChain = MiningRules.NextChain(_serverChain, Time.time - _serverChainAt, MiningRules.ComboWindow);
-            _serverChainAt = Time.time;
             _serverStrikes++;
             if (quality == StrikeQuality.Clean) _serverClean++;
             if (MiningRules.Cracks(quality, _rng.NextDouble()))
@@ -268,7 +301,7 @@ namespace Chopper.Player
                 if (Owner.IsValid) ResultTargetRpc(Owner, vein, -1, 0f, false);
                 return -2;
             }
-            _serverProgress += MiningRules.ComboProgress(quality, _serverChain);
+            _serverProgress += MiningRules.RhythmProgress(quality, bar);
             if (_serverProgress < MiningRules.FreeAt) return -1;
 
             float cleanShare = _serverClean / (float)Mathf.Max(1, _serverStrikes);
@@ -305,7 +338,7 @@ namespace Chopper.Player
             MineWorld.MarkSpentHere(vein);
             if (kind < 0)
             {
-                Cue("Cracked", false);
+                RhythmCue?.Invoke(vein, RhythmHit.Rest, false);
                 Sfx.Play(ProceduralSfx.Chop, transform.position + Vector3.up, 0.8f, 0.55f, 0.05f);
                 return;
             }
@@ -315,7 +348,6 @@ namespace Chopper.Player
         private void ShowFind(MineFindKind kind, float grams, bool record)
         {
             MineFind find = MiningRules.Finds[(int)kind];
-            Cue(record ? $"{find.Name}  {MiningRules.Size(grams)}  New record!" : $"{find.Name}  {MiningRules.Size(grams)}", true);
             PickupFeed.Add(PickupFeed.Kind.Find, find.Name, 1, FindCount(kind) + 1, find.Icon);
             Sfx.Play(ProceduralSfx.Upgrade, transform.position + Vector3.up, 0.55f, 1.1f, 0.05f);
         }

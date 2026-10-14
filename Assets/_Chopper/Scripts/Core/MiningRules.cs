@@ -150,6 +150,13 @@ namespace Chopper.Core
             return chain >= 2 ? $"{Word(quality)} x{chain}" : Word(quality);
         }
 
+        public const float RhythmBarBonus = 2f;
+
+        public static StrikeQuality FromRhythm(RhythmHit hit) =>
+            hit == RhythmHit.OnBeat ? StrikeQuality.Clean : hit == RhythmHit.OffBeat ? StrikeQuality.Good : StrikeQuality.Rough;
+
+        public static float RhythmProgress(StrikeQuality quality, bool bar) => Progress(quality) * (bar ? RhythmBarBonus : 1f);
+
         public static bool Cracks(StrikeQuality quality, double roll) => quality == StrikeQuality.Rough && roll < RoughCrackChance;
 
         // The word that pops up for a strike (fishing style: one word, fading).

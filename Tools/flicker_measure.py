@@ -48,7 +48,7 @@ def main(root, scale=1):
         d2 = stack[2:] - stack[1:-1]
         flick = np.where(np.sign(d1) * np.sign(d2) < 0, np.abs(d2 - d1), 0.0)
         out = [name]
-        for label, region in (("character", char), ("ground", ground)):
+        for label, region in (("character", char), ("ground", ground), ("scene", ~char)):
             v = flick[:, region]
             out.append("%s %.2f mean, %.2f%% > 12" % (label, v.mean(), 100.0 * (v > 12).mean()))
         rows.append(out)

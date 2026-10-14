@@ -2290,37 +2290,43 @@ namespace Chopper.Networking
                 for (int i = 0; i < Chopper.World.Generation.MineWorld.Veins.Count && vein < 0; i++)
                     if (Chopper.World.Generation.MineWorld.Veins[i].Mine == first.Index) vein = i;
                 var v = Chopper.World.Generation.MineWorld.Veins[vein].Vein;
-                Vector3 stand = v.Position + v.Normal * 1.3f;
+                // A bare transform write leaves the controller where it was, so the strike never sees the vein.
+                Vector3 stand = v.Position + v.Normal * 1.6f;
                 stand.y = Chopper.World.Generation.MinePlan.FloorY + 0.1f;
                 float faceYaw = Mathf.Atan2(-v.Normal.x, -v.Normal.z) * Mathf.Rad2Deg;
-                wood.transform.SetPositionAndRotation(stand, Quaternion.Euler(0f, faceYaw, 0f));
-                var nt2 = wood.GetComponent<FishNet.Component.Transforming.NetworkTransform>();
-                if (nt2 != null) nt2.Teleport();
+                yield return TeleportExact(stand, faceYaw);
                 mineCam.SnapYaw(faceYaw - 35f);
                 mineCam.DebugSetDistance(2.6f);
-                yield return new WaitForSeconds(1f);
-                // Wait for the glow's peak, picture it, then strike on peaks until the find comes out.
-                while (MiningRules.Glint(MiningClock.Now, vein) < 0.95f) yield return null;
-                ui.DebugShow(0); yield return QuickShot(folder, "mine_vein_glow");
+                yield return new WaitForSeconds(0.4f);
                 Vector3 aim = Quaternion.Euler(0f, faceYaw, 0f) * Vector3.forward;
+                int reach = Chopper.World.Generation.MineWorld.VeinInReach(wood.transform.position, aim);
+                Debug.Log($"[Mine] stood {Vector3.Distance(wood.transform.position, v.Position):F2} m from vein {vein}, reach {reach}");
+                miner.TryStrike(aim);
+                Debug.Log($"[Mine] engaged {miner.Engaged} on vein {miner.EngagedVein} (wanted {vein})");
+                while (Time.time < miner.RhythmStart + 0.02f) yield return null;
+                ui.DebugShow(0); yield return QuickShot(folder, "mine_vein_glow");
                 int strikes = 0;
-                for (int tries = 0; tries < 12 && !Chopper.World.Generation.MineWorld.SpentHere(vein); tries++)
+                int[] slots = { 0, 1, 3 };
+                for (int bar = 1; bar < 8 && !Chopper.World.Generation.MineWorld.SpentHere(vein); bar++)
                 {
-                    float wait = 0f;
-                    while (MiningRules.Glint(MiningClock.Now, vein) < 0.9f && wait < 3f) { wait += Time.deltaTime; yield return null; }
-                    yield return new WaitForSeconds(0.05f);
-                    bool used = miner.TryStrike(aim);
-                    strikes++;
-                    Debug.Log($"[Mine] strike {strikes}: used {used}, word '{miner.CueWord}'");
-                    if (strikes == 1)
+                    foreach (int slot in slots)
                     {
-                        yield return new WaitForSeconds(0.22f);
-                        ui.DebugShow(0); yield return QuickShot(folder, "mine_swing");
+                        float target = miner.RhythmStart + (bar * RhythmRules.BarBeats + slot) * RhythmRules.Beat;
+                        while (Time.time < target - 0.02f) yield return null;
+                        bool used = miner.TryStrike(aim);
+                        strikes++;
+                        Debug.Log($"[Mine] strike {strikes} (bar {bar}, beat {slot + 1}): used {used}, {RhythmRules.Judge(Time.time - miner.RhythmStart)}");
+                        if (strikes == 1)
+                        {
+                            yield return new WaitForSeconds(0.12f);
+                            ui.DebugShow(0); yield return QuickShot(folder, "mine_swing");
+                        }
+                        if (Chopper.World.Generation.MineWorld.SpentHere(vein)) break;
                     }
-                    yield return new WaitForSeconds(0.8f);
                 }
                 yield return new WaitForSeconds(0.3f);
-                Debug.Log($"[Mine] vein spent here {Chopper.World.Generation.MineWorld.SpentHere(vein)}, cue '{miner.CueWord}'");
+                bool worked = Chopper.World.Generation.MineWorld.SpentHere(vein);
+                Debug.Log($"[Mine] vein spent here {worked} after {strikes} strikes, engaged after {miner.Engaged}");
                 ui.DebugShow(0); yield return Shot(folder, "mine_found");
                 int carried = 0;
                 for (int k = 0; k < MiningRules.Kinds; k++) carried += miner.FindCount((MineFindKind)k);
@@ -2344,7 +2350,8 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(2f);
                 Debug.Log($"[Mine] after the ladder: at {wood.transform.position:F1}, distance to the portal {Vector3.Distance(wood.transform.position, first.DoorSpot):F1}");
                 bool backUp = Chopper.World.Generation.MineWorld.MineAt(wood.transform.position) < 0 && wood.transform.position.y > -50f;
-                Debug.Log("[Mine] RESULT " + (backUp ? "PASS (out by the ladder)" : "FAIL (still in the mine after the ladder)"));
+                Debug.Log("[Mine] RESULT " + (backUp && worked && carried > 0 ? $"PASS (vein worked in rhythm, {carried} find, out by the ladder)"
+                    : $"FAIL (worked {worked}, finds {carried}, out by the ladder {backUp})"));
                 Debug.Log("[Shot] done");
                 Application.Quit(0);
                 yield break;
@@ -5053,6 +5060,9 @@ namespace Chopper.Networking
             {
                 (new Vector2(0f, 9f), 180f, "yard", 4.5f, 18f),
                 (new Vector2(150f, 0f), 90f, "meadow", 4.5f, 22f),
+                (Vector2.zero, 200f, "hall", 3f, 12f),
+                (Vector2.zero, 200f, "main", 3f, 12f),
+                (Vector2.zero, 200f, "loft", 3f, 12f),
             };
             string[] settings = { "base", "noshadow", "noaa", "mipbias", "noblockdetail" };
             int msaa = pipeline.msaaSampleCount;
@@ -5061,7 +5071,11 @@ namespace Chopper.Networking
             var oldBlock = blockMaterials.ToDictionary(m => m, m => (m.GetFloat("_Jitter"), m.GetFloat("_Edge")));
             foreach (var place in places)
             {
-                yield return TeleportLocalPlayer(place.where, place.yaw);
+                int storey = place.label == "hall" ? 0 : place.label == "main" ? 1 : place.label == "loft" ? 2 : -1;
+                if (storey >= 0)
+                    yield return TeleportExact(Hut.Instance.transform.position + new Vector3(Hut.HouseScale, 0.1f + storey * Hut.StoreyHeight, Hut.HouseScale), place.yaw);
+                else
+                    yield return TeleportLocalPlayer(place.where, place.yaw);
                 PlayerCamera cam = PlayerCamera.Local;
                 cam.DebugSetDistance(place.distance);
                 cam.DebugSetPitch(place.pitch);

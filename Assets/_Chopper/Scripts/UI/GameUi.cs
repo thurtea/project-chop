@@ -831,6 +831,7 @@ namespace Chopper.UI
                 else if (chest >= 0) prompt = CryptWorld.OpenedHere(chest) ? InputHints.EmptyChestPrompt : InputHints.ChestPrompt;
                 else if (MineWorld.DoorInReach(position) is int mineDoor && mineDoor >= 0) prompt = InputHints.MineDoorPrompt(MineWorld.Plans[mineDoor].Name);
                 else if (MineWorld.ExitInReach(position) >= 0) prompt = InputHints.MineExitPrompt;
+                else if (PlayerMining.Local != null && PlayerMining.Local.Engaged) prompt = string.Empty;
                 else if (MineWorld.VeinInReach(position, LocalAim(local)) is int vein && vein >= 0)
                     prompt = MineWorld.SpentHere(vein) ? InputHints.WorkedVeinPrompt : InputHints.VeinPrompt;
                 else if (GroundItem.GearInReach(position, local.gameObject) is GroundItem gear)

@@ -4,8 +4,8 @@ Run:  blender -b -P build_pine.py
 Out:  Art/Blender/prop_pine_voxel.blend, Art/Export/prop_pine_voxel.fbx,
       Art/Renders/pine_check_report.txt, Art/Renders/pine_front.png
 
-1 unit = 1 m. The pad sits on Z = 0. Cube size is 0.25 m so the tree reads next to
-the 1.8 m character (about 3.5 m tall). Shared faces between cubes are omitted.
+1 unit = 1 m. The pad sits on Z = 0. Cube size is 0.25 m; the tree stands about 6.5 m,
+three and a half times the 1.8 m character (concept 2.0). Shared faces between cubes are omitted.
 """
 import os
 
@@ -19,9 +19,12 @@ REPORT = os.path.join(ART, "Renders", "pine_check_report.txt")
 RENDER = os.path.join(ART, "Renders", "pine_front.png")
 
 S = 0.25
-LEAF = (0.18, 0.38, 0.14)
-LEAF_DARK = (0.12, 0.28, 0.10)
-TRUNK = (0.36, 0.22, 0.11)
+LEAF = (0.15, 0.33, 0.12)
+LEAF_DARK = (0.09, 0.22, 0.08)
+LEAF_LIGHT = (0.28, 0.48, 0.18)
+LEAF_SHADE = (0.06, 0.15, 0.06)
+TRUNK = (0.30, 0.18, 0.09)
+TRUNK_DARK = (0.20, 0.12, 0.06)
 DIRT = (0.42, 0.26, 0.13)
 DIRT_DARK = (0.30, 0.18, 0.09)
 
@@ -36,42 +39,53 @@ FACE = {
 }
 
 
-def cells():
-    """Integer cube coordinates. x, y across the pad, z up. (0,0) is the trunk.
+def h3(i, j, k):
+    n = (i * 73856093) ^ (j * 19349663) ^ (k * 83492791)
+    n = (n ^ (n >> 13)) * 1274126177
+    return ((n ^ (n >> 16)) & 0xFFFF) / 65535.0
 
-    Four foliage discs with a bare trunk cell between them, widest at the bottom,
-    so the tree reads as stacked layers instead of one cone.
-    """
+
+def cells():
     out = {}
-    for ix in range(-4, 5):
-        for iy in range(-4, 5):
-            if ix * ix + iy * iy > 18:
-                continue
-            if abs(ix) >= 3 and abs(iy) >= 3:
-                continue
-            out[(ix, iy, 0)] = DIRT_DARK if (ix + iy) % 2 else DIRT
-    for iz in range(1, 17):
-        out[(0, 0, iz)] = TRUNK
-    # (bottom z, top z, radius). A trunk-only slice sits between each pair.
-    tiers = ((6, 7, 4), (9, 10, 3), (12, 13, 2), (15, 16, 1))
-    for z0, z1, r in tiers:
-        for iz in range(z0, z1 + 1):
-            for ix in range(-r, r + 1):
-                for iy in range(-r, r + 1):
-                    if ix * ix + iy * iy > r * r + r // 2:
+    for ix in range(-3, 3):
+        for iy in range(-3, 3):
+            cx, cy = ix + 0.5, iy + 0.5
+            if abs(cx) <= 1 and abs(cy) <= 1:
+                out[(ix, iy, 0)] = TRUNK_DARK
+            elif (abs(cx) <= 1 or abs(cy) <= 1) and abs(cx) + abs(cy) <= 2.5:
+                out[(ix, iy, 0)] = DIRT_DARK if (ix + iy) % 2 else DIRT
+    top = 23
+    for iz in range(1, top + 1):
+        for ix in (-1, 0):
+            for iy in (-1, 0):
+                out[(ix, iy, iz)] = TRUNK_DARK if h3(ix, iy, iz // 3) < 0.4 else TRUNK
+    tiers = ((6, 2, 6.5), (9, 2, 5.5), (12, 2, 5.0), (15, 2, 4.0), (18, 2, 3.0), (21, 2, 2.2), (24, 2, 1.2))
+    for z0, th, r in tiers:
+        for iz in range(z0, z0 + th):
+            rr = r - 0.6 * (iz - z0)
+            for ix in range(-8, 8):
+                for iy in range(-8, 8):
+                    cx, cy = ix + 0.5, iy + 0.5
+                    if max(abs(cx), abs(cy)) > rr or abs(cx) + abs(cy) > rr * 1.55:
                         continue
-                    if max(abs(ix), abs(iy)) == r and (ix * 3 + iy * 5 + iz) % 3 == 0:
+                    if max(abs(cx), abs(cy)) > rr - 1 and h3(ix, iy, iz) < 0.28:
                         continue
+                    a = h3(ix * 3, iy * 5, iz * 7)
+                    c = LEAF_LIGHT if a > 0.86 else LEAF_DARK if a < 0.30 else LEAF
                     if iz == z0:
-                        out[(ix, iy, iz)] = LEAF_DARK
-                    else:
-                        out[(ix, iy, iz)] = LEAF_DARK if (ix + iy + iz) % 3 == 0 else LEAF
+                        c = LEAF_SHADE if a < 0.6 else LEAF_DARK
+                    out[(ix, iy, iz)] = c
+    for iz in range(top + 1, 27):
+        for ix in (-1, 0):
+            for iy in (-1, 0):
+                out[(ix, iy, iz)] = LEAF_DARK if (ix + iy + iz) % 2 else LEAF
+    out[(-1, 0, 27)] = LEAF
     return out
 
 
 def foliage_tiers(occ):
     """How many separated foliage bands sit on the trunk (a gap of at least one cell splits a band)."""
-    zs = sorted({iz for (ix, iy, iz) in occ if iz > 0 and (ix, iy) != (0, 0)})
+    zs = sorted({iz for (ix, iy, iz) in occ if iz > 0 and not (ix in (-1, 0) and iy in (-1, 0))})
     if not zs:
         return 0
     bands = 1
@@ -146,7 +160,7 @@ def check(obj, n_cells, occ):
     add("transforms applied", loc.length < 1e-6 and Vector(rot).length < 1e-6 and (scl - Vector((1, 1, 1))).length < 1e-6)
     add("base on Z=0", abs(min(zs)) < 1e-6, "min z %.4f" % min(zs))
     height = max(zs) - min(zs)
-    add("height %.2f m in [3.0, 4.5]" % height, 3.0 <= height <= 4.5)
+    add("height %.2f m in [5.0, 7.0]" % height, 5.0 <= height <= 7.0)
     add("pad wider than 1.2 m", (max(xs) - min(xs)) > 1.2, "width %.2f" % (max(xs) - min(xs)))
     add("flat shaded", not any(p.use_smooth for p in me.polygons))
     add("material M_Pine only", [m.name for m in me.materials if m] == ["M_Pine"])

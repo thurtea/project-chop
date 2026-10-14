@@ -21,7 +21,7 @@ EXPORT = os.path.join(ART, "Export")
 REPORT = os.path.join(ART, "Renders", "hall_check_report.txt")
 
 W, D = 6.0, 4.0
-MAIN, EAVE, RIDGE = 2.0, 4.05, 6.75
+MAIN, EAVE, RIDGE = 2.0, 4.05, 8.0
 OVER = 0.45
 LOG_R = 0.115
 SIDES = 8

@@ -58,6 +58,7 @@ namespace Chopper.Player
         private PlayerCombat _combat;
         private PlayerDevTools _devTools;
         private PlayerFishing _fishing;
+        private PlayerMining _mining;
         private bool _flyingHere;
         private int _airJumpsLeft;
         private Vector3 _flyVelocity;
@@ -106,6 +107,7 @@ namespace Chopper.Player
             _combat = GetComponent<PlayerCombat>();
             _devTools = GetComponent<PlayerDevTools>();
             _fishing = GetComponent<PlayerFishing>();
+            _mining = GetComponent<PlayerMining>();
         }
 
         // The way a roll goes: where the stick points, or straight ahead when it is centered.
@@ -287,7 +289,7 @@ namespace Chopper.Player
 
             // With the rod out the player stands still (PlayerFishing ends it on a jump, roll or guard).
             if (_rest == null) _rest = GetComponent<PlayerRest>();
-            bool blocked = UiState.GameplayBlocked || (_health != null && _health.IsDown) || (_fishing != null && _fishing.Busy)
+            bool blocked = UiState.GameplayBlocked || (_health != null && _health.IsDown) || (_fishing != null && _fishing.Busy) || (_mining != null && _mining.Engaged)
                            || (_rest != null && _rest.InBed);
             Vector2 input = blocked ? Vector2.zero : _move.ReadValue<Vector2>();
             Quaternion yaw = Quaternion.Euler(0f, _playerCamera.Yaw, 0f);

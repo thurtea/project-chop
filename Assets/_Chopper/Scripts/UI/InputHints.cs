@@ -115,7 +115,7 @@ namespace Chopper.UI
         public static string MineExitPrompt => Prompt("Ladder", KeyAction.Interact, "Climb out");
 
         // A vein: strike when the crack glows. Worked out for today once a find has come out (or cracked).
-        public static string VeinPrompt => Prompt("Vein", KeyAction.Attack, "Strike the glow");
+        public static string VeinPrompt => Prompt("Vein", KeyAction.Interact, "Take out the pick");
 
         public const string WorkedVeinPrompt = "Vein\nWorked out until dawn";
 
