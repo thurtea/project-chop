@@ -1,0 +1,2527 @@
+{
+  "units": "Unity metres after FBX axis_forward -Z, axis_up Y. Local +Z is the piece front (Blender -Y).",
+  "crypt": {
+    "source": "Assets/_Chopper/Scripts/World/Generation/CryptPlan.cs",
+    "room_size": 15.0,
+    "room_height": 6.0,
+    "wall_thickness": 0.6,
+    "door_width": 5.0,
+    "door_height": 4.4,
+    "cell_size": 20.0,
+    "clear_half": 2.5,
+    "arena_size": 26.0,
+    "arena_height": 9.0,
+    "arena_spawn_radius": 9.0
+  },
+  "mine": {
+    "source": "Assets/_Chopper/Scripts/World/Generation/MinePlan.cs",
+    "room_size": 16.0,
+    "room_height": 6.5,
+    "wall_thickness": 0.8,
+    "gallery_width": 5.5,
+    "gallery_height": 4.5,
+    "cell_size": 24.0,
+    "gallery_length": 6.4,
+    "post_size": 0.32,
+    "lantern_height": 2.3,
+    "vein_height": [
+      0.9,
+      1.6
+    ],
+    "clear_half": 2.75
+  },
+  "walking_line": "Room-local XZ, origin at the room centre. Keep |x| < clear_half and |z| < clear_half free of solid cells below 2.2 m. That is the centre path and every door-to-door line, including rooms whose doors are not known yet. Flat floor tiles and the rail may lie on it.",
+  "recipe": {
+    "crypt": "Every room: one arch on each doorway; one wall panel (rotate carved, moss, crack, scorch by zone) and a trim on each solid span beside a door, using a wall slot; one floor tile somewhere; one overhead piece (chain, cobweb, or dripstone) in a ceiling corner; one solid corner piece (pillar, broken pillar, sarcophagus, urn, bones, roots, rubble, flowstone) in a free corner. Do not cover a chest (solid-wall centre, 1.1 m in from RoomSize/2) or a guardian point. Room 0: keep off the stair run (StairWidth 2.6, seven steps of StairRun 0.55). Arena: pillar_arena and rubble stay outside the 9 m spawn radius.",
+    "mine": "Every chamber: a gallery frame on each mouth; one 6.4 m rail centred on that gallery; a lantern mesh on each existing post; an ore seam on a solid wall using a wall slot (do not use a vein whose along-wall offset falls inside the gallery); a timber frame on one solid wall; a barrel or crate or crystal or rubble in a corner. The cart goes in a corner slot in the deepest chamber, not at centre + 1.8 m."
+  },
+  "pieces": [
+    {
+      "name": "prop_crypt_wall_panel_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_wall_panel_voxel.fbx",
+      "room": "crypt",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 872,
+      "unity_bounds_m": {
+        "min": [
+          -1.25,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          1.25,
+          3.5,
+          0.5
+        ],
+        "size": [
+          2.5,
+          3.5,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_wall_moss_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_wall_moss_voxel.fbx",
+      "room": "crypt",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 856,
+      "unity_bounds_m": {
+        "min": [
+          -1.25,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          1.25,
+          3.5,
+          0.5
+        ],
+        "size": [
+          2.5,
+          3.5,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_wall_crack_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_wall_crack_voxel.fbx",
+      "room": "crypt",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 1000,
+      "unity_bounds_m": {
+        "min": [
+          -1.25,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          1.25,
+          3.5,
+          0.5
+        ],
+        "size": [
+          2.5,
+          3.5,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_wall_scorch_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_wall_scorch_voxel.fbx",
+      "room": "crypt",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 872,
+      "unity_bounds_m": {
+        "min": [
+          -1.25,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          1.25,
+          3.5,
+          0.5
+        ],
+        "size": [
+          2.5,
+          3.5,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            -6.1
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -6.1,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -6.1,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_trim_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_trim_voxel.fbx",
+      "room": "crypt",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 132,
+      "unity_bounds_m": {
+        "min": [
+          -1.0,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          1.0,
+          0.5,
+          0.5
+        ],
+        "size": [
+          2.0,
+          0.5,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            6.35
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            -6.35
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            6.35
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            -6.35
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            6.35,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -6.35,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            6.35,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -6.35,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_arch_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_arch_voxel.fbx",
+      "room": "crypt",
+      "kind": "frame",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "floor",
+      "triangles": 1296,
+      "unity_bounds_m": {
+        "min": [
+          -3.5,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          3.5,
+          5.75,
+          0.75
+        ],
+        "size": [
+          7.0,
+          5.75,
+          0.75
+        ]
+      },
+      "slots": [
+        {
+          "slot": "door",
+          "wall": "+x",
+          "pos": [
+            7.5,
+            0.0,
+            0.0
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "door",
+          "wall": "-x",
+          "pos": [
+            -7.5,
+            0.0,
+            0.0
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "door",
+          "wall": "+z",
+          "pos": [
+            0.0,
+            0.0,
+            7.5
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "door",
+          "wall": "-z",
+          "pos": [
+            0.0,
+            0.0,
+            -7.5
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "Inset about 0.25 m into the room so it sits in front of the block jamb. No collider on the opening."
+    },
+    {
+      "name": "prop_crypt_pillar_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_pillar_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 1064,
+      "unity_bounds_m": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          0.75,
+          5.75,
+          0.75
+        ],
+        "size": [
+          1.5,
+          5.75,
+          1.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            -6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.6,
+            0.0,
+            6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.6,
+            0.0,
+            -6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_pillar_broken_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_pillar_broken_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 588,
+      "unity_bounds_m": {
+        "min": [
+          -1.0,
+          0.0,
+          -1.0
+        ],
+        "max": [
+          1.0,
+          2.5,
+          1.0
+        ],
+        "size": [
+          2.0,
+          2.5,
+          2.0
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.0,
+            6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.0,
+            -6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.35,
+            0.0,
+            6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.35,
+            0.0,
+            -6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_pillar_arena_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_pillar_arena_voxel.fbx",
+      "room": "arena",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 1420,
+      "unity_bounds_m": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          0.75,
+          8.25,
+          0.75
+        ],
+        "size": [
+          1.5,
+          8.25,
+          1.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            12.1,
+            0.0,
+            12.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            12.1,
+            0.0,
+            -12.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -12.1,
+            0.0,
+            12.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -12.1,
+            0.0,
+            -12.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_sarcophagus_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_sarcophagus_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 424,
+      "unity_bounds_m": {
+        "min": [
+          -1.25,
+          0.0,
+          -0.5
+        ],
+        "max": [
+          1.25,
+          1.25,
+          0.5
+        ],
+        "size": [
+          2.5,
+          1.25,
+          1.0
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.1,
+            0.0,
+            6.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.1,
+            0.0,
+            -6.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.1,
+            0.0,
+            6.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.1,
+            0.0,
+            -6.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_bone_pile_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_bone_pile_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 320,
+      "unity_bounds_m": {
+        "min": [
+          -0.625,
+          0.0,
+          -0.625
+        ],
+        "max": [
+          0.75,
+          0.5,
+          0.5
+        ],
+        "size": [
+          1.375,
+          0.5,
+          1.125
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            6.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            -6.725
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.725,
+            0.0,
+            6.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.725,
+            0.0,
+            -6.725
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_urn_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_urn_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 304,
+      "unity_bounds_m": {
+        "min": [
+          -0.25,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.25,
+          0.875,
+          0.25
+        ],
+        "size": [
+          0.5,
+          0.875,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            0.0,
+            7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.1,
+            0.0,
+            7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.1,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_chain_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_chain_voxel.fbx",
+      "room": "crypt",
+      "kind": "overhead",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "ceiling",
+      "triangles": 364,
+      "unity_bounds_m": {
+        "min": [
+          0.0,
+          -2.25,
+          -0.25
+        ],
+        "max": [
+          0.25,
+          0.0,
+          -0.0
+        ],
+        "size": [
+          0.25,
+          2.25,
+          0.25
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            6.0,
+            7.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            6.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.35,
+            6.0,
+            7.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.35,
+            6.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_cobweb_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_cobweb_voxel.fbx",
+      "room": "crypt",
+      "kind": "overhead",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "ceiling",
+      "triangles": 472,
+      "unity_bounds_m": {
+        "min": [
+          -1.375,
+          -0.25,
+          -1.5
+        ],
+        "max": [
+          0.125,
+          0.0,
+          -0.0
+        ],
+        "size": [
+          1.5,
+          0.25,
+          1.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.225,
+            6.0,
+            7.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.225,
+            6.0,
+            -5.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -5.975,
+            6.0,
+            7.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -5.975,
+            6.0,
+            -5.85
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_roots_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_roots_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 484,
+      "unity_bounds_m": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.75,
+          2.0,
+          1.25
+        ],
+        "size": [
+          1.5,
+          2.0,
+          1.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            6.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.6,
+            0.0,
+            6.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.6,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_rubble_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_rubble_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 448,
+      "unity_bounds_m": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          1.0,
+          0.75,
+          0.75
+        ],
+        "size": [
+          1.75,
+          0.75,
+          1.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.0,
+            6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.0,
+            -6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.6,
+            0.0,
+            6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.6,
+            0.0,
+            -6.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_floor_cracked_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_floor_cracked_voxel.fbx",
+      "room": "crypt",
+      "kind": "floor",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "floor",
+      "triangles": 320,
+      "unity_bounds_m": {
+        "min": [
+          -1.0,
+          0.0,
+          -1.0
+        ],
+        "max": [
+          1.0,
+          0.125,
+          1.0
+        ],
+        "size": [
+          2.0,
+          0.125,
+          2.0
+        ]
+      },
+      "slots": [
+        {
+          "slot": "floor",
+          "pos": [
+            0.0,
+            0.02,
+            0.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.02,
+            6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.02,
+            -6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.35,
+            0.02,
+            6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.35,
+            0.02,
+            -6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "Place 0.02 m above the floor so it does not z-fight the block floor. No collider. Safe on the walking line."
+    },
+    {
+      "name": "prop_crypt_floor_moss_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_floor_moss_voxel.fbx",
+      "room": "crypt",
+      "kind": "floor",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "floor",
+      "triangles": 320,
+      "unity_bounds_m": {
+        "min": [
+          -1.0,
+          0.0,
+          -1.0
+        ],
+        "max": [
+          1.0,
+          0.125,
+          1.0
+        ],
+        "size": [
+          2.0,
+          0.125,
+          2.0
+        ]
+      },
+      "slots": [
+        {
+          "slot": "floor",
+          "pos": [
+            0.0,
+            0.02,
+            0.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.02,
+            6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.35,
+            0.02,
+            -6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.35,
+            0.02,
+            6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -6.35,
+            0.02,
+            -6.35
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "Place 0.02 m above the floor so it does not z-fight the block floor. No collider. Safe on the walking line."
+    },
+    {
+      "name": "prop_crypt_dripstone_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_dripstone_voxel.fbx",
+      "room": "crypt",
+      "kind": "overhead",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "ceiling",
+      "triangles": 148,
+      "unity_bounds_m": {
+        "min": [
+          -0.125,
+          -1.0,
+          -0.25
+        ],
+        "max": [
+          0.25,
+          0.0,
+          0.125
+        ],
+        "size": [
+          0.375,
+          1.0,
+          0.375
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            6.0,
+            7.225
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            6.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.225,
+            6.0,
+            7.225
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.225,
+            6.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_crypt_flowstone_voxel",
+      "fbx": "Chopper/Art/Export/prop_crypt_flowstone_voxel.fbx",
+      "room": "crypt",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 136,
+      "unity_bounds_m": {
+        "min": [
+          -0.25,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.25,
+          0.5,
+          0.25
+        ],
+        "size": [
+          0.5,
+          0.5,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            0.0,
+            7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.1,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.1,
+            0.0,
+            7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.1,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_mine_timber_frame_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_timber_frame_voxel.fbx",
+      "room": "mine",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 768,
+      "unity_bounds_m": {
+        "min": [
+          -1.5,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          1.5,
+          4.0,
+          0.5
+        ],
+        "size": [
+          3.0,
+          4.0,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            8.0,
+            0.0,
+            6.35
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            8.0,
+            0.0,
+            -6.35
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -8.0,
+            0.0,
+            6.35
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -8.0,
+            0.0,
+            -6.35
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            6.35,
+            0.0,
+            8.0
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -6.35,
+            0.0,
+            8.0
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            6.35,
+            0.0,
+            -8.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -6.35,
+            0.0,
+            -8.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_mine_gallery_frame_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_gallery_frame_voxel.fbx",
+      "room": "mine",
+      "kind": "frame",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "floor",
+      "triangles": 1040,
+      "unity_bounds_m": {
+        "min": [
+          -3.5,
+          0.0,
+          -0.0
+        ],
+        "max": [
+          3.5,
+          5.0,
+          0.5
+        ],
+        "size": [
+          7.0,
+          5.0,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "door",
+          "wall": "+x",
+          "pos": [
+            8.0,
+            0.0,
+            0.0
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "door",
+          "wall": "-x",
+          "pos": [
+            -8.0,
+            0.0,
+            0.0
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "door",
+          "wall": "+z",
+          "pos": [
+            0.0,
+            0.0,
+            8.0
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "door",
+          "wall": "-z",
+          "pos": [
+            0.0,
+            0.0,
+            -8.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "Inset about 0.25 m into the room so it sits in front of the block jamb. No collider on the opening."
+    },
+    {
+      "name": "prop_mine_rail_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_rail_voxel.fbx",
+      "room": "mine",
+      "kind": "path",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "floor",
+      "triangles": 1868,
+      "unity_bounds_m": {
+        "min": [
+          -0.5,
+          0.0,
+          -3.2
+        ],
+        "max": [
+          0.5,
+          0.2,
+          3.2
+        ],
+        "size": [
+          1.0,
+          0.2,
+          6.4
+        ]
+      },
+      "slots": [
+        {
+          "slot": "gallery",
+          "pos": [
+            0.0,
+            0.02,
+            0.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "gallery",
+          "pos": [
+            0.0,
+            0.02,
+            0.0
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "One segment per gallery, centred on the corridor midpoint (MinePlan puts a rail of length CellSize 24 there and it runs through the rooms). Yaw along the link. No collider."
+    },
+    {
+      "name": "prop_mine_cart_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_cart_voxel.fbx",
+      "room": "mine",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 2408,
+      "unity_bounds_m": {
+        "min": [
+          -0.5,
+          0.0,
+          -0.8
+        ],
+        "max": [
+          0.5,
+          1.0,
+          0.8
+        ],
+        "size": [
+          1.0,
+          1.0,
+          1.6
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.35,
+            0.0,
+            7.05
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.35,
+            0.0,
+            -7.05
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.35,
+            0.0,
+            7.05
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.35,
+            0.0,
+            -7.05
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "MinePlan currently parks the cart at 1.8 m off the room centre, on the gallery line. Use a corner slot instead."
+    },
+    {
+      "name": "prop_mine_ore_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_ore_voxel.fbx",
+      "room": "mine",
+      "kind": "skin",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "center",
+      "triangles": 576,
+      "unity_bounds_m": {
+        "min": [
+          -0.625,
+          -0.5,
+          -0.0
+        ],
+        "max": [
+          0.625,
+          0.5,
+          0.5
+        ],
+        "size": [
+          1.25,
+          1.0,
+          0.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            8.0,
+            1.25,
+            7.225
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+x",
+          "pos": [
+            8.0,
+            1.25,
+            -7.225
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -8.0,
+            1.25,
+            7.225
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-x",
+          "pos": [
+            -8.0,
+            1.25,
+            -7.225
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            7.225,
+            1.25,
+            8.0
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "+z",
+          "pos": [
+            -7.225,
+            1.25,
+            8.0
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            7.225,
+            1.25,
+            -8.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "wall",
+          "wall": "-z",
+          "pos": [
+            -7.225,
+            1.25,
+            -8.0
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_mine_lantern_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_lantern_voxel.fbx",
+      "room": "mine",
+      "kind": "mount",
+      "solid": false,
+      "blocks_walking_line": false,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "none",
+      "anchor": "center",
+      "triangles": 176,
+      "unity_bounds_m": {
+        "min": [
+          -0.125,
+          0.125,
+          -0.125
+        ],
+        "max": [
+          0.25,
+          0.625,
+          0.5
+        ],
+        "size": [
+          0.375,
+          0.5,
+          0.625
+        ]
+      },
+      "slots": [
+        {
+          "slot": "post",
+          "pos": [
+            0.0,
+            2.3,
+            7.63
+          ],
+          "yaw": 180,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "post",
+          "pos": [
+            0.0,
+            2.3,
+            -7.63
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "post",
+          "pos": [
+            7.63,
+            2.3,
+            0.0
+          ],
+          "yaw": -90,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "post",
+          "pos": [
+            -7.63,
+            2.3,
+            0.0
+          ],
+          "yaw": 90,
+          "blocks_walking_line": false
+        }
+      ],
+      "flame_unity": [
+        0.063,
+        0.313,
+        0.438
+      ],
+      "note": "Origin is the post bracket. Put the point light at flame_unity. No collider; the post is already solid."
+    },
+    {
+      "name": "prop_mine_crate_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_crate_voxel.fbx",
+      "room": "mine",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 432,
+      "unity_bounds_m": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.375
+        ],
+        "max": [
+          0.375,
+          0.75,
+          0.375
+        ],
+        "size": [
+          0.75,
+          0.75,
+          0.75
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.475,
+            0.0,
+            7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.475,
+            0.0,
+            -7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.475,
+            0.0,
+            7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.475,
+            0.0,
+            -7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_mine_barrel_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_barrel_voxel.fbx",
+      "room": "mine",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 492,
+      "unity_bounds_m": {
+        "min": [
+          -0.375,
+          0.0,
+          -0.375
+        ],
+        "max": [
+          0.375,
+          1.0,
+          0.375
+        ],
+        "size": [
+          0.75,
+          1.0,
+          0.75
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.475,
+            0.0,
+            7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.475,
+            0.0,
+            -7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.475,
+            0.0,
+            7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.475,
+            0.0,
+            -7.475
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ],
+      "note": "May replace the box barrel. MinePlan corner is sign * (RoomSize/2 - 0.7) = \u00b17.3 on both axes, which is outside the 2.75 m cross."
+    },
+    {
+      "name": "prop_mine_rubble_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_rubble_voxel.fbx",
+      "room": "mine",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 444,
+      "unity_bounds_m": {
+        "min": [
+          -0.75,
+          0.0,
+          -0.75
+        ],
+        "max": [
+          1.25,
+          0.75,
+          0.75
+        ],
+        "size": [
+          2.0,
+          0.75,
+          1.5
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            6.6,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.1,
+            0.0,
+            7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.1,
+            0.0,
+            -7.1
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    },
+    {
+      "name": "prop_mine_crystal_voxel",
+      "fbx": "Chopper/Art/Export/prop_mine_crystal_voxel.fbx",
+      "room": "mine",
+      "kind": "obstacle",
+      "solid": true,
+      "blocks_walking_line": true,
+      "suggested_slots_keep_the_line_clear": true,
+      "collider": "box",
+      "anchor": "floor",
+      "triangles": 192,
+      "unity_bounds_m": {
+        "min": [
+          -0.25,
+          0.0,
+          -0.25
+        ],
+        "max": [
+          0.5,
+          0.75,
+          0.125
+        ],
+        "size": [
+          0.75,
+          0.75,
+          0.375
+        ]
+      },
+      "slots": [
+        {
+          "slot": "corner",
+          "pos": [
+            7.35,
+            0.0,
+            7.725
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            7.35,
+            0.0,
+            -7.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.6,
+            0.0,
+            7.725
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        },
+        {
+          "slot": "corner",
+          "pos": [
+            -7.6,
+            0.0,
+            -7.6
+          ],
+          "yaw": 0,
+          "blocks_walking_line": false
+        }
+      ]
+    }
+  ]
+}

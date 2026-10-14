@@ -252,6 +252,8 @@ namespace Chopper.Player
 
         public void PlayBlocked() => GuardJolt(-0.5f);
 
+        public void PlayHitStop(float delay, float seconds) => HitStop.Apply(_animator, delay, seconds);
+
         private void GuardJolt(float amount)
         {
             if (_guard == null && _animator != null) _guard = _animator.GetComponent<GuardPose>();

@@ -1,6 +1,12 @@
 """Author Chopper's takes on chopper_rig: Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, LandHard, Roll,
 SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact, Death, and the fishing takes FishWait, FishCast, FishFight
-and FishCatch, and Gather.
+and FishCatch, and Gather. Enemy takes on the same rig: Elemental_Walk and Elemental_Slam (tree elemental),
+Draugr_Walk and Draugr_Attack (draugr on Chopper's mesh).
+
+Weight (W11-51): weight comes from timing, not noise. The walk and run drop onto each heel strike and shift the hips
+over the planted foot; the arms hold a beat at the ends of their swing. Attacks: a wind-up that arrives softly, a
+held cock, a strike that accelerates into the impact frame, an overshoot past it and a slow settle back. HitReact
+snaps in within two frames and recovers slowly; LandHard compresses past its rest squat and settles.
 
 Movement style (user, 2026-10-12): no ragdoll looseness. Blocky and snappy like Minecraft and survival ARPGs: the
 torso and head stay rigid (no hip twist, no spine sway, no head bob), the arms swing as near-straight pendulums, the
@@ -55,6 +61,14 @@ ATTACK2_LEN = 22       # diagonal chop from over the left shoulder, one-shot
 ATTACK3_LEN = 28       # overhead finisher, one-shot
 HIT_LEN = 15
 DEATH_LEN = 30
+ELEMENTAL_WALK_LEN = 40
+ELEMENTAL_WALK_SPEED = 0.70
+SLAM_LEN = 36
+SLAM_IMPACT = 22
+DRAUGR_WALK_LEN = 36
+DRAUGR_WALK_SPEED = 0.65
+DRAUGR_ATTACK_LEN = 30
+DRAUGR_IMPACT = 20
 STANCE = 0.60          # fraction of the cycle a foot is on the ground
 STRIKE_PITCH = -14.0   # deg, toes up at heel strike (rotation about +X)
 TOEOFF_PITCH = 26.0    # deg, heel up at toe off
@@ -208,7 +222,30 @@ def planted():
     return {"Left": Matrix.Identity(4), "Right": Matrix.Identity(4)}
 
 
-def block_upper(rig, deltas, lean, adduct, swing, phase, elbow_l, elbow_r):
+def ease(kind, s):
+    s = min(1.0, max(0.0, s))
+    if kind == "in":
+        return s * s
+    if kind == "out":
+        return 1.0 - (1.0 - s) * (1.0 - s)
+    return smooth(s)
+
+
+def held_cos(phase, hold):
+    c = math.cos(2 * math.pi * phase)
+    return math.copysign(abs(c) ** hold, c)
+
+
+def beat(u, amp, hit=0.10, back=0.45):
+    """Down beat after a foot strike at u=0: a quick drop, then a slower rise (u in 0..1 per step)."""
+    if u < hit:
+        return amp * ease("out", u / hit)
+    if u < back:
+        return amp * (1.0 - smooth((u - hit) / (back - hit)))
+    return 0.0
+
+
+def block_upper(rig, deltas, lean, adduct, swing, phase, elbow_l, elbow_r, hold=1.0, lag=0.0):
     """Rigid torso, the head kept level, the arms as near-straight pendulums opposite the legs (left leg forward at
     phase 0 -> left arm back)."""
     deltas["Spine"] = R(X, lean * 0.6)
@@ -216,7 +253,7 @@ def block_upper(rig, deltas, lean, adduct, swing, phase, elbow_l, elbow_r):
     deltas["Neck"] = R(X, -lean * 0.5)
     deltas["Head"] = R(X, -lean * 0.5)
     arm_base(rig, deltas, min(adduct + ARM_IN, max(adduct, ARM_IN_MAX)), elbow_l, elbow_r)
-    c1 = math.cos(2 * math.pi * phase)
+    c1 = held_cos(phase - lag, hold)
     deltas["LeftUpperArm"] = R(X, swing * c1) @ deltas["LeftUpperArm"]
     deltas["RightUpperArm"] = R(X, -swing * c1) @ deltas["RightUpperArm"]
 
@@ -341,15 +378,19 @@ def pelvis_heights(rig, pose_fn=None, length=None):
     return sm
 
 
+WALK_DIP = 0.018
+WALK_SHIFT = 0.018
+
+
 def walk_pose(rig, f, pelvis_z=None):
     p = (f - 1) / WALK_LEN
     if pelvis_z is None:
-        pelvis_z = pelvis_heights(rig)[(f - 1) % WALK_LEN]
-    hips_off = Vector((0.0, 0.0, pelvis_z))
+        pelvis_z = pelvis_heights(rig)[(f - 1) % WALK_LEN] - beat((2 * p) % 1.0, WALK_DIP)
+    hips_off = Vector((WALK_SHIFT * math.sin(2 * math.pi * p), 0.0, pelvis_z))
     deltas = {"Hips": R(X, 2.0)}
     # shield arm: elbow held steady (the shield extends past the elbow; extra flexion would sweep its curved top rim
     # across the upper-arm sleeve)
-    block_upper(rig, deltas, 1.0, 17.0, 24.0, p, 12.0, 16.0)
+    block_upper(rig, deltas, 1.0, 17.0, 24.0, p, 12.0, 16.0, hold=0.7, lag=0.03)
     # feet: left heel strike at p=0, right at p=0.5
     y0 = -WALK_SPEED * STANCE * WALK_LEN / FPS * 0.5 + FOOT_SHIFT
     FL, pl = foot_F(rig, "Left", p, y0)
@@ -362,22 +403,52 @@ GAITS = {
     "Run": (RUN_LEN, RUN_SPEED, RUN_STANCE, 0.14, 8.0, 40.0, 30.0, 40.0, 17.0, 0.0),
     "Sprint": (SPRINT_LEN, SPRINT_SPEED, SPRINT_STANCE, 0.20, 14.0, 55.0, 60.0, 70.0, 17.0, 0.0),
     "CrouchWalk": (CROUCH_LEN, CROUCH_SPEED, 0.60, 0.07, 22.0, 14.0, 40.0, 45.0, 14.0, CROUCH_DROP),
+    "Elemental_Walk": (ELEMENTAL_WALK_LEN, ELEMENTAL_WALK_SPEED, 0.66, 0.06, 10.0, 18.0, 15.0, 15.0, 8.0, 0.07),
+    "Draugr_Walk": (DRAUGR_WALK_LEN, DRAUGR_WALK_SPEED, 0.62, 0.065, 24.0, 5.0, 22.0, 12.0, 17.0, 0.05),
+}
+
+
+def _elemental_upper(rig, deltas, p):
+    for side in ("Left", "Right"):
+        deltas[side + "Hand"] = R(toward(rig, side + "Hand", (0, -1, 0), 1), 12.0) @ deltas.get(side + "Hand", I3)
+
+
+def _draugr_upper(rig, deltas, p):
+    deltas["Head"] = R(Y, -9.0) @ R(X, 8.0) @ deltas["Head"]
+    deltas["Neck"] = R(X, -6.0) @ deltas["Neck"]
+    deltas["LeftUpperArm"] = R(X, -14.0) @ deltas["LeftUpperArm"]
+
+
+GAIT_WEIGHT = {
+    "Run": dict(dip=(0.030, 0.030), shift=0.012, hold=0.75, lag=0.03),
+    "Sprint": dict(dip=(0.030, 0.030), shift=0.010, hold=0.8, lag=0.03),
+    "Elemental_Walk": dict(dip=(0.050, 0.050), shift=0.055, roll=5.0, hold=1.0, lag=0.12, hit=0.12, back=0.55,
+                           upper=_elemental_upper),
+    "Draugr_Walk": dict(dip=(0.015, 0.045), shift=0.030, roll=3.0, hold=1.0, lag=0.0, lift_r=0.035,
+                        upper=_draugr_upper),
 }
 
 
 def gait(name):
     length, speed, stance, lift, lean, swing, el_l, el_r, adduct, drop = GAITS[name]
+    w = GAIT_WEIGHT.get(name, {})
+    dip_l, dip_r = w.get("dip", (0.0, 0.0))
 
     def pose(rig, f, pelvis_z=None):
         p = (f - 1) / length
         if pelvis_z is None:
-            pelvis_z = pelvis_heights(rig, pose, length)[(f - 1) % length] - drop
-        hips_off = Vector((0.0, 0.0, pelvis_z))
-        deltas = {"Hips": R(X, 2.0)}
-        block_upper(rig, deltas, lean, adduct, swing, p, el_l, el_r)
+            amp = dip_l if p < 0.5 else dip_r
+            pelvis_z = (pelvis_heights(rig, pose, length)[(f - 1) % length] - drop
+                        - beat((2 * p) % 1.0, amp, w.get("hit", 0.10), w.get("back", 0.45)))
+        sway = math.sin(2 * math.pi * p)
+        hips_off = Vector((w.get("shift", 0.0) * sway, 0.0, pelvis_z))
+        deltas = {"Hips": R(Y, w.get("roll", 0.0) * sway) @ R(X, 2.0)}
+        block_upper(rig, deltas, lean, adduct, swing, p, el_l, el_r, w.get("hold", 1.0), w.get("lag", 0.0))
+        if "upper" in w:
+            w["upper"](rig, deltas, p)
         y0 = -speed * stance * length / FPS * 0.5
         FL, _pl = foot_F(rig, "Left", p, y0, speed, length, lift, stance)
-        FR, _pr = foot_F(rig, "Right", p + 0.5, y0, speed, length, lift, stance)
+        FR, _pr = foot_F(rig, "Right", p + 0.5, y0, speed, length, w.get("lift_r", lift), stance)
         return hips_off, deltas, {"Left": FL, "Right": FR}
     pose.__name__ = name.lower() + "_pose"
     return pose
@@ -386,6 +457,8 @@ def gait(name):
 run_pose = gait("Run")
 sprint_pose = gait("Sprint")
 crouch_walk_pose = gait("CrouchWalk")
+elemental_walk_pose = gait("Elemental_Walk")
+draugr_walk_pose = gait("Draugr_Walk")
 
 
 def crouch_idle_pose(rig, f):
@@ -428,14 +501,18 @@ def air_pose(rig, f):
 
 
 def land_pose(rig, f):
-    """A hard landing: a quick squat that soaks up the fall, then straight back up."""
+    """A hard landing: the squat snaps in past its depth, rebounds a little, holds, then rises slowly and settles."""
     p = (f - 1) / LAND_LEN
-    s = smooth(p / 0.18) if p < 0.18 else (1.0 if p < 0.45 else 1.0 - smooth((p - 0.45) / 0.55))
+    s = chop_values(LAND_KEYS, p, LAND_EASE)[0]
     deltas = {"Hips": R(X, 4.0 * s)}
     block_upper(rig, deltas, 20.0 * s, 17.0 - 10.0 * s, 0.0, 0.0, 12.0 + 30.0 * s, 16.0 + 30.0 * s)
     deltas["LeftUpperArm"] = R(X, -25.0 * s) @ deltas["LeftUpperArm"]
     deltas["RightUpperArm"] = R(X, -25.0 * s) @ deltas["RightUpperArm"]
     return Vector((0.0, 0.0, -0.26 * s)), deltas, planted()
+
+
+LAND_KEYS = [(0.0, 0.0), (2 / 18, 1.12), (4 / 18, 0.92), (8 / 18, 0.86), (15 / 18, 0.06), (1.0, 0.0)]
+LAND_EASE = ["out", "smooth", "smooth", "smooth", "smooth"]
 
 
 def roll_pose(rig, f):
@@ -523,31 +600,44 @@ def _combat_arms(rig, deltas, right_pitch, right_yaw, elbow):
 CHOP_KEYS = {
     # The wind-ups were found by a search over the rig (hand by the right shoulder, the axe head above and behind
     # the head); the strikes end low in front, across the body.
-    "Attack_1": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
-                 (0.32, 90, -45, -60, -140, -80, 14, -8, 0.0),
-                 (0.42, 95, -45, -60, -140, -85, 16, -10, 0.0),
-                 (0.56, 10, 40, -5, 0, 0, -16, 16, 0.05),
-                 (0.70, 5, 45, 0, 0, 5, -18, 18, 0.05),
-                 (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
-    "Attack_2": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
-                 (0.30, 135, 30, 15, 80, -45, -14, -6, 0.0),
-                 (0.40, 135, 35, 15, 80, -45, -16, -8, 0.0),
-                 (0.54, -15, -15, 10, 0, 0, 16, 12, 0.04),
-                 (0.68, -20, -20, 12, 0, 5, 18, 14, 0.04),
-                 (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
-    "Attack_3": [(0.00, 0, 0, 0, 0, 0, 0, 0, 0.0),
-                 (0.35, 155, 45, -60, -80, -30, 4, -14, -0.02),
-                 (0.48, 160, 40, -60, -80, -35, 4, -16, -0.02),
-                 (0.60, 0, 30, 5, 0, 0, -4, 24, 0.09),
-                 (0.75, -3, 30, 8, 0, 5, -4, 24, 0.09),
-                 (1.00, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+    "Attack_1": [(0.0, 0, 0, 0, 0, 0, 0, 0, 0.0),
+                 (6 / 22, 90, -45, -60, -140, -80, 14, -8, 0.0),
+                 (9 / 22, 96, -45, -60, -140, -86, 17, -11, 0.01),
+                 (12 / 22, 5, 48, 0, 0, 8, -20, 21, 0.07),
+                 (15 / 22, 8, 42, -3, 0, 3, -17, 17, 0.05),
+                 (1.0, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+    "Attack_2": [(0.0, 0, 0, 0, 0, 0, 0, 0, 0.0),
+                 (6 / 22, 135, 30, 15, 80, -45, -14, -6, 0.0),
+                 (9 / 22, 136, 35, 15, 80, -47, -17, -9, 0.01),
+                 (12 / 22, -20, -22, 12, 0, 6, 19, 16, 0.06),
+                 (15 / 22, -17, -17, 11, 0, 4, 17, 13, 0.04),
+                 (1.0, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+    "Attack_3": [(0.0, 0, 0, 0, 0, 0, 0, 0, 0.0),
+                 (9 / 28, 155, 45, -60, -80, -30, 4, -14, -0.02),
+                 (13 / 28, 160, 40, -60, -80, -36, 5, -17, -0.02),
+                 (17 / 28, -4, 32, 8, 0, 7, -5, 27, 0.11),
+                 (20 / 28, 0, 30, 5, 0, 3, -4, 24, 0.09),
+                 (1.0, 0, 0, 0, 0, 0, 0, 0, 0.0)],
+    "Draugr_Attack": [(0.0, 0, 0, 0, 0, 0, 0, 14, 0.04),
+                      (3 / 30, -10, -10, 10, 0, 0, -6, 18, 0.06),
+                      (11 / 30, 150, 45, -60, -80, -30, 6, -4, 0.0),
+                      (16 / 30, 158, 40, -62, -80, -36, 8, -8, 0.0),
+                      ((DRAUGR_IMPACT - 1) / 30, -4, 32, 8, 0, 7, -6, 30, 0.12),
+                      (23 / 30, 0, 30, 5, 0, 3, -4, 26, 0.10),
+                      (1.0, 0, 0, 0, 0, 0, 0, 14, 0.04)],
+}
+CHOP_EASE = {
+    "Attack_1": ["out", "smooth", "in", "out", "smooth"],
+    "Attack_2": ["out", "smooth", "in", "out", "smooth"],
+    "Attack_3": ["out", "smooth", "in", "out", "smooth"],
+    "Draugr_Attack": ["smooth", "out", "smooth", "in", "out", "smooth"],
 }
 
 
-def chop_values(keys, p):
-    for (t0, *a), (t1, *b) in zip(keys, keys[1:]):
+def chop_values(keys, p, eases=None):
+    for i, ((t0, *a), (t1, *b)) in enumerate(zip(keys, keys[1:])):
         if p <= t1:
-            s = smooth((p - t0) / max(1e-6, t1 - t0))
+            s = ease(eases[i] if eases else "smooth", (p - t0) / max(1e-6, t1 - t0))
             return [x + (y - x) * s for x, y in zip(a, b)]
     return list(keys[-1][1:])
 
@@ -567,7 +657,7 @@ def _chop_arm(rig, deltas, raise_, swing, elbow, twist, wrist=0.0):
 def chop_pose(name, length):
     def pose(rig, f):
         p = (f - 1) / length
-        raise_, swing, elbow, twist, wrist, turn, lean, drop = chop_values(CHOP_KEYS[name], p)
+        raise_, swing, elbow, twist, wrist, turn, lean, drop = chop_values(CHOP_KEYS[name], p, CHOP_EASE.get(name))
         deltas = {}
         hips_off = Vector((0, 0, -drop))
         deltas["Spine"] = R(Z, turn * 0.5) @ R(X, lean * 0.5)
@@ -654,11 +744,42 @@ gather_pose = fish_pose("Gather", GATHER_LEN)
 attack1_pose = chop_pose("Attack_1", ATTACK1_LEN)
 attack2_pose = chop_pose("Attack_2", ATTACK2_LEN)
 attack3_pose = chop_pose("Attack_3", ATTACK3_LEN)
+draugr_attack_pose = chop_pose("Draugr_Attack", DRAUGR_ATTACK_LEN)
+
+SLAM_KEYS = [(0.0, 0, 15, 8, 0.02),
+             (4 / 36, 12, 22, 13, 0.07),
+             (13 / 36, -165, 50, -14, 0.0),
+             (18 / 36, -172, 60, -18, 0.02),
+             ((SLAM_IMPACT - 1) / 36, -18, 0, 40, 0.22),
+             (24 / 36, -26, 8, 35, 0.19),
+             (28 / 36, -25, 10, 34, 0.18),
+             (1.0, 0, 15, 8, 0.02)]
+SLAM_EASE = ["smooth", "out", "smooth", "in", "out", "smooth", "smooth"]
+
+
+def slam_pose(rig, f):
+    """Tree elemental: both arms swing up overhead, a held coil, then both come down together into the ground in
+    front, the trunk folding over them; a held impact and a slow heave back up."""
+    p = (f - 1) / SLAM_LEN
+    pitch, elbow, lean, drop = chop_values(SLAM_KEYS, p, SLAM_EASE)
+    deltas = {}
+    deltas["Spine"] = R(X, lean * 0.5)
+    deltas["Chest"] = R(X, lean * 0.5)
+    deltas["Neck"] = R(X, -lean * 0.2)
+    deltas["Head"] = R(X, -lean * 0.2)
+    arm_base(rig, deltas, 22.0, elbow, elbow)
+    for side in ("Left", "Right"):
+        deltas[side + "UpperArm"] = R(X, pitch) @ deltas[side + "UpperArm"]
+    return Vector((0, 0, -drop)), deltas, planted()
+
+
+HIT_KEYS = [(0.0, 0.0), (2 / 15, 1.1), (4 / 15, 0.95), (6 / 15, 0.9), (1.0, 0.0)]
+HIT_EASE = ["out", "smooth", "smooth", "smooth"]
 
 
 def hit_pose(rig, f):
     p = (f - 1) / HIT_LEN
-    s = math.sin(math.pi * p)
+    s = chop_values(HIT_KEYS, p, HIT_EASE)[0]
     deltas = {}
     hips_off = Vector((-0.02 * s, 0.03 * s, -0.04 * s))
     deltas["Hips"] = R(Z, 6 * s) @ R(X, -4 * s)
@@ -770,6 +891,10 @@ def main():
         ("FishFight", FISH_FIGHT_LEN, fish_fight_pose, True),
         ("FishCatch", FISH_CATCH_LEN, fish_catch_pose, False),
         ("Gather", GATHER_LEN, gather_pose, False),
+        ("Elemental_Walk", ELEMENTAL_WALK_LEN, elemental_walk_pose, True),
+        ("Elemental_Slam", SLAM_LEN, slam_pose, False),
+        ("Draugr_Walk", DRAUGR_WALK_LEN, draugr_walk_pose, True),
+        ("Draugr_Attack", DRAUGR_ATTACK_LEN, draugr_attack_pose, False),
     )
     for name, length, fn, loop in clips:
         rig.max_reach = 0.0

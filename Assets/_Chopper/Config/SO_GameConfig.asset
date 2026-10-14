@@ -30,12 +30,15 @@ MonoBehaviour:
   _playerSprintSpeed: 9.5
   _playerCrouchSpeed: 2.6
   _crouchHeight: 1.2
-  _playerTurnSpeed: 720
-  _playerAcceleration: 30
-  _playerDeceleration: 40
-  _playerJumpHeight: 1.2
-  _playerGravity: 20
+  _playerTurnSpeed: 480
+  _playerAcceleration: 16
+  _playerDeceleration: 22
+  _playerJumpHeight: 1.05
+  _playerGravity: 26
   _playerGroundedStickSpeed: 2
+  _landingRecoveryHeight: 3
+  _landingRecoverySeconds: 0.2
+  _landingRecoverySpeedMultiplier: 0.35
   _speedCheckTolerance: 1.5
   _speedCheckWindowTicks: 10
   _speedCheckGraceTicks: 15
@@ -59,10 +62,19 @@ MonoBehaviour:
   _swingLatencyTolerance: 0.1
   _swingAnimationDuration: 0.35
   _swingArcDegrees: 100
+  _swingStrikeFraction: 0.4
+  _swingCommitFraction: 0.85
+  _swingMoveMultiplier: 0.45
+  _swingTurnMultiplier: 0.35
+  _swingStrikeStep: 2.5
   _shakeOnHit: 0.06
   _shakeOnFell: 0.2
   _feelFalloffDistance: 25
   _shakeRecoverySpeed: 0.8
+  _hitStopSeconds: 0.07
+  _hitStopHeavySeconds: 0.09
+  _hitKick: 0.05
+  _hitKickHeavy: 0.12
   _chipsPerHit: 14
   _leavesOnFell: 40
   _sfxVolume: 0.8

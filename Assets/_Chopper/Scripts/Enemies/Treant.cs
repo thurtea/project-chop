@@ -144,6 +144,7 @@ namespace Chopper.Enemies
         public float ActivatedAt { get; private set; }
         // Server: stunned by a hit or a parry, so it cannot walk or attack for a moment.
         public bool IsStaggered => Time.time < _staggerUntil;
+        public Animator BodyAnimator => _draugr;
         // Walking speed before the long distance charge bonus.
         public float BaseSpeed { get; private set; }
 

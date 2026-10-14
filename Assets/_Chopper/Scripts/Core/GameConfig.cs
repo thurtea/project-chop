@@ -38,14 +38,18 @@ namespace Chopper.Core
         [SerializeField, Min(0f)] private float _playerCrouchSpeed = 2.6f;
         [Tooltip("Character controller height while crouching, in meters.")]
         [SerializeField, Min(0.6f)] private float _crouchHeight = 1.2f;
-        [SerializeField, Min(0f)] private float _playerTurnSpeed = 720f;
+        [SerializeField, Min(0f)] private float _playerTurnSpeed = 480f;
         [Tooltip("Meters per second squared while input is held. Higher feels snappier, lower feels heavier.")]
-        [SerializeField, Min(0.1f)] private float _playerAcceleration = 30f;
+        [SerializeField, Min(0.1f)] private float _playerAcceleration = 16f;
         [Tooltip("Meters per second squared when input is released or reversed.")]
-        [SerializeField, Min(0.1f)] private float _playerDeceleration = 40f;
-        [SerializeField, Min(0f)] private float _playerJumpHeight = 1.2f;
-        [SerializeField, Min(0f)] private float _playerGravity = 20f;
+        [SerializeField, Min(0.1f)] private float _playerDeceleration = 22f;
+        [SerializeField, Min(0f)] private float _playerJumpHeight = 1.05f;
+        [SerializeField, Min(0f)] private float _playerGravity = 26f;
         [SerializeField, Min(0f)] private float _playerGroundedStickSpeed = 2f;
+        [Tooltip("A fall from at least this many meters plants the player for a moment on landing.")]
+        [SerializeField, Min(0f)] private float _landingRecoveryHeight = 3f;
+        [SerializeField, Min(0f)] private float _landingRecoverySeconds = 0.2f;
+        [SerializeField, Range(0f, 1f)] private float _landingRecoverySpeedMultiplier = 0.35f;
         [SerializeField, Min(1f)] private float _speedCheckTolerance = 1.5f;
         [Tooltip("Ticks of history the server speed check measures over. Longer windows absorb packet bunching.")]
         [SerializeField, Min(1)] private int _speedCheckWindowTicks = 10;
@@ -80,6 +84,14 @@ namespace Chopper.Core
         [SerializeField, Min(0.01f)] private float _swingAnimationDuration = 0.35f;
         [Tooltip("Degrees the axe rotates down from its rest pose at the bottom of the chop.")]
         [SerializeField] private float _swingArcDegrees = 100f;
+        [Tooltip("Share of the swing cooldown before the blow lands.")]
+        [SerializeField, Range(0.05f, 0.9f)] private float _swingStrikeFraction = 0.4f;
+        [Tooltip("Share of the swing cooldown the swing holds the player: slower, no jumping, only guard or roll cancel it.")]
+        [SerializeField, Range(0f, 1f)] private float _swingCommitFraction = 0.85f;
+        [SerializeField, Range(0f, 1f)] private float _swingMoveMultiplier = 0.45f;
+        [SerializeField, Range(0f, 1f)] private float _swingTurnMultiplier = 0.35f;
+        [Tooltip("Meters per second of forward step on the strike frame of a combat swing.")]
+        [SerializeField, Min(0f)] private float _swingStrikeStep = 2.5f;
 
         [Header("Chop feel (local only)")]
         [Tooltip("Camera shake strength in meters for a hit and for a felled tree, at point blank range.")]
@@ -88,6 +100,12 @@ namespace Chopper.Core
         [Tooltip("Shake and sound fade out over this distance in meters.")]
         [SerializeField, Min(1f)] private float _feelFalloffDistance = 25f;
         [SerializeField, Min(0f)] private float _shakeRecoverySpeed = 0.8f;
+        [Tooltip("Seconds the hitter's and the target's animators hold when a swing connects, and for a finisher or kill.")]
+        [SerializeField, Min(0f)] private float _hitStopSeconds = 0.07f;
+        [SerializeField, Min(0f)] private float _hitStopHeavySeconds = 0.09f;
+        [Tooltip("Camera kick in meters when a swing connects, and for a finisher or kill.")]
+        [SerializeField, Min(0f)] private float _hitKick = 0.05f;
+        [SerializeField, Min(0f)] private float _hitKickHeavy = 0.12f;
         [SerializeField, Min(0)] private int _chipsPerHit = 14;
         [SerializeField, Min(0)] private int _leavesOnFell = 40;
         [SerializeField, Range(0f, 1f)] private float _sfxVolume = 0.8f;
@@ -365,6 +383,9 @@ namespace Chopper.Core
         public float PlayerJumpHeight => _playerJumpHeight;
         public float PlayerGravity => _playerGravity;
         public float PlayerGroundedStickSpeed => _playerGroundedStickSpeed;
+        public float LandingRecoveryHeight => _landingRecoveryHeight;
+        public float LandingRecoverySeconds => _landingRecoverySeconds;
+        public float LandingRecoverySpeedMultiplier => _landingRecoverySpeedMultiplier;
         public float SpeedCheckTolerance => _speedCheckTolerance;
         public int SpeedCheckWindowTicks => _speedCheckWindowTicks;
         public int SpeedCheckGraceTicks => _speedCheckGraceTicks;
@@ -397,6 +418,10 @@ namespace Chopper.Core
         public float ShakeOnFell => _shakeOnFell;
         public float FeelFalloffDistance => _feelFalloffDistance;
         public float ShakeRecoverySpeed => _shakeRecoverySpeed;
+        public float HitStopSeconds => _hitStopSeconds;
+        public float HitStopHeavySeconds => _hitStopHeavySeconds;
+        public float HitKick => _hitKick;
+        public float HitKickHeavy => _hitKickHeavy;
         public int ChipsPerHit => _chipsPerHit;
         public int LeavesOnFell => _leavesOnFell;
         public float SfxVolume => _sfxVolume;
@@ -407,6 +432,11 @@ namespace Chopper.Core
         public float SwingLatencyTolerance => _swingLatencyTolerance;
         public float SwingAnimationDuration => _swingAnimationDuration;
         public float SwingArcDegrees => _swingArcDegrees;
+        public float SwingStrikeFraction => _swingStrikeFraction;
+        public float SwingCommitFraction => _swingCommitFraction;
+        public float SwingMoveMultiplier => _swingMoveMultiplier;
+        public float SwingTurnMultiplier => _swingTurnMultiplier;
+        public float SwingStrikeStep => _swingStrikeStep;
 
         public int ChargesPerKill => _chargesPerKill;
         public bool ChargeOnlyOnEffectiveHits => _chargeOnlyOnEffectiveHits;

@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
@@ -13,6 +15,8 @@ namespace Chopper.Editor
         private const string ShaderPath = "Assets/_Chopper/Shaders/ChopperVertexColorLit.shader";
         private const string MaterialFolder = "Assets/_Chopper/Materials/Character/";
         private const float WalkTakeSpeed = 0.75f;
+        private const float ElementalWalkSpeed = 0.70f;
+        private const float DraugrWalkSpeed = 0.65f;
         private const float RunTakeSpeed = 4.1f;
         private const float WalkSpeed = 1.6f;
         private const float RunSpeed = 5.2f;
@@ -111,6 +115,13 @@ namespace Chopper.Editor
 
         private static AnimatorController BuildController(string path, float attackSpeed)
         {
+            bool elemental = path.IndexOf("Golem", System.StringComparison.OrdinalIgnoreCase) >= 0;
+            string walkName = elemental ? "Elemental_Walk" : "Draugr_Walk";
+            string attackName = elemental ? "Elemental_Slam" : "Draugr_Attack";
+            AnimationClip walk = CharacterSetup.ChopperTake(walkName) ?? CharacterSetup.ChopperTake("Walk");
+            AnimationClip attack = CharacterSetup.ChopperTake(attackName) ?? CharacterSetup.ChopperTake("Attack_1");
+            float walkNatural = walk != null && walk.name.Contains(walkName) ? (elemental ? ElementalWalkSpeed : DraugrWalkSpeed) : WalkTakeSpeed;
+
             if (AssetDatabase.LoadAssetAtPath<AnimatorController>(path) != null) AssetDatabase.DeleteAsset(path);
             var controller = AnimatorController.CreateAnimatorControllerAtPath(path);
             controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
@@ -124,15 +135,16 @@ namespace Chopper.Editor
             tree.blendParameter = "Speed";
             tree.useAutomaticThresholds = false;
             tree.AddChild(CharacterSetup.ChopperTake("Idle"), 0f);
-            tree.AddChild(CharacterSetup.ChopperTake("Walk"), WalkSpeed);
+            tree.AddChild(walk, WalkSpeed);
             tree.AddChild(CharacterSetup.ChopperTake("Run"), RunSpeed);
             ChildMotion[] children = tree.children;
-            children[1].timeScale = WalkSpeed / WalkTakeSpeed;
+            children[1].timeScale = WalkSpeed / walkNatural;
             children[2].timeScale = RunSpeed / RunTakeSpeed;
             tree.children = children;
             machine.defaultState = locomotion;
 
-            AddAction(machine, locomotion, "Attack", CharacterSetup.ChopperTake("Attack_1"), attackSpeed, 0.9f);
+            AddAction(machine, locomotion, "Attack", attack, attackSpeed, 0.9f);
+            Debug.Log($"RESULT: {Path.GetFileNameWithoutExtension(path)} walk {(walk != null ? walk.name : "MISSING")} attack {(attack != null ? attack.name : "MISSING")}");
             AddAction(machine, locomotion, "Hit", CharacterSetup.ChopperTake("HitReact"), 1f, 0.8f);
             AnimatorState death = machine.AddState("Death");
             death.motion = CharacterSetup.ChopperTake("Death");

@@ -2,6 +2,7 @@ using Chopper.Core;
 using Chopper.Enemies;
 using Chopper.Trees;
 using Chopper.UI;
+using FishNet.Connection;
 using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using UnityEngine;
@@ -18,7 +19,7 @@ namespace Chopper.Player
         // Aim vectors shorter than this after flattening are rejected as malformed.
         private const float MinAimSqrMagnitude = 0.01f;
         // How long the finisher lunge carries the owner before the normal slow down eats it.
-        private const float LungeSeconds = 0.6f;
+        private const float LungeSeconds = 0.9f;
 
         [SerializeField] private GameConfig _config;
         [SerializeField] private PlayerCamera _playerCamera;
@@ -58,6 +59,19 @@ namespace Chopper.Player
         private PlayerMovementValidator _validator;
         private PlayerFishing _fishing;
         private PlayerMining _mining;
+        private PlayerAnimator _playerAnimator;
+        private float _commitUntil;
+        private float _strikeAt;
+        private bool _strikePending;
+        private Vector3 _strikeAim;
+        private float _strikeSpeed;
+        private bool _hitPending;
+        private float _hitAt;
+        private bool _hitHeavy;
+        private bool _hitTree;
+        private Animator _hitTarget;
+
+        public bool SwingCommitted => IsOwner && Time.time < _commitUntil;
 
         public bool HasAxe => _hasAxe.Value;
         public int Durability => _durability.Value;
@@ -77,6 +91,7 @@ namespace Chopper.Player
             _stamina = GetComponent<PlayerStamina>();
             _fishing = GetComponent<PlayerFishing>();
             _mining = GetComponent<PlayerMining>();
+            _playerAnimator = GetComponent<PlayerAnimator>();
             _restRotation = _axePivot.localRotation;
         }
 
@@ -277,7 +292,8 @@ namespace Chopper.Player
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (Keyboard.current != null && Keyboard.current.f9Key.wasPressedThisFrame) DebugSpamServer();
 #endif
-            if (Keybinds.WasPressed(KeyAction.Axe) && !UiState.GameplayBlocked && (_fishing == null || !_fishing.Busy))
+            TickCommitment();
+            if (Keybinds.WasPressed(KeyAction.Axe) && !UiState.GameplayBlocked && (_fishing == null || !_fishing.Busy) && !SwingCommitted)
             {
                 _hiddenByUnequip = false;
                 RequestToggleDrawn();
@@ -314,9 +330,14 @@ namespace Chopper.Player
             _comboStep = step;
             _comboTime = Time.time;
 
-            _nextSwingTime = Time.time + Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) : 1f);
+            float swingSeconds = Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) : 1f);
+            _nextSwingTime = Time.time + swingSeconds;
             transform.rotation = Quaternion.LookRotation(aim, Vector3.up);
-            if (step == ComboRules.Steps - 1 && _motor != null) _motor.Lunge(aim, ComboRules.FinisherLunge);
+            _commitUntil = Time.time + swingSeconds * _config.SwingCommitFraction;
+            _strikeAt = Time.time + Cooldown * _config.SwingStrikeFraction;
+            _strikeAim = aim;
+            _strikeSpeed = step < 0 ? 0f : _config.SwingStrikeStep + (step == ComboRules.Steps - 1 ? ComboRules.FinisherLunge : 0f);
+            _strikePending = _strikeSpeed > 0f;
             ClientPlaySwing(step);
             SwingAxeServerRpc(aim);
             return true;
@@ -348,6 +369,47 @@ namespace Chopper.Player
             if (step == ComboRules.Steps - 1 && _validator != null) _validator.ServerAllowBurst(ComboRules.FinisherLunge, LungeSeconds, "finisher lunge");
 
             SwingObserversRpc(step);
+        }
+
+        public void CancelSwing()
+        {
+            _commitUntil = 0f;
+            _strikePending = false;
+        }
+
+        private void TickCommitment()
+        {
+            if (SwingCommitted && _combat != null && (_combat.GuardRaised || _combat.IsRolling)) CancelSwing();
+            if (_strikePending && Time.time >= _strikeAt)
+            {
+                _strikePending = false;
+                if (_motor != null) _motor.Lunge(_strikeAim, _strikeSpeed);
+            }
+            if (_hitPending && Time.time >= _hitAt) PlayHitFeel();
+        }
+
+        [TargetRpc]
+        private void HitLandedTargetRpc(NetworkConnection connection, NetworkObject target, bool heavy, bool tree)
+        {
+            if (_hitPending) PlayHitFeel();
+            Treant treant = target != null ? target.GetComponent<Treant>() : null;
+            _hitTarget = treant != null ? treant.BodyAnimator : null;
+            _hitHeavy = heavy;
+            _hitTree = tree;
+            _hitAt = Mathf.Max(Time.time, _swingStartTime + Cooldown * _config.SwingStrikeFraction);
+            _hitPending = true;
+        }
+
+        private void PlayHitFeel()
+        {
+            _hitPending = false;
+            float seconds = _hitHeavy ? _config.HitStopHeavySeconds : _config.HitStopSeconds;
+            if (_hitTree) seconds *= 0.75f;
+            if (_playerAnimator != null) _playerAnimator.PlayHitStop(0f, seconds);
+            if (_hitTarget != null) HitStop.Apply(_hitTarget, 0f, seconds);
+            _hitTarget = null;
+            float kick = _hitTree ? _config.HitKick * 0.5f : (_hitHeavy ? _config.HitKickHeavy : _config.HitKick);
+            if (_playerCamera != null) _playerCamera.AddKick(transform.forward, kick);
         }
 
         // True when an awake enemy stands in the strip this swing would cover.
@@ -410,8 +472,11 @@ namespace Chopper.Player
                     buffs.ServerConsumeHit(treant.Element);
                 }
                 units *= ComboRules.Damage(step);
+                NetworkObject target = treant.NetworkObject;
                 treant.ServerHit(units, buffs, _wood, transform.position);
                 if (step == ComboRules.Steps - 1 && treant.IsActive) treant.ServerStagger(_config.TreantStaggerSeconds * ComboRules.FinisherStagger * 1.5f, transform.position, true);
+                bool killed = !treant.IsSpawned || !treant.IsActive;
+                if (Owner.IsValid) HitLandedTargetRpc(Owner, killed ? null : target, killed || step == ComboRules.Steps - 1, false);
             }
             else if (foundTreeId >= 0)
             {
@@ -419,6 +484,7 @@ namespace Chopper.Player
                 // A better axe fells in fewer swings; punches add up to one plain hit.
                 float power = armed && _upgrades != null ? _upgrades.AxeDamageMultiplier : 1f;
                 TreeManager.Instance.ServerHitTree(foundTreeId, _wood, aim, counts, power);
+                if (Owner.IsValid) HitLandedTargetRpc(Owner, null, false, true);
             }
             return step;
         }

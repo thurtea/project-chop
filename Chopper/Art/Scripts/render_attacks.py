@@ -1,5 +1,5 @@
-"""Frame sheets of the three axe chops (Attack_1, Attack_2, Attack_3), front three-quarter and side, so the swing
-can be judged without Unity. Base look with the bear-head axe on Weapon_R, as render_base_look.py.
+"""Frame sheets of the three axe chops (Attack_1, Attack_2, Attack_3) and HitReact, front three-quarter and side, so
+the swing can be judged without Unity. Columns are key frames: rest, wind-up, cock, strike, impact, settle, end. Base look with the bear-head axe on Weapon_R, as render_base_look.py.
 
 Run:  blender -b -P render_attacks.py
 In:   Art/Blender/chopper_rigged.blend (after animate_chopper.py), chopper_props.blend, Art/Textures/chopper_atlas.png
@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import render_base_look as rbl  # noqa: E402
 import render_views as rv  # noqa: E402
 
-TAKES = {"Attack_1": 22, "Attack_2": 22, "Attack_3": 28}
-MOMENTS = (0.0, 0.3, 0.42, 0.5, 0.56, 0.7, 1.0)
+TAKES = {"Attack_1": (1, 4, 7, 10, 12, 13, 16, 23), "Attack_2": (1, 4, 7, 10, 12, 13, 16, 23),
+         "Attack_3": (1, 6, 10, 14, 16, 18, 21, 29), "HitReact": (1, 2, 3, 5, 7, 9, 12, 16)}
 VIEWS = (("front", -35, 6), ("side", -90, 0))
 
 
@@ -40,15 +40,15 @@ def main():
     sc.render.resolution_x, sc.render.resolution_y = 360, 420
 
     rows = []
-    for take, length in TAKES.items():
+    for take, frames in TAKES.items():
         for tr in rig.animation_data.nla_tracks:
             tr.mute = tr.name != take
         for view, yaw, pitch in VIEWS:
             row = []
-            for m in MOMENTS:
-                sc.frame_set(1 + round(m * length))
+            for fr in frames:
+                sc.frame_set(fr)
                 bpy.context.view_layer.update()
-                name = "attack_%s_%s_%02d" % (take, view, round(m * 100))
+                name = "attack_%s_%s_%02d" % (take, view, fr)
                 rv.shoot(sc, name, (0, 0, 1.05), yaw, pitch, 2.9)
                 row.append(os.path.join(rv.OUT, name + ".png"))
             rows.append(row)
@@ -57,7 +57,7 @@ def main():
     import numpy as np
     imgs = [rbl.load_rgb(p) for p in flat]
     h, w = imgs[0].shape[:2]
-    cols = len(MOMENTS)
+    cols = max(len(f) for f in TAKES.values())
     sheet = np.ones((h * len(rows), w * cols, 3), dtype=np.float32)
     for i, im in enumerate(imgs):
         r, c = divmod(i, cols)

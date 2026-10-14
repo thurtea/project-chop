@@ -97,6 +97,7 @@ namespace Chopper.World.Generation
         public readonly List<CryptGuardian> Guardians = new List<CryptGuardian>();
         public readonly List<CryptLantern> Lanterns = new List<CryptLantern>();
         public readonly List<CryptLantern> EntranceLanterns = new List<CryptLantern>();
+        public readonly List<CavePiece> Dressing = new List<CavePiece>();
         public int Vault { get; private set; }
         public Vector2Int StairsSide { get; private set; }
 
@@ -162,6 +163,186 @@ namespace Chopper.World.Generation
             PlaceLanterns(random);
             BuildArena();
             BuildEntrance(gen);
+            PlaceDressing();
+        }
+
+        // The kit is the surface you see: panels and trims across each wall, an arch on every opening,
+        // floor tiles across the floor. Buried a few centimetres into the shell so nothing shares its plane.
+        private void PlaceDressing()
+        {
+            int seed = Index * 104729 + Mathf.RoundToInt(Origin.x) * 9176 + Mathf.RoundToInt(Origin.z) * 131 + 52;
+            const float bury = 0.08f;
+            for (int room = 0; room < Rooms.Count; room++)
+            {
+                var random = new System.Random(seed + room * 503);
+                Vector3 origin = RoomCenter(room);
+                int panelIndex = (PanelStart(Site.Zone) + room) % CaveDress.CryptPanels.Length;
+                string panel = CaveDress.CryptPanels[panelIndex];
+                bool scorch = panel == "prop_crypt_wall_scorch_voxel";
+                bool emberLeft = scorch;
+                foreach (Vector2Int side in Directions)
+                {
+                    Vector3 n = Normal(side);
+                    float face = RoomSize * 0.5f + bury;
+                    bool stairs = room == 0 && side == StairsSide;
+                    if (SideOpen(room, side) || stairs)
+                    {
+                        CaveDress.AddWall(Dressing, CaveDress.CryptArch, origin, n, face, 0f, 0f, false);
+                        if (stairs)
+                        {
+                            float span = RoomSize * 0.5f - 3.5f;
+                            var scale = new Vector3(span / 2.5f, 1f, 1f);
+                            foreach (float sign in new[] { 1f, -1f })
+                                CoverSpan(origin, n, panel, sign * (3.5f + span * 0.5f), face, scale, ref emberLeft);
+                        }
+                        else
+                        {
+                            foreach (float sign in new[] { 1f, -1f })
+                            {
+                                CoverSpan(origin, n, panel, sign * 3.75f, face, Vector3.one, ref emberLeft);
+                                CoverSpan(origin, n, panel, sign * 6.25f, face, Vector3.one, ref emberLeft);
+                            }
+                        }
+                        continue;
+                    }
+                    for (int i = 0; i < 6; i++)
+                        CoverSpan(origin, n, panel, -6.25f + i * 2.5f, face, Vector3.one, ref emberLeft);
+                }
+
+                for (float x = -6f; x <= 6.01f; x += 2f)
+                {
+                    for (float z = -6f; z <= 6.01f; z += 2f)
+                    {
+                        if (Mathf.Abs(x) > 5f && Mathf.Abs(z) > 5f) continue;
+                        var local = new Vector3(x, 0.06f, z);
+                        if (room == 0 && TileHitsStairs(local)) continue;
+                        string tile = CaveDress.CryptFloors[((int)x + (int)z + room) & 1];
+                        CaveDress.Add(Dressing, tile, origin + local, 0f, false);
+                    }
+                }
+
+                string overhead = CaveDress.CryptOverhead[random.Next(CaveDress.CryptOverhead.Length)];
+                Vector3 overLocal = CaveDress.Corner(overhead, random.Next(4));
+                overLocal.y += 0.04f;
+                CaveDress.Add(Dressing, overhead, origin + overLocal, 0f, false);
+
+                int varied = random.Next(4);
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    string solid = corner == varied
+                        ? CaveDress.CryptSolids[3 + random.Next(CaveDress.CryptSolids.Length - 3)]
+                        : CaveDress.CryptSolids[random.Next(2) == 0 ? 0 : 1];
+                    Vector3 local = CaveDress.Corner(solid, corner);
+                    if (CaveDress.BlocksWalkingCross(local, 2.5f)) continue;
+                    if (room == 0 && OnStairRun(local)) continue;
+                    if (NearContents(room, origin + local, 1.6f)) continue;
+                    CaveDress.Add(Dressing, solid, origin + local, 0f, true);
+                }
+            }
+
+            DressArena(seed);
+        }
+
+        // Panel plus a trim proud of it, so the base course is relief and not a second coplanar skin.
+        private void CoverSpan(Vector3 origin, Vector3 normal, string panel, float along, float face, Vector3 scale, ref bool ember)
+        {
+            CaveDress.AddWall(Dressing, panel, origin, normal, face, along, 0f, true, ember, scale);
+            ember = false;
+            CaveDress.AddWall(Dressing, CaveDress.CryptTrim, origin, normal, face - 0.16f, along, 0f, true, false, scale);
+        }
+
+        private void DressArena(int seed)
+        {
+            var arena = new System.Random(seed + 9001);
+            const float bury = 0.08f;
+            float half = ArenaSize * 0.5f;
+            string panel = CaveDress.CryptPanels[PanelStart(Site.Zone)];
+            bool ember = panel == "prop_crypt_wall_scorch_voxel";
+            foreach (Vector2Int side in Directions)
+            {
+                Vector3 n = Normal(side);
+                bool south = side == Vector2Int.down;
+                if (south) CaveDress.AddWall(Dressing, CaveDress.CryptArch, ArenaCenter, n, half + bury, 0f, 0f, false);
+                for (int i = 0; i < 10; i++)
+                {
+                    float along = -11.25f + i * 2.5f;
+                    if (south && Mathf.Abs(along) < 3.6f) continue;
+                    CoverSpan(ArenaCenter, n, panel, along, half + bury, Vector3.one, ref ember);
+                }
+            }
+            for (float x = -12f; x <= 12.01f; x += 2f)
+            {
+                for (float z = -12f; z <= 12.01f; z += 2f)
+                {
+                    bool pillar = false;
+                    foreach (float sx in new[] { 6f, -6f })
+                        foreach (float sz in new[] { 6f, -6f })
+                            if ((x - sx) * (x - sx) + (z - sz) * (z - sz) < 3.2f) pillar = true;
+                    if (pillar) continue;
+                    string tile = CaveDress.CryptFloors[((int)x + (int)z) & 1];
+                    CaveDress.Add(Dressing, tile, ArenaCenter + new Vector3(x, 0.06f, z), 0f, false);
+                }
+            }
+            for (int i = 0; i < 4; i++)
+                CaveDress.Add(Dressing, CaveDress.ArenaPillar, ArenaCenter + CaveDress.Corner(CaveDress.ArenaPillar, i), 0f, true);
+            Vector3 rubble = CaveDress.Corner(CaveDress.ArenaPillar, arena.Next(4));
+            rubble.x = Mathf.Sign(rubble.x) * 9.6f;
+            if (new Vector2(rubble.x, rubble.z).magnitude > ArenaSpawnRadius)
+                CaveDress.Add(Dressing, CaveDress.CryptRubble, ArenaCenter + rubble, 0f, true);
+        }
+
+        private static int PanelStart(Element zone)
+        {
+            switch (zone)
+            {
+                case Element.Water: return 1;
+                case Element.Wind: return 2;
+                case Element.Fire: return 3;
+                default: return 0;
+            }
+        }
+
+        private bool TileHitsStairs(Vector3 local)
+        {
+            Vector3 n = Normal(StairsSide);
+            Vector3 t = Tangent(StairsSide);
+            float along = Vector3.Dot(local, n);
+            float side = Vector3.Dot(local, t);
+            float inner = RoomSize * 0.5f - StairSteps * StairRun;
+            return along + 1f > inner - 0.2f && along - 1f < RoomSize * 0.5f && Mathf.Abs(side) < StairWidth * 0.5f + 1f;
+        }
+
+        private bool OnStairRun(Vector3 local)
+        {
+            Vector3 n = Normal(StairsSide);
+            Vector3 t = Tangent(StairsSide);
+            float along = Vector3.Dot(local, n);
+            float side = Vector3.Dot(local, t);
+            float inner = RoomSize * 0.5f - StairSteps * StairRun;
+            return along > inner - 0.5f && along < RoomSize * 0.5f + 0.4f && Mathf.Abs(side) < StairWidth * 0.5f + 0.45f;
+        }
+
+        private bool NearContents(int room, Vector3 world, float reach)
+        {
+            Vector3 center = RoomCenter(room);
+            float reachSqr = reach * reach;
+            foreach (CryptChest chest in Chests)
+            {
+                Vector3 d = chest.Position - center;
+                if (Mathf.Abs(d.x) > RoomSize * 0.5f || Mathf.Abs(d.z) > RoomSize * 0.5f) continue;
+                d = chest.Position - world;
+                d.y = 0f;
+                if (d.sqrMagnitude < reachSqr) return true;
+            }
+            foreach (CryptGuardian guardian in Guardians)
+            {
+                Vector3 d = guardian.Position - center;
+                if (Mathf.Abs(d.x) > RoomSize * 0.5f || Mathf.Abs(d.z) > RoomSize * 0.5f) continue;
+                d = guardian.Position - world;
+                d.y = 0f;
+                if (d.sqrMagnitude < reachSqr) return true;
+            }
+            return false;
         }
 
         public Vector3 RoomCenter(int room) => Origin + new Vector3(Rooms[room].x * CellSize, 0f, Rooms[room].y * CellSize);
@@ -296,9 +477,8 @@ namespace Chopper.World.Generation
                 Vector3 center = c + n * (RoomSize * 0.5f - fromWall) + Vector3.up * (height * 0.5f);
                 Add(center, SizeOn(StairsSide, StairRun, StairWidth, height), CryptMaterial.Floor);
             }
-            float top = StairSteps * StairRise;
-            // The dark passage starts a little above the top step, so the two never share a surface.
-            Add(c + n * (RoomSize * 0.5f - 0.02f) + Vector3.up * (top + 0.05f + 1.25f), SizeOn(StairsSide, 0.06f, StairWidth - 0.2f, 2.5f), CryptMaterial.Void);
+            // Above the top step and in front of the wall, inside the arch. Not on the stone face, not in the steps.
+            Add(c + n * (RoomSize * 0.5f - 0.45f) + Vector3.up * 4.15f, SizeOn(StairsSide, 0.1f, 5.4f, 2.5f), CryptMaterial.Void);
 
             float foot = RoomSize * 0.5f - StairSteps * StairRun;
             ExitSpot = c + n * (foot - 0.8f);
@@ -468,7 +648,7 @@ namespace Chopper.World.Generation
             }
 
             // The way back up: an archway in the south wall, the arrival point a few steps in front of it.
-            Add(c + new Vector3(0f, 1.6f, -half + 0.02f), new Vector3(2.4f, 3.2f, 0.06f), CryptMaterial.Void);
+            Add(c + new Vector3(0f, 2.2f, -half + 0.55f), new Vector3(5.6f, 4.2f, 0.12f), CryptMaterial.Void);
             ArenaExitSpot = c + new Vector3(0f, 0f, -half + 1.4f);
             ArenaEntry = c + new Vector3(0f, 0f, -half + 3.4f);
             BossSpot = c + new Vector3(0f, 0.1f, 5f);

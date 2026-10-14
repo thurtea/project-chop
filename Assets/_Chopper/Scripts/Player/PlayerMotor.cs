@@ -75,6 +75,7 @@ namespace Chopper.Player
         private bool _swimming;
         private const float SwimEntryDepth = 0.3f;
         private float _mantleUntil;
+        private float _landingRecoveryUntil;
 
         // Owner only. Seconds of Wet left (WetRules): 0 is dry.
         public float WetSeconds => _wetSeconds;
@@ -250,6 +251,7 @@ namespace Chopper.Player
             {
                 float height = _fallTopY - y;
                 if (FallRules.Damage(height, 100) > 0) FallServerRpc(height);
+                if (height >= _config.LandingRecoveryHeight) _landingRecoveryUntil = Time.time + _config.LandingRecoverySeconds;
             }
             _airborne = false;
             _fallIgnored = false;
@@ -300,6 +302,9 @@ namespace Chopper.Player
             bool blocking = _combat != null && _combat.IsBlocking;
             // Block plus jump is the dodge (PlayerCombat turns it into a roll), so it must not also jump.
             bool guardUp = _combat != null && _combat.GuardRaised;
+            if (_axe == null) _axe = GetComponent<PlayerAxe>();
+            bool committed = _axe != null && _axe.SwingCommitted && !rolling && !guardUp;
+            bool recovering = Time.time < _landingRecoveryUntil && !rolling;
             _inputDirection = direction;
             float waterDepth = WaterSystem.DepthAt(transform.position, out float surfaceY);
             // Only in the water, not anywhere over it: the arrival drop (W9-01) falls 22 m into the pond, and over deep
@@ -314,7 +319,7 @@ namespace Chopper.Player
             if (swimming)
             {
                 Vector3 swimDir = direction.sqrMagnitude > TurnInputThreshold ? direction : transform.forward;
-                bool jumping = !blocked && !rolling && !guardUp && JumpPressed();
+                bool jumping = !blocked && !rolling && !guardUp && !committed && JumpPressed();
                 if (jumping && LedgeAhead(swimDir, surfaceY, SwimMantleMaxAboveSurface))
                     _mantleUntil = Time.time + SwimMantleSeconds;
                 if (Time.time < _mantleUntil)
@@ -347,12 +352,12 @@ namespace Chopper.Player
                     if (_verticalVelocity < 0f) _verticalVelocity = -_config.PlayerGroundedStickSpeed;
                     _airJumpsLeft = AirJumps;
                     // TryUse only runs when jump was pressed (short circuit), so stamina is not drained every frame.
-                    if (!blocked && !rolling && !guardUp && JumpPressed() && (_stamina == null || _stamina.TryUse(_config.JumpStamina)))
+                    if (!blocked && !rolling && !guardUp && !committed && JumpPressed() && (_stamina == null || _stamina.TryUse(_config.JumpStamina)))
                     {
                         _verticalVelocity = _config.JumpLaunchSpeed;
                     }
                 }
-                else if (_airJumpsLeft > 0 && !blocked && !rolling && !guardUp && JumpPressed()
+                else if (_airJumpsLeft > 0 && !blocked && !rolling && !guardUp && !committed && JumpPressed()
                          && (_stamina == null || _stamina.TryUse(_config.JumpStamina)))
                 {
                     // The second jump replaces the fall speed, so it lifts the same amount on the way up or down.
@@ -379,10 +384,13 @@ namespace Chopper.Player
             if (!swimming && IsWet) topSpeed *= WetRules.RunSpeedMultiplier;
             if (!swimming && HandsFull()) topSpeed *= CarryRules.EquippedSpeedMultiplier;
             if (blocking) topSpeed *= _config.BlockMoveMultiplier;
+            if (committed && !swimming) topSpeed *= _config.SwingMoveMultiplier;
+            if (recovering && !swimming) topSpeed *= _config.LandingRecoverySpeedMultiplier;
             Vector3 targetVelocity = direction * topSpeed;
             float rate = direction.sqrMagnitude > TurnInputThreshold ? _config.PlayerAcceleration : _config.PlayerDeceleration;
             if (swimming) rate *= Time.time < _mantleUntil ? 1.1f : 0.85f;
             _horizontalVelocity = Vector3.MoveTowards(_horizontalVelocity, targetVelocity, rate * Time.deltaTime);
+            if (recovering && !swimming) _horizontalVelocity = Vector3.ClampMagnitude(_horizontalVelocity, Mathf.Max(topSpeed, _config.PlayerMoveSpeed * _config.LandingRecoverySpeedMultiplier));
             // A roll overrides everything for its short duration: a fast dash that eases out at the end.
             if (rolling)
             {
@@ -416,6 +424,7 @@ namespace Chopper.Player
             {
                 Quaternion target = Quaternion.LookRotation(direction, Vector3.up);
                 float turn = _config.PlayerTurnSpeed * (swimming ? 0.42f : 0.62f);
+                if (committed) turn *= _config.SwingTurnMultiplier;
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turn * Time.deltaTime);
             }
         }

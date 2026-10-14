@@ -37,10 +37,12 @@ HUMANOID = ["Hips", "Spine", "Chest", "UpperChest", "Neck", "Head",
 SOCKETS = ["Weapon_R", "Shield_L", "Shield_Back"]
 TAKES = {"Idle": 60, "Walk": 30, "Run": 18, "Sprint": 16, "CrouchIdle": 40, "CrouchWalk": 24, "Air": 20, "LandHard": 18,
          "Roll": 24, "SwimIdle": 40, "Swim": 24, "Attack_1": 22, "Attack_2": 22, "Attack_3": 28, "HitReact": 15,
-         "Death": 30, "FishWait": 60, "FishCast": 24, "FishFight": 20, "FishCatch": 24, "Gather": 30}
-LOOP_TAKES = {"Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim", "FishWait", "FishFight"}
+         "Death": 30, "FishWait": 60, "FishCast": 24, "FishFight": 20, "FishCatch": 24, "Gather": 30,
+         "Elemental_Walk": 40, "Elemental_Slam": 36, "Draugr_Walk": 36, "Draugr_Attack": 30}
+LOOP_TAKES = {"Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim", "FishWait", "FishFight",
+              "Elemental_Walk", "Draugr_Walk"}
 # Ground speed of each in-place gait (= animate_chopper GAITS), for the planted-foot slip check.
-GAIT_SPEEDS = {"Run": 4.10, "Sprint": 6.50, "CrouchWalk": 1.60}
+GAIT_SPEEDS = {"Run": 4.10, "Sprint": 6.50, "CrouchWalk": 1.60, "Elemental_Walk": 0.70, "Draugr_Walk": 0.65}
 # Whole-body moves that must not sink into the ground (lowest vertex of every mesh).
 GROUND_TAKES = {"Roll", "Death", "LandHard", "CrouchIdle"}
 FPS = 30
@@ -684,7 +686,7 @@ def main():
 
     # FishCast is left out: fishing stows the axe. The grip section may run under the sleeve cuff.
     grip_b = lambda ob, fi, i: in_fist_b(ob, fi, i) or (ob.name == "chopper_shirt" and -0.15 < bear_local[i].z < 0.15)  # noqa: E731
-    for take in ("Attack_1", "Attack_2", "Attack_3", "HitReact", "Gather"):
+    for take in ("Attack_1", "Attack_2", "Attack_3", "HitReact", "Gather", "Draugr_Attack"):
         set_action(rig, take)
         cnt, worst, where = 0, 0.0, {}
         for f in range(1, TAKES[take] + 2):

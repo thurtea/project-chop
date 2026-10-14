@@ -48,11 +48,11 @@ namespace Chopper.World
         private static readonly Color NightSky = new Color(0.26f, 0.34f, 0.58f);
         private static readonly Color NightEquator = new Color(0.20f, 0.26f, 0.42f);
         private static readonly Color NightGround = new Color(0.10f, 0.12f, 0.20f);
-        // Inside a crypt: no sun or moon, only a little warm light besides the lanterns.
-        private static readonly Color CryptSky = new Color(0.36f, 0.30f, 0.24f);
-        private static readonly Color CryptEquator = new Color(0.30f, 0.25f, 0.20f);
-        private static readonly Color CryptGround = new Color(0.16f, 0.13f, 0.10f);
-        private const float CryptExposure = 0.9f;
+        // Underground (crypts and mines): no sun or moon. Darker and warmer than the old grey fill.
+        private static readonly Color CryptSky = new Color(0.18f, 0.10f, 0.06f);
+        private static readonly Color CryptEquator = new Color(0.13f, 0.07f, 0.04f);
+        private static readonly Color CryptGround = new Color(0.05f, 0.03f, 0.02f);
+        private const float CryptExposure = 0.62f;
         private const float UndergroundBlendSpeed = 3f;
 
         public static DayNightCycle Instance { get; private set; }

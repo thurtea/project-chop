@@ -88,7 +88,10 @@ Rate each from 1 (floaty or twitchy) to 5 (weighty like Valheim, readable like M
 - [ ] The hub still refuses pieces ("build in the forests").
 
 ### D. Caves (the redesign after the motion pass)
-- [ ] Walk a crypt and a mine. Write down which rooms feel plain and what would make them feel real to you (carved stone, pillars, bones, roots, rubble, timber props, cobwebs, light).
+- [ ] A crypt room: the walls are carved stone panels with a trim, and each doorway (including the stair) reads as an arch. The floor is stone tiles. Pillars, if you see them, are cut stone with a base and a capital. The grey wool checker from the old shell should be gone.
+- [ ] A mine room: timber frames on the walls, a timber frame around each gallery mouth, ore on a solid wall. Not a grey box with one sticker.
+- [ ] Walk door to door and along a gallery. The centre line stays clear (no cart, crate, or pillar in the middle).
+- [ ] Light: darker and warmer than the old flat orange pools. A lantern and a scorch ember should actually glow. Say if the stone is too dark to read.
 
 ### E. The world and the hut (only if something changed or looks wrong)
 - [ ] The title screen, the arrival in the pond, dressing on the bank.

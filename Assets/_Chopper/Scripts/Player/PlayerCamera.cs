@@ -42,6 +42,10 @@ namespace Chopper.Player
         private float _collisionDistance = 100f;
         private const float CameraReturnSpeed = 3f;
         private float _shake;
+        private const float KickDecay = 22f;
+        private const float KickPitchPerMeter = 20f;
+        private float _kick;
+        private Vector3 _kickDirection;
         private float _crouchBlend;
         private PlayerMotor _motor;
         // While flying (developer console) the camera may pull much further back to look over the land.
@@ -78,6 +82,14 @@ namespace Chopper.Player
         public void AddShake(float magnitude)
         {
             _shake = Mathf.Max(_shake, magnitude);
+        }
+
+        public void AddKick(Vector3 direction, float meters)
+        {
+            direction.y = 0f;
+            if (meters <= _kick || direction.sqrMagnitude < 0.0001f) return;
+            _kick = meters;
+            _kickDirection = direction.normalized;
         }
 
         public override void OnStartClient()
@@ -244,6 +256,13 @@ namespace Chopper.Player
             {
                 position += Random.insideUnitSphere * _shake;
                 _shake = Mathf.MoveTowards(_shake, 0f, _config.ShakeRecoverySpeed * dt);
+            }
+            if (_kick > 0f)
+            {
+                position += _kickDirection * _kick;
+                rotation = Quaternion.Euler(_pitch + _kick * KickPitchPerMeter, _yaw, 0f);
+                _kick *= Mathf.Exp(-KickDecay * dt);
+                if (_kick < 0.001f) _kick = 0f;
             }
             _camera.fieldOfView = UserSettings.FieldOfView;
             _camera.transform.SetPositionAndRotation(position, rotation);

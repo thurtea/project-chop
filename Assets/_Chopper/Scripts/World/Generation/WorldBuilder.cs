@@ -407,14 +407,15 @@ namespace Chopper.World.Generation
         private static readonly float[] TileMeters = { 2f, 2.4f, 2f, 1f, 1f };
         private static readonly float[] MineTileMeters = { 4f, 3f, 4f, 1f, 1.2f };
         // Crypt and mine surfaces in the terrain block material: linear colour per CryptMaterial, block type in alpha.
+        // Darker cut stone. The world block shader's texel hash is not used on these (see CaveStoneMaterial).
         private static readonly Color[] CryptBlockColors =
         {
-            BlockColor(0.19f, 0.19f, 0.20f, 2), BlockColor(0.13f, 0.13f, 0.13f, 2), BlockColor(0.10f, 0.10f, 0.11f, 2),
+            BlockColor(0.20f, 0.15f, 0.11f, 2), BlockColor(0.15f, 0.11f, 0.08f, 2), BlockColor(0.08f, 0.06f, 0.05f, 2),
             BlockColor(0f, 0f, 0f, 2), BlockColor(0.24f, 0.107f, 0.04f, 1)
         };
         private static readonly Color[] MineBlockColors =
         {
-            BlockColor(0.20f, 0.18f, 0.15f, 2), BlockColor(0.16f, 0.09f, 0.045f, 1), BlockColor(0.12f, 0.11f, 0.10f, 2),
+            BlockColor(0.22f, 0.15f, 0.10f, 2), BlockColor(0.17f, 0.10f, 0.055f, 1), BlockColor(0.09f, 0.07f, 0.05f, 2),
             BlockColor(0f, 0f, 0f, 2), BlockColor(0.24f, 0.107f, 0.04f, 1)
         };
 
@@ -433,9 +434,28 @@ namespace Chopper.World.Generation
             }
             return _blockMaterial;
         }
-        private static readonly Color LanternColor = new Color(1f, 0.62f, 0.3f);
-        private const float LanternRange = 13f;
-        private const float LanternIntensity = 4.5f;
+
+        private static Material _caveStone;
+
+        // Crypts and mines only. The shared terrain material hashes every 1/16 m into a grey checker that
+        // swims when the camera moves. This copy keeps the block shader's lighting and turns that hash off.
+        private static Material CaveStoneMaterial()
+        {
+            if (_caveStone != null) return _caveStone;
+            Shader shader = Shader.Find("Chopper/Block");
+            if (shader == null) return BlockMaterial();
+            _caveStone = new Material(shader) { name = "M_CaveStone" };
+            _caveStone.SetFloat("_Jitter", 0f);
+            _caveStone.SetFloat("_Edge", 0.04f);
+            _caveStone.SetFloat("_Dark", 0.94f);
+            _caveStone.SetFloat("_Light", 1.04f);
+            return _caveStone;
+        }
+        // Warmer and tighter than the old flat pools (was 1, 0.62, 0.3 at range 13, intensity 4.5).
+        private static readonly Color LanternColor = new Color(1f, 0.40f, 0.09f);
+        private const float LanternRange = 8f;
+        private const float LanternIntensity = 2.8f;
+        private static readonly Color EmberColor = new Color(1f, 0.32f, 0.06f);
 
         private void BuildCrypts(WorldGen gen, bool graphics)
         {
@@ -454,10 +474,11 @@ namespace Chopper.World.Generation
                 BuildBlocks(crypt, "Rooms", plan.Boxes, graphics, graphics ? CryptMaterials() : null, TileMeters, CryptBlockColors);
                 if (graphics)
                 {
-                    foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(crypt, lantern, false);
-                    foreach (CryptLantern lantern in plan.Lanterns) PlaceLantern(crypt, lantern, true);
-                    foreach (CryptLantern lantern in plan.ArenaLanterns) PlaceLantern(crypt, lantern, true);
+                    foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(crypt, lantern, false, false);
+                    foreach (CryptLantern lantern in plan.Lanterns) PlaceLantern(crypt, lantern, true, false);
+                    foreach (CryptLantern lantern in plan.ArenaLanterns) PlaceLantern(crypt, lantern, true, false);
                 }
+                PlaceDressing(crypt, plan.Dressing);
                 foreach (CryptChest chest in plan.Chests) CryptWorld.SetChestGlint(chestId++, PlaceChest(crypt, chest, graphics));
             }
         }
@@ -488,7 +509,7 @@ namespace Chopper.World.Generation
                 for (int m = 0; m < materials.Length; m++)
                 {
                     if (materials[m] == null) continue;
-                    Material blocks = blockColors != null && (CryptMaterial)m != CryptMaterial.Void ? BlockMaterial() : null;
+                    Material blocks = blockColors != null && (CryptMaterial)m != CryptMaterial.Void ? CaveStoneMaterial() : null;
                     Mesh mesh = BuildBoxMesh(inGroup, (CryptMaterial)m, tiles[m], blocks != null ? blockColors[m] : (Color?)null);
                     if (mesh == null) continue;
                     var part = new GameObject($"{(CryptMaterial)m}_{group}");
@@ -549,19 +570,16 @@ namespace Chopper.World.Generation
                 mine.SetParent(root, false);
                 BuildBlocks(mine, "Portal", plan.EntranceBoxes, graphics, materials, MineTileMeters, MineBlockColors);
                 BuildBlocks(mine, "Chambers", plan.Boxes, graphics, materials, MineTileMeters, MineBlockColors);
-                if (!graphics)
+                if (graphics)
                 {
-                    veinId += plan.Veins.Count;
-                    continue;
+                    foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(mine, lantern, false, false);
+                    foreach (CryptLantern lantern in plan.Lanterns) PlaceLantern(mine, lantern, true, true);
+                    Color glow = MineGlow(plan.Zone);
+                    foreach (MineVein vein in plan.Veins) PlaceVein(mine, vein, veinId++, glow);
+                    PlaceBlockProp(mine, "Ladder", plan.LadderSpot, plan.LadderYaw, LadderParts(MinePlan.RoomHeight + 0.4f), false);
                 }
-                foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(mine, lantern, false);
-                foreach (CryptLantern lantern in plan.Lanterns) PlaceLantern(mine, lantern, true);
-                Color glow = MineGlow(plan.Zone);
-                foreach (MineVein vein in plan.Veins) PlaceVein(mine, vein, veinId++, glow);
-                foreach (MineProp rail in plan.Rails) PlaceBlockProp(mine, "Rails", rail.Position, rail.Yaw, RailParts(rail.Length), false);
-                foreach (MineProp cart in plan.Carts) PlaceBlockProp(mine, "Cart", cart.Position, cart.Yaw, CartParts(cart.Length), true);
-                foreach (MineProp barrel in plan.Barrels) PlaceBlockProp(mine, "Barrel", barrel.Position, barrel.Yaw, BarrelParts(barrel.Length), true);
-                PlaceBlockProp(mine, "Ladder", plan.LadderSpot, plan.LadderYaw, LadderParts(MinePlan.RoomHeight + 0.4f), false);
+                else veinId += plan.Veins.Count;
+                PlaceDressing(mine, plan.Dressing);
             }
         }
 
@@ -854,21 +872,55 @@ namespace Chopper.World.Generation
 
         private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));
 
-        private void PlaceLantern(Transform parent, CryptLantern lantern, bool underground)
+        private void PlaceLantern(Transform parent, CryptLantern lantern, bool underground, bool kitMesh)
         {
             var pivot = new GameObject("Lantern");
             pivot.transform.SetParent(parent, false);
             pivot.transform.SetPositionAndRotation(lantern.Position, Quaternion.Euler(0f, lantern.Yaw, 0f));
-            PlaceBlockProp(pivot.transform, "Model", lantern.Position, lantern.Yaw, LanternParts(), false);
+            bool mesh = false;
+            if (kitMesh)
+            {
+                GameObject prefab = Resources.Load<GameObject>("Props/" + CaveDress.Lantern);
+                if (prefab != null)
+                {
+                    GameObject model = Instantiate(prefab, pivot.transform);
+                    model.transform.localPosition = Vector3.zero;
+                    model.transform.localRotation = Quaternion.identity;
+                    mesh = true;
+                }
+            }
+            if (!mesh) PlaceBlockProp(pivot.transform, "Model", lantern.Position, lantern.Yaw, LanternParts(), false);
             var lightGo = new GameObject("Light");
             lightGo.transform.SetParent(pivot.transform, false);
-            lightGo.transform.localPosition = new Vector3(0f, 0.2f, 0.8f);
+            lightGo.transform.localPosition = mesh ? CaveDress.LanternFlame : new Vector3(0f, 0.2f, 0.8f);
             Light light = lightGo.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = LanternColor;
             light.range = underground ? LanternRange : LanternRange * 0.6f;
             light.intensity = underground ? LanternIntensity : LanternIntensity * 0.6f;
             light.shadows = LightShadows.None;
+        }
+
+        private void PlaceDressing(Transform parent, List<CavePiece> pieces)
+        {
+            foreach (CavePiece piece in pieces)
+            {
+                GameObject prefab = Resources.Load<GameObject>("Props/" + piece.Name);
+                if (prefab == null) continue;
+                GameObject go = Instantiate(prefab, piece.Position, Quaternion.Euler(0f, piece.Yaw, 0f), parent);
+                go.name = piece.Name;
+                go.transform.localScale = piece.Scale.sqrMagnitude < 0.01f ? Vector3.one : piece.Scale;
+                if (!piece.Ember) continue;
+                var ember = new GameObject("Ember");
+                ember.transform.SetParent(go.transform, false);
+                ember.transform.localPosition = CaveDress.ScorchFlame;
+                Light light = ember.AddComponent<Light>();
+                light.type = LightType.Point;
+                light.color = EmberColor;
+                light.range = 2.6f;
+                light.intensity = 1.6f;
+                light.shadows = LightShadows.None;
+            }
         }
 
         // Returns the glint (a small warm light over the chest) that hides once the chest is looted.
