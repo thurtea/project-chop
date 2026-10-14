@@ -1,80 +1,81 @@
+<prompt>
+
 <goal>
-Continue Chopper from the repo as it is on the morning of 2026-10-14. Polish the live Chopper character until he reads closer to the model sheet at gameplay distance, put that body in Builds/Dev/Chopper.exe, then stop. A change is progress only when the new mesh is in that exe, or a render or in-game shot you opened and judged against the sheet.
+Continue Chopper from the repo as it is after build-1014-1457 (2026-10-14). Make it feel like Valheim mixed with Minecraft: weighty, committed movement and combat on blocky, hand-keyed motion (W11-51), then crypts and mines that feel like real places (W11-52). Use the smallest useful team of Claude agents, collect proof for each result, and return when a package is in Builds/Dev/Chopper.exe, when you are blocked, or when you need my ratings or approval. A change counts only when it is in that exe and you have opened an in-game shot or a tour RESULT that shows it.
 </goal>
 
 <project_brief>
-Project: Chopper. Live Unity 6000.5.10f1 game at E:\Projects\project-chop. Art scripts and concepts in Chopper/.
-Desired outcome: one more polish pass on the smooth Chopper body, clothes, hair, beard, and bear axe so the dressed look matches chopper-character-and-axe-3D-concept-2.0.jpg more closely. Record it as W11-44 on Chopper/Docs/TASKBOARD.md.
-Deadline: none. Finish this pass, then stop.
-Audience: one developer, playing the Windows dev build.
-Done means: the gaps you opened and confirmed are reduced in a new front and three-quarter render and in the Concept tour shots; check_assets and check_rig are 0 FAIL; the FBX and atlases in Assets/_Chopper/Art/Character match the export; the player prefab was rebuilt; the dev exe was rebuilt after that. Remaining mismatches are named. The character is not finished, and the game is not finished.
-Tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. Git. Run checks with pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1. No gh CLI.
-Sources: the repo, Chopper/Docs/TASKBOARD.md (Week 11, especially W11-36, W11-40, W11-41), Chopper/Docs/Reportcard.md, Chopper/Docs/unity-assets.md, Chopper/Art/Concepts/chopper-character-and-axe-3D-concept-2.0.jpg. Compare against the latest in-game views from Logs/homework/playtest-1014-0156/T15-Concept.jpg and the Concept tour sheet_front and sheet_three_quarter shots, plus Chopper/Art/Renders/base_look_*.png. Do not invent files, test results, or completed actions.
-Constraints: no AI image-to-3D. Keep the smooth mesh. Do not run build_chopper_voxel.py and do not turn the body back into per-cube colour. Do not replace the Animator controller, the Humanoid bone names, or the module names. Do not change the axe grip frame. Do not run PieceBuilder.BuildAll. One Unity job at a time; close the editor first. No commits, pushes, deletions, deploys, or paid services. Work on main. Do not generate new Steam art. Do not start weapons, boats, mining, enemies, or the website gallery.
+Project: Chopper, a co-op survival game (one to four players). Live Unity 6000.5.10f1 project at E:\Projects\project-chop (FishNet, URP). Art is made by script in Blender: Chopper/Art/Scripts, concepts in Chopper/Art/Concepts.
+Desired outcome:
+1. W11-51 Motion and combat weight. Movement that builds up and plants, turns with weight, jumps and lands heavily; swings that commit you; hits that land (hit-stop, camera kick, stagger); Chopper's takes re-keyed with anticipation, overshoot and settle; the tree elemental and the draugr given their own walk and attack takes. One round, then stop for my feel ratings.
+2. W11-52 Caves that feel real, after my ratings: a scripted Blender kit for crypts (carved wall panels, arches, pillars with bases and capitals, broken pillars, sarcophagi, bone piles, urns, chains, cobwebs, roots breaking through, rubble) and mines (timber frames, rails and a cart, ore seams, lanterns, crates), placed by seed per room in CryptPlan and MinePlan, with wall and floor variation (cracked, mossy, trims) and darker, warmer light.
+Deadline: none. One package at a time.
+Audience: one developer playing the Windows dev build, sometimes with friends.
+Done means, per package: the change is in a fresh dev build (homework.ps1 build: Build Finished, Result: Success, error CS lines: 0); EditMode tests have 0 failed; the named tours pass or their shots were opened and judged; a TASKBOARD RESULT line names the check counts, log names, shots opened and what is still off. For W11-51 also: the Motion and GearLook tours show the axe head up, blade forward and the feet planted, and MoveTest has no teleports or freezes. For W11-52 also: the Crypt and Mine tours and VoxelChecks.EntranceReach pass, and every room has dressing that does not block the walking line. Feel is judged only by me: the package ends with the playtest-windows.md rows I should play.
+Available tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. .NET 10 SDK. Git (no gh CLI). Checks: pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 <task> (build, player, editmode, blender, unity <Class.Method>, tour <Name>); everything at once: Tools\playtest.ps1 (-Quick, -ToursOnly) or the menu in Tools\ChopperTests.exe.
+Sources and assets: Chopper/Docs/TASKBOARD.md (the Week 11 table is the truth; read W11-11, W11-40, W11-46 to W11-52), Chopper/Docs/Reportcard.md, Chopper/Docs/playtest-windows.md, Chopper/Docs/unity-assets.md. Code: Assets/_Chopper/Scripts (Player/PlayerMotor.cs, PlayerAnimator.cs, PlayerAxe.cs, PlayerCombat.cs, PlayerCamera.cs; Core/GameConfig.cs with the live values in Assets/_Chopper/Config/SO_GameConfig.asset; Core/CharacterSizes.cs; Enemies/Treant.cs; Editor/ChopperRigEnemy.cs, CharacterSetup.cs; World/Generation/CryptPlan.cs, MinePlan.cs, WorldBuilder.cs). Art: animate_chopper.py, render_moves.py, render_attacks.py, build_elemental.py, render_enemies.py. Latest shots: Logs/homework/tour-Crypt-1014-1457 (the plain box rooms W11-52 replaces), tour-Combat-1014-1458.
+Constraints: no AI image-to-3D; geometry and takes by script. No motion capture on the block body (it reads as ragdoll; my call, 2026-10-12): weight comes from timing, commitment and feedback. Keep the smooth Chopper mesh; do not run build_chopper_voxel.py or return to per-cube colour. Do not rename the Humanoid bones, module names or the Animator controller's states, and do not move the axe grip frame. Do not run PieceBuilder.BuildAll or the full MeadowBuilder pass. One Unity batch job at a time, with the editor closed. Do not add // or # comments when editing code; rationale goes on the TASKBOARD. Never edit cursor-claude-handoff.md; edit agent-prompt.md only when I ask. Do not touch Assets/_Chopper/Resources/Audio. No commits, pushes, deletions, deploys, uploads or paid services; work on main; I commit.
 </project_brief>
 
 <where_we_are>
-Read TASKBOARD.md Week 11 before editing. The main Week 11 table wins. Reportcard.md has no FAIL rows. Blank Current rows are the user's. Do not play the game for them. The Automatic checks table (2026-10-14 02:08, playtest-1014-0156) is PASS or LOOK, including A1 check_assets 137/0 and check_rig 217/0, A7 Build Finished, and T15 LOOK. That table is the smooth body after the voxel revert. W11-43 sounds landed later in build-1014-0209 and did not change the character.
+build-1014-1457: Build Finished, Result: Success, error CS 0. EditMode 308 passed, 0 failed (editmode-1014-1456). Tours on that build: Combat RESULT PASS (tour-Combat-1014-1458), BlockGround RESULT PASS (tour-BlockGround-1014-1459), Crypt shots opened (draugr textured). The SmokeTest building checks were not run. I have not played this build or heard the W11-44 sounds.
 
-Already in the live body. Do not redo these:
-- W11-01, W11-12, W11-14, W11-20, W11-21, W11-22: menu backdrop, stump cut, hut basement and log chinking, E no longer equips a tool, Steam/README.md, title wordmark. The user confirmed in play that felled trees leave the roots.
-- W11-24 through W11-36 and W11-40: dressed start is the sheet (vest, belt, chainmail skirt, bracers). The armour kit adds the helmet and shield. Hair is a swept-back mass with a forehead showing, beard has curls, vest has patches and lacing, crossbelt is wider, mail is painted as rings, boots are short with a cuff, arms hang nearer the sides, chest warp is 1.18. Height stays about 1.80 m.
-- W11-41 voxel rebuild was reverted the same day. In play the per-cube colour read as noise. build_chopper_voxel.py and the voxel branches stay in the repo and stay unused.
-- World, hut, pines, water, placement, fishing shores, crypt and mine pads, KayKit strikes, double-jump flip, and the sound-bank swap are in the recent exe. Leave them unless a character export breaks the player.
+Done, do not redo:
+- Character (W11-24..36, -40, -45): the smooth body matches the model sheet; 1.80 m; his own blocky takes plus KayKit strikes.
+- W11-46 enemies on Chopper's rig: draugr = Chopper's mesh in chopper_atlas_draugr.png; tree elemental = build_elemental.py (Bark plus Leaves0..4 per Element). Built in Unity by ChopperRigEnemy (unity ChopperRigEnemy.RebuildEnemies, RESULT humanoid True for both). They borrow Chopper's Idle, Walk, Run, Attack_1, HitReact and Death.
+- W11-47 website banner and gallery, Steam crops (not deployed, nothing uploaded).
+- W11-48 building: pieces may float (no support rule); floors, walls, roofs, stairs, torches, campfires and the workbench need no workbench; doorway, window and gable do (PieceDefinition.NeedsWorkbench). The hub stays protected.
+- W11-49 sizes: Core/CharacterSizes.cs (player 1.8; elementals 1.7/2.3/3.2; warden 5.5; draugr 1.75/1.85/2.0; crypt boss 3.2), CharacterSizesTests. Shader ChopperVertexColorLit has _EmissionColor as extra light on the albedo.
+- W11-50 Tools\ChopperTests.exe and the rewritten playtest-windows.md.
 
-Still open on the character, from the last sheet comparison (W11-36), and only if a fresh look at the sheet and T15 still shows them:
-- Hair top is flatter and lower than the sheet. The height check is 1.79-1.81 m. Raise the crown inside that rule.
-- Shoulders are broader and boxier than the sheet, and the vest covers the shoulder tops.
-- The blade has no engraved marking. Paint it on the atlas. Do not enlarge the blade or move the grip.
+Live movement values (SO_GameConfig): move 6, sprint 9.5, crouch 2.6 m/s; acceleration 30, deceleration 40 m/s2; turn 720 deg/s; jump 1.2 m; gravity 20; roll 9 m/s for 0.5 s. Starting points to try, one group at a time: acceleration 14-18, deceleration 20-24, turn 420-540, jump about 1.0 with gravity about 26, a short landing recovery after falls over about 3 m. Keep the speed check tolerance and PacingTests in step.
 
-If a fresh comparison shows a different miss that reads at gameplay distance, fix that and say so. Do not chase millimetre differences the sheet does not show at that distance.
-
-Out of this session: W11-42 (sword, mace, spear, two-hander, boats, tree-enemy pack, bought animation pack), W11-11 motion feel, and the website gallery. The gallery uses only screenshots the user supplies.
+Out of scope until I ask: W11-42 (new weapons, boats, bought packs, a sound library), W11-53 enemy look round 2, deploying the website, Steam uploads, new Steam art.
 </where_we_are>
 
 <manager_contract>
-You are the one manager the user talks to. Shared record: Chopper/Docs/TASKBOARD.md. Update it after each handoff with the log line, not a story. Add W11-44; do not reopen a closed row. Ask one question only if the answer changes the dressed silhouette, or if it blocks the work.
+You are the one manager I talk to. The shared record is Chopper/Docs/TASKBOARD.md: rows W11-51 and W11-52 exist; add a log line after each handoff, never reopen a closed row. Ask one focused question only if the answer changes the feel target or blocks the work.
 </manager_contract>
 
 <team_design>
-Three workers, no more.
-- Reviewer: opens the model sheet, the current base_look renders, and T15. Writes the gap list. Does not edit meshes, atlases, or C# files. Reviews the new shots at the end.
-- Modeller: one pass in build_chopper.py, atlas_paint.py, and the bear-axe paint in build_props.py. Owns the blend, the checks, and the renders. Does not open Unity.
-- Manager: copies the export into Assets/_Chopper/Art/Character, rebuilds the player prefab, runs one dev build, writes W11-44, and stops.
-The reviewer goes first. The modeller starts only from that gap list. The Unity build waits until the checks pass and the reviewer has looked at the new renders.
+Three workers at most, only while their package is active.
+- Motion engineer (W11-51): Unity C# and config only. Locomotion values, swing commitment (slower movement in wind-up and recovery, a small step on the strike frame, cancel only into guard or roll), local hit-stop of about 60-90 ms, a camera impulse. Runs editmode, build and tours.
+- Animator (W11-51 then W11-52): Blender only. Re-keys takes in animate_chopper.py, adds enemy takes on chopper_rig (lumbering walk and two-arm slam for the elemental, axe swing for the draugr), later builds the cave kit. Runs check_assets and check_rig, renders with render_moves.py and render_enemies.py. Does not open Unity.
+- Reviewer: edits nothing. Opens renders and tour shots, compares them with the goal and the constraints above, and writes a pass or fail note per item.
+The manager copies exports into Assets, wires new takes in ChopperRigEnemy.BuildController and CharacterSetup, rebuilds the player and enemies, and runs the final build. The motion engineer and the animator can work in parallel; the build waits for both and for the reviewer.
 </team_design>
 
 <agent_contract>
-Reviewer. Mission: name what still misses the sheet at gameplay distance, then accept or reject the new shots. Inputs: the concept jpg, T15-Concept.jpg, base_look renders. Proof: a short gap list before the edit, and a pass or fail note after, each tied to a file you opened. Stop when the second note is written. Handoff: modeller, then the manager.
-Modeller. Mission: close the reviewer's gaps on the smooth body. Proof: check_assets and check_rig SUMMARY lines with 0 FAIL, and new front and three-quarter renders. Stop when those renders exist. Handoff: reviewer, then the manager.
-Manager. Mission: get the passed mesh into the player and the dev exe. Proof: md5 match of the copied FBX and atlases, the player-rebuild log (Exiting batchmode successfully), and homework.ps1 build lines (Build Finished, Result: Success, error CS lines: 0), plus the Concept tour shots opened. Handoff: the user.
+For each active agent record: name; mission; inputs; allowed tools; expected artifact; acceptance test; proof required; stop condition; handoff target. Each gets only the files its job needs.
+Proof per role: motion engineer, the changed values with before and after, EditMode counts and the MoveTest and Combo/Combat RESULT lines; animator, both check SUMMARY lines with 0 FAIL and the renders; reviewer, a pass or fail note tied to each file it opened. A miss goes back once; do not loop past that.
 </agent_contract>
 
 <execution_flow>
-1. Read Reportcard.md. A FAIL is fixed first. Blank means carry on. Do not treat T15 LOOK as a failure and do not re-run the closed playtest packages.
-2. Reviewer writes the gap list from files that exist now.
-3. Modeller edits only those gaps. Re-run check_assets and check_rig. Render front and three-quarter.
-4. Reviewer opens the new renders next to the sheet. A miss that is still obvious goes back to the modeller once. Do not loop past that.
-5. Manager copies the export, rebuilds the player, rebuilds with: pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build. Then capture the Concept tour (sheet_front and sheet_three_quarter) and open those shots.
-6. Write the W11-44 RESULT line with the check counts, the build log name, and what is still off. Do not mark it done if the exe was not rebuilt.
+1. Read Reportcard.md: a FAIL row is fixed first; blank rows are mine.
+2. W11-51 round 1: motion engineer and animator in parallel; reviewer checks renders and shots; manager wires, rebuilds (player, ChopperRigEnemy.RebuildEnemies, build) and runs MoveTest, Combo, Combat, GuardTest, Motion and GearLook.
+3. Write the W11-51 RESULT line, list the playtest-windows.md section A rows for me, and stop for my 1-5 feel ratings.
+4. After my ratings: a second W11-51 round only on what I flag, or start W11-52 if I say so.
+5. W11-52: animator builds the kit; manager places it through CryptPlan/MinePlan, rebuilds, runs Crypt, Mine and VoxelChecks.EntranceReach; reviewer judges the room shots.
 </execution_flow>
 
 <verification>
-No proof, no done. A passing check script is not enough. Open the model sheet and the new renders yourself, and open the Concept tour shots after the build. Record what was not checked: the user has not played this new build. The list of what they play is Chopper/Docs/playtest-windows.md.
+No proof, no done. A passing script is not enough: open the renders and tour shots yourself. Record what passed, failed and was not checked. Feel is mine to judge; never report it as verified.
 </verification>
 
 <boundaries>
-Do not commit, push, delete, or deploy. Do not voxelise Chopper. Do not start W11-42, a combat rewrite, or a website gallery. Do not generate Steam images. If Unity is open, stop and say so. If a tool fails, report the error and do the smallest fix.
+Stay inside the brief. Do not commit, push, delete, deploy, upload or buy. If the Unity editor is open, say so and do only the work that does not need it. If a tool fails, report the error and make the smallest fix. Do not invent files, test results or completed actions.
 </boundaries>
 
 <completion_gate>
-Stop after W11-44 is in the exe, or when blocked. Do not call the character or the game done. Name what is still open: the user playing this build, any sheet mismatches the second review still sees, then W11-42 and the website gallery.
+Before saying a package is done, confirm: it is in a fresh build; EditMode 0 failed; the named tours pass or their shots were opened; the TASKBOARD line is written; remaining gaps are named. Never call the game or the feel finished.
 </completion_gate>
 
 <handoff>
-End with: what changed on the body, the check counts, the build log line, which images you opened, what is still off the sheet, and one suggested commit line. No author line.
+Return a short report: what changed (values before and after, takes added), the check counts and log names, which shots you opened, what is still off, the playtest-windows.md rows I should play, and one suggested commit line with no author line.
 </handoff>
 
 <start>
-Read Reportcard.md and the W11-36, W11-40, and W11-41 rows. If there is no report-card FAIL, have the reviewer open the sheet and T15 and write the gap list. Do not wait for another playtest, and do not start the modeller before that list exists.
+Read Reportcard.md and TASKBOARD rows W11-46 to W11-52. If there is no FAIL, start W11-51 round 1 with the motion engineer and the animator. Do not wait for another playtest, and stop after round 1 for my ratings.
 </start>
+
+</prompt>

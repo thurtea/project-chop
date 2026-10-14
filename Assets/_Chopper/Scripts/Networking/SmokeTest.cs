@@ -1482,7 +1482,7 @@ namespace Chopper.Networking
             var build = Chopper.World.Building.BuildManager.Instance;
             Check(build != null && build.Catalog != null && build.Catalog.Count >= 8, $"the building catalog has its pieces ({(build != null && build.Catalog != null ? build.Catalog.Count : 0)})");
             if (build == null || build.Catalog == null) yield break;
-            int floor = 0, wall = 1, bench = 5;
+            int floor = 0, wall = 1, bench = 5, window = 8;
             Vector3 far = new Vector3(40f, 0f, 60f);
             far.y = GroundY(far);
             TeleportPlayer(wood, far + new Vector3(0f, 0f, -3f));
@@ -1491,7 +1491,13 @@ namespace Chopper.Networking
             wood.ServerAddWood(40);
             Vector3 spot = BuildRules.Snap(far, PieceSnap.Cell, 0f);
             spot.y = GroundY(spot);
-            Check(build.ServerPlace(wood.gameObject, floor, spot, 0f) == Chopper.World.Building.PlaceResult.NoWorkbench, "nothing but a workbench is built far from one");
+            Check(build.ServerPlace(wood.gameObject, window, BuildRules.Snap(spot, PieceSnap.Edge, 0f), 0f) == Chopper.World.Building.PlaceResult.NoWorkbench, "a window needs a workbench nearby");
+            Vector3 lone = BuildRules.Snap(far + new Vector3(-6f, 0f, 0f), PieceSnap.Cell, 0f);
+            lone.y = GroundY(lone);
+            Chopper.World.Building.PlaceResult loneResult = build.ServerPlace(wood.gameObject, floor, lone, 0f);
+            Check(loneResult == Chopper.World.Building.PlaceResult.Ok, $"a floor goes up with no workbench ({loneResult})");
+            if (loneResult == Chopper.World.Building.PlaceResult.Ok) build.ServerRemove(wood.gameObject, build.Pieces[build.Count - 1].Id);
+            yield return null;
             Vector3 benchAt = spot + new Vector3(3f, 0f, 0f);
             benchAt.y = GroundY(benchAt);
             Chopper.World.Building.PlaceResult benchResult = build.ServerPlace(wood.gameObject, bench, BuildRules.Snap(benchAt, PieceSnap.Free, 0f), 0f);

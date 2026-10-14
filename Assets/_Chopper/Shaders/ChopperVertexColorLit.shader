@@ -118,7 +118,7 @@ Shader "Chopper/VertexColorLit"
                 #endif
                 half3 ambient = SampleSH(n) * _AmbientStrength;
 
-                half3 c = albedo * (direct + ambient) + _EmissionColor.rgb;
+                half3 c = albedo * (direct + ambient + _EmissionColor.rgb);
                 c = MixFog(c, i.fogFactor);
                 return half4(c, 1);
             }

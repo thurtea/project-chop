@@ -149,7 +149,7 @@ namespace Chopper.Core
         [Header("Building")]
         [Tooltip("How far from the player a piece can be placed.")]
         [SerializeField, Min(2f)] private float _buildRange = 8f;
-        [Tooltip("Pieces (other than a workbench) need a workbench within this distance, like Valheim.")]
+        [Tooltip("Pieces marked Needs Workbench need a workbench within this distance; basic pieces go up anywhere.")]
         [SerializeField, Min(2f)] private float _buildWorkbenchRadius = 20f;
         [SerializeField, Min(1)] private int _maxPieces = 600;
 

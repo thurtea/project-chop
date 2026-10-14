@@ -32,7 +32,7 @@ namespace Chopper.World.Building
     // Every building piece in the world, server owned (one entry per piece in a SyncList, so a piece costs a few bytes
     // and no network object). Every peer, the server included, keeps a copy of each piece's model in the scene from
     // that list, so players walk on floors, enemies path round walls and the hammer can aim at them. The server checks
-    // every placement (range, a workbench nearby, cost, overlap and slope), takes the cost, and gives it back
+    // every placement (range, a workbench nearby for the pieces that need one, cost, overlap and slope), takes the cost, and gives it back
     // when a piece is taken down (by how whole it is). Enemies break pieces (ServerDamage); a broken piece is gone.
     // No support rules (Minecraft style, 2026-10-08): pieces may float, and taking one down never brings others with it.
     public class BuildManager : NetworkBehaviour
@@ -164,7 +164,7 @@ namespace Chopper.World.Building
             if (position.y < -50f || player == null || !BuildRules.InRange(player.transform.position, position, _config.BuildRange)) return PlaceResult.TooFar;
             // W9-03 (user, 2026-10-12): the hut is static and the hub is not built on; bases go up in the four forests.
             if (!DebugAllowHubBuilding && Chopper.World.ZoneMap.ElementAt(position, _config.HubRadius) == Element.Neutral) return PlaceResult.HubProtected;
-            if (!definition.IsWorkbench && !Workbench.AnyWithin(position, _config.BuildWorkbenchRadius) && !BuiltWorkbenchWithin(position))
+            if (definition.NeedsWorkbench && !Workbench.AnyWithin(position, _config.BuildWorkbenchRadius) && !BuiltWorkbenchWithin(position))
                 return PlaceResult.NoWorkbench;
             if (PlayerItems.Get(player, (int)ItemKind.Wood) < definition.WoodCost || PlayerItems.Get(player, (int)ItemKind.Fiber) < definition.FiberCost)
                 return PlaceResult.CannotAfford;

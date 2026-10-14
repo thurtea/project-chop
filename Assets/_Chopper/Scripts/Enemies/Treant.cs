@@ -35,9 +35,6 @@ namespace Chopper.Enemies
         private const float LungeDistance = 0.7f;
         private const float SaplingHeight = 0.9f;
         private const float BossSaplingStartHeight = 0.9f;
-        private const float ActiveHeightSmall = 1.9f;
-        private const float ActiveHeightMedium = 2.9f;
-        private const float ActiveHeightLarge = 4.2f;
         private const float SaplingHitRadius = 0.5f;
         private const float NavMeshSnapDistance = 6f;
         private const float BossMoveSpeed = 2.4f;
@@ -104,7 +101,7 @@ namespace Chopper.Enemies
         private const float RecoilSeconds = 0.26f;
         private const float RecoilDistance = 0.42f;
         private const float KnockSharpness = 16f;
-        private const float DraugrModelHeight = 1.9f;
+        private const float DraugrModelHeight = CharacterSizes.Player;
         private const float DraugrCorpseSeconds = 4f;
         private static readonly Color DraugrSkin = new Color(0.95f, 1.05f, 1f);
         private static readonly int SpeedParam = Animator.StringToHash("Speed");
@@ -605,22 +602,14 @@ namespace Chopper.Enemies
         // Ordinary draugr are a man's height, bigger ones a little taller, and a boss towers over the player.
         // The crypt boss stands nearly twice a guardian's height (it was 3.1 m and read as just another guardian in
         // the dark arena).
-        private float DraugrHeight() => IsBoss ? 3.8f : 1.85f + 0.2f * (int)Size;
+        private float DraugrHeight() => IsBoss ? CharacterSizes.CryptBoss : CharacterSizes.Draugr(Size);
 
-        private float ActiveHeight()
-        {
-            switch (Size)
-            {
-                case TreeSize.Small: return ActiveHeightSmall;
-                case TreeSize.Medium: return ActiveHeightMedium;
-                default: return ActiveHeightLarge;
-            }
-        }
+        private float ActiveHeight() => CharacterSizes.Elemental(Size);
 
         public float CurrentHeight()
         {
-            if (State == TreantState.Active) return IsBoss ? ActiveHeightLarge * _config.BossScale * (WardenPhase >= 3 ? 1.12f : 1f) : ActiveHeight();
-            if (IsBoss) return Mathf.Lerp(BossSaplingStartHeight, ActiveHeightLarge * _config.BossScale, Growth);
+            if (State == TreantState.Active) return IsBoss ? CharacterSizes.Warden * (WardenPhase >= 3 ? 1.12f : 1f) : ActiveHeight();
+            if (IsBoss) return Mathf.Lerp(BossSaplingStartHeight, CharacterSizes.Warden, Growth);
             return SaplingHeight * (1f + (int)Size * 0.25f);
         }
 
@@ -778,7 +767,7 @@ namespace Chopper.Enemies
                 outfitter.ApplyChopper();
             }
             Color element = Element == Element.Neutral || _palette == null ? Color.white : _palette.GetBaseColor(Element);
-            Color tint = DraugrSkin * Color.Lerp(Color.white, element, 0.7f);
+            Color tint = DraugrSkin * Color.Lerp(Color.white, element, 0.35f);
             // The glow goes in the same property block as the tint. Copying the materials to make them glow (as the
             // trees do) left every draugr body invisible in builds; the character materials keep emission switched on
             // (black) so the block can light it.

@@ -37,7 +37,7 @@ namespace Chopper.UI
                 "At night they wake as tree enemies and go for you first, then anything you built in their way, then the hut.\n\n" +
                 "<b>Sleep.</b> From dusk on, press " + interact + " at the bed. When every player is in bed the night passes and it is morning.\n\n" +
                 "<b>Build.</b> " + takeHammer + " " + block + " picks a piece, " + attack + " places it, " + repair + " (or the wheel) turns it, and " + interact +
-                " on a piece takes it down with its wood back. Pieces need a workbench nearby, and a workbench can be built anywhere.\n\n" +
+                " on a piece takes it down with its wood back. Floors, walls, roofs, stairs, torches and campfires go up anywhere, even in the air. Doorways, windows and gables need a workbench nearby, and a workbench can be built anywhere.\n\n" +
                 "<b>Eat.</b> Fish are food: " + eat + " the smallest for extra stamina for a while.\n\n" +
                 "<b>Enchant your axe.</b> Kill any elemental tree, say a Water one, and your axe is enchanted with Water for 15 hits: it hits everything harder, and Fire enemies (which Water beats) die much faster. " +
                 "Carry that enchantment to the next elemental enemy: Water beats Fire, Fire beats Wind, Wind beats Earth, Earth beats Water.\n\n" +

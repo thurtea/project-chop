@@ -1,30 +1,56 @@
 # Chopper playtest on Windows
 
-A run-through to play yourself, record a video, and take the website screenshots. Tick each box as you go. Write down anything that looks or feels wrong, with the time in the video.
+Two parts: the computer runs every test it can simulate, then you play for what only a person can judge (feel, look, sound). Tick each box as you go, and write down anything that looks or feels wrong, with the time in the video.
 
-## 1. Start the game
+## 1. Run the simulated tests
 
-Before you play, run `Tools\playtest.ps1` (see `Homework.md`, HW-7): it rebuilds the game and runs every automatic check.
+Close the Unity editor first. Then double-click **`Tools\ChopperTests.exe`** (or run it from PowerShell). It shows a menu:
 
-Pick one:
+| Option | What it does | Time |
+|---|---|---|
+| 1 Everything | Blender art checks, enemy and player rebuilds, zone and entrance checks, unit tests, a fresh dev build, the title screen and every tour | about 20 min |
+| 2 Quick | The same without the art checks and unit tests | about 12 min |
+| 3 Tours only | Every tour on the build you already have | about 8 min |
+| 4 One tour | Pick one tour; its screenshots folder opens when it ends | 1 min |
+| 5 Build | Only rebuild `Builds\Dev\Chopper.exe` | 2 min |
+| 6 Play | Starts the game | |
+| 7, 8, 9 | Open the report card, this checklist, the latest results folder | |
 
-- **Unity editor:** open `E:\Projects\project-chop` in Unity 6000.5.10f1 from Unity Hub. Open `Assets/_Chopper/Scenes/Boot.unity` and press Play.
-- **Development build:** from PowerShell (not Git Bash, which can quit during world load):
-  ```powershell
-  Start-Process "E:\Projects\project-chop\Builds\Dev\Chopper.exe"
-  ```
-  The build is current as of 2026-10-13 (`Builds\Dev\Chopper.exe`). If you change anything in Unity, rebuild first with `Chopper.Editor.BuildTools.BuildDevPlayer`.
+Options 1 to 3 write the **Automatic checks** table at the top of `Chopper\Docs\Reportcard.md`, with a contact sheet of screenshots per tour in `Logs\homework\playtest-<date>`. The same runs are available from PowerShell: `pwsh -ExecutionPolicy Bypass -File Tools\playtest.ps1` (`-Quick`, `-ToursOnly`).
 
-In the menu choose **Host** to start a world. Set the screen to 2560 x 1440 or 1920 x 1080 (16:9).
+What the simulation covers, so you do not have to:
 
-## 2. Controls
+| ID | Simulated check | Passes when |
+|---|---|---|
+| A1 | Character and props: sizes, rig, weights, nothing poking through clothes | both SUMMARY lines say 0 FAIL |
+| A2 | Strike and flinch clips import | RESULT PASS |
+| A3 | Player prefab rebuild | Exiting batchmode successfully |
+| A3b | Draugr and tree elemental rebuilt on Chopper's rig | RESULT: draugr on Chopper True |
+| A4, A5 | Forests sealed except the passes; crypt and mine doors reachable on foot | RESULT PASS |
+| A6 | Unit tests: rules for building, combat, stamina, sizes, loot, fishing and more | failed 0 |
+| A7 | Dev build | Result: Success |
+| T1 to T15 | Tours: the game plays itself (arrival, swim, double jump, combo, combat, guard, armour, movement, building rules, hut, mine, crypt, fishing, character sheet) and saves screenshots | RESULT PASS, or LOOK (pictures only) |
+
+A **FAIL** row is fixed before anything new. A **LOOK** row is fine; it only means the check is a picture. The report card's rows below the table are yours.
+
+## 2. Start the game yourself
+
+From the menu (option 6), or PowerShell (not Git Bash, which can quit while the world loads):
+
+```powershell
+Start-Process "E:\Projects\project-chop\Builds\Dev\Chopper.exe"
+```
+
+Choose **Host** to start a world. Use 2560 x 1440 or 1920 x 1080.
+
+## 3. Controls
 
 | Action | Key |
 |---|---|
 | Move, look | WASD, mouse |
 | Attack, chop, cast | Left click (hold to charge a cast) |
 | Guard | Right click |
-| Jump (press again in the air to double jump) | Space |
+| Jump (again in the air for the double jump) | Space |
 | Roll | Left Alt |
 | Sprint, crouch | Left Shift, Left Ctrl |
 | Interact | E |
@@ -32,100 +58,63 @@ In the menu choose **Host** to start a world. Set the screen to 2560 x 1440 or 1
 | Axe, torch, potion, rod, food, hammer | 1, 2, 3, 4, 5, 6 |
 | Put away what is in the hands | H |
 | Inventory, map | Tab, M |
-| Developer console | F5 or the key under Esc (`) |
+| Developer console | F5 or the key under Esc |
 
-Useful console commands: `hud` (hide the HUD for screenshots), `day`, `night`, `repair`, `wood 100`, `torches 3`, `tp hut`, `tp <x> <z>`, `fly`, `god`, `spawn 5`, `boss`, `weather sunny`, `fps`, `help`.
+Console: `hud` (hide the HUD), `day`, `night`, `wood 100`, `tp hut`, `tp <x> <z>`, `crypts`, `tp crypt 1`, `fly`, `god`, `spawn 5`, `boss`, `weather sunny`, `fps`, `help`.
 
-## 3. Recording
+Recording: Win + Alt + R starts and stops a Game Bar video. Screenshots: Win + Shift + S.
 
-- Video: Win + Alt + R starts and stops a Game Bar recording (or use OBS). Record at 1080p or higher, 60 fps if you can.
-- Screenshots: Win + Shift + S, or Game Bar (Win + Alt + PrtScn). Type `hud` in the console first so the bars and hotbar are hidden, and again to show them.
+## 4. What only you can judge
 
-## 4. Checklist
+### A. Feel of movement and combat (the next big pass, W11-51)
+Rate each from 1 (floaty or twitchy) to 5 (weighty like Valheim, readable like Minecraft), and say why.
+- [ ] Starting and stopping a run: does he lean in and plant his feet, or slide?
+- [ ] Turning on the spot and while running.
+- [ ] Jump height, fall speed, the landing (a short stop after a high fall?).
+- [ ] The axe combo: does each swing commit you, and does a hit feel like it lands (a pause, a shake)?
+- [ ] Guard, parry and roll timing against a tree enemy.
+- [ ] Getting hit: is the flinch clear without taking control away too long?
 
-### A. Character and movement (first minute)
-- [ ] The title screen shows the meadow and hut backdrop with "CHOPPER" written at the top left (no logo picture).
-- [ ] You arrive by falling from the sky into the hub pond, in a short grey tunic and shorts, bare feet, with no axe.
-- [ ] Swim to the bank toward the house. The stroke should read as swimming, and the head and shoulders stay above the water. Climb out.
-- [ ] The outfit (plaid shirt, patched vest, belt) and the bear-head axe lie on the bank: walk over them to put them on.
-- [ ] Dressed, he reads closer to the model sheet: thick ginger hair down the neck, heavy brows, a wide beard with a braid, rolled sleeves, knee wraps, folded boot cuffs, a larger carved axe. Note anything that still looks like a block (ears poking out, a small blade).
-- [ ] Walk, run, sprint, crouch: blocky and firm, no floppy limbs.
-- [ ] Jump, then double jump in the air: the second jump is a front flip. A third press in the air does nothing.
-- [ ] Roll (Left Alt).
-- [ ] The axe is held head up, blade forward, both standing and walking.
-- [ ] Chop a tree: the trunk above the stump falls and lands as a log. You get only some of the wood when it falls. Chop the log on the ground for the rest. Chop the stump three times to clear it. The fallen trunk should not sink, and nothing underground should show.
+### B. Enemies (new this build)
+- [ ] At night in a forest, tree elementals rise: a bark body, long branch arms with claws, root feet, glowing eyes, and a crown that tells the forest (Water ice, Fire flames, Earth moss and stones, Wind teal wisps, leafy green in between).
+- [ ] In a crypt, the draugr are Chopper's own body as the dead: grey-green skin, grey beard, horned helm, rusted mail, a rusty double axe. They should look textured, not flat.
+- [ ] Sizes: an ordinary enemy is about your height (1.7 to 2 m), a large elemental about 3.2 m, the forest warden boss about 5.5 m, the crypt boss about 3.2 m. Say if any looks wrong next to the hut door.
+- [ ] They walk, swing, flinch and fall with Chopper's blocky motions.
 
-### B. The hub house
-- [ ] It looks like the concept hut: stone base, log walls between dark posts, a golden plank roof, big crossed beams at the gable ends, a small ridge dormer, and a porch with its own crossed gable over the door.
-- [ ] Repair it: bring 10 wood and press R at the hut (or type `repair`).
-- [ ] Inside, the floors show on every level: the basement (stone-tinted walls), the main floor, and the loft. Stairs go basement to main floor and main floor to the loft.
-- [ ] From the loft, look up: the roof is solid wood. No sky or foliage shows between the courses or at the gable peak.
-- [ ] Two beds in the loft, two workbenches (main floor and basement), the chest and a stone fireplace on the main floor (not a white noise block).
-- [ ] Stand in the lit fireplace: health ticks down, and it stops when you step out. The warmth ring around a campfire should not burn you.
-- [ ] Walk in and out the door and up the porch steps without getting stuck.
+### C. Building (changed this build)
+- [ ] In a forest, with no workbench near: floors, walls, roofs, stairs, torches and campfires all go up.
+- [ ] A doorway, a window or a gable says "Needs a workbench nearby" until a workbench is built close by.
+- [ ] Pieces can hang in the air (no support rule). Nothing falls when a piece below is taken down.
+- [ ] The hub still refuses pieces ("build in the forests").
 
-### C. Block ground and mountains
-- [ ] Single half-block steps are walked up without jumping.
-- [ ] A step of two blocks or more needs a jump.
-- [ ] The mountains around the hub are stone steps of about 4.5 m, with snow on the highest tops. Try to climb them with double jumps: you should not get over.
-- [ ] Each path leaves the hub through a pass into its forest (Water, Earth, Fire, Wind).
-- [ ] No black wedges or holes along the grass steps. Every step shows a green grass lip over brown dirt.
+### D. Caves (the redesign after the motion pass)
+- [ ] Walk a crypt and a mine. Write down which rooms feel plain and what would make them feel real to you (carved stone, pillars, bones, roots, rubble, timber props, cobwebs, light).
 
-### D. Water and fishing
-- [ ] The pond is grey-teal, not royal blue, with a stepped sand bank and a shallow edge you can wade in.
-- [ ] Swim to the middle, then swim back to the bank: you climb out without jumping.
-- [ ] Fishing (rod on 4): stand at the bank, hold left click to charge, let go to cast, wait for the bite, reel in.
-- [ ] The rod stays in the right hand the whole time: the cast swings it back over the shoulder and whips it forward.
-- [ ] While a fish is on, the tension bar sits above the float. "Hooked!" or "Missed" appears there too.
+### E. The world and the hut (only if something changed or looks wrong)
+- [ ] The title screen, the arrival in the pond, dressing on the bank.
+- [ ] The hut inside and out, the pond and fishing, a night with torches.
 
-### E. Plants, torch and campfire
-- [ ] Healing herbs are small yellow voxel flowers on a green clump (tell me if they should be a stronger yellow).
-- [ ] At night (`night`), take the torch (2): a lit voxel torch in the hand.
-- [ ] Meadow rocks are dark stone with moss on top, not pale grey lumps.
-- [ ] Bushes and grass: say whether they read as green foliage or as flat grey.
-- [ ] Build a campfire with the hammer (6) in a forest: logs and stones, with flames. Stand in the flame: health ticks down and stops when you leave.
+### F. Sound (W11-44 set, not heard yet)
+- [ ] Chops, steps, tree falls, blocks and parries sound like wood, not metal.
 
-### F. Building with the hammer (6)
-- [ ] In the hub the hammer refuses every piece: "The hub stays as it is: build in the forests".
-- [ ] Go through a pass into a forest. Place a workbench first; pieces need one nearby.
-- [ ] A floor on flat grass sits flush on the blocks.
-- [ ] A floor over a half-block step is allowed and sits on the higher step.
-- [ ] Over a bigger step the ghost turns red (too steep).
-- [ ] Walls, doorway, stairs, roof and torches snap together; R turns a piece.
-
-### G. Night, enemies and armour
-- [ ] At night tree enemies wake and come at you. Guard (right click) and roll work against them.
-- [ ] The axe combo is three blocky strikes (diagonal, horizontal, overhead chop); getting hit plays a short flinch.
-- [ ] `boss` makes a grove warden. Fell it: it drops an armour kit. Use the kit from the bag (Tab).
-- [ ] With armour on: skull helmet with bone horns, chainmail with scale rows, bracers and the shield on the back. The hair hides under the helmet; the beard stays.
-
-### H. Crypts and mines
-- [ ] `crypts` lists them; `tp crypt 1` takes you to a door. The door stands on level ground (in a new world). Go in, take the stairs, find the vault and loot, and come back up.
-- [ ] Mines sit in notches at the mountain foot, and you can walk up to the portal without building. Go through the portal, strike a vein (it glows), and keep a find.
-- [ ] Climb out by the ladder in the first chamber (E at its foot): you come back up beside the mine's portal. (The earlier "ladder does nothing" came from the test tour's teleport, not the game; check it here.)
-
-### I. Co-op (if a second PC is free)
-- [ ] Host, share the six-character code, and join from the second PC. Both players see the same world, house and trees.
+### G. Co-op (if a second PC is free)
+- [ ] Host, share the six-character code, join from the second PC. Both see the same world.
 
 ## 5. Screenshots for the website
 
-The gallery takes 16:9 pictures, saved at 1600 x 900 as JPG in `Website/images/`. Take them at full resolution and they are cropped and scaled later. Hide the HUD (`hud`) unless the picture is about the HUD. Use `day` and `weather sunny` for daylight shots.
+Saved as JPG in `Website/images/`, 16:9, taken at full resolution with `hud` off (unless the picture is about the HUD) and `day`, `weather sunny` for daylight.
 
 | File | What to show |
 |---|---|
-| `character.jpg` | Chopper close, three-quarter front, armour on, the hut behind (the concept 2.0 framing) |
-| `hut.jpg` | The house from the front yard with the porch and the crossed gables |
+| `character.jpg` | Chopper close, three-quarter front, armour on, the hut behind |
+| `hut.jpg` | The house from the front yard |
 | `forest-pond.jpg` | The hub pond with the house behind it |
-| `pass.jpg` | A path running through a mountain pass, stone steps on both sides |
-| `fishing.jpg` | Casting or reeling at a bank, the rod in the hand |
-| `night.jpg` | Night at the house with torches lit and an enemy or two |
-| `build.jpg` | A small build in progress: floor, walls, the hammer ghost |
-| `bag.jpg` | The inventory open (HUD on) |
-| `hotbar.jpg` | Gameplay with the HUD showing |
-| `fire-forest.jpg` | Inside one of the four forests (any zone that looks best) |
-
-Spare pictures are welcome: a crypt vault, a mine chamber, a felled tree, the mountains with snow tops.
+| `night.jpg` | Night at the house with torches lit and a tree elemental or two |
+| `crypt.jpg` | A crypt room with draugr |
+| `build.jpg` | A small build in progress |
+| `fishing.jpg` | Casting or reeling at a bank |
+| `fire-forest.jpg` | Inside one of the four forests |
 
 ## 6. After the run
 
-Send the notes, the video timestamps and the screenshots. Problems found go on `Chopper/Docs/TASKBOARD.md`. The website gallery is filled only after you have picked the pictures.
+Send the notes, the 1 to 5 feel ratings, the video times and the screenshots. Problems go on `Chopper/Docs/TASKBOARD.md`.

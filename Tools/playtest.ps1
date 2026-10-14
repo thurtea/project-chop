@@ -25,6 +25,7 @@ $Steps = @(
     @{ Id = "A1"; Name = "Art: check_assets and check_rig"; Task = "blender"; Pass = "0 FAIL"; Count = 2; Art = $true }
     @{ Id = "A2"; Name = "KayKit strike and flinch clips import"; Task = "unity"; Arg = "KayKitImport.Apply"; Pass = "RESULT PASS"; Unity = $true }
     @{ Id = "A3"; Name = "Player prefab rebuild"; Task = "player"; Pass = "Exiting batchmode successfully"; Unity = $true }
+    @{ Id = "A3b"; Name = "Draugr and tree elemental on Chopper's rig"; Task = "unity"; Arg = "ChopperRigEnemy.RebuildEnemies"; Pass = "RESULT: draugr on Chopper True"; Unity = $true }
     @{ Id = "A4"; Name = "Zones sealed, passes open"; Task = "unity"; Arg = "VoxelChecks.ZoneSeal"; Pass = "RESULT PASS"; Unity = $true }
     @{ Id = "A5"; Name = "Crypt and mine doors reachable on foot"; Task = "unity"; Arg = "VoxelChecks.EntranceReach"; Pass = "RESULT PASS"; Unity = $true }
     @{ Id = "A6"; Name = "EditMode unit tests"; Task = "editmode"; Pass = "failed 0"; Unity = $true; Art = $true }
