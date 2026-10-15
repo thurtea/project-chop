@@ -83,10 +83,10 @@ namespace Chopper.World.Generation
 
         public static void StoneCourses(List<CryptBox> boxes, int group, Vector3 origin, float half, float height, int seed, float pathHalf, System.Func<Vector3, bool> skip)
         {
-            const float cell = 0.5f;
-            for (float x = -half + 0.75f; x <= half - 0.75f; x += cell)
+            const float cell = 1f;
+            for (float x = -half + 0.5f; x <= half - 0.5f; x += cell)
             {
-                for (float z = -half + 0.75f; z <= half - 0.75f; z += cell)
+                for (float z = -half + 0.5f; z <= half - 0.5f; z += cell)
                 {
                     var local = new Vector3(x, 0f, z);
                     float ax = Mathf.Abs(x);
@@ -97,48 +97,63 @@ namespace Chopper.World.Generation
                     if (centre || !againstWall || doorway) continue;
                     if (skip != null && skip(local)) continue;
                     int h = Hash(seed, Mathf.RoundToInt(x * 8f), Mathf.RoundToInt(z * 8f));
-                    float rise = (h % 5) == 0 ? 1.0f : 0.5f;
+                    float rise = (h % 5) == 0 ? 2f : 1f;
                     Append(boxes, group, origin + new Vector3(x, rise * 0.5f, z), new Vector3(cell, rise, cell), Quaternion.identity, CryptMaterial.Floor);
-                    if ((h % 4) != 0) continue;
-                    float wy = 1.25f + (h % 3) * 0.5f;
-                    if (wy + cell > height - 0.45f) continue;
-                    float nx = ax > az ? Mathf.Sign(x) * (half - 0.35f) : x;
-                    float nz = az >= ax ? Mathf.Sign(z) * (half - 0.35f) : z;
-                    Append(boxes, group, origin + new Vector3(nx, wy, nz), new Vector3(cell, cell, cell), Quaternion.identity, CryptMaterial.Wall);
+                }
+            }
+        }
+
+        public static void FloorColumns(List<CryptBox> boxes, int group, Vector3 origin, float half, int seed, float pathHalf, System.Func<Vector3, bool> skip)
+        {
+            const float cell = 1f;
+            for (float x = -half + 1.0f; x <= half - 1.0f; x += cell)
+            {
+                for (float z = -half + 1.0f; z <= half - 1.0f; z += cell)
+                {
+                    var local = new Vector3(x, 0f, z);
+                    float ax = Mathf.Abs(x);
+                    float az = Mathf.Abs(z);
+                    if (ax < pathHalf && az < pathHalf) continue;
+                    if (ax < half - 1.2f && az < half - 1.2f) continue;
+                    if ((az > half - 2.2f && ax < 2.4f) || (ax > half - 2.2f && az < 2.4f)) continue;
+                    if (skip != null && skip(local)) continue;
+                    int h = Hash(seed + 11, Mathf.RoundToInt(x * 8f), Mathf.RoundToInt(z * 8f));
+                    if ((h % 2) != 0) continue;
+                    int stacks = 1 + (h % 2);
+                    for (int i = 0; i < stacks; i++)
+                    {
+                        float y = cell * (i + 0.5f);
+                        Append(boxes, group, origin + new Vector3(x, y, z), new Vector3(cell, cell, cell), Quaternion.identity, CryptMaterial.Floor);
+                    }
                 }
             }
         }
 
         public static void CeilingNibs(List<CryptBox> boxes, int group, Vector3 origin, float half, float height, float cut)
         {
+            const float cell = 1f;
             foreach (float sx in new[] { 1f, -1f })
             {
                 foreach (float sz in new[] { 1f, -1f })
                 {
-                    Vector3 at = origin + new Vector3(sx * (half - cut * 0.65f), height - 0.4f, sz * (half - cut * 0.65f));
-                    Append(boxes, group, at, new Vector3(1.8f, 0.8f, 1.5f), Quaternion.identity, CryptMaterial.Ceiling);
+                    for (int i = 0; i < 2; i++)
+                    {
+                        Vector3 at = origin + new Vector3(sx * (half - cut * 0.65f), height - cell * (i + 0.5f), sz * (half - cut * 0.65f));
+                        Append(boxes, group, at, new Vector3(cell, cell, cell), Quaternion.identity, CryptMaterial.Ceiling);
+                    }
                 }
             }
         }
 
         public static void CeilingCourses(List<CryptBox> boxes, int group, Vector3 origin, float half, float height)
         {
-            float bottom = 3.2f;
-            float top = height - 0.2f;
-            float hang = Mathf.Max(0.8f, top - bottom);
-            float y = bottom + hang * 0.5f;
             Vector2Int[] sides = { Vector2Int.up, Vector2Int.right, Vector2Int.down, Vector2Int.left };
             foreach (Vector2Int side in sides)
             {
                 Vector3 n = new Vector3(side.x, 0f, side.y);
-                Vector3 t = new Vector3(side.y, 0f, -side.x);
-                foreach (float s in new[] { 1f, -1f })
-                {
-                    float span = half * 0.42f;
-                    Vector3 at = origin + n * (half - 1.15f) + t * s * (half * 0.40f) + Vector3.up * y;
-                    Vector3 size = new Vector3(Mathf.Abs(n.z) * span + Mathf.Abs(n.x) * 1.5f, hang, Mathf.Abs(n.x) * span + Mathf.Abs(n.z) * 1.5f);
-                    Append(boxes, group, at, size, Quaternion.identity, CryptMaterial.Ceiling);
-                }
+                Vector3 at = origin + n * (half - 0.85f) + Vector3.up * (height - 0.4f);
+                Vector3 size = new Vector3(Mathf.Abs(n.z) * (half * 1.2f) + Mathf.Abs(n.x) * 0.7f, 0.5f, Mathf.Abs(n.x) * (half * 1.2f) + Mathf.Abs(n.z) * 0.7f);
+                Append(boxes, group, at, size, Quaternion.identity, CryptMaterial.Timber);
             }
         }
 
@@ -175,13 +190,10 @@ namespace Chopper.World.Generation
                     Mathf.Abs(along.z) * 1.35f + Mathf.Abs(tangent.z) * 0.85f);
                 Append(boxes, group, at, size, Quaternion.identity, CryptMaterial.Wall);
             }
-            float drop = 1.05f;
-            Vector3 ceil = mid + Vector3.up * (height - drop * 0.35f);
-            Vector3 csize = new Vector3(
-                Mathf.Abs(along.x) * (length * 0.42f) + Mathf.Abs(tangent.x) * (width * 0.62f),
-                drop,
-                Mathf.Abs(along.z) * (length * 0.42f) + Mathf.Abs(tangent.z) * (width * 0.62f));
-            Append(boxes, group, ceil, csize, Quaternion.identity, CryptMaterial.Ceiling);
+            const float cell = 1f;
+            Vector3 ceil = mid + Vector3.up * (height - cell * 0.5f);
+            Append(boxes, group, ceil, new Vector3(cell, cell, cell), Quaternion.identity, CryptMaterial.Ceiling);
+            Append(boxes, group, ceil + along * cell, new Vector3(cell, cell, cell), Quaternion.identity, CryptMaterial.Ceiling);
         }
 
         public static int Hash(int a, int b, int c)

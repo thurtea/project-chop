@@ -196,6 +196,21 @@ namespace Chopper.World.Generation
                     if (NearContents(room, origin + local, 1.6f)) continue;
                     CaveDress.Add(Dressing, solid, origin + local, 0f, true);
                 }
+                Vector3 crystal = CaveDress.Corner(CaveDress.MineCrystal, random.Next(4));
+                if (!CaveDress.BlocksWalkingCross(crystal, 2.5f) && !(room == 0 && OnStairRun(crystal)) && !NearContents(room, origin + crystal, 1.6f))
+                    CaveDress.Add(Dressing, CaveDress.MineCrystal, origin + crystal, 0f, true);
+                float show = RoomSize * 0.5f - 1.4f;
+                Vector3 showCrystal = new Vector3(4.4f, 0f, show);
+                if (!CaveDress.BlocksWalkingCross(showCrystal, 2.5f) && !(room == 0 && OnStairRun(showCrystal)) && !NearContents(room, origin + showCrystal, 1.6f))
+                    CaveDress.Add(Dressing, CaveDress.MineCrystal, origin + showCrystal, 0f, true);
+                Vector3 wet = CaveDress.Corner(CaveDress.CryptSolids[CaveDress.CryptSolids.Length - 1], random.Next(4));
+                if (!CaveDress.BlocksWalkingCross(wet, 2.5f) && !(room == 0 && OnStairRun(wet)) && !NearContents(room, origin + wet, 1.4f))
+                    CaveDress.Add(Dressing, CaveDress.CryptSolids[CaveDress.CryptSolids.Length - 1], origin + wet, 0f, true);
+                foreach (Vector2Int side in Directions)
+                {
+                    if (SideOpen(room, side) || (room == 0 && side == StairsSide)) continue;
+                    CaveDress.AddWall(Dressing, CaveDress.MineOre, origin, Normal(side), RoomSize * 0.5f - 0.55f, 3.4f, 1.2f, true);
+                }
             }
 
             DressArena(seed);
@@ -356,14 +371,8 @@ namespace Chopper.World.Generation
                     Add(lintelCenter, SizeOn(side, WallThickness, CorridorWidth, lintel), CryptMaterial.Wall);
                     CaveShell.MouthSteps(Boxes, _group, c + n * (RoomSize * 0.5f), t, n, CorridorWidth, DoorHeight);
                 }
-                int shellSeed = Index * 7919 + room * 503 + Mathf.RoundToInt(c.x);
                 CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
-                CaveShell.FloorRelief(Boxes, _group, c, RoomSize * 0.5f, shellSeed, 4f, 2.2f, local =>
-                    (room == 0 && (OnStairRun(local) || TileHitsStairs(local))));
-                CaveShell.StoneCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, 4f, local =>
-                    room == 0 && (OnStairRun(local) || TileHitsStairs(local)));
-                CaveShell.WallRelief(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, side =>
-                    !SideOpen(room, side) && !(room == 0 && side == StairsSide));
+                CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut * 0.55f);
                 CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
                 CaveShell.CeilingCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight);
             }
@@ -628,8 +637,18 @@ namespace Chopper.World.Generation
                 EntranceLanterns.Add(new CryptLantern { Position = origin + turn * new Vector3(s * pillarX, 2.1f, halfDepth + 0.48f), Yaw = Site.Yaw });
             }
             AddLocal(new Vector3(0f, DoorOpeningHeight + 0.35f, halfDepth + 0.2f), new Vector3(DoorWidth + 1.2f, 0.5f, 0.5f), CryptMaterial.Floor);
-            // A broad step in front of the door, deep enough to meet the ground on a slope.
             AddLocal(new Vector3(0f, -0.85f, halfDepth + 0.8f), new Vector3(DoorWidth + 1.8f, 2f, 1.6f), CryptMaterial.Floor);
+            float face = halfDepth + 1.15f;
+            float colH = EntranceHeight + 0.15f;
+            foreach (float x in new[] { -2.55f, -1.55f, 1.55f, 2.55f })
+                AddLocal(new Vector3(x, colH * 0.5f, face), new Vector3(0.7f, colH, 0.7f), CryptMaterial.Floor);
+            AddLocal(new Vector3(0f, EntranceHeight + 0.25f, face), new Vector3(EntranceWidth + 0.9f, 0.55f, 0.95f), CryptMaterial.Ceiling);
+            AddLocal(new Vector3(0f, EntranceHeight + 0.9f, face + 0.05f), new Vector3(4.4f, 0.5f, 0.75f), CryptMaterial.Ceiling);
+            AddLocal(new Vector3(0f, EntranceHeight + 1.4f, face + 0.08f), new Vector3(2.6f, 0.5f, 0.65f), CryptMaterial.Ceiling);
+            AddLocal(new Vector3(0f, EntranceHeight + 1.85f, face + 0.1f), new Vector3(1.2f, 0.45f, 0.5f), CryptMaterial.Ceiling);
+            foreach (float s in new[] { 1f, -1f })
+                AddLocal(new Vector3(s * (EntranceWidth * 0.5f + 0.1f), EntranceHeight + 0.45f, face + 0.1f), new Vector3(0.5f, 0.4f, 0.5f), CryptMaterial.Floor);
+            AddLocal(new Vector3(0f, -0.25f, halfDepth + 2.15f), new Vector3(DoorWidth + 3.0f, 1.0f, 1.2f), CryptMaterial.Floor);
 
             DoorSpot = origin + turn * new Vector3(0f, 0.15f, halfDepth + 1.2f);
             Vector3 back = new Vector3(center2.x, 0f, center2.y) + forward * (halfDepth + 2.8f);

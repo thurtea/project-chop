@@ -217,14 +217,8 @@ namespace Chopper.World.Generation
                     Add(c + n * (RoomSize * 0.5f + WallThickness * 0.5f) + Vector3.up * (GalleryHeight + lintel * 0.5f), SizeOn(side, WallThickness, GalleryWidth, lintel), CryptMaterial.Wall);
                     CaveShell.MouthSteps(Boxes, _group, c + n * (RoomSize * 0.5f), t, n, GalleryWidth, GalleryHeight);
                 }
-                int shellSeed = Index * 6151 + room * 503 + Mathf.RoundToInt(c.x);
                 CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
-                CaveShell.FloorRelief(Boxes, _group, c, RoomSize * 0.5f, shellSeed, 3.4f, 2.4f, local =>
-                    room == 0 && OnLadder(local));
-                CaveShell.StoneCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, 3.4f, local =>
-                    room == 0 && OnLadder(local));
-                CaveShell.WallRelief(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, side =>
-                    !SideOpen(room, side) && !(room == 0 && side == LadderSide));
+                CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut * 0.55f);
                 CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
                 CaveShell.CeilingCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight);
             }

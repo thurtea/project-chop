@@ -210,7 +210,6 @@ namespace Chopper.Player
         private Transform _butt;
         private Transform _tip;
         private Transform _bobberView;
-        private Transform _bobberCap;
         private Transform _fishShadow;
         private Transform _aimRing;
         private LineRenderer _line;
@@ -1201,11 +1200,11 @@ namespace Chopper.Player
                 : Quaternion.AngleAxis(-RodUpDegrees, transform.right) * transform.forward;
             // The butt sticks out a little behind the hand, like a real grip.
             grip -= along * RodGripBack;
-            _butt.SetPositionAndRotation(grip + along * (RodButtLength * 0.5f), Quaternion.FromToRotation(Vector3.up, along));
+            _butt.SetPositionAndRotation(grip, Quaternion.FromToRotation(Vector3.up, along));
             Vector3 joint = grip + along * RodButtLength;
             float bend = (bite ? 0.3f : 0f) + tension * 0.8f + (thrashing ? Mathf.Sin(Time.time * 26f) * 0.15f : 0f);
             Vector3 tipAlong = Quaternion.AngleAxis(Mathf.Clamp01(bend) * 55f, transform.right) * along;
-            _tip.SetPositionAndRotation(joint + tipAlong * (RodTipLength * 0.5f), Quaternion.FromToRotation(Vector3.up, tipAlong));
+            _tip.SetPositionAndRotation(joint, Quaternion.FromToRotation(Vector3.up, tipAlong));
             Vector3 tip = joint + tipAlong * RodTipLength;
 
             // The cast's landing ring on the water while charging.
@@ -1324,30 +1323,11 @@ namespace Chopper.Player
             _butt = null;
         }
 
-        private static Transform Piece(PrimitiveType type, string name, Vector3 scale, Material material, Color tint)
-        {
-            GameObject go = GameObject.CreatePrimitive(type);
-            go.name = name;
-            Destroy(go.GetComponent<Collider>());
-            go.transform.localScale = scale;
-            var renderer = go.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            var block = new MaterialPropertyBlock();
-            block.SetColor(BaseColorId, tint);
-            renderer.SetPropertyBlock(block);
-            return go.transform;
-        }
-
-        // Rod, line, bobber, the fish's shadow and the aim ring, from primitives and the character's gear material
-        // (it is in every build and takes a tint).
         private void BuildGear()
         {
             CharacterCatalog catalog = Resources.Load<CharacterCatalog>("CharacterCatalog");
             Material material = catalog != null ? catalog.GearMaterial : null;
             if (material == null) return;
-            // Chopper's rig holds things on AxeGrip (Weapon_R) with a HeldItemFrame; the old rig had a bone hand_r.
-            // The lookup for hand_r alone found nothing on Chopper, so the rod floated in front of the body.
             foreach (Transform t in GetComponentsInChildren<Transform>(true))
             {
                 if (t.name == "AxeGrip" && t.GetComponent<HeldItemFrame>() != null)
@@ -1359,9 +1339,13 @@ namespace Chopper.Player
                 if (t.name == "hand_r" && _hand == null) _hand = t;
             }
 
-            _butt = Piece(PrimitiveType.Cylinder, "RodButt", new Vector3(0.04f, RodButtLength * 0.5f, 0.04f), material, new Color(0.42f, 0.28f, 0.15f));
-            _tip = Piece(PrimitiveType.Cylinder, "RodTip", new Vector3(0.022f, RodTipLength * 0.5f, 0.022f), material, new Color(0.55f, 0.4f, 0.22f));
-            // The line hangs off its own object so it stays drawn whichever way the rod pieces turn.
+            _butt = FishSchoolView.Spawn("prop_rod_butt_voxel", "RodButt", 0f);
+            _tip = FishSchoolView.Spawn("prop_rod_tip_voxel", "RodTip", 0f);
+            _bobberView = FishSchoolView.Spawn("prop_bobber_voxel", "Bobber", 0f);
+            _fishShadow = FishSchoolView.Spawn(FishSchoolView.FishProp, "FishShadow", 0.7f);
+            _aimRing = FishSchoolView.Spawn("prop_aim_ring_voxel", "CastAim", 0f);
+            if (_butt == null || _tip == null || _bobberView == null || _fishShadow == null || _aimRing == null)
+                return;
             var lineHolder = new GameObject("FishingLine");
             lineHolder.transform.SetParent(_butt, false);
             _line = lineHolder.AddComponent<LineRenderer>();
@@ -1374,14 +1358,6 @@ namespace Chopper.Player
             var lineBlock = new MaterialPropertyBlock();
             lineBlock.SetColor(BaseColorId, new Color(0.92f, 0.9f, 0.82f));
             _line.SetPropertyBlock(lineBlock);
-
-            // A red float with a white cap, easy to read on the water.
-            _bobberView = Piece(PrimitiveType.Sphere, "Bobber", Vector3.one * 0.24f, material, new Color(0.88f, 0.12f, 0.08f));
-            _bobberCap = Piece(PrimitiveType.Sphere, "BobberCap", Vector3.one * 0.6f, material, new Color(0.96f, 0.96f, 0.92f));
-            _bobberCap.SetParent(_bobberView, false);
-            _bobberCap.localPosition = new Vector3(0f, 0.32f, 0f);
-            _fishShadow = Piece(PrimitiveType.Sphere, "FishShadow", new Vector3(0.28f, 0.008f, 0.75f), material, new Color(0.05f, 0.09f, 0.13f));
-            _aimRing = Piece(PrimitiveType.Cylinder, "CastAim", new Vector3(0.9f, 0.01f, 0.9f), material, new Color(1f, 0.85f, 0.45f));
             SetGearActive(false);
         }
     }

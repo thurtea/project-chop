@@ -4,7 +4,7 @@ The site for Chopper, a co-op survival game in Unity. The repo copy is the curre
 
 Plain HTML, CSS, a little JavaScript, and one PHP form. No build step.
 
-The home page says what the game is, and that one developer is building it in Unity with Claude Code and Cursor. The banner is the top band of the user's title-screen art (`banner-chopper.png`, cropped above the menu). The gallery shows that art, the crypt and mine rooms from the 2026-10-14 tours, and the older in-game shots.
+The home page says what the game is, and that one developer is building it in Unity with Claude Code and Cursor. The banner is the top band of the user's title-screen art (`banner-chopper.png`, cropped above the menu). The gallery shows that art, the crypt and mine rooms from the 2026-10-15 tours, and the other in-game shots.
 
 ## Files
 

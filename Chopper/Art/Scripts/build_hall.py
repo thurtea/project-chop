@@ -169,12 +169,15 @@ def cells():
             if t > 0.88:
                 put(occ, ix, iy, iz_top + 1, BARGE)
 
-    for side_ix in (-28, -27, 26, 27):
-        for t in range(0, 20):
+    for side_ix in (-29, -28, 27, 28):
+        for t in range(0, 24):
             iz = 16 + t
             put(occ, side_ix, iy_r0 + t, iz, BARGE)
             put(occ, side_ix, iy_r1 - 1 - t, iz, BARGE)
-        fill(occ, side_ix, side_ix + 1, -2, 2, 32, 36, lambda i, j, k: LOG_END)
+        for t in range(0, 5):
+            put(occ, side_ix, -2 + t, 36 + t, LOG_END)
+            put(occ, side_ix, 1 - t, 36 + t, LOG_END)
+    fill(occ, -30, 30, -2, 2, 33, 35, lambda i, j, k: LOG_END)
 
     for iz in range(16, 33):
         span = eave_half * (1.0 - (iz * S - EAVE) / (RIDGE - EAVE + 0.05))
@@ -188,40 +191,42 @@ def cells():
             if (24, iy, iz) not in occ:
                 put(occ, 24, iy, iz, log_tone(24, iy, iz))
 
-    fill(occ, 0, 8, -26, -17, 7, 8, lambda i, j, k: PLANK if j % 2 == 0 else PLANK_DARK)
-    fill(occ, 0, 8, -26, -17, 6, 7, lambda i, j, k: PLANK_DARK)
-    fill(occ, 0, 2, -26, -24, 8, 16, lambda i, j, k: POST)
-    fill(occ, 6, 8, -26, -24, 8, 16, lambda i, j, k: POST)
-    fill(occ, 0, 8, -26, -24, 16, 17, lambda i, j, k: POST)
+    fill(occ, -1, 9, -27, -17, 7, 8, lambda i, j, k: PLANK if j % 2 == 0 else PLANK_DARK)
+    fill(occ, -1, 9, -27, -17, 6, 7, lambda i, j, k: PLANK_DARK)
+    fill(occ, -1, 1, -27, -25, 8, 16, lambda i, j, k: POST)
+    fill(occ, 7, 9, -27, -25, 8, 16, lambda i, j, k: POST)
+    fill(occ, -1, 9, -27, -25, 16, 17, lambda i, j, k: POST)
 
-    porch_half = 1.35
-    porch_eave, porch_ridge = MAIN + 1.7, MAIN + 2.7
-    for iy in range(-29, -18):
-        for ix in range(-1, 9):
+    porch_half = 1.5
+    porch_eave, porch_ridge = MAIN + 1.55, MAIN + 3.15
+    for iy in range(-31, -18):
+        for ix in range(-3, 11):
             across = (ix + 0.5) * S - 1.0
             t = max(0.0, 1.0 - abs(across) / porch_half)
             z = porch_eave + (porch_ridge - porch_eave) * t
             iz_top = int(round(z / S))
-            for iz in range(max(16, iz_top - 1), iz_top + 1):
-                put(occ, ix, iy, iz, thatch_tone(ix, iy, iz))
-    for t in range(0, 6):
-        put(occ, -1 + t, -29, 16 + t, BARGE)
-        put(occ, 8 - t, -29, 16 + t, BARGE)
-        put(occ, -1 + t, -28, 16 + t, BARGE)
-        put(occ, 8 - t, -28, 16 + t, BARGE)
-    for iz in range(16, 20):
+            for iz in range(max(14, iz_top - 2), iz_top + 1):
+                put(occ, ix, iy, iz, THATCH_DARK if (ix + iy + iz) % 3 == 0 else THATCH)
+    for face_y in (-32, -31):
+        for t in range(0, 8):
+            put(occ, -3 + t, face_y, 14 + t, BARGE)
+            put(occ, 10 - t, face_y, 14 + t, BARGE)
+        for t in range(0, 4):
+            put(occ, 3 + t, face_y, 21 + t, LOG_END)
+            put(occ, 4 - t, face_y, 21 + t, LOG_END)
+    for iz in range(14, 22):
         span = porch_half * max(0.0, 1.0 - (iz * S - porch_eave) / (porch_ridge - porch_eave + 0.05))
         if span < 0.12:
             continue
         ix_a = int(math.floor((1.0 - span) / S))
         ix_b = int(math.ceil((1.0 + span) / S))
         for ix in range(ix_a, ix_b):
-            put(occ, ix, -29, iz, log_tone(ix, -29, iz))
+            put(occ, ix, -31, iz, log_tone(ix, -31, iz))
 
-    fill(occ, 1, 7, -33, -29, 6, 7, lambda i, j, k: STONE if (i + j) % 2 == 0 else STONE_DARK)
+    fill(occ, 1, 7, -34, -29, 6, 7, lambda i, j, k: STONE if (i + j) % 2 == 0 else STONE_DARK)
     fill(occ, 1, 7, -29, -26, 7, 8, lambda i, j, k: PLANK if j % 2 == 0 else PLANK_DARK)
-    fill(occ, 0, 1, -33, -26, 6, 8, stone_tone)
-    fill(occ, 7, 8, -33, -26, 6, 8, stone_tone)
+    fill(occ, -1, 1, -34, -26, 6, 8, stone_tone)
+    fill(occ, 7, 9, -34, -26, 6, 8, stone_tone)
 
     fill(occ, 25, 29, 4, 9, 8, 38, stone_tone)
     for iz in range(34, 38):
@@ -362,6 +367,13 @@ def main():
     world = bpy.data.worlds.new("W")
     scene.world = world
     scene.render.film_transparent = False
+    bpy.ops.render.render(write_still=True)
+    print("rendered", scene.render.filepath)
+    cam.location = (1.0, 20, 5.2)
+    target = Vector((1.0, 0.0, 3.4))
+    cam.rotation_euler = (target - Vector(cam.location)).to_track_quat("-Z", "Y").to_euler()
+    cam_data.lens = 32
+    scene.render.filepath = os.path.join(ART, "Renders", "hall_front.png")
     bpy.ops.render.render(write_still=True)
     print("rendered", scene.render.filepath)
     world.use_nodes = True

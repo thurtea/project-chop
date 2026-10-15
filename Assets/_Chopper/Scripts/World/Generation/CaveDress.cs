@@ -49,6 +49,7 @@ namespace Chopper.World.Generation
         public const string MineFrame = "prop_mine_gallery_frame_voxel";
         public const string MineTimber = "prop_mine_timber_frame_voxel";
         public const string MineOre = "prop_mine_ore_voxel";
+        public const string MineCrystal = "prop_mine_crystal_voxel";
         public const string MineCart = "prop_mine_cart_voxel";
         public static readonly string[] MineClutter =
         {

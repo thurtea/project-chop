@@ -857,7 +857,21 @@ namespace Chopper.Networking
                     Debug.developerConsoleVisible = false;
                     yield return Shot(folder, v.name);
                 }
+                {
+                    PlayerAxe holster = wood.GetComponent<PlayerAxe>();
+                    holster.ServerPickUp(holster.MaxDurability);
+                    yield return new WaitForSeconds(0.4f);
+                    yield return TeleportLocalPlayer(new Vector2(6f, 15f), 0f);
+                    PlayerCamera cam = PlayerCamera.Local;
+                    Vector3 at = wood.transform.position;
+                    Vector3 watch = at - wood.transform.forward * 3.0f + Vector3.up * 1.55f;
+                    cam.DebugHold(watch, Quaternion.LookRotation(at + Vector3.up * 1.1f - watch));
+                    yield return new WaitForSeconds(0.4f);
+                    yield return Shot(folder, "character_back");
+                    cam.DebugRelease();
+                }
                 wood.GetComponent<PlayerUpgrades>().ServerLoadOutfit(0, false);
+                wood.GetComponent<PlayerAxe>().ServerSetHasAxe(true);
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.45f);
                 (float body, float camYaw, string name)[] sheetViews =
                 {
@@ -874,6 +888,33 @@ namespace Chopper.Networking
                     yield return new WaitForSeconds(1.5f);
                     Debug.developerConsoleVisible = false;
                     yield return Shot(folder, v.name);
+                }
+                {
+                    PlayerAxe holster = wood.GetComponent<PlayerAxe>();
+                    holster.ServerPickUp(holster.MaxDurability);
+                    yield return new WaitForSeconds(0.4f);
+                    yield return TeleportLocalPlayer(new Vector2(6f, 15f), 0f);
+                    PlayerCamera cam = PlayerCamera.Local;
+                    Vector3 at = wood.transform.position;
+                    Vector3 back = at - wood.transform.forward * 3.0f + Vector3.up * 1.55f;
+                    cam.DebugHold(back, Quaternion.LookRotation(at + Vector3.up * 1.1f - back));
+                    yield return new WaitForSeconds(0.4f);
+                    yield return Shot(folder, "sheet_back");
+                    Vector3 above = at + Vector3.up * 2.7f - wood.transform.forward * 0.35f;
+                    cam.DebugHold(above, Quaternion.LookRotation(at + Vector3.up * 1.05f - above));
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "sheet_above");
+                    Vector3 hut = Hut.Instance.transform.position;
+                    Vector3 toHut = hut - at;
+                    toHut.y = 0f;
+                    if (toHut.sqrMagnitude < 0.01f) toHut = Vector3.forward;
+                    toHut.Normalize();
+                    wood.transform.rotation = Quaternion.LookRotation(toHut);
+                    Vector3 meadow = at - toHut * 8.5f + Vector3.up * 2.4f;
+                    cam.DebugHold(meadow, Quaternion.LookRotation(at + Vector3.up * 1.0f - meadow));
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "meadow_behind");
+                    cam.DebugRelease();
                 }
                 Debug.Log("[Concept] done");
                 Application.Quit(0);
@@ -2586,14 +2627,14 @@ namespace Chopper.Networking
                 Vector3 lure = fishing.BobberWorld;
                 fishing.DebugPoseSchool(lure);
                 Debug.Log($"[Fishing] school {fishing.DebugSchoolCount} bobber {lure.y:F2}");
-                Vector3 watch = lure + new Vector3(-2.6f, 0.9f, 0.2f);
-                cam.DebugHold(watch, Quaternion.LookRotation((lure + Vector3.up * 0.55f) - watch));
+                Vector3 watch = lure + new Vector3(-1.35f, 0.5f, 1.05f);
+                cam.DebugHold(watch, Quaternion.LookRotation((lure + Vector3.up * 0.28f) - watch));
                 yield return new WaitForSeconds(0.42f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "fish_3d_jump");
                 fishing.DebugSinkSchool(0.32f);
-                Vector3 under = lure + new Vector3(1.5f, -0.38f, 0.2f);
-                cam.DebugHold(under, Quaternion.LookRotation((lure + Vector3.down * 0.32f) - under));
+                Vector3 under = lure + new Vector3(0.15f, -0.48f, 1.15f);
+                cam.DebugHold(under, Quaternion.LookRotation((lure + Vector3.down * 0.08f) - under));
                 yield return new WaitForSeconds(0.4f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "fish_3c_under");
@@ -2609,8 +2650,8 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.4f);
                 fishing.DebugSetTension(0.7f, 0.5f);
                 lure = fishing.BobberWorld;
-                Vector3 fightCam = lure + new Vector3(-2.3f, 1.15f, -0.35f);
-                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.up * 0.45f) - fightCam));
+                Vector3 fightCam = lure + new Vector3(-1.55f, 0.72f, 1.05f);
+                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.down * 0.02f) - fightCam));
                 yield return new WaitForSeconds(0.35f);
                 yield return Shot(folder, "fish_5_reeling");
                 FishSpecies pike = fishing.SpeciesOf(FishKind.Pike);
@@ -3286,9 +3327,11 @@ namespace Chopper.Networking
                 Chopper.World.Generation.CryptPlan plan = Chopper.World.Generation.CryptWorld.Plans[0];
                 Vector3 door = plan.ReturnSpot;
                 Vector3 outward = Quaternion.Euler(0f, plan.ReturnYaw, 0f) * Vector3.forward;
-                yield return TeleportLocalPlayer(new Vector2(door.x + outward.x * 5f, door.z + outward.z * 5f), plan.ReturnYaw + 180f);
+                yield return TeleportLocalPlayer(new Vector2(door.x + outward.x * 12f, door.z + outward.z * 12f), plan.ReturnYaw + 180f);
+                if (PlayerCamera.Local != null) PlayerCamera.Local.DebugSetPitch(-12f);
                 yield return new WaitForSeconds(1.5f);
                 yield return Shot(folder, "crypt_1_entrance");
+                if (PlayerCamera.Local != null) PlayerCamera.Local.DebugSetPitch(0f);
                 yield return TeleportExact(plan.DoorSpot + Vector3.up * 0.2f, plan.ReturnYaw + 180f);
                 yield return new WaitForSeconds(0.6f);
                 yield return Shot(folder, "crypt_2_door_prompt");
@@ -4705,7 +4748,27 @@ namespace Chopper.Networking
                     InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up });
                     yield return null;
                 }
-                if (piece == 0) yield return Shot(folder, "arrival_2_on_the_bank");
+                if (piece == 0)
+                {
+                    Vector3 saved = wood.transform.position;
+                    Quaternion savedRot = wood.transform.rotation;
+                    Vector3 outfitAt = WorldStart.KitSpot(0);
+                    Vector3 axeAt = WorldStart.KitSpot(1);
+                    Vector3 mid = (outfitAt + axeAt) * 0.5f;
+                    Vector3 along = axeAt - outfitAt;
+                    along.y = 0f;
+                    if (along.sqrMagnitude < 0.01f) along = Vector3.forward;
+                    along.Normalize();
+                    Vector3 side = Vector3.Cross(along, Vector3.up);
+                    Vector3 stand = mid + side * 2.8f;
+                    stand.y = WorldGround.HeightAt(stand);
+                    wood.transform.SetPositionAndRotation(stand, Quaternion.LookRotation(mid - stand));
+                    Vector3 watch = mid - along * 1.7f + side * 1.2f + Vector3.up * 0.85f;
+                    cam.DebugHold(watch, Quaternion.LookRotation(mid + Vector3.up * 0.1f - watch));
+                    yield return Shot(folder, "arrival_2_on_the_bank");
+                    cam.DebugRelease();
+                    wood.transform.SetPositionAndRotation(saved, savedRot);
+                }
                 foreach (GroundItem item in GroundItem.All)
                     if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit))
                         Debug.Log($"[Arrival] piece {piece}: {item.Kind} at {item.transform.position:F1}, {Vector3.Distance(item.transform.position, wood.transform.position):F2} m");

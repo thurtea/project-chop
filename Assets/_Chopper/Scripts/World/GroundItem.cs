@@ -262,43 +262,14 @@ namespace Chopper.World
             _shownAt = Time.time;
         }
 
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-
-        // Block models from primitives and the character's gear material (in every build, takes a tint): the axe lying
-        // flat (haft and head), or the outfit as a folded bundle (plaid shirt, vest on top, belt across).
         private static GameObject BuildGearView(GroundItemKind kind)
         {
-            CharacterCatalog catalog = Resources.Load<CharacterCatalog>("CharacterCatalog");
-            Material material = catalog != null ? catalog.GearMaterial : null;
-            if (material == null) return null;
-            var root = new GameObject(kind == GroundItemKind.Axe ? "AxeOnGround" : "OutfitOnGround");
-            void Block(Vector3 position, Vector3 size, Color tint)
-            {
-                GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                Destroy(go.GetComponent<Collider>());
-                go.transform.SetParent(root.transform, false);
-                go.transform.localPosition = position;
-                go.transform.localScale = size;
-                var renderer = go.GetComponent<MeshRenderer>();
-                renderer.sharedMaterial = material;
-                var block = new MaterialPropertyBlock();
-                block.SetColor(BaseColorId, tint);
-                renderer.SetPropertyBlock(block);
-            }
-            if (kind == GroundItemKind.Axe)
-            {
-                Block(new Vector3(0f, 0.04f, 0f), new Vector3(0.07f, 0.07f, 0.85f), new Color(0.55f, 0.34f, 0.17f));
-                Block(new Vector3(0.09f, 0.05f, 0.36f), new Vector3(0.22f, 0.05f, 0.16f), new Color(0.32f, 0.33f, 0.36f));
-                Block(new Vector3(0.21f, 0.05f, 0.36f), new Vector3(0.04f, 0.055f, 0.2f), new Color(0.72f, 0.74f, 0.77f));
-            }
-            else
-            {
-                Block(new Vector3(0f, 0.06f, 0f), new Vector3(0.5f, 0.12f, 0.36f), new Color(0.7f, 0.12f, 0.1f));
-                Block(new Vector3(0f, 0.15f, 0f), new Vector3(0.44f, 0.07f, 0.3f), new Color(0.52f, 0.33f, 0.18f));
-                Block(new Vector3(0f, 0.2f, 0f), new Vector3(0.48f, 0.03f, 0.07f), new Color(0.33f, 0.2f, 0.11f));
-            }
-            root.transform.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-            return root;
+            string resource = kind == GroundItemKind.Axe ? "prop_ground_axe_voxel" : "prop_ground_outfit_voxel";
+            string name = kind == GroundItemKind.Axe ? "AxeOnGround" : "OutfitOnGround";
+            Transform spawned = FishSchoolView.Spawn(resource, name, 0f);
+            if (spawned == null) return null;
+            spawned.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            return spawned.gameObject;
         }
 
         // The little hop from where it was knocked loose to where it lies.

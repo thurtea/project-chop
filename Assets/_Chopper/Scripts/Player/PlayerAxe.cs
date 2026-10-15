@@ -228,7 +228,7 @@ namespace Chopper.Player
             _stowing = false;
             bool inHand = _hasAxe.Value && _drawn.Value && !_stowed && !_miningStowed;
             if (_axePivot != null) _axePivot.gameObject.SetActive(inHand);
-            if (_backAxe != null) _backAxe.gameObject.SetActive(_hasAxe.Value && !inHand);
+            if (_backAxe != null) _backAxe.gameObject.SetActive(false);
         }
 
         // Owner only. The Axe key: draw it or put it on the back.
@@ -592,15 +592,6 @@ namespace Chopper.Player
 
         private void BuildBackAxe()
         {
-            if (_axePivot == null || _backAxe != null) return;
-            _backBone = FindDeep(transform, "spine_03");
-            if (_backBone == null) return;
-            GameObject copy = Instantiate(_axePivot.gameObject, transform);
-            copy.name = "AxeOnBack";
-            foreach (MonoBehaviour behaviour in copy.GetComponentsInChildren<MonoBehaviour>(true)) Destroy(behaviour);
-            foreach (Collider collider in copy.GetComponentsInChildren<Collider>(true)) Destroy(collider);
-            copy.transform.localScale = _axePivot.lossyScale.x / Mathf.Max(0.0001f, transform.lossyScale.x) * Vector3.one;
-            _backAxe = copy.transform;
         }
 
         private void PlaceBackAxe()

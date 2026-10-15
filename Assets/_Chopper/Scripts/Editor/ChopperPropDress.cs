@@ -28,6 +28,57 @@ namespace Chopper.Editor
         // The notice board was 1.3 m wide on a 2 m post; the voxel sign is 1 m wide.
         const float NoticeScale = 1.3f;
 
+        static readonly string[] FishGear =
+            { "prop_fish_voxel", "prop_rod_butt_voxel", "prop_rod_tip_voxel", "prop_bobber_voxel", "prop_aim_ring_voxel" };
+        static readonly string[] GroundGear =
+            { "prop_ground_axe_voxel", "prop_ground_outfit_voxel" };
+
+        public static void ApplyFish()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (mat == null) throw new FileNotFoundException("Missing M_World.");
+            Directory.CreateDirectory(PropsResources);
+            int n = 0;
+            foreach (string name in FishGear)
+            {
+                Import(name);
+                if (SaveResourcesPrefab(name, mat)) n++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ChopperProps] fish gear {n}/{FishGear.Length}");
+            Debug.Log("[ChopperProps] RESULT " + (n == FishGear.Length ? "PASS" : "FAIL"));
+        }
+
+        public static void ApplyGround()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (mat == null) throw new FileNotFoundException("Missing M_World.");
+            Directory.CreateDirectory(PropsResources);
+            int n = 0;
+            foreach (string name in GroundGear)
+            {
+                Import(name);
+                if (SaveResourcesPrefab(name, mat)) n++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ChopperProps] ground gear {n}/{GroundGear.Length}");
+            Debug.Log("[ChopperProps] RESULT " + (n == GroundGear.Length ? "PASS" : "FAIL"));
+        }
+
+        static bool SaveResourcesPrefab(string name, Material mat)
+        {
+            var root = new GameObject(name);
+            try
+            {
+                Attach(root.transform, name, mat, Quaternion.identity, 1f);
+                return PrefabUtility.SaveAsPrefabAsset(root, PropsResources + "/" + name + ".prefab") != null;
+            }
+            finally
+            {
+                Object.DestroyImmediate(root);
+            }
+        }
+
         public static void Apply()
         {
             Import(Torch);

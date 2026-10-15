@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Chopper.Core;
 using Chopper.Trees;
+using Chopper.World.Voxel;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Debug = UnityEngine.Debug;
@@ -404,10 +405,8 @@ namespace Chopper.World.Generation
 
         // ---------- Crypts ----------
 
-        private static readonly float[] TileMeters = { 0.5f, 0.5f, 0.5f, 1f, 0.5f };
-        private static readonly float[] MineTileMeters = { 0.5f, 0.5f, 0.5f, 1f, 0.5f };
-        // Crypt and mine surfaces in the terrain block material: linear colour per CryptMaterial, block type in alpha.
-        // Darker cut stone. The world block shader's texel hash is not used on these (see CaveStoneMaterial).
+        private static readonly float[] TileMeters = { 1f, 1f, 1f, 1f, 1f };
+        private static readonly float[] MineTileMeters = { 1f, 1f, 1f, 1f, 1f };
         private static readonly Color[] CryptBlockColors =
         {
             BlockColor(0.20f, 0.15f, 0.11f, 2), BlockColor(0.15f, 0.11f, 0.08f, 2), BlockColor(0.08f, 0.06f, 0.05f, 2),
@@ -437,18 +436,14 @@ namespace Chopper.World.Generation
 
         private static Material _caveStone;
 
-        // Crypts and mines only. The shared terrain material hashes every 1/16 m into a grey checker that
-        // swims when the camera moves. This copy keeps the block shader's lighting and turns that hash off.
         private static Material CaveStoneMaterial()
         {
             if (_caveStone != null) return _caveStone;
             Material source = BlockMaterial();
             if (source == null) return null;
             _caveStone = new Material(source) { name = "M_CaveStone" };
-            _caveStone.SetFloat("_Jitter", 0f);
-            _caveStone.SetFloat("_Edge", 0.04f);
-            _caveStone.SetFloat("_Dark", 0.94f);
-            _caveStone.SetFloat("_Light", 1.04f);
+            _caveStone.SetFloat("_Jitter", 0.62f);
+            _caveStone.SetFloat("_Edge", 0.035f);
             return _caveStone;
         }
         // Warmer and tighter than the old flat pools (was 1, 0.62, 0.3 at range 13, intensity 4.5).
@@ -500,7 +495,6 @@ namespace Chopper.World.Generation
             }
             if (!graphics) return;
 
-            // One mesh per room and material, so each room is lit and culled on its own.
             var groups = new SortedSet<int>();
             foreach (CryptBox box in boxes) groups.Add(box.Group);
             foreach (int group in groups)
@@ -509,16 +503,16 @@ namespace Chopper.World.Generation
                 for (int m = 0; m < materials.Length; m++)
                 {
                     if (materials[m] == null) continue;
-                    Material blocks = blockColors != null && (CryptMaterial)m != CryptMaterial.Void ? CaveStoneMaterial() : null;
-                    Mesh mesh = BuildBoxMesh(inGroup, (CryptMaterial)m, tiles[m], blocks != null ? blockColors[m] : (Color?)null);
+                    bool world = blockColors != null && (CryptMaterial)m != CryptMaterial.Void;
+                    Mesh mesh = BuildBoxMesh(inGroup, (CryptMaterial)m, tiles[m], world ? blockColors[m] : (Color?)null, world);
                     if (mesh == null) continue;
                     var part = new GameObject($"{(CryptMaterial)m}_{group}");
                     part.transform.SetParent(root.transform, false);
-                    part.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                     part.AddComponent<MeshFilter>().sharedMesh = mesh;
                     var meshRenderer = part.AddComponent<MeshRenderer>();
-                    meshRenderer.sharedMaterial = blocks != null ? blocks : materials[m];
+                    meshRenderer.sharedMaterial = world ? CaveStoneMaterial() : materials[m];
                     meshRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                    meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
                     part.isStatic = true;
                 }
             }
@@ -686,37 +680,50 @@ namespace Chopper.World.Generation
             var pivot = new GameObject("Vein" + id);
             pivot.transform.SetParent(parent, false);
             pivot.transform.SetPositionAndRotation(vein.Position, Quaternion.LookRotation(vein.Normal, Vector3.up));
-            if (_assets.VeinModel != null)
+            Mesh ore = CaveVoxel.BuildOre(Vector3.zero, Vector3.forward, glow, id * 31 + 7);
+            if (ore != null)
             {
-                GameObject rock = Instantiate(_assets.VeinModel, pivot.transform);
-                Bounds natural = WorldBounds(rock);
-                rock.transform.localScale = Vector3.one * (vein.Size / Mathf.Max(0.01f, Mathf.Max(natural.size.x, Mathf.Max(natural.size.y, natural.size.z))));
-                rock.transform.localRotation = Quaternion.Euler(id * 47f % 360f, id * 83f % 360f, id * 29f % 360f);
-                Bounds placed = WorldBounds(rock);
-                rock.transform.position += vein.Position - placed.center + vein.Normal * (vein.Size * 0.12f);
-                foreach (Collider collider in rock.GetComponentsInChildren<Collider>()) Destroy(collider);
-                if (_assets.MineVein != null)
-                {
-                    foreach (Renderer r in rock.GetComponentsInChildren<Renderer>())
-                    {
-                        var shared = new Material[r.sharedMaterials.Length];
-                        for (int i = 0; i < shared.Length; i++) shared[i] = _assets.MineVein;
-                        r.sharedMaterials = shared;
-                    }
-                }
+                var go = new GameObject("Ore");
+                go.transform.SetParent(pivot.transform, false);
+                go.AddComponent<MeshFilter>().sharedMesh = ore;
+                var meshRenderer = go.AddComponent<MeshRenderer>();
+                meshRenderer.sharedMaterial = BlockMaterial();
+                meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
             }
-            BuildOre(pivot.transform, id, glow);
             pivot.AddComponent<MineVeinView>().Init(id, glow, null);
         }
 
-        // Chunks of ore and a few crystal points stuck in the vein face. The mine's colour is the ore, not a lamp.
+        private void PlaceVeinPlate(Transform pivot, MineVein vein, int id)
+        {
+            BlockPalette.Ensure();
+            var boxes = new List<CryptBox>
+            {
+                new CryptBox
+                {
+                    Center = Vector3.zero,
+                    Size = new Vector3(Mathf.Max(1.2f, vein.Size), Mathf.Max(1.2f, vein.Size), 0.45f),
+                    Rotation = Quaternion.identity,
+                    Material = CryptMaterial.Wall,
+                    Group = id
+                }
+            };
+            Mesh mesh = BuildBoxMesh(boxes, CryptMaterial.Wall, 1f, null, true);
+            if (mesh == null) return;
+            var go = new GameObject("VeinPlate");
+            go.transform.SetParent(pivot, false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var meshRenderer = go.AddComponent<MeshRenderer>();
+            meshRenderer.sharedMaterial = BlockMaterial();
+            meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        }
+
         private static Material _oreMaterial;
 
         private static void BuildOre(Transform pivot, int id, Color ore)
         {
             var go = new GameObject("Ore");
             go.transform.SetParent(pivot, false);
-            go.transform.localPosition = new Vector3(0f, 0f, 0.02f);
+            go.transform.localPosition = new Vector3(0f, 0f, 0.28f);
             var filter = go.AddComponent<MeshFilter>();
             filter.sharedMesh = OreMesh(id, ore);
             var renderer = go.AddComponent<MeshRenderer>();
@@ -744,20 +751,20 @@ namespace Chopper.World.Generation
             Color rust = new Color(0.62f, 0.28f, 0.16f);
             Color crystal = Color.Lerp(Color.white, ore, 0.35f);
             Color metal = Color.Lerp(rust, ore, 0.72f);
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < 9; i++)
             {
-                float x = ((float)random.NextDouble() - 0.5f) * 0.55f;
-                float y = ((float)random.NextDouble() - 0.5f) * 0.4f;
-                float z = (float)random.NextDouble() * 0.16f;
-                float s = 0.08f + (float)random.NextDouble() * 0.1f;
+                float x = ((float)random.NextDouble() - 0.5f) * 1.05f;
+                float y = ((float)random.NextDouble() - 0.5f) * 0.85f;
+                float z = (float)random.NextDouble() * 0.35f;
+                float s = 0.28f + (float)random.NextDouble() * 0.22f;
                 Color tint = i % 3 == 0 ? crystal : (i % 3 == 1 ? metal : rust);
-                OreCube(verts, colors, tris, new Vector3(x, y, z), new Vector3(s, s * 0.8f, s * 0.7f), tint);
+                OreCube(verts, colors, tris, new Vector3(x, y, z), new Vector3(s, s * 0.85f, s * 0.75f), tint);
             }
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 4; i++)
             {
-                float x = ((float)random.NextDouble() - 0.5f) * 0.35f;
-                float y = ((float)random.NextDouble() - 0.5f) * 0.28f;
-                OreCube(verts, colors, tris, new Vector3(x, y, 0.16f), new Vector3(0.035f, 0.035f, 0.14f), crystal);
+                float x = ((float)random.NextDouble() - 0.5f) * 0.7f;
+                float y = ((float)random.NextDouble() - 0.5f) * 0.55f;
+                OreCube(verts, colors, tris, new Vector3(x, y, 0.32f), new Vector3(0.12f, 0.12f, 0.28f), crystal);
             }
             var mesh = new Mesh { name = "Ore" + id };
             mesh.SetVertices(verts);
@@ -818,8 +825,9 @@ namespace Chopper.World.Generation
 
         // Every box of one material as a single mesh in world space. UVs are the face's own coordinates in meters
         // divided by the tile size, so bricks keep their size on long and short walls alike.
-        public static Mesh BuildBoxMesh(List<CryptBox> boxes, CryptMaterial material, float tileMeters, Color? blockColor = null)
+        public static Mesh BuildBoxMesh(List<CryptBox> boxes, CryptMaterial material, float tileMeters, Color? blockColor = null, bool worldPalette = false)
         {
+            if (worldPalette) BlockPalette.Ensure();
             var vertices = new List<Vector3>();
             var colors = new List<Color>();
             var normals = new List<Vector3>();
@@ -832,13 +840,13 @@ namespace Chopper.World.Generation
                 Vector3 half = box.Size * 0.5f;
                 foreach (Vector3 n in faceNormals)
                 {
-                    // Two axes across the face.
                     Vector3 u = Mathf.Abs(n.y) > 0.5f ? Vector3.right : Vector3.Cross(Vector3.up, n);
                     Vector3 v = Vector3.Cross(n, u);
                     float uHalf = Mathf.Abs(Vector3.Dot(half, Abs(u)));
                     float vHalf = Mathf.Abs(Vector3.Dot(half, Abs(v)));
                     Vector3 faceCenter = Vector3.Scale(n, half);
-                    float cell = Mathf.Max(0.25f, tileMeters);
+                    Vector3 worldN = box.Rotation * n;
+                    float cell = Mathf.Max(uHalf * 2f, vHalf * 2f, 0.25f);
                     int nu = Mathf.Max(1, Mathf.RoundToInt((uHalf * 2f) / cell));
                     int nv = Mathf.Max(1, Mathf.RoundToInt((vHalf * 2f) / cell));
                     float du = (uHalf * 2f) / nu;
@@ -849,32 +857,32 @@ namespace Chopper.World.Generation
                         {
                             float u0 = -uHalf + iu * du;
                             float v0 = -vHalf + iv * dv;
+                            Vector3 midLocal = faceCenter + u * (u0 + du * 0.5f) + v * (v0 + dv * 0.5f);
+                            Vector3 midWorld = box.Center + box.Rotation * midLocal;
+                            if (FaceBuried(boxes, box, midWorld + worldN * 0.04f)) continue;
                             int start = vertices.Count;
                             int h = CaveShell.Hash(
                                 Mathf.RoundToInt(box.Center.x * 8f) + iu * 17,
                                 Mathf.RoundToInt(box.Center.z * 8f) + iv * 13,
                                 Mathf.RoundToInt(n.x * 3f + n.y * 5f + n.z * 7f + box.Center.y * 8f));
-                            float shade = 0.74f + 0.42f * (h % 1000) / 1000f;
+                            Color faceColor = FaceColor(material, worldN, h, blockColor, worldPalette);
+                            float faceTop = (box.Center + box.Rotation * (faceCenter + v * vHalf)).y;
                             for (int k = 0; k < 4; k++)
                             {
                                 float su = k == 1 || k == 2 ? 1f : 0f;
                                 float sv = k >= 2 ? 1f : 0f;
                                 Vector3 local = faceCenter + u * (u0 + su * du) + v * (v0 + sv * dv);
                                 vertices.Add(box.Center + box.Rotation * local);
-                                normals.Add(box.Rotation * n);
-                                if (blockColor.HasValue)
-                                {
-                                    Color baseColor = blockColor.Value;
-                                    colors.Add(new Color(baseColor.r * shade, baseColor.g * shade, baseColor.b * shade, baseColor.a));
-                                }
-                                uvs.Add(new Vector2(u0 + su * du + uHalf, v0 + sv * dv + vHalf) / cell);
+                                normals.Add(worldN);
+                                if (blockColor.HasValue || worldPalette) colors.Add(faceColor);
+                                uvs.Add(new Vector2(faceTop, 0f));
                             }
                             triangles.Add(start);
+                            triangles.Add(start + 2);
                             triangles.Add(start + 1);
-                            triangles.Add(start + 2);
                             triangles.Add(start);
-                            triangles.Add(start + 2);
                             triangles.Add(start + 3);
+                            triangles.Add(start + 2);
                         }
                     }
                 }
@@ -884,11 +892,42 @@ namespace Chopper.World.Generation
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
             mesh.SetUVs(0, uvs);
-            if (blockColor.HasValue) mesh.SetColors(colors);
+            if (colors.Count == vertices.Count) mesh.SetColors(colors);
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
             mesh.RecalculateTangents();
             return mesh;
+        }
+
+        private static bool FaceBuried(List<CryptBox> boxes, CryptBox self, Vector3 probe)
+        {
+            for (int i = 0; i < boxes.Count; i++)
+            {
+                CryptBox other = boxes[i];
+                if (other.Center == self.Center && other.Size == self.Size && other.Rotation == self.Rotation && other.Material == self.Material)
+                    continue;
+                Vector3 local = Quaternion.Inverse(other.Rotation) * (probe - other.Center);
+                Vector3 h = other.Size * 0.5f;
+                if (Mathf.Abs(local.x) <= h.x && Mathf.Abs(local.y) <= h.y && Mathf.Abs(local.z) <= h.z)
+                    return true;
+            }
+            return false;
+        }
+
+        private static Color FaceColor(CryptMaterial material, Vector3 worldN, int hash, Color? fallback, bool worldPalette)
+        {
+            if (!worldPalette)
+                return fallback ?? Color.white;
+            BlockType type;
+            if (material == CryptMaterial.Timber) type = BlockType.Dirt;
+            else if (material == CryptMaterial.Ceiling) type = BlockType.Path;
+            else if (material == CryptMaterial.Floor)
+                type = Mathf.Abs(worldN.y) > 0.5f ? BlockType.Dirt : BlockType.Stone;
+            else type = BlockType.Stone;
+            BlockPalette.FaceColors faces = BlockPalette.Of(type);
+            Color rgb = worldN.y > 0.5f ? faces.Top : faces.Side;
+            rgb.a = (int)type / 8f + 1f / 16f;
+            return rgb;
         }
 
         private static Vector3 Abs(Vector3 v) => new Vector3(Mathf.Abs(v.x), Mathf.Abs(v.y), Mathf.Abs(v.z));

@@ -62,7 +62,7 @@ namespace Chopper.World
             if (_spent || _ore == null) return;
             PlayerMining mining = PlayerMining.Local;
             bool worked = mining != null && mining.EngagedVein == Vein;
-            Paint(worked ? Mathf.Lerp(0.5f, 1.35f, RhythmRules.Pulse(Time.time - mining.RhythmStart)) : 0.6f);
+            Paint(worked ? Mathf.Lerp(0.85f, 2.1f, RhythmRules.Pulse(Time.time - mining.RhythmStart)) : 1.05f);
         }
 
         private void Paint(float brightness)

@@ -13,8 +13,7 @@ namespace Chopper.Player
         private const float FleeFadeSeconds = 1.2f;
         private const float JumpSeconds = 0.9f;
         private const float JumpHeight = 0.78f;
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-        private static readonly Color Shadow = new Color(0.05f, 0.09f, 0.13f, 1f);
+        public const string FishProp = "prop_fish_voxel";
 
         private struct Shown
         {
@@ -58,13 +57,11 @@ namespace Chopper.Player
             Clear();
             int n = Mathf.Min(kinds != null ? kinds.Length : 0, snapshot != null ? snapshot.Length : 0);
             _fish = new Shown[n];
-            Material material = GearMaterial();
             for (int i = 0; i < n; i++)
             {
                 float kg = kgs != null && i < kgs.Length ? kgs[i] : 1f;
-                // Length grows with the cube root of the weight: a small perch is a hand long, Old Mossback a meter.
                 float length = 0.3f + 0.35f * Mathf.Pow(Mathf.Max(0.05f, kg), 1f / 3f);
-                Transform body = MakeBody(material, length);
+                Transform body = MakeBody(Mathf.Max(0.62f, length * 1.55f));
                 Vector3 at = Point(snapshot[i]);
                 if (body != null) body.position = at;
                 _fish[i] = new Shown { Body = body, Target = at, State = (SchoolFishState)Mathf.RoundToInt(snapshot[i].z) };
@@ -186,46 +183,39 @@ namespace Chopper.Player
             return new Vector3(snapshot.x, Chopper.World.Generation.WorldGen.WaterHeight + Lift, snapshot.y);
         }
 
-        private static Material GearMaterial()
+        public static Transform Spawn(string resource, string name, float lengthAlong)
         {
-            CharacterCatalog catalog = Resources.Load<CharacterCatalog>("CharacterCatalog");
-            return catalog != null ? catalog.GearMaterial : null;
+            GameObject prefab = Resources.Load<GameObject>("Props/" + resource);
+            if (prefab == null) return null;
+            GameObject go = Object.Instantiate(prefab);
+            go.name = name;
+            foreach (Collider collider in go.GetComponentsInChildren<Collider>(true))
+                Object.Destroy(collider);
+            Bounds bounds = default;
+            bool any = false;
+            foreach (Renderer renderer in go.GetComponentsInChildren<Renderer>())
+            {
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                if (!any)
+                {
+                    bounds = renderer.bounds;
+                    any = true;
+                }
+                else bounds.Encapsulate(renderer.bounds);
+            }
+            if (any && lengthAlong > 0.01f)
+            {
+                Vector3 localCenter = go.transform.InverseTransformPoint(bounds.center);
+                foreach (Transform child in go.transform)
+                    child.localPosition -= localCenter;
+                go.transform.localScale = Vector3.one * (lengthAlong / Mathf.Max(0.05f, bounds.size.z));
+            }
+            return go.transform;
         }
 
-        private static Transform MakeBody(Material material, float length)
+        private static Transform MakeBody(float length)
         {
-            length = Mathf.Max(0.55f, length * 1.45f);
-            var root = new GameObject("SchoolFish");
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (shader == null) shader = Shader.Find("Sprites/Default");
-            Material paint = shader != null ? new Material(shader) : material;
-            AddPart(root.transform, paint, new Vector3(length * 0.28f, length * 0.2f, length * 0.62f), new Vector3(0f, length * 0.02f, length * 0.06f), Quaternion.identity, new Color(0.1f, 0.28f, 0.22f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.24f, length * 0.08f, length * 0.48f), new Vector3(0f, -length * 0.06f, length * 0.04f), Quaternion.identity, new Color(0.78f, 0.82f, 0.72f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.05f, length * 0.2f, length * 0.22f), new Vector3(0f, length * 0.02f, -length * 0.42f), Quaternion.Euler(0f, 18f, 0f), new Color(0.16f, 0.42f, 0.3f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.05f, length * 0.16f, length * 0.18f), new Vector3(0f, length * 0.02f, -length * 0.4f), Quaternion.Euler(0f, -22f, 0f), new Color(0.85f, 0.42f, 0.16f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.22f, length * 0.03f, length * 0.12f), new Vector3(length * 0.16f, 0f, length * 0.02f), Quaternion.Euler(0f, 0f, -18f), new Color(0.2f, 0.48f, 0.36f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.22f, length * 0.03f, length * 0.12f), new Vector3(-length * 0.16f, 0f, length * 0.02f), Quaternion.Euler(0f, 0f, 18f), new Color(0.2f, 0.48f, 0.36f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.03f, length * 0.12f, length * 0.16f), new Vector3(0f, length * 0.12f, 0f), Quaternion.identity, new Color(0.12f, 0.32f, 0.24f, 1f));
-            AddPart(root.transform, paint, new Vector3(length * 0.06f, length * 0.06f, length * 0.06f), new Vector3(length * 0.08f, length * 0.06f, length * 0.28f), Quaternion.identity, new Color(0.95f, 0.86f, 0.25f, 1f));
-            return root.transform;
-        }
-
-        private static void AddPart(Transform parent, Material material, Vector3 scale, Vector3 local, Quaternion rotation, Color color)
-        {
-            if (material == null) return;
-            GameObject part = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            Object.Destroy(part.GetComponent<Collider>());
-            part.transform.SetParent(parent, false);
-            part.transform.localScale = scale;
-            part.transform.localPosition = local;
-            part.transform.localRotation = rotation;
-            var renderer = part.GetComponent<MeshRenderer>();
-            renderer.sharedMaterial = material;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            var block = new MaterialPropertyBlock();
-            if (material.HasProperty(BaseColorId)) block.SetColor(BaseColorId, color);
-            block.SetColor("_Color", color);
-            renderer.SetPropertyBlock(block);
+            return Spawn(FishProp, "SchoolFish", length);
         }
     }
 }
