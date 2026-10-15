@@ -26,6 +26,7 @@ namespace Chopper.Player
 
         private readonly SyncList<int> _finds = new SyncList<int>();
         private readonly SyncList<float> _records = new SyncList<float>();
+        private readonly SyncVar<int> _skill = new SyncVar<int>();
 
         private PlayerAxe _axe;
         private PlayerHealth _health;
@@ -110,6 +111,11 @@ namespace Chopper.Player
 
         public bool HasPickHead => FindCount(MineFindKind.OldPickHead) > 0;
 
+        public int MineSkill => _skill.Value;
+
+        // Server only. Loading a saved player's mining skill (0 in older saves and for new players).
+        public void ServerLoadSkill(int skill) => _skill.Value = SkillRules.Clamp(skill);
+
         public int[] CopyFinds()
         {
             var counts = new int[MiningRules.Kinds];
@@ -153,6 +159,7 @@ namespace Chopper.Player
         public void ServerReset()
         {
             for (int i = 0; i < _finds.Count; i++) if (_finds[i] != 0) _finds[i] = 0;
+            _skill.Value = 0;
         }
 
         // ---------- Portals and ladders ----------
@@ -301,8 +308,9 @@ namespace Chopper.Player
                 if (Owner.IsValid) ResultTargetRpc(Owner, vein, -1, 0f, false);
                 return -2;
             }
-            _serverProgress += MiningRules.RhythmProgress(quality, bar);
-            if (_serverProgress < MiningRules.FreeAt) return -1;
+            _serverProgress += MiningRules.RhythmProgress(quality, bar) * SkillRules.MineProgressMultiplier(_skill.Value);
+            if (!SkillRules.MineFrees(_serverProgress, _serverStrikes)) return -1;
+            _skill.Value = SkillRules.Gain(_skill.Value, SkillRules.MineGainPerFind);
 
             float cleanShare = _serverClean / (float)Mathf.Max(1, _serverStrikes);
             MineZone zone = MineWorld.Plans[MineWorld.Veins[vein].Mine].Zone;

@@ -166,8 +166,8 @@ namespace Chopper.UI
         private void SetWeather(string[] args)
         {
             WeatherSystem weather = WeatherSystem.Instance;
-            if (weather == null || args.Length < 2) { Print("Usage: weather <sunny | cloudy | rain>"); return; }
-            WeatherKind kind = args[1] == "rain" ? WeatherKind.Rain : args[1] == "cloudy" ? WeatherKind.Cloudy : WeatherKind.Sunny;
+            if (weather == null || args.Length < 2) { Print("Usage: weather <sunny | cloudy | rain | snow>"); return; }
+            WeatherKind kind = args[1] == "rain" ? WeatherKind.Rain : args[1] == "cloudy" ? WeatherKind.Cloudy : args[1] == "snow" ? WeatherKind.Snow : WeatherKind.Sunny;
             weather.ServerSet(kind);
             Print("Weather: " + WeatherRules.Name(kind));
         }

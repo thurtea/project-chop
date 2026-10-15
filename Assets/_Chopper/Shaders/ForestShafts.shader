@@ -28,25 +28,27 @@ Shader "Hidden/Chopper/ForestShafts"
 
                 float2 sun = _ForestSunUV.xy;
                 float2 delta = sun - uv;
-                float reach = min(length(delta), 0.55);
-                float2 stepUv = reach > 0.0001 ? delta / max(length(delta), 0.0001) * (reach / 12.0) : float2(0, 0);
+                float dist = length(delta);
+                float2 stepUv = delta / 24.0;
                 float accum = 0;
+                float decay = 1.0;
                 float2 p = uv;
                 [unroll]
-                for (int i = 0; i < 12; i++)
+                for (int i = 0; i < 24; i++)
                 {
                     p += stepUv;
-                float3 sample = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, saturate(p)).rgb;
-                float lum = dot(sample, float3(0.25, 0.55, 0.20));
-                float gap = saturate((lum - 0.22) * 2.4);
-                accum += gap * (1.0 - i / 12.0);
+                    float3 sample = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, saturate(p)).rgb;
+                    float lum = dot(sample, float3(0.25, 0.55, 0.20));
+                    float bright = saturate((lum - 0.16) * 2.6);
+                    accum += bright * decay;
+                    decay *= 0.97;
                 }
-                accum /= 12.0;
-                float here = SampleSceneDepth(uv);
-                float onSurface = saturate((here - 0.002) * 600.0);
-                color.rgb += float3(1.05, 0.68, 0.32) * accum * strength * 1.8 * onSurface;
+                accum /= 24.0;
+                float radial = saturate(1.0 - dist * 0.9);
+                radial = radial * radial * (3.0 - 2.0 * radial);
+                color.rgb += float3(1.15, 0.78, 0.40) * accum * radial * strength * 3.6;
                 float low = saturate((0.58 - uv.y) * 1.35) * strength;
-                color.rgb = lerp(color.rgb, color.rgb * float3(0.45, 0.58, 0.72), low * 0.35);
+                color.rgb = lerp(color.rgb, color.rgb * float3(0.45, 0.58, 0.72), low * 0.30);
                 return color;
             }
             ENDHLSL

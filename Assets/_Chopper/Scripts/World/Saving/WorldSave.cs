@@ -170,6 +170,10 @@ namespace Chopper.World.Saving
         // Mining: the finds carried (one count per MineFindKind) and the biggest of each in grams (missing in older saves).
         public int[] FindCounts = new int[0];
         public float[] FindRecords = new float[0];
+        // Gathering skills, 0 to 100 (0 in older saves and for new players).
+        public int LogSkill;
+        public int MineSkill;
+        public int FishSkill;
     }
 
     // What the load list shows for one save file, read without keeping the whole save.

@@ -215,6 +215,7 @@ namespace Chopper.World.Saving
             {
                 record.AxeWear = axe.Wear;
                 record.AxeDropped = !axe.HasAxe;
+                record.LogSkill = axe.LogSkill;
             }
             PlayerWood wood = player.GetComponent<PlayerWood>();
             if (wood != null) record.Wood = wood.Carried;
@@ -255,12 +256,14 @@ namespace Chopper.World.Saving
                 record.Fish = fishing.FishPacked;
                 record.FishXp = fishing.Xp;
                 record.RodWear = fishing.RodWear;
+                record.FishSkill = fishing.FishSkill;
             }
             PlayerMining mining = player.GetComponent<PlayerMining>();
             if (mining != null)
             {
                 record.FindCounts = mining.CopyFinds();
                 record.FindRecords = mining.CopyRecords();
+                record.MineSkill = mining.MineSkill;
             }
             // A player who was down is put back at the hut instead of where they fell.
             if (health != null && health.IsDown) record.Position = Vector3.zero;
@@ -373,13 +376,19 @@ namespace Chopper.World.Saving
                 fishing.ServerLoad(record.Rod, record.Lure, record.Fish, record.FishCounts, record.FishXp);
                 fishing.ServerLoadRecords(record.FishRecords);
                 fishing.ServerLoadRodWear(record.RodWear);
+                fishing.ServerLoadSkill(record.FishSkill);
             }
             PlayerMining mining = player.GetComponent<PlayerMining>();
-            if (mining != null) mining.ServerLoad(record.FindCounts, record.FindRecords);
+            if (mining != null)
+            {
+                mining.ServerLoad(record.FindCounts, record.FindRecords);
+                mining.ServerLoadSkill(record.MineSkill);
+            }
             PlayerAxe axe = player.GetComponent<PlayerAxe>();
             if (axe != null)
             {
                 axe.ServerLoadWear(record.AxeWear);
+                axe.ServerLoadLogSkill(record.LogSkill);
                 if (record.AxeDropped) axe.ServerSetHasAxe(false);
             }
             PlayerHealth health = player.GetComponent<PlayerHealth>();

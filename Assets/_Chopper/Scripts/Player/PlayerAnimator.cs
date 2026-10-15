@@ -208,7 +208,7 @@ namespace Chopper.Player
             Sfx.Play(ProceduralSfx.Swing, transform.position + Vector3.up, 0.6f, 1f, 0.1f);
             if (_animator == null) return;
             // Fit the clip into the swing cooldown so faster axes chop faster.
-            float cooldown = _config.SwingCooldown * (_upgrades != null ? _upgrades.SwingCooldownMultiplier : 1f);
+            float cooldown = _config.SwingCooldown * (_upgrades != null ? _upgrades.SwingCooldownMultiplier : 1f) * SkillRules.LogSwingMultiplier(_axe != null ? _axe.LogSkill : 0);
             bool punch = _axe != null && !_axe.IsDrawn;
             // Step -1 is a tree chop. Bare fists alternate a jab and a cross; the axe in a fight runs the sword combo.
             int trigger;

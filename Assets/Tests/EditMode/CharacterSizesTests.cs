@@ -22,6 +22,7 @@ namespace Chopper.Tests.EditMode
             Assert.Less(CharacterSizes.Elemental(TreeSize.Medium), CharacterSizes.Elemental(TreeSize.Large));
             Assert.Less(CharacterSizes.Draugr(TreeSize.Small), CharacterSizes.Draugr(TreeSize.Large));
             Assert.That(CharacterSizes.Warden, Is.InRange(CharacterSizes.Player * 2.5f, CharacterSizes.Player * 3.5f));
+            Assert.GreaterOrEqual(CharacterSizes.PlayerLegX, 0.18f);
             Assert.That(CharacterSizes.CryptBoss, Is.InRange(CharacterSizes.Player * 1.5f, CharacterSizes.Player * 2.5f));
         }
     }

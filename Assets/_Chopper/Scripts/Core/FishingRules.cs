@@ -498,10 +498,16 @@ namespace Chopper.Core
         // One step of the fight. reeling: the reel is held. castFactor: 0 to 1 (CastFactor), how long the cast was.
         public static FightResult Step(ref Fight fight, FishSpecies s, bool reeling, int rod, float castFactor, float longCastModifier, float dt)
         {
+            return Step(ref fight, s, reeling, rod, castFactor, longCastModifier, dt, 1f);
+        }
+
+        // The fishing skill eases the fight: a higher skillEase takes more strain off the line.
+        public static FightResult Step(ref Fight fight, FishSpecies s, bool reeling, int rod, float castFactor, float longCastModifier, float dt, float skillEase)
+        {
             rod = Mathf.Clamp(rod, 1, MaxRodLevel);
             int phase = (int)PhaseAt(s, fight.Elapsed, out _);
             // A stronger rod and a longer cast both take some strain off the line.
-            float strain = (1f - 0.15f * (rod - 1)) * (1f - longCastModifier * Mathf.Clamp01(castFactor));
+            float strain = (1f - 0.15f * (rod - 1)) * (1f - longCastModifier * Mathf.Clamp01(castFactor)) / Mathf.Max(0.01f, skillEase);
             float strength = fight.Strength > 0f ? fight.Strength : 1f;
             if (reeling)
             {

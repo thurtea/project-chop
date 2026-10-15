@@ -68,5 +68,19 @@ namespace Chopper.Tests.EditMode
             Assert.Less(WeatherRules.BiteMultiplier(WeatherKind.Rain), 1f);
             Assert.AreEqual(1f, WeatherRules.BiteMultiplier(WeatherKind.Sunny));
         }
+
+        [Test]
+        public void SnowFallsWithoutChangingTheLight()
+        {
+            WeatherLook sun = WeatherRules.Look(WeatherKind.Sunny);
+            WeatherLook snow = WeatherRules.Look(WeatherKind.Snow);
+            Assert.AreEqual(sun.Sun, snow.Sun, 0.0001f);
+            Assert.AreEqual(sun.Ambient, snow.Ambient, 0.0001f);
+            Assert.AreEqual(sun.Sky, snow.Sky, 0.0001f);
+            Assert.AreEqual(0f, snow.Rain);
+            Assert.AreEqual(1f, snow.Snow);
+            Assert.AreEqual(0f, sun.Snow);
+            Assert.AreEqual(WeatherKind.Snow, WeatherRules.Next(WeatherKind.Cloudy, 0.97));
+        }
     }
 }

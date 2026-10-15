@@ -56,6 +56,7 @@ namespace Chopper.Player
         private readonly SyncVar<int> _lure = new SyncVar<int>();
         private readonly SyncList<int> _fish = new SyncList<int>();
         private readonly SyncVar<int> _xp = new SyncVar<int>();
+        private readonly SyncVar<int> _skill = new SyncVar<int>();
         // The heaviest catch of each kind, in kilograms (0 for none yet).
         private readonly SyncList<float> _records = new SyncList<float>();
         // Seen by everyone: the rod is out, where the bobber floats, and the fight on the line (-1 none, else FishPhase).
@@ -77,6 +78,7 @@ namespace Chopper.Player
         public int Lure => _lure.Value;
         public int FishPacked => FishingRules.PackLegacy(CopyCounts());
         public int Xp => _xp.Value;
+        public int FishSkill => _skill.Value;
         public int Level => FishingRules.Level(_xp.Value, _config.FishingLevelXp);
         public int FishCount(FishKind kind)
         {
@@ -514,7 +516,7 @@ namespace Chopper.Player
             float castFactor = FishingRules.CastFactor(_castDistance, _config.MinCastDistance, _config.MaxCastDistance);
             FishPhase before = _fishPhase;
             float dt = Time.deltaTime * (reeling ? DebugResistance : 1f);
-            FightResult result = FishingRules.Step(ref _fight, species, reeling, Mathf.Max(1, _rod.Value), castFactor, _config.LongCastTensionModifier, dt);
+            FightResult result = FishingRules.Step(ref _fight, species, reeling, Mathf.Max(1, _rod.Value), castFactor, _config.LongCastTensionModifier, dt, SkillRules.FishFightEase(_skill.Value));
             _fishPhase = FishingRules.PhaseAt(species, _fight.Elapsed, out _thrashComing);
             if (_fishPhase != before)
             {
@@ -950,6 +952,7 @@ namespace Chopper.Player
             if (k >= 0 && k < _records.Count && LureRules.IsRecord(_serverKg, _records[k])) _records[k] = _serverKg;
             bool hotspot = _serverSpot >= 0;
             _xp.Value += Mathf.RoundToInt(species.Xp * (hotspot ? _config.HotspotXpMultiplier : 1f));
+            _skill.Value = SkillRules.Gain(_skill.Value, SkillRules.FishGainPerCatch);
             if (hotspot && FishingHotspots.Instance != null) FishingHotspots.Instance.ServerConsume(_serverSpot);
             // Now and then something else comes up with the fish: a geode, rarely an old pick head (mining finds).
             PlayerMining mining = GetComponent<PlayerMining>();
@@ -1120,6 +1123,9 @@ namespace Chopper.Player
             }
         }
 
+        // Server only. Loading a saved player's fishing skill (0 in older saves and for new players).
+        public void ServerLoadSkill(int skill) => _skill.Value = SkillRules.Clamp(skill);
+
         // Server only. Loading a saved player's weight records (missing in older saves).
         public void ServerLoadRecords(float[] records)
         {
@@ -1145,6 +1151,7 @@ namespace Chopper.Player
             EnsureFish();
             for (int i = 0; i < _fish.Count; i++) if (_fish[i] != 0) _fish[i] = 0;
             _xp.Value = 0;
+            _skill.Value = 0;
         }
 
         // ---------- Visuals ----------

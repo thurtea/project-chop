@@ -942,7 +942,22 @@ namespace Chopper.Editor
             importer.animationType = ModelImporterAnimationType.Human;
             importer.avatarSetup = ModelImporterAvatarSetup.CreateFromThisModel;
             importer.materialImportMode = ModelImporterMaterialImportMode.None;
+            HumanDescription bind = importer.humanDescription;
+            bind.skeleton = new SkeletonBone[0];
+            bind.hasTranslationDoF = true;
+            importer.humanDescription = bind;
             importer.SaveAndReimport();
+            bind = importer.humanDescription;
+            bind.hasTranslationDoF = true;
+            GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(ChopperModelPath);
+            if (source != null)
+            {
+                Transform leftLeg = FindDeep(source.transform, "LeftUpperLeg");
+                Transform rightLeg = FindDeep(source.transform, "RightUpperLeg");
+                if (leftLeg != null && rightLeg != null)
+                    bind.feetSpacing = Mathf.Abs(leftLeg.position.x - rightLeg.position.x);
+            }
+            importer.humanDescription = bind;
             // Every take keeps its body motion in the pose (the player's Animator ignores root motion): the roll, the
             // sideways death and the swim turn the whole body, and the crouch and the landing lower it.
             ModelImporterClipAnimation[] takes = importer.defaultClipAnimations;

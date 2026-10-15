@@ -314,6 +314,8 @@ namespace Chopper.World
             ApplyShafts(inForest, d);
         }
 
+        public static float LastShaftStrength { get; private set; }
+
         private void ApplyShafts(bool inForest, float darkness)
         {
             Camera cam = Camera.main;
@@ -326,9 +328,12 @@ namespace Chopper.World
                 Vector3 vp = cam.WorldToViewportPoint(cam.transform.position + toSun * 400f);
                 sunUv = new Vector2(vp.x, vp.y);
                 ahead = vp.z > 0f ? 1f : 0f;
-                strength = ahead * Mathf.Lerp(0.9f, 0.38f, darkness);
+                // The sun below the horizon casts no shafts; low over it they fade with its light.
+                float above = Mathf.Clamp01(toSun.y * 4f);
+                strength = ahead * above * Mathf.Lerp(0.95f, 0f, darkness);
             }
             Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, strength));
+            LastShaftStrength = strength;
         }
 
         private void FindVolume()

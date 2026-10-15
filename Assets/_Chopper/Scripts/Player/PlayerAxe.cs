@@ -35,6 +35,7 @@ namespace Chopper.Player
         // Drawn: the axe is in the hand. Holstered (the Axe key again): it rides on the back and the player fights with
         // fists, like Valheim's unarmed. The server decides hits, so it keeps this too.
         private readonly SyncVar<bool> _drawn = new SyncVar<bool>(true);
+        private readonly SyncVar<int> _logSkill = new SyncVar<int>();
         private Transform _backAxe;
         private Transform _backBone;
         private float _punchProgress;
@@ -78,6 +79,7 @@ namespace Chopper.Player
         public int MaxDurability => _config.AxeDurability;
         public bool IsBroken => ToolRules.Broken(_durability.Value);
         public bool IsDrawn => _hasAxe.Value && _drawn.Value;
+        public int LogSkill => _logSkill.Value;
 
         private void Awake()
         {
@@ -137,6 +139,12 @@ namespace Chopper.Player
         }
 
         public int Wear => ToolRules.ToWear(_durability.Value, _config.AxeDurability);
+
+        // Server only. Loading a saved player's logging skill (0 in older saves and for new players).
+        public void ServerLoadLogSkill(int skill) => _logSkill.Value = SkillRules.Clamp(skill);
+
+        // Server only. The game over restart: the logging skill goes back to nothing.
+        public void ServerResetSkill() => _logSkill.Value = 0;
 
         // Server only. Mended at a workbench: full again and back in the hand.
         public void ServerRepair()
@@ -436,7 +444,7 @@ namespace Chopper.Player
             return false;
         }
 
-        private float Cooldown => _config.SwingCooldown * (_upgrades != null ? _upgrades.SwingCooldownMultiplier : 1f);
+        private float Cooldown => _config.SwingCooldown * (_upgrades != null ? _upgrades.SwingCooldownMultiplier : 1f) * SkillRules.LogSwingMultiplier(_logSkill.Value);
 
         // Server only. The nearest thing in the swing strip takes the hit: a standing tree or a treant.
         // Bare fists do a fraction of an axe hit: a tree only counts a hit every few punches, and fists never use
@@ -482,8 +490,10 @@ namespace Chopper.Player
             {
                 bool counts = armed || FistRules.Accumulate(ref _punchProgress, _config.FistDamageMultiplier);
                 // A better axe fells in fewer swings; punches add up to one plain hit.
-                float power = armed && _upgrades != null ? _upgrades.AxeDamageMultiplier : 1f;
+                float gear = armed && _upgrades != null ? _upgrades.AxeDamageMultiplier : 1f;
+                float power = SkillRules.TreeChopPower(gear, _logSkill.Value);
                 TreeManager.Instance.ServerHitTree(foundTreeId, _wood, aim, counts, power);
+                if (counts) _logSkill.Value = SkillRules.Gain(_logSkill.Value, SkillRules.LogGainPerChop);
                 if (Owner.IsValid) HitLandedTargetRpc(Owner, null, false, true);
             }
             return step;

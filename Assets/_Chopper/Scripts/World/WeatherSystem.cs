@@ -18,6 +18,12 @@ namespace Chopper.World
         private const float RainPerSecond = 2600f;
         private const int RainMaxParticles = 5000;
         private static readonly Color RainColor = new Color(0.75f, 0.8f, 0.88f, 0.55f);
+        private const float SnowHeight = 6f;
+        private const float SnowAhead = 3f;
+        private const float SnowBox = 22f;
+        private const float SnowPerSecond = 220f;
+        private const int SnowMaxParticles = 700;
+        private static readonly Color SnowColor = new Color(0.93f, 0.95f, 0.98f, 0.88f);
         private static readonly int WindId = Shader.PropertyToID("_ChopperWind");
         // How far up a roof is looked for, from the top of the head.
         private const float ShelterReach = 40f;
@@ -28,6 +34,7 @@ namespace Chopper.World
         private readonly System.Random _rng = new System.Random();
         private float _nextChange;
         private ParticleSystem _rain;
+        private ParticleSystem _snow;
         private WeatherLook _look = WeatherRules.Look(WeatherKind.Sunny);
 
         public static WeatherSystem Instance { get; private set; }
@@ -47,6 +54,7 @@ namespace Chopper.World
             if (Instance == this) Instance = null;
             Look = WeatherRules.Look(WeatherKind.Sunny);
             if (_rain != null) Destroy(_rain.gameObject);
+            if (_snow != null) Destroy(_snow.gameObject);
         }
 
         public override void OnStartServer()
@@ -85,6 +93,7 @@ namespace Chopper.World
             Look = below ? WeatherRules.Look(WeatherKind.Sunny) : _look;
             Shader.SetGlobalFloat(WindId, Look.Wind);
             UpdateRain(local, below ? 0f : _look.Rain, Look.Wind);
+            UpdateSnow(below ? 0f : _look.Snow, Look.Wind);
         }
 
         // True when something solid is overhead (the hut's roof, a built roof, a crypt ceiling): rain does not wet
@@ -162,6 +171,71 @@ namespace Chopper.World
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
             renderer.velocityScale = 0.045f;
             renderer.lengthScale = 1f;
+            var material = new Material(CombatFx.BaseMaterial);
+            if (CombatFx.SoftTexture != null)
+            {
+                material.SetTexture("_BaseMap", CombatFx.SoftTexture);
+                material.mainTexture = CombatFx.SoftTexture;
+            }
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        private void UpdateSnow(float strength, float wind)
+        {
+            Camera cam = Camera.main;
+            if (strength < 0.02f || cam == null)
+            {
+                if (_snow != null && _snow.isEmitting) _snow.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                return;
+            }
+            if (_snow == null) BuildSnow();
+            if (_snow == null) return;
+            _snow.transform.position = cam.transform.position + Vector3.up * SnowHeight + cam.transform.forward * SnowAhead;
+            var emission = _snow.emission;
+            emission.rateOverTime = SnowPerSecond * strength;
+            Vector2 dir = WeatherRules.WindDirection;
+            var velocity = _snow.velocityOverLifetime;
+            velocity.x = new ParticleSystem.MinMaxCurve(dir.x * 0.25f * wind, dir.x * 0.7f * wind);
+            velocity.z = new ParticleSystem.MinMaxCurve(dir.y * 0.25f * wind, dir.y * 0.7f * wind);
+            if (!_snow.isEmitting) _snow.Play();
+        }
+
+        private void BuildSnow()
+        {
+            if (CombatFx.BaseMaterial == null) return;
+            var go = new GameObject("Snow");
+            _snow = go.AddComponent<ParticleSystem>();
+            _snow.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = _snow.main;
+            main.loop = true;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = SnowMaxParticles;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(3.2f, 5.4f);
+            main.startSpeed = 0f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.11f);
+            main.startColor = SnowColor;
+            main.gravityModifier = 0f;
+            var velocity = _snow.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);
+            velocity.y = new ParticleSystem.MinMaxCurve(-2.4f, -1.5f);
+            velocity.z = new ParticleSystem.MinMaxCurve(-0.4f, 0.4f);
+            var collision = _snow.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.mode = ParticleSystemCollisionMode.Collision3D;
+            collision.quality = ParticleSystemCollisionQuality.High;
+            collision.enableDynamicColliders = false;
+            collision.lifetimeLoss = 1f;
+            collision.bounce = 0f;
+            var shape = _snow.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(SnowBox, 0.4f, SnowBox);
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
             var material = new Material(CombatFx.BaseMaterial);
             if (CombatFx.SoftTexture != null)
             {

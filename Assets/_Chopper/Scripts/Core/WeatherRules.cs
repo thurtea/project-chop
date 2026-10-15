@@ -6,7 +6,8 @@ namespace Chopper.Core
     {
         Sunny = 0,
         Cloudy = 1,
-        Rain = 2
+        Rain = 2,
+        Snow = 3
     }
 
     // How the weather changes the world's look: multipliers on the sun, the ambient light and the sky's brightness,
@@ -22,6 +23,7 @@ namespace Chopper.Core
         public float FogDensity;
         public Color FogTint;
         public float Rain;
+        public float Snow;
         public float Wind;
 
         public static WeatherLook Lerp(WeatherLook a, WeatherLook b, float t)
@@ -37,6 +39,7 @@ namespace Chopper.Core
                 FogDensity = Mathf.Lerp(a.FogDensity, b.FogDensity, t),
                 FogTint = Color.Lerp(a.FogTint, b.FogTint, t),
                 Rain = Mathf.Lerp(a.Rain, b.Rain, t),
+                Snow = Mathf.Lerp(a.Snow, b.Snow, t),
                 Wind = Mathf.Lerp(a.Wind, b.Wind, t)
             };
         }
@@ -54,7 +57,7 @@ namespace Chopper.Core
         // The grass shader (ChopperGrass) uses the same direction.
         public static readonly Vector2 WindDirection = new Vector2(0.8f, 0.6f);
 
-        public static string Name(WeatherKind kind) => kind == WeatherKind.Rain ? "Rain" : kind == WeatherKind.Cloudy ? "Cloudy" : "Sunny";
+        public static string Name(WeatherKind kind) => kind == WeatherKind.Rain ? "Rain" : kind == WeatherKind.Snow ? "Snow" : kind == WeatherKind.Cloudy ? "Cloudy" : "Sunny";
 
         // The weather after this one, from a roll of 0 to 1.
         public static WeatherKind Next(WeatherKind current, double roll)
@@ -62,7 +65,8 @@ namespace Chopper.Core
             switch (current)
             {
                 case WeatherKind.Sunny: return roll < 0.5 ? WeatherKind.Sunny : WeatherKind.Cloudy;
-                case WeatherKind.Cloudy: return roll < 0.35 ? WeatherKind.Sunny : roll < 0.65 ? WeatherKind.Cloudy : WeatherKind.Rain;
+                case WeatherKind.Cloudy: return roll < 0.35 ? WeatherKind.Sunny : roll < 0.65 ? WeatherKind.Cloudy : roll < 0.95 ? WeatherKind.Rain : WeatherKind.Snow;
+                case WeatherKind.Snow: return roll < 0.55 ? WeatherKind.Cloudy : WeatherKind.Snow;
                 default: return roll < 0.6 ? WeatherKind.Cloudy : WeatherKind.Rain;
             }
         }
@@ -82,6 +86,8 @@ namespace Chopper.Core
                     return new WeatherLook { Sun = 0.55f, Ambient = 0.85f, Sky = 0.6f, Overcast = 0.65f, Saturation = -12f, FogDensity = 1.5f, FogTint = new Color(0.86f, 0.87f, 0.88f), Rain = 0f, Wind = 1.4f };
                 case WeatherKind.Rain:
                     return new WeatherLook { Sun = 0.3f, Ambient = 0.66f, Sky = 0.38f, Overcast = 1f, Saturation = -22f, FogDensity = 2.6f, FogTint = new Color(0.68f, 0.72f, 0.76f), Rain = 1f, Wind = 2f };
+                case WeatherKind.Snow:
+                    return new WeatherLook { Sun = 1f, Ambient = 1f, Sky = 1f, Overcast = 0f, Saturation = 0f, FogDensity = 1f, FogTint = Color.white, Snow = 1f, Wind = 1.2f };
                 default:
                     return new WeatherLook { Sun = 1f, Ambient = 1f, Sky = 1f, Overcast = 0f, Saturation = 0f, FogDensity = 1f, FogTint = Color.white, Rain = 0f, Wind = 1f };
             }

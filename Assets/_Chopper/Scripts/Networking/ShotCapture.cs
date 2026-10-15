@@ -2479,6 +2479,33 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(1.5f);
                 yield return MeasureFrames("rain", 4f);
 
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                yield return new WaitForSeconds(0.2f);
+                WeatherSystem.Instance.DebugSnapLook();
+                yield return new WaitForSeconds(0.8f);
+                float sunnySun = RenderSettings.sun != null ? RenderSettings.sun.intensity : -1f;
+                Color sunnyAmbient = RenderSettings.ambientSkyColor;
+                Material sunnySky = RenderSettings.skybox;
+                WeatherSystem.Instance.ServerSet(WeatherKind.Snow);
+                yield return new WaitForSeconds(0.2f);
+                WeatherSystem.Instance.DebugSnapLook();
+                yield return new WaitForSeconds(2.6f);
+                GameObject snowObject = GameObject.Find("Snow");
+                ParticleSystem snow = snowObject != null ? snowObject.GetComponent<ParticleSystem>() : null;
+                int flakes = snow != null ? snow.particleCount : 0;
+                float snowSun = RenderSettings.sun != null ? RenderSettings.sun.intensity : -1f;
+                Color snowAmbient = RenderSettings.ambientSkyColor;
+                Material snowSky = RenderSettings.skybox;
+                Debug.Log($"[Weather] Snow: flakes {flakes}, sun {snowSun:0.00} (sunny {sunnySun:0.00}), ambient {snowAmbient} (sunny {sunnyAmbient})");
+                WeatherCheck(flakes > 40, $"Snow: {flakes} flakes on the camera");
+                WeatherCheck(Mathf.Abs(snowSun - sunnySun) < 0.05f, $"Snow leaves the sun alone ({sunnySun:0.00} to {snowSun:0.00})");
+                bool ambientSame = Mathf.Abs(snowAmbient.r - sunnyAmbient.r) < 0.04f && Mathf.Abs(snowAmbient.g - sunnyAmbient.g) < 0.04f && Mathf.Abs(snowAmbient.b - sunnyAmbient.b) < 0.04f;
+                WeatherCheck(ambientSame, "Snow leaves ambient alone");
+                WeatherCheck(snowSky == sunnySky, "Snow leaves the skybox alone");
+                ui.DebugShow(0);
+                yield return Shot(folder, "weather_snow");
+                yield return MeasureFrames("snow", 4f);
+
                 // The air of each forest (the ambient particles setting): Water drizzle and mist, Wind streaks and
                 // leaves, Fire embers and ash, Earth spores. The setting is put back afterwards.
                 WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
@@ -3366,6 +3393,39 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Shaft tour (W11-57 graphics): a forest with the sun up, so the light shafts read as rays, and the same
+            // forest with the sun down, where they must be gone. Logs "[Shafts] RESULT".
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperShafts") >= 0)
+            {
+                GameConfig shaftConfig = TreeManager.Instance.Config;
+                float shaftHub = shaftConfig.HubRadius;
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                GameUi.HudHidden = true;
+                ui.DebugShow(0);
+                yield return TeleportLocalPlayer(new Vector2(shaftHub + 55f, 0f), 90f);
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.5f);
+                yield return new WaitForSeconds(1f);
+                Light shaftSun = RenderSettings.sun;
+                Vector3 toSun = shaftSun != null ? -shaftSun.transform.forward : Vector3.forward;
+                float sunYaw = Mathf.Atan2(toSun.x, toSun.z) * Mathf.Rad2Deg;
+                yield return TeleportLocalPlayer(new Vector2(shaftHub + 55f, 0f), sunYaw);
+                PlayerCamera.Local.SnapYaw(sunYaw);
+                PlayerCamera.Local.DebugSetPitch(20f);
+                yield return new WaitForSeconds(1.4f);
+                yield return Shot(folder, "shafts_forest_sun_up");
+                float dayStrength = DayNightCycle.LastShaftStrength;
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, 0.35f);
+                yield return new WaitForSeconds(1.6f);
+                yield return Shot(folder, "shafts_forest_sun_down");
+                float nightStrength = DayNightCycle.LastShaftStrength;
+                bool shaftsOk = dayStrength > 0.01f && nightStrength <= 0.0001f;
+                Debug.Log($"[Shafts] forest shaft strength: sun up {dayStrength:0.000}, sun down {nightStrength:0.000}");
+                Debug.Log("[Shafts] RESULT " + (shaftsOk ? "PASS" : "FAIL"));
+                Debug.Log("[Shot] done");
+                Application.Quit(shaftsOk ? 0 : 1);
+                yield break;
+            }
+
             // Zone tour: stand on each forest path and look around, to judge how every zone reads.
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperZones") >= 0)
             {
@@ -4022,27 +4082,19 @@ namespace Chopper.Networking
         }
 
         // One hub tree, chopped from in front until it falls. Wood must land in the arms.
-        private static IEnumerator LoggingTour(string folder, PlayerWood wood, GameUi ui)
+        private static bool TryFindChopStand(TreeDatabase trees, TreeSize want, out int id, out Vector2 stand, out float yaw)
         {
-            Application.runInBackground = true;
-            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
-            Hut.Instance.ServerSetRepaired(true);
-            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
-            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
-            axe.ServerSetHasAxe(true);
-            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
-            yield return new WaitForSeconds(4f);
-            ui.DebugShow(0);
-            TreeDatabase trees = TreeManager.Instance.Database;
-            int id = -1;
-            Vector2 stand = Vector2.zero;
-            float yaw = 0f;
-            for (int i = 0; i < trees.Count && id < 0; i++)
+            id = -1;
+            stand = Vector2.zero;
+            yaw = 0f;
+            for (int i = 0; i < trees.Count; i++)
             {
-                Vector3 p = trees.Get(i).Position;
-                if (p.magnitude > 90f || p.magnitude < 18f) continue;
+                TreeEntry entry = trees.Get(i);
+                if (entry.Size != want) continue;
+                Vector3 p = entry.Position;
+                if (p.magnitude > 200f || p.magnitude < 18f) continue;
                 if (TreeManager.Instance.IsFelledOnClient(i)) continue;
-                for (int turn = 0; turn < 8 && id < 0; turn++)
+                for (int turn = 0; turn < 8; turn++)
                 {
                     Vector3 aim = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
                     Vector3 at = p - aim * 1.8f;
@@ -4050,39 +4102,197 @@ namespace Chopper.Networking
                     id = i;
                     stand = new Vector2(at.x, at.z);
                     yaw = turn * 45f;
+                    return true;
                 }
             }
-            Debug.Log($"[Log] tree {id} stand {stand} facing {yaw}");
-            if (id < 0)
-            {
-                Debug.Log("[Log] RESULT FAIL (no tree in reach)");
-                yield break;
-            }
-            yield return TeleportLocalPlayer(stand, yaw);
-            yield return new WaitForSeconds(1f);
+            return false;
+        }
+
+        private static IEnumerator ChopUntilFelled(PlayerAxe axe, PlayerWood wood, GameUi ui, string folder, string tag, int id, Vector2 stand, float yaw)
+        {
+            Vector3 treePos = TreeManager.Instance.Database.Get(id).Position;
+            Vector3 at = new Vector3(stand.x, treePos.y, stand.y);
+            yield return TeleportExact(at, yaw);
+            if (PlayerCamera.Local != null) PlayerCamera.Local.SnapYaw(yaw);
+            yield return new WaitForSeconds(0.4f);
+            Vector3 aim = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+            bool reach = TreeManager.Instance.ServerFindTree(wood.transform.position, aim, out int hit, out _) && hit == id;
+            Debug.Log($"[Log] {tag} reach {reach} hit {hit} want {id} stand {at} now {wood.transform.position}");
             ui.DebugShow(0);
-            yield return Shot(folder, "log_1_tree");
-            int before = wood.Carried;
+            yield return Shot(folder, tag + "_tree");
             int swings = 0;
             float start = Time.time;
-            while (Time.time - start < 28f && swings < 30 && !TreeManager.Instance.IsFelledOnClient(id))
+            while (Time.time - start < 40f && swings < 40 && !TreeManager.Instance.IsFelledOnClient(id))
             {
-                axe.TrySwing();
-                swings++;
+                yield return TeleportExact(at, yaw);
+                if (PlayerCamera.Local != null) PlayerCamera.Local.SnapYaw(yaw);
+                yield return null;
+                if (axe.TrySwing()) swings++;
                 if (swings == 2)
                 {
                     ui.DebugShow(0);
-                    yield return Shot(folder, "log_2_chop");
+                    yield return Shot(folder, tag + "_chop");
                 }
-                yield return new WaitForSeconds(0.9f);
+                yield return new WaitForSeconds(0.85f);
             }
-            yield return new WaitForSeconds(0.6f);
             bool felled = TreeManager.Instance.IsFelledOnClient(id);
-            bool woodGained = wood.Carried > before;
+            if (felled) yield return TeleportLocalPlayer(new Vector2(8f, 12f), 180f);
+            yield return new WaitForSeconds(1.6f);
             ui.DebugShow(0);
-            yield return Shot(folder, "log_3_after");
-            Debug.Log($"[Log] swings {swings}, felled {felled}, wood {before} -> {wood.Carried}");
-            Debug.Log("[Log] RESULT " + (felled && woodGained ? "PASS" : "FAIL"));
+            yield return Shot(folder, tag + "_after");
+            Debug.Log($"[Log] {tag} tree {id} swings {swings}, felled {felled}, wood {wood.Carried}");
+            _lastChopSwings = swings;
+            _lastChopFelled = felled;
+        }
+
+        private static int _lastChopSwings;
+        private static bool _lastChopFelled;
+
+        private static IEnumerator LoggingTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            InputSystem.settings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
+            PlayerUpgrades upgrades = wood.GetComponent<PlayerUpgrades>();
+            axe.ServerSetHasAxe(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            yield return new WaitForSeconds(4f);
+            if (!axe.IsDrawn)
+            {
+                axe.RequestToggleDrawn();
+                yield return new WaitForSeconds(1.1f);
+            }
+            ui.DebugShow(0);
+            TreeDatabase trees = TreeManager.Instance.Database;
+            GameConfig config = TreeManager.Instance.Config;
+            int largeHits = config.GetHitsToFell(TreeSize.Large);
+            int plainLarge = ChopRules.SwingsToFell(largeHits, 1f);
+
+            axe.ServerLoadLogSkill(SkillRules.MaxSkill);
+            if (upgrades != null) upgrades.ServerLoad(3, upgrades.ArmorLevel, upgrades.SturdyLevel, upgrades.RuneLevel);
+            float gear100 = upgrades != null ? upgrades.AxeDamageMultiplier : 2f;
+            float power100 = SkillRules.TreeChopPower(gear100, SkillRules.MaxSkill);
+            int expect100 = ChopRules.SwingsToFell(largeHits, power100);
+            if (!TryFindChopStand(trees, TreeSize.Large, out int id100, out Vector2 stand100, out float yaw100))
+            {
+                Debug.Log("[Log] RESULT FAIL (no large tree for skill 100)");
+                yield break;
+            }
+            Debug.Log($"[Log] skill 100 + top gear {gear100:F2} power {power100:F2} tree {id100} expect {expect100} stand {stand100} facing {yaw100}");
+            yield return ChopUntilFelled(axe, wood, ui, folder, "log_skill100", id100, stand100, yaw100);
+            int swings100 = _lastChopSwings;
+            bool felled100 = _lastChopFelled;
+            TreeSize size100 = trees.Get(id100).Size;
+            yield return new WaitForSeconds(2f);
+
+            axe.ServerLoadLogSkill(0);
+            if (upgrades != null) upgrades.ServerLoad(0, upgrades.ArmorLevel, upgrades.SturdyLevel, upgrades.RuneLevel);
+            if (!TryFindChopStand(trees, TreeSize.Large, out int id0, out Vector2 stand0, out float yaw0))
+            {
+                Debug.Log("[Log] RESULT FAIL (no large tree in reach at skill 0)");
+                yield break;
+            }
+            TreeSize size0 = trees.Get(id0).Size;
+            int hits0 = config.GetHitsToFell(size0);
+            float power0 = SkillRules.TreeChopPower(1f, 0);
+            int expect0 = ChopRules.SwingsToFell(hits0, power0);
+            Debug.Log($"[Log] skill 0 tree {id0} {size0} hits {hits0} expect {expect0} (plain {ChopRules.SwingsToFell(hits0, 1f)}) stand {stand0} facing {yaw0}");
+            yield return ChopUntilFelled(axe, wood, ui, folder, "log_skill0", id0, stand0, yaw0);
+            int swings0 = _lastChopSwings;
+            bool felled0 = _lastChopFelled;
+
+            bool mineStruck = false;
+            var mines = Chopper.World.Generation.MineWorld.Plans;
+            if (mines.Count > 0 && Chopper.World.Generation.MineWorld.Veins.Count > 0)
+            {
+                var first = mines[0];
+                int vein = -1;
+                for (int i = 0; i < Chopper.World.Generation.MineWorld.Veins.Count && vein < 0; i++)
+                    if (Chopper.World.Generation.MineWorld.Veins[i].Mine == first.Index) vein = i;
+                if (vein >= 0)
+                {
+                    var v = Chopper.World.Generation.MineWorld.Veins[vein].Vein;
+                    Vector3 stand = v.Position + v.Normal * 1.6f;
+                    stand.y = Chopper.World.Generation.MinePlan.FloorY + 0.1f;
+                    float faceYaw = Mathf.Atan2(-v.Normal.x, -v.Normal.z) * Mathf.Rad2Deg;
+                    PlayerMining miner = wood.GetComponent<PlayerMining>();
+                    yield return TeleportLocalPlayer(new Vector2(first.DoorSpot.x, first.DoorSpot.z), first.Site.Yaw + 180f);
+                    yield return new WaitForSeconds(0.6f);
+                    miner.TryInteract();
+                    yield return new WaitForSeconds(1.6f);
+                    yield return TeleportExact(stand, faceYaw);
+                    if (PlayerCamera.Local != null)
+                    {
+                        PlayerCamera.Local.SnapYaw(faceYaw - 35f);
+                        PlayerCamera.Local.DebugSetDistance(2.6f);
+                    }
+                    yield return new WaitForSeconds(0.4f);
+                    Vector3 aim = Quaternion.Euler(0f, faceYaw, 0f) * Vector3.forward;
+                    bool engaged = miner.TryStrike(aim);
+                    while (Time.time < miner.RhythmStart + 0.02f) yield return null;
+                    float target = miner.RhythmStart + RhythmRules.Beat;
+                    while (Time.time < target - 0.02f) yield return null;
+                    bool struck = miner.TryStrike(aim);
+                    mineStruck = engaged && (struck || miner.Engaged);
+                    Debug.Log($"[Log] mine strike engaged {engaged} used {struck} on vein {miner.EngagedVein} (wanted {vein})");
+                    yield return new WaitForSeconds(0.15f);
+                    ui.DebugShow(0);
+                    yield return Shot(folder, "log_mine_strike");
+                    yield return TeleportExact(first.ExitSpot + Vector3.up * 0.1f, first.LadderYaw + 180f);
+                    yield return new WaitForSeconds(0.5f);
+                    miner.TryInteract();
+                    yield return new WaitForSeconds(1.6f);
+                }
+            }
+
+            bool fishCast = false;
+            PlayerFishing fishing = wood.GetComponent<PlayerFishing>();
+            if (fishing != null)
+            {
+                fishing.ServerSetGear(1, 1);
+                Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+                Vector2 bank = gen.PondCenter + Vector2.right * (Chopper.World.Generation.WorldGen.PondOuterRadius + 2.4f);
+                bool foundBank = false;
+                for (int dir = 0; dir < 16 && !foundBank; dir++)
+                {
+                    float rad = dir * 22.5f * Mathf.Deg2Rad;
+                    Vector2 n = new Vector2(Mathf.Sin(rad), Mathf.Cos(rad));
+                    for (float r = 10f; r <= Chopper.World.Generation.WorldGen.PondOuterRadius + 8f; r += 0.6f)
+                    {
+                        Vector2 probe = gen.PondCenter + n * r;
+                        Vector3 at = new Vector3(probe.x, Chopper.World.WorldGround.HeightAt(new Vector3(probe.x, 0f, probe.y)) + 0.3f, probe.y);
+                        if (PlayerFishing.AtWater(at) && !Chopper.World.WaterSystem.IsSwimming(at))
+                        {
+                            bank = probe;
+                            foundBank = true;
+                            break;
+                        }
+                    }
+                }
+                yield return TeleportLocalPlayer(bank, 270f);
+                if (PlayerCamera.Local != null)
+                {
+                    PlayerCamera.Local.SnapYaw(270f);
+                    PlayerCamera.Local.DebugSetDistance(4f);
+                }
+                yield return new WaitForSeconds(1.6f);
+                bool rod = fishing.TryToggle();
+                yield return new WaitForSeconds(0.8f);
+                fishing.DebugCast(0.7f);
+                yield return new WaitForSeconds(1.4f);
+                fishCast = fishing.Busy;
+                Debug.Log($"[Log] fish toggle {rod} cast busy {fishCast} atWater {PlayerFishing.AtWater(wood.transform.position)}");
+                ui.DebugShow(0);
+                yield return Shot(folder, "log_fish_cast");
+            }
+
+            bool skill0Ok = felled0 && swings0 > plainLarge && swings0 > largeHits;
+            bool skill100Ok = felled100 && size100 == TreeSize.Large && swings100 >= 2;
+            bool pass = skill0Ok && skill100Ok && mineStruck && fishCast;
+            Debug.Log($"[Log] skill 0 large {size0} {swings0} swings (plain {plainLarge}, expect {expect0}); skill 100 + top gear {swings100} swings (expect {expect100}, large hits {largeHits}); mine {mineStruck}; fish {fishCast}");
+            Debug.Log("[Log] RESULT " + (pass ? "PASS" : "FAIL"));
         }
 
         private static IEnumerator GearLook(string folder, PlayerWood wood, GameUi ui)

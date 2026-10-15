@@ -541,6 +541,8 @@ namespace Chopper.Enemies
                 if (fishing != null) fishing.ServerReset();
                 var mining = health.GetComponent<PlayerMining>();
                 if (mining != null) mining.ServerReset();
+                var axe = health.GetComponent<PlayerAxe>();
+                if (axe != null) axe.ServerResetSkill();
             }
 
             Hut hut = Hut.Instance;
