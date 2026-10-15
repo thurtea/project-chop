@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &1718853116415443947
+--- !u!1 &1698795921833802026
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,7 +8,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7836674551666240268}
+  - component: {fileID: 6658319360893652051}
   m_Layer: 0
   m_Name: Voxel
   m_TagString: Untagged
@@ -16,20 +16,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &7836674551666240268
+--- !u!4 &6658319360893652051
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1718853116415443947}
+  m_GameObject: {fileID: 1698795921833802026}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 3207494740771009615}
+  - {fileID: 8229967328249937435}
   m_Father: {fileID: 7839700903386746553}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2008571384653456405
@@ -209,7 +209,7 @@ Transform:
   - {fileID: 3512416930882091836}
   - {fileID: 67420347458729961}
   - {fileID: 1275927765580266828}
-  - {fileID: 7836674551666240268}
+  - {fileID: 6658319360893652051}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4507439648814585828
@@ -404,13 +404,13 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!1001 &3101280317544829860
+--- !u!1001 &8483672098396772848
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 7836674551666240268}
+    m_TransformParent: {fileID: 6658319360893652051}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: af6d029382594a64d9ff1b701791d329, type: 3}
       propertyPath: m_LocalPosition.x
@@ -465,8 +465,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: af6d029382594a64d9ff1b701791d329, type: 3}
---- !u!4 &3207494740771009615 stripped
+--- !u!4 &8229967328249937435 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: af6d029382594a64d9ff1b701791d329, type: 3}
-  m_PrefabInstance: {fileID: 3101280317544829860}
+  m_PrefabInstance: {fileID: 8483672098396772848}
   m_PrefabAsset: {fileID: 0}

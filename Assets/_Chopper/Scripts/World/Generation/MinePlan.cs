@@ -221,6 +221,8 @@ namespace Chopper.World.Generation
                 CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
                 CaveShell.FloorRelief(Boxes, _group, c, RoomSize * 0.5f, shellSeed, 3.4f, 2.4f, local =>
                     room == 0 && OnLadder(local));
+                CaveShell.StoneCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, 3.4f, local =>
+                    room == 0 && OnLadder(local));
                 CaveShell.WallRelief(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, shellSeed, side =>
                     !SideOpen(room, side) && !(room == 0 && side == LadderSide));
                 CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);

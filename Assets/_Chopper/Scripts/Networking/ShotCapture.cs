@@ -588,6 +588,7 @@ namespace Chopper.Networking
                 }
                 yield return LookAtHouse(new Vector2(home.x + 12f, home.z + 24f), 6f, 10f, "house_out_front");
                 yield return LookAtHouse(new Vector2(home.x - 24f, home.z - 8f), 6f, 10f, "house_out_side");
+                yield return LookAtHouse(new Vector2(home.x + 1.5f * hs, home.z + 11f * hs), 4.2f, 16f, "house_out_steps");
 
                 Gamepad walkPad = InputSystem.AddDevice<Gamepad>();
                 // Walks to a point in piece-metres of the house (x, z), steering every frame: the stick is read relative
@@ -4087,33 +4088,75 @@ namespace Chopper.Networking
             id = -1;
             stand = Vector2.zero;
             yaw = 0f;
+            float hub = TreeManager.Instance.Config.HubRadius;
+            float best = 999f;
             for (int i = 0; i < trees.Count; i++)
             {
                 TreeEntry entry = trees.Get(i);
                 if (entry.Size != want) continue;
                 Vector3 p = entry.Position;
-                if (p.magnitude > 200f || p.magnitude < 18f) continue;
+                float ring = p.magnitude;
+                if (ZoneMap.ElementAt(p, hub) != Element.Earth) continue;
+                if (ring < hub + 16f || ring > hub + 50f) continue;
                 if (TreeManager.Instance.IsFelledOnClient(i)) continue;
                 for (int turn = 0; turn < 8; turn++)
                 {
                     Vector3 aim = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
                     Vector3 at = p - aim * 1.8f;
                     if (!TreeManager.Instance.ServerFindTree(new Vector3(at.x, p.y, at.z), aim, out int hit, out _) || hit != i) continue;
+                    float standY = WorldGround.HeightAt(at);
+                    if (Mathf.Abs(standY - p.y) > 0.6f) continue;
+                    Vector3 right = Vector3.Cross(Vector3.up, aim).normalized;
+                    float leftY = WorldGround.HeightAt(at - right * 1.6f);
+                    float sideY = WorldGround.HeightAt(at + right * 1.6f);
+                    float openY = Mathf.Min(leftY, sideY);
+                    if (openY > p.y + 1.1f) continue;
+                    float score = ring + Mathf.Abs(standY - p.y) * 8f + (openY - p.y) * 4f;
+                    if (score >= best) break;
                     id = i;
                     stand = new Vector2(at.x, at.z);
                     yaw = turn * 45f;
-                    return true;
+                    best = score;
+                    break;
                 }
             }
-            return false;
+            return id >= 0;
+        }
+
+        private static void FrameChop(float bodyYaw, Vector3 treePos, Vector3 stand)
+        {
+            PlayerCamera cam = PlayerCamera.Local;
+            if (cam == null) return;
+            Vector3 aim = Quaternion.Euler(0f, bodyYaw, 0f) * Vector3.forward;
+            Vector3 right = Vector3.Cross(Vector3.up, aim).normalized;
+            Vector3 look = treePos + Vector3.up * 1.25f;
+            float standY = WorldGround.HeightAt(stand);
+            Vector3 pick = stand + Vector3.up * 1.55f + right * 1.65f - aim * 0.35f;
+            bool found = false;
+            float[] sides = { 1f, -1f };
+            for (int i = 0; i < sides.Length; i++)
+            {
+                Vector3 raw = stand + right * (1.65f * sides[i]) - aim * 0.35f;
+                float ground = WorldGround.HeightAt(raw);
+                if (ground - standY > 0.85f) continue;
+                pick = new Vector3(raw.x, ground + 1.52f, raw.z);
+                found = true;
+                break;
+            }
+            if (!found)
+            {
+                Vector3 raw = stand + right * 0.95f - aim * 1.2f;
+                pick = new Vector3(raw.x, WorldGround.HeightAt(raw) + 1.55f, raw.z);
+            }
+            cam.DebugHold(pick, Quaternion.LookRotation(look - pick));
         }
 
         private static IEnumerator ChopUntilFelled(PlayerAxe axe, PlayerWood wood, GameUi ui, string folder, string tag, int id, Vector2 stand, float yaw)
         {
             Vector3 treePos = TreeManager.Instance.Database.Get(id).Position;
-            Vector3 at = new Vector3(stand.x, treePos.y, stand.y);
+            Vector3 at = new Vector3(stand.x, WorldGround.HeightAt(stand.x, stand.y), stand.y);
             yield return TeleportExact(at, yaw);
-            if (PlayerCamera.Local != null) PlayerCamera.Local.SnapYaw(yaw);
+            FrameChop(yaw, treePos, at);
             yield return new WaitForSeconds(0.4f);
             Vector3 aim = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
             bool reach = TreeManager.Instance.ServerFindTree(wood.transform.position, aim, out int hit, out _) && hit == id;
@@ -4122,19 +4165,23 @@ namespace Chopper.Networking
             yield return Shot(folder, tag + "_tree");
             int swings = 0;
             float start = Time.time;
+            float strikeWait = 0.22f;
             while (Time.time - start < 40f && swings < 40 && !TreeManager.Instance.IsFelledOnClient(id))
             {
                 yield return TeleportExact(at, yaw);
-                if (PlayerCamera.Local != null) PlayerCamera.Local.SnapYaw(yaw);
+                FrameChop(yaw, treePos, at);
                 yield return null;
                 if (axe.TrySwing()) swings++;
                 if (swings == 2)
                 {
+                    yield return new WaitForSeconds(strikeWait);
+                    FrameChop(yaw, treePos, at);
                     ui.DebugShow(0);
                     yield return Shot(folder, tag + "_chop");
                 }
                 yield return new WaitForSeconds(0.85f);
             }
+            if (PlayerCamera.Local != null) PlayerCamera.Local.DebugRelease();
             bool felled = TreeManager.Instance.IsFelledOnClient(id);
             if (felled) yield return TeleportLocalPlayer(new Vector2(8f, 12f), 180f);
             yield return new WaitForSeconds(1.6f);

@@ -404,8 +404,8 @@ namespace Chopper.World.Generation
 
         // ---------- Crypts ----------
 
-        private static readonly float[] TileMeters = { 2f, 2.4f, 2f, 1f, 1f };
-        private static readonly float[] MineTileMeters = { 4f, 3f, 4f, 1f, 1.2f };
+        private static readonly float[] TileMeters = { 0.5f, 0.5f, 0.5f, 1f, 0.5f };
+        private static readonly float[] MineTileMeters = { 0.5f, 0.5f, 0.5f, 1f, 0.5f };
         // Crypt and mine surfaces in the terrain block material: linear colour per CryptMaterial, block type in alpha.
         // Darker cut stone. The world block shader's texel hash is not used on these (see CaveStoneMaterial).
         private static readonly Color[] CryptBlockColors =
@@ -838,24 +838,45 @@ namespace Chopper.World.Generation
                     float uHalf = Mathf.Abs(Vector3.Dot(half, Abs(u)));
                     float vHalf = Mathf.Abs(Vector3.Dot(half, Abs(v)));
                     Vector3 faceCenter = Vector3.Scale(n, half);
-                    int start = vertices.Count;
-                    for (int k = 0; k < 4; k++)
+                    float cell = Mathf.Max(0.25f, tileMeters);
+                    int nu = Mathf.Max(1, Mathf.RoundToInt((uHalf * 2f) / cell));
+                    int nv = Mathf.Max(1, Mathf.RoundToInt((vHalf * 2f) / cell));
+                    float du = (uHalf * 2f) / nu;
+                    float dv = (vHalf * 2f) / nv;
+                    for (int iu = 0; iu < nu; iu++)
                     {
-                        float su = k == 1 || k == 2 ? 1f : -1f;
-                        float sv = k >= 2 ? 1f : -1f;
-                        Vector3 local = faceCenter + u * (su * uHalf) + v * (sv * vHalf);
-                        vertices.Add(box.Center + box.Rotation * local);
-                        normals.Add(box.Rotation * n);
-                        if (blockColor.HasValue) colors.Add(blockColor.Value);
-                        uvs.Add(new Vector2(su * uHalf + uHalf, sv * vHalf + vHalf) / tileMeters);
+                        for (int iv = 0; iv < nv; iv++)
+                        {
+                            float u0 = -uHalf + iu * du;
+                            float v0 = -vHalf + iv * dv;
+                            int start = vertices.Count;
+                            int h = CaveShell.Hash(
+                                Mathf.RoundToInt(box.Center.x * 8f) + iu * 17,
+                                Mathf.RoundToInt(box.Center.z * 8f) + iv * 13,
+                                Mathf.RoundToInt(n.x * 3f + n.y * 5f + n.z * 7f + box.Center.y * 8f));
+                            float shade = 0.74f + 0.42f * (h % 1000) / 1000f;
+                            for (int k = 0; k < 4; k++)
+                            {
+                                float su = k == 1 || k == 2 ? 1f : 0f;
+                                float sv = k >= 2 ? 1f : 0f;
+                                Vector3 local = faceCenter + u * (u0 + su * du) + v * (v0 + sv * dv);
+                                vertices.Add(box.Center + box.Rotation * local);
+                                normals.Add(box.Rotation * n);
+                                if (blockColor.HasValue)
+                                {
+                                    Color baseColor = blockColor.Value;
+                                    colors.Add(new Color(baseColor.r * shade, baseColor.g * shade, baseColor.b * shade, baseColor.a));
+                                }
+                                uvs.Add(new Vector2(u0 + su * du + uHalf, v0 + sv * dv + vHalf) / cell);
+                            }
+                            triangles.Add(start);
+                            triangles.Add(start + 1);
+                            triangles.Add(start + 2);
+                            triangles.Add(start);
+                            triangles.Add(start + 2);
+                            triangles.Add(start + 3);
+                        }
                     }
-                    // Clockwise seen from outside, which is the front face in Unity.
-                    triangles.Add(start);
-                    triangles.Add(start + 1);
-                    triangles.Add(start + 2);
-                    triangles.Add(start);
-                    triangles.Add(start + 2);
-                    triangles.Add(start + 3);
                 }
             }
             if (vertices.Count == 0) return null;

@@ -1,8 +1,7 @@
-"""Hammer pieces in the concept 2.0 cabin style: log walls, a doorway, a window, shingles, log stairs, a gable cross.
+"""Hammer pieces as 0.25 m voxels: log-block walls, a doorway, a window, thatch, stairs, a gable cross.
 
-Walls are round logs (flat-shaded eight-sided prisms in three warm browns, so the lit tops, shaded undersides and the
-creases between them read as a log wall); the frames round the door and window stay blocky. The roof is staggered
-0.5 m shingles in three golden shades (concept 2.0), not a checker.
+Walls are cube courses in three warm browns; the frames round the door and window stay blocky. The roof is staggered
+0.5 m thatch in three golden shades (concept 2.0).
 
 Run:  blender -b -P build_pieces.py
 Out:  Art/Export/piece_*_voxel.fbx, Art/Renders/piece_check_report.txt
@@ -138,7 +137,6 @@ def floor_cells():
 
 
 def wall_cells(hole):
-    """hole(ix, iz) is true where the logs are cut away. Only the frame round a hole is cubes; see wall_logs."""
     out = {}
     for ix in range(-4, 4):
         for iz in range(8):
@@ -146,26 +144,13 @@ def wall_cells(hole):
                 continue
             if hole(ix - 1, iz) or hole(ix + 1, iz) or hole(ix, iz - 1) or hole(ix, iz + 1):
                 out[(ix, 0, iz)] = FRAME
+            else:
+                out[(ix, 0, iz)] = log_shade(iz, ix)
     return out
 
 
 def wall_logs(hole):
-    """Round logs for every run of wall cells in a course that is not a hole or a frame cube."""
-    framed = wall_cells(hole)
-    logs = []
-    for iz in range(8):
-        run = []
-        segment = 0
-        for ix in list(range(-4, 4)) + [None]:
-            solid = ix is not None and not hole(ix, iz) and (ix, 0, iz) not in framed
-            if solid:
-                run.append(ix)
-                continue
-            if run:
-                logs.append((run[0] * S, (run[-1] + 1) * S, 0.5 * S, (iz + 0.5) * S, log_shade(iz, segment)))
-                segment += 1
-                run = []
-    return logs
+    return ()
 
 
 def door_hole(ix, iz):
@@ -207,8 +192,15 @@ def stair_cells():
         for iy in range(-4, 4):
             y0 = iy * S
             tread = int(round((1.0 - y0) / S))
-            color = LOG_DARK if ix in (-4, 3) else (LOG if iy % 2 == 0 else PLANK)
-            for iz in range(max(tread, 1)):
+            side = ix in (-4, 3)
+            height = max(tread, 1)
+            for iz in range(height):
+                if side:
+                    color = LOG_DARK if iz % 2 == 0 else LOG
+                elif iz == height - 1:
+                    color = PLANK if iy % 2 == 0 else PLANK_DARK
+                else:
+                    color = LOG if (ix + iy) % 2 == 0 else LOG_DARK
                 out[(ix, iy, iz)] = color
     return out
 
@@ -277,9 +269,9 @@ def main():
     ]
     lines = ["Concept 2.0 hammer pieces", "=" * 60]
     ok = True
-    wall_logs_count = len(pieces[1][3])
-    lines.append("  [%s] plain wall is %d round logs (one per 0.25 m course)" % ("PASS" if wall_logs_count == 8 else "FAIL", wall_logs_count))
-    ok = ok and wall_logs_count == 8
+    wall_cubes = len(pieces[1][1])
+    lines.append("  [%s] plain wall is %d voxel cubes" % ("PASS" if wall_cubes >= 48 else "FAIL", wall_cubes))
+    ok = ok and wall_cubes >= 48
     for name, occ, shift, *logs in pieces:
         obj = mesh_from(name, occ, shift, logs[0] if logs else ())
         obj.data.calc_loop_triangles()
@@ -294,8 +286,7 @@ def main():
     # The doorway is a hole: the middle of the bottom course is gone.
     # (the frame cubes border the opening; the lintel course over it is a frame too)
     door = pieces[2][1]
-    door_logs = pieces[2][3]
-    hole = (0, 0, 0) not in door and (-3, 0, 0) in door and (0, 0, 7) in door and any(l[3] < S for l in door_logs)
+    hole = (0, 0, 0) not in door and (-3, 0, 0) in door and (0, 0, 7) in door
     ok = ok and hole
     lines.append("  [%s] doorway is open at the bottom and closed at the lintel" % ("PASS" if hole else "FAIL"))
     roof = pieces[4][1]

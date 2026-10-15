@@ -81,6 +81,34 @@ namespace Chopper.World.Generation
             }
         }
 
+        public static void StoneCourses(List<CryptBox> boxes, int group, Vector3 origin, float half, float height, int seed, float pathHalf, System.Func<Vector3, bool> skip)
+        {
+            const float cell = 0.5f;
+            for (float x = -half + 0.75f; x <= half - 0.75f; x += cell)
+            {
+                for (float z = -half + 0.75f; z <= half - 0.75f; z += cell)
+                {
+                    var local = new Vector3(x, 0f, z);
+                    float ax = Mathf.Abs(x);
+                    float az = Mathf.Abs(z);
+                    bool centre = ax < pathHalf && az < pathHalf;
+                    bool againstWall = ax > half - 1.55f || az > half - 1.55f;
+                    bool doorway = (az > half - 2.2f && ax < 2.4f) || (ax > half - 2.2f && az < 2.4f);
+                    if (centre || !againstWall || doorway) continue;
+                    if (skip != null && skip(local)) continue;
+                    int h = Hash(seed, Mathf.RoundToInt(x * 8f), Mathf.RoundToInt(z * 8f));
+                    float rise = (h % 5) == 0 ? 1.0f : 0.5f;
+                    Append(boxes, group, origin + new Vector3(x, rise * 0.5f, z), new Vector3(cell, rise, cell), Quaternion.identity, CryptMaterial.Floor);
+                    if ((h % 4) != 0) continue;
+                    float wy = 1.25f + (h % 3) * 0.5f;
+                    if (wy + cell > height - 0.45f) continue;
+                    float nx = ax > az ? Mathf.Sign(x) * (half - 0.35f) : x;
+                    float nz = az >= ax ? Mathf.Sign(z) * (half - 0.35f) : z;
+                    Append(boxes, group, origin + new Vector3(nx, wy, nz), new Vector3(cell, cell, cell), Quaternion.identity, CryptMaterial.Wall);
+                }
+            }
+        }
+
         public static void CeilingNibs(List<CryptBox> boxes, int group, Vector3 origin, float half, float height, float cut)
         {
             foreach (float sx in new[] { 1f, -1f })
