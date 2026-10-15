@@ -212,13 +212,7 @@ namespace Chopper.Player
             bool changed = next != _shownDrawn;
             _shownDrawn = next;
             if (changed && _hasAxe.Value && !_stowed && Time.time - _clientStartTime > 0.5f)
-            {
-                _stowStart = Time.time;
-                _stowToBack = !next;
-                _stowing = true;
                 StowPlayed?.Invoke();
-                return;
-            }
             ApplyAxeVisual();
         }
 
@@ -229,6 +223,13 @@ namespace Chopper.Player
             bool inHand = _hasAxe.Value && _drawn.Value && !_stowed && !_miningStowed;
             if (_axePivot != null) _axePivot.gameObject.SetActive(inHand);
             if (_backAxe != null) _backAxe.gameObject.SetActive(false);
+            foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+            {
+                bool extra = false;
+                for (Transform t = renderer.transform; t != null && t != transform; t = t.parent)
+                    if (t.name == "chopper_axe" || t.name == "AxeOnBack") { extra = true; break; }
+                if (extra && !inHand) renderer.enabled = false;
+            }
         }
 
         // Owner only. The Axe key: draw it or put it on the back.

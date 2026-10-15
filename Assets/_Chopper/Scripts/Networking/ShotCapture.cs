@@ -914,6 +914,17 @@ namespace Chopper.Networking
                     cam.DebugHold(meadow, Quaternion.LookRotation(at + Vector3.up * 1.0f - meadow));
                     yield return new WaitForSeconds(0.3f);
                     yield return Shot(folder, "meadow_behind");
+                    Chopper.World.Generation.WorldGen gen = Chopper.World.Generation.WorldSession.Gen;
+                    if (gen != null)
+                    {
+                        Vector2 bank = gen.PondCenter + Vector2.right * (Chopper.World.Generation.WorldGen.PondOuterRadius + 1.2f);
+                        yield return TeleportLocalPlayer(bank, 270f);
+                        at = wood.transform.position;
+                        Vector3 pondCam = at - wood.transform.forward * 3.4f + Vector3.up * 1.65f;
+                        cam.DebugHold(pondCam, Quaternion.LookRotation(at + Vector3.up * 1.1f - pondCam));
+                        yield return new WaitForSeconds(0.4f);
+                        yield return Shot(folder, "pond_behind");
+                    }
                     cam.DebugRelease();
                 }
                 Debug.Log("[Concept] done");
@@ -2612,29 +2623,58 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.6f);
                 fishing.TryToggle();
                 yield return new WaitForSeconds(0.8f);
+                float water = Chopper.World.Generation.WorldGen.WaterHeight;
+                Vector3 PondSide(Vector3 target, float along, float lift)
+                {
+                    Vector3 pond = new Vector3(gen.PondCenter.x, target.y, gen.PondCenter.y);
+                    Vector3 dir = pond - target;
+                    dir.y = 0f;
+                    if (dir.sqrMagnitude < 0.01f) dir = Vector3.forward;
+                    dir.Normalize();
+                    Vector3 at = target + dir * along + Vector3.up * lift;
+                    if (at.y < water + 0.55f) at.y = water + 0.55f;
+                    return at;
+                }
+                Vector3 stand = wood.transform.position;
+                Vector3 toPond = new Vector3(gen.PondCenter.x, stand.y, gen.PondCenter.y) - stand;
+                toPond.y = 0f;
+                if (toPond.sqrMagnitude < 0.01f) toPond = Vector3.left;
+                toPond.Normalize();
+                Vector3 rodCam = stand - toPond * 1.1f + Vector3.Cross(toPond, Vector3.up) * 1.7f + Vector3.up * 1.45f;
+                if (rodCam.y < water + 0.55f) rodCam.y = water + 0.55f;
+                cam.DebugHold(rodCam, Quaternion.LookRotation(stand + toPond * 1.3f + Vector3.up * 0.95f - rodCam));
                 yield return Shot(folder, "fish_2_rod_out");
                 fishing.ServerForceKind((int)FishKind.Pike);
                 fishing.DebugCast(0.7f);
                 yield return new WaitForSeconds(1.5f);
                 yield return Shot(folder, "fish_3_waiting");
-                // Working the lure: gentle twitches draw the school after it.
                 for (int i = 0; i < 3; i++)
                 {
                     fishing.DebugTwitch();
                     yield return new WaitForSeconds(0.9f);
                 }
-                yield return Shot(folder, "fish_3b_following");
                 Vector3 lure = fishing.BobberWorld;
                 fishing.DebugPoseSchool(lure);
-                Debug.Log($"[Fishing] school {fishing.DebugSchoolCount} bobber {lure.y:F2}");
-                Vector3 watch = lure + new Vector3(-1.35f, 0.5f, 1.05f);
-                cam.DebugHold(watch, Quaternion.LookRotation((lure + Vector3.up * 0.28f) - watch));
+                Debug.Log($"[Fishing] school {fishing.DebugSchoolCount} bobber {lure.y:F2} water {water:F2}");
+                Vector3 playerAt = wood.transform.position;
+                Vector3 bankLook = Vector3.Lerp(playerAt + Vector3.up * 1.15f, lure + Vector3.up * 0.12f, 0.55f);
+                Vector3 across = Vector3.Cross(lure - playerAt, Vector3.up);
+                if (across.sqrMagnitude < 0.01f) across = Vector3.right;
+                across.Normalize();
+                Vector3 bankCam = bankLook + across * 2.6f + Vector3.up * 0.5f;
+                if (bankCam.y < water + 0.55f) bankCam.y = water + 0.55f;
+                cam.DebugHold(bankCam, Quaternion.LookRotation(bankLook - bankCam));
+                yield return new WaitForSeconds(0.35f);
+                ui.DebugShow(0);
+                yield return Shot(folder, "fish_3b_following");
+                Vector3 watch = PondSide(lure, 1.55f, 0.75f);
+                cam.DebugHold(watch, Quaternion.LookRotation((lure + Vector3.up * 0.45f) - watch));
                 yield return new WaitForSeconds(0.42f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "fish_3d_jump");
                 fishing.DebugSinkSchool(0.32f);
-                Vector3 under = lure + new Vector3(0.15f, -0.48f, 1.15f);
-                cam.DebugHold(under, Quaternion.LookRotation((lure + Vector3.down * 0.08f) - under));
+                Vector3 under = PondSide(lure, 0.55f, 1.2f);
+                cam.DebugHold(under, Quaternion.LookRotation((lure + Vector3.down * 0.1f) - under));
                 yield return new WaitForSeconds(0.4f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "fish_3c_under");
@@ -2650,8 +2690,8 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.4f);
                 fishing.DebugSetTension(0.7f, 0.5f);
                 lure = fishing.BobberWorld;
-                Vector3 fightCam = lure + new Vector3(-1.55f, 0.72f, 1.05f);
-                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.down * 0.02f) - fightCam));
+                Vector3 fightCam = PondSide(lure, 1.75f, 0.9f);
+                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.up * 0.08f) - fightCam));
                 yield return new WaitForSeconds(0.35f);
                 yield return Shot(folder, "fish_5_reeling");
                 FishSpecies pike = fishing.SpeciesOf(FishKind.Pike);

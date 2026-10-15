@@ -4,14 +4,14 @@ The site for Chopper, a co-op survival game in Unity. The repo copy is the curre
 
 Plain HTML, CSS, a little JavaScript, and one PHP form. No build step.
 
-The home page says what the game is, and that one developer is building it in Unity with Claude Code and Cursor. The banner is the top band of the user's title-screen art (`banner-chopper.png`, cropped above the menu). The gallery shows that art, the crypt and mine rooms from the 2026-10-15 tours, and the other in-game shots.
+The home page says what the game is, and that one developer is building it in Unity with Claude Code and Cursor. The only images on the landing page are the logo and the banner (the top band of the user's title-screen art). The gallery is concept art from `Chopper/Art/Concepts/`. No in-game stills until the human asks. This copy is local. It is not the live site. Do not deploy.
 
 ## Files
 
 | Path | What it is |
 |---|---|
-| `index.html` | The game, and a short gallery |
-| `gallery.html` | Art, cave rooms, and the older screenshots |
+| `index.html` | The game. Logo and banner only; no gameplay stills |
+| `gallery.html` | Concept sheets copied from `Chopper/Art/Concepts/` |
 | `demo.html`, `demo.php` | Demo requests. Saved to `private_html/chopper-demo-requests.jsonl` and mailed to itsthurtea@gmail.com |
 | `main.css`, `main.js` | Styles, the menu, and the demo confirmation |
 | `favicon_io-chopper/` | Favicons and the web manifest |
