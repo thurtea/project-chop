@@ -55,20 +55,11 @@ namespace Chopper.Player
         {
             ShowsArmour = _upgrades != null && _upgrades.Armoured;
             foreach (Renderer renderer in _armour)
-            {
-                if (renderer == null) continue;
-                bool shield = false;
-                for (Transform t = renderer.transform; t != null && t != transform; t = t.parent)
-                    if (t.name == "chopper_shield") { shield = true; break; }
-                renderer.enabled = ShowsArmour && !shield;
-            }
+                if (renderer != null) renderer.enabled = ShowsArmour;
             foreach (Renderer renderer in _hair) if (renderer != null) renderer.enabled = !ShowsArmour;
             bool dressed = _upgrades == null || _upgrades.Dressed;
             foreach (Renderer renderer in _outfit)
-            {
-                if (renderer == null) continue;
-                renderer.enabled = dressed && renderer.gameObject.name != "chopper_vest" && renderer.gameObject.name != "chopper_belt";
-            }
+                if (renderer != null) renderer.enabled = dressed;
             if (_block == null) _block = new MaterialPropertyBlock();
             if (_baseLayer == null) _baseLayer = Resources.Load<Texture2D>(BaseLayerAtlas);
             foreach (Renderer renderer in _baseLayerRenderers)

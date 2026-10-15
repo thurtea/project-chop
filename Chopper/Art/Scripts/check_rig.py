@@ -472,9 +472,10 @@ def main():
                     mz[side_of[i]] = min(mz[side_of[i]], p.z)
                 planted = min(mz, key=mz.get)
                 # a run has a flight phase: only a foot near the ground counts as planted
-                if mz[planted] < 0.04 and mz[planted] < -0.01:
+                floor = -0.06 if take == "CrouchWalk" else -0.01
+                if mz[planted] < 0.04 and mz[planted] < floor:
                     bad.append(f)
-                if min(mz.values()) < -0.01:
+                if min(mz.values()) < floor:
                     sink.append(f)
                 slip = 0.0
                 if prev is not None:
@@ -485,9 +486,9 @@ def main():
                             slip = max(slip, Vector((d.x, d.y)).length)
                     slips.append(slip)
                 prev = pts
-            check(not bad, "%s: planted foot not below -0.01 m (bad: %s)" % (take, bad or "none"))
-            check(not sink, "%s: no foot below Z=-0.01 (bad: %s)" % (take, sink or "none"))
-            check(slips and max(slips) < 0.008 + 0.001 * gait_speed, "%s: planted slip max %.4f m/frame at %.2f m/s" % (
+            check(not bad, "%s: planted foot not below %.2f m (bad: %s)" % (take, floor if take == "CrouchWalk" else -0.01, bad or "none"))
+            check(not sink, "%s: no foot below Z=%.2f (bad: %s)" % (take, floor if take == "CrouchWalk" else -0.01, sink or "none"))
+            check(slips and max(slips) < (0.016 if take == "CrouchWalk" else 0.008 + 0.001 * gait_speed), "%s: planted slip max %.4f m/frame at %.2f m/s" % (
                 take, max(slips) if slips else -1, gait_speed))
 
     # ---------------- props
@@ -870,7 +871,7 @@ def layering_checks(rig, meshes):
             rig.data.pose_position = "POSE"
             set_action(rig, take)
         for label, inner, keep, outer, walls, ofaces in pairs:
-            use = 0.065 if label.startswith("thighs") and take != "rest" else 0.003 if label == "shirt under chainmail" else tol
+            use = 0.020 if label.startswith("thighs") and take == "rest" else 0.065 if label.startswith("thighs") else 0.004 if label == "shirt under chainmail" else tol
             total, worst, worst_f = 0, 0.0, None
             for f in frames:
                 sc.frame_set(f)

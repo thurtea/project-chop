@@ -923,6 +923,13 @@ namespace Chopper.Networking
                         Vector3 pondCam = at - wood.transform.forward * 3.4f + Vector3.up * 1.65f;
                         cam.DebugHold(pondCam, Quaternion.LookRotation(at + Vector3.up * 1.1f - pondCam));
                         yield return new WaitForSeconds(0.4f);
+                        var shown = new System.Collections.Generic.List<string>();
+                        foreach (Renderer r in wood.GetComponentsInChildren<Renderer>(true))
+                        {
+                            if (r == null || !r.enabled || !r.gameObject.activeInHierarchy) continue;
+                            shown.Add(r.gameObject.name);
+                        }
+                        Debug.Log("[Concept] pond_behind renderers " + string.Join(", ", shown));
                         yield return Shot(folder, "pond_behind");
                     }
                     cam.DebugRelease();

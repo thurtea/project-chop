@@ -142,8 +142,8 @@ def bone_specs(info):
         sp.append((side + "Hand", S + d * 0.57, S + d * min(0.76, a["tip"]), FWD, side + "LowerArm", True))
         lg = info[side + "Leg"]
         x, y = lg["x"], lg["y"]
-        hip = Vector((x, y, 0.74))
-        knee = Vector((x, y - 0.012, lg["knee"].z))    # knee a hair forward: IK bend plane
+        hip = Vector((x, min(y, -0.02), 0.74))
+        knee = Vector((x, min(y, -0.02) - 0.012, lg["knee"].z))
         ankle = Vector((x, y + 0.01, 0.10))
         ball = Vector((x, -0.13, 0.035))
         toe = Vector((x, -0.245, 0.035))
@@ -319,7 +319,7 @@ def classify(obj_name, centroid, bbox_min, bbox_max):
     if obj_name == "chopper_body":
         if abs(centroid.x) < 0.02:
             return "torso"
-        if bbox_max.z < 0.80 and abs(centroid.x) < 0.2:
+        if bbox_max.z < 0.80 and abs(centroid.x) < 0.36:
             return ("leg", side)
         return ("arm", side)
     if obj_name == "chopper_shirt":

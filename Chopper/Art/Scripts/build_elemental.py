@@ -273,29 +273,27 @@ def hanging(P, g, cols, origin, count, drop, spread):
         x = ox + spread * (t - 0.5) * 2.0
         y = oy + (0.04 if i % 2 == 0 else -0.02)
         z0 = oz - 0.04 * t
-        steps = 5
+        steps = 6
         for k in range(steps):
             z = z0 - k * (drop / steps)
-            xx = x + (0.025 if ox >= 0 else -0.025) * k
+            xx = x + (0.02 if ox >= 0 else -0.02) * k
             col = cols[(i + k) % len(cols)]
-            P.put(g, "Head", (xx, y, z), (0.07, 0.035, drop / steps + 0.025), col, 0.006)
+            P.put(g, "Head", (xx, y, z), (0.08, 0.04, drop / steps + 0.03), col, 0.006)
 
 
 def willow(P, g, cols):
     for s in (-1, 1):
-        P.limb(g, "Head", (s * 0.12, -0.04, 1.78), (s * 0.42, -0.02, 1.98), 0.04, 0.03, cols[2])
-        hanging(P, g, cols, (s * 0.34, -0.06, 1.92), 4, 0.72, 0.16)
-    hanging(P, g, cols, (0.0, -0.08, 1.98), 3, 0.28, 0.12)
+        P.put(g, "Head", (s * 0.28, -0.04, 2.02), (0.16, 0.12, 0.14), cols[1], 0.01)
+        P.limb(g, "Head", (s * 0.16, -0.02, 1.86), (s * 0.30, -0.04, 2.00), 0.045, 0.035, cols[2])
+        hanging(P, g, cols, (s * 0.32, -0.06, 1.96), 5, 0.88, 0.14)
 
 
 def flame_crown(P, g, pal):
     cols = (pal["leaf"], pal["leaf2"], pal["leaf3"], pal["edge"])
     willow(P, g, cols)
-    for k, (x, y, h) in enumerate(((0, -0.04, 0.42), (-0.10, 0.02, 0.28), (0.10, 0.0, 0.30))):
-        for i in range(4):
-            f = i / 4.0
-            w = 0.16 * (1.0 - 0.65 * f)
-            P.put(g, "Head", (x, y, 1.72 + h * f), (w, w * 0.7, h / 4 + 0.02), cols[min(i, 3)], 0.006)
+    P.put(g, "Head", (0, -0.16, 1.72), (0.10, 0.08, 0.16), pal["leaf3"], 0.008)
+    for i in range(3):
+        P.put(g, "Head", (0, -0.18, 1.78 + i * 0.08), (0.08 - i * 0.015, 0.06, 0.08), cols[min(i + 1, 3)], 0.006)
 
 
 def water_hair(P, g, pal):

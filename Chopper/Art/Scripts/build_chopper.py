@@ -44,22 +44,22 @@ TORSO = [
 ]
 
 LEG_X = 0.20
-# Leg profile: (z, hw, hd)
-LEG = [  # bottom -> top so the tube winding faces outward
-    (0.05, 0.088, 0.100),
-    (0.09, 0.092, 0.104),
-    (0.12, 0.092, 0.104),
-    (0.15, 0.092, 0.104),   # ankle loops
-    (0.24, 0.093, 0.106),
-    (0.34, 0.095, 0.108),
-    (0.41, 0.098, 0.111),
-    (0.44, 0.098, 0.112),
-    (0.47, 0.098, 0.112),   # knee loops
-    (0.50, 0.100, 0.115),
-    (0.57, 0.100, 0.118),
-    (0.63, 0.100, 0.120),
-    (0.70, 0.099, 0.122),   # hip loops
-    (0.78, 0.096, 0.120),
+LEG_Y = -0.03
+LEG = [
+    (0.05, 0.108, 0.118),
+    (0.09, 0.112, 0.122),
+    (0.12, 0.112, 0.122),
+    (0.15, 0.112, 0.122),
+    (0.24, 0.113, 0.124),
+    (0.34, 0.115, 0.126),
+    (0.41, 0.118, 0.129),
+    (0.44, 0.118, 0.130),
+    (0.47, 0.118, 0.130),
+    (0.50, 0.120, 0.133),
+    (0.57, 0.120, 0.136),
+    (0.63, 0.120, 0.138),
+    (0.70, 0.119, 0.140),
+    (0.78, 0.116, 0.138),
 ]
 
 SHOULDER = (0.30, 0.0, 1.27)
@@ -127,7 +127,7 @@ def build_body(mat):
     mb.ztube(0, 0, TORSO, cs=2, bevel=0.065, cap1=False, color=PAL["skin"], color_fn=torso_color)
     # legs (trousers), open at the top (inside the pelvis)
     for s in (-1, 1):
-        mb.ztube(s * LEG_X, 0, LEG, cs=2, bevel=0.045, cap1=False, color=PAL["trousers"])
+        mb.ztube(s * LEG_X, LEG_Y, LEG, cs=2, bevel=0.045, cap1=False, color=PAL["trousers"])
     # arms + hands as one tube each
     for s in (-1, 1):
         S, d, u, v, palm = arm_frame(s)
@@ -448,17 +448,16 @@ def build_boots(mat):
         rings = [(z0, interp(LEG, z0, 1) + extra * 0.8, interp(LEG, z0, 2) + extra * 0.8),
                  (mid, interp(LEG, mid, 1) + extra, interp(LEG, mid, 2) + extra),
                  (z1, interp(LEG, z1, 1) + extra * 0.8, interp(LEG, z1, 2) + extra * 0.8)]
-        mb.ztube(x0, 0, rings, cs=2, bevel=bevel, color=color)
+        mb.ztube(x0, LEG_Y, rings, cs=2, bevel=bevel, color=color)
 
     for s in (-1, 1):
         x0 = s * LEG_X
         shaft = [(z, interp(LEG, z, 1) + 0.016, interp(LEG, z, 2) + 0.016) for z in (0.05, 0.10, 0.14, 0.17, 0.19)]
-        mb.ztube(x0, 0, shaft, cs=2, bevel=0.045, cap0=False, cap1=False, color=PAL["boot"])
+        mb.ztube(x0, LEG_Y, shaft, cs=2, bevel=0.045, cap0=False, cap1=False, color=PAL["boot"])
         cuff = [(z, interp(LEG, z, 1) + flare, interp(LEG, z, 2) + flare * 0.45)
                 for z, flare in ((0.120, 0.014), (0.145, 0.022), (0.175, 0.027), (0.195, 0.020))]
-        mb.ztube(x0, 0, cuff, cs=2, bevel=0.010, cap0=False, cap1=False, color=PAL["boot"],
-                 color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.180 else None)
-        # foot, as a tube running heel -> toe (axis -Y)
+        mb.ztube(x0, LEG_Y, cuff, cs=2, bevel=0.010, cap0=False, cap1=False, color=PAL["boot"],
+                color_fn=lambda p: PAL["boot_wrap"] if p.z > 0.180 else None)
         w = -Y
         v = Z
         u = v.cross(w)
@@ -467,11 +466,11 @@ def build_boots(mat):
                 (-0.245, 0.110, 0.03, 0.084)]
         rings = []
         for y, hw, z0, z1 in foot:
-            rings.append((Vector((x0, y, (z0 + z1) / 2)), u, v, hw, (z1 - z0) / 2, 0.02))
+            rings.append((Vector((x0, y + LEG_Y, (z0 + z1) / 2)), u, v, hw, (z1 - z0) / 2, 0.02))
         mb.tube(rings, cs=2, color=PAL["boot"])
-        mb.box((x0, -0.205, 0.075), (0.250, 0.085, 0.085), 0.012, color=PAL["boot_wrap"])
-        mb.box((x0, -0.055, 0.0175), (0.256, 0.40, 0.035), 0.008, color=PAL["sole"])
-        mb.box((x0, -0.07, 0.13), (0.250, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
+        mb.box((x0, -0.205 + LEG_Y, 0.075), (0.250, 0.085, 0.085), 0.012, color=PAL["boot_wrap"])
+        mb.box((x0, -0.055 + LEG_Y, 0.0175), (0.256, 0.40, 0.035), 0.008, color=PAL["sole"])
+        mb.box((x0, -0.07 + LEG_Y, 0.13), (0.250, 0.045, 0.02), 0.006, color=PAL["boot_wrap"])
         band(x0, 0.210, 0.245, 0.016, PAL["boot_wrap"], bevel=0.008)
         band(x0, 0.265, 0.375, 0.026, PAL["boot_wrap"])
     return mb.finish(mat)

@@ -957,6 +957,18 @@ namespace Chopper.Editor
                 if (leftLeg != null && rightLeg != null)
                     bind.feetSpacing = Mathf.Abs(leftLeg.position.x - rightLeg.position.x);
             }
+            if (bind.skeleton != null)
+            {
+                SkeletonBone[] bones = bind.skeleton;
+                for (int i = 0; i < bones.Length; i++)
+                {
+                    if (bones[i].name != "LeftUpperLeg" && bones[i].name != "RightUpperLeg") continue;
+                    Vector3 p = bones[i].position;
+                    if (p.z > 0f) p.z = 0f;
+                    bones[i].position = p;
+                }
+                bind.skeleton = bones;
+            }
             importer.humanDescription = bind;
             // Every take keeps its body motion in the pose (the player's Animator ignores root motion): the roll, the
             // sideways death and the swim turn the whole body, and the crouch and the landing lower it.

@@ -4,6 +4,7 @@ namespace Chopper.Core
     {
         public const float Player = 1.8f;
         public const float PlayerLegX = 0.20f;
+        public const float PlayerLegForward = 0.03f;
         public const float ElementalSmall = 1.7f;
         public const float ElementalMedium = 2.3f;
         public const float ElementalLarge = 3.2f;
