@@ -3745,26 +3745,56 @@ namespace Chopper.Networking
             PlayerCamera.Local.DebugSetDistance(6f);
             yield return new WaitForSeconds(1f);
             yield return Shot(folder, "fly_3b_night_hut");
-            foreach (Treant t in new System.Collections.Generic.List<Treant>(Treant.All)) t.ServerDespawn();
-            Treant woodBody = EnemyDirector.Instance.ServerSpawn(Element.Neutral, TreeSize.Medium, false, new Vector3(-1.3f, WorldGround.HeightAt(-1.3f, 48f), 48f));
-            Treant fireBody = EnemyDirector.Instance.ServerSpawn(Element.Fire, TreeSize.Medium, false, new Vector3(1.3f, WorldGround.HeightAt(1.3f, 48f), 48f));
-            if (woodBody != null) woodBody.ServerActivate();
-            if (fireBody != null) fireBody.ServerActivate();
-            yield return new WaitForSeconds(0.4f);
-            Vector3 pair = Vector3.zero;
-            int shown = 0;
-            if (woodBody != null) { pair += woodBody.transform.position; shown++; }
-            if (fireBody != null) { pair += fireBody.transform.position; shown++; }
-            if (shown > 0)
+            foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
+            Element[] lineup = { Element.Neutral, Element.Fire, Element.Water, Element.Wind };
+            string[] names = { "bark", "fire", "water", "wind" };
+            var bodies = new Treant[4];
+            for (int i = 0; i < 4; i++)
             {
-                pair /= shown;
-                Vector3 stand = new Vector3(pair.x - 1.5f, 0f, pair.z - 3.2f);
-                float face = Mathf.Atan2(pair.x - stand.x, pair.z - stand.z) * Mathf.Rad2Deg;
-                yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), face);
-                PlayerCamera.Local.DebugSetPitch(8f);
-                PlayerCamera.Local.DebugSetDistance(3.2f);
-                yield return new WaitForSeconds(0.6f);
-                yield return Shot(folder, "fly_3c_night_enemy");
+                float x = (i - 1.5f) * 3.6f;
+                bodies[i] = EnemyDirector.Instance.ServerSpawn(lineup[i], TreeSize.Medium, false,
+                    new Vector3(x, WorldGround.HeightAt(x, 48f), 48f));
+                if (bodies[i] != null) bodies[i].ServerActivate();
+            }
+            yield return new WaitForSeconds(0.5f);
+            yield return TeleportLocalPlayer(new Vector2(0f, 39.2f), 0f);
+            PlayerCamera.Local.SnapYaw(0f);
+            PlayerCamera.Local.DebugSetPitch(8f);
+            PlayerCamera.Local.DebugSetDistance(7.2f);
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot(folder, "fly_elem_lineup");
+            ui.DebugConsole("day");
+            ui.DebugConsole("god");
+            ui.DebugShow(0);
+            yield return new WaitForSeconds(1.0f);
+            foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
+            for (int i = 0; i < 4; i++)
+            {
+                foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
+                float ex = 0f;
+                float ez = 48f;
+                Treant one = EnemyDirector.Instance.ServerSpawn(lineup[i], TreeSize.Medium, false,
+                    new Vector3(ex, WorldGround.HeightAt(ex, ez), ez));
+                if (one == null)
+                {
+                    Debug.Log("[Fly] elem spawn miss " + names[i]);
+                    continue;
+                }
+                one.ServerActivate();
+                yield return new WaitForSeconds(0.5f);
+                Debug.Log($"[Fly] elem {names[i]} at {one.transform.position}");
+                yield return TeleportLocalPlayer(new Vector2(ex - 2.3f, ez - 0.4f), 85f);
+                PlayerCamera.Local.SnapYaw(85f);
+                PlayerCamera.Local.DebugSetPitch(6f);
+                PlayerCamera.Local.DebugSetDistance(2.1f);
+                yield return new WaitForSeconds(0.45f);
+                yield return Shot(folder, "fly_elem_" + names[i]);
+                yield return TeleportLocalPlayer(new Vector2(ex + 0.2f, ez + 2.3f), 180f);
+                PlayerCamera.Local.SnapYaw(180f);
+                PlayerCamera.Local.DebugSetPitch(6f);
+                PlayerCamera.Local.DebugSetDistance(2.1f);
+                yield return new WaitForSeconds(0.12f);
+                yield return Shot(folder, "fly_elem_" + names[i] + "_back");
             }
             ui.DebugConsole("day");
             ui.DebugShow(0);

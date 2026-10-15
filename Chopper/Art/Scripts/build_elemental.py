@@ -190,13 +190,10 @@ def limbs(P, R, g, pal):
         P.put(g, side + "LowerArm", el.lerp(wr, 0.55) + Vector((0, -0.03, 0)), (0.07, 0.05, 0.08), pal["light"], 0.008)
         hip, kn = R.head[side + "UpperLeg"], R.head[side + "LowerLeg"]
         an = R.head[side + "Foot"]
-        P.limb(g, side + "UpperLeg", hip, kn, 0.16, 0.17, pal["body"], 0.03)
-        P.limb(g, side + "LowerLeg", kn, an, 0.13, 0.14, pal["dark"], 0.02)
-        P.put(g, side + "LowerLeg", kn + Vector((0, -0.06, 0.02)), (0.10, 0.06, 0.08), pal["light"], 0.008)
-        P.put(g, side + "Foot", (an.x, -0.02, 0.08), (0.16, 0.18, 0.10), pal["body"], 0.012)
-        for dx, dy in ((-0.10, -0.16), (0.02, -0.22), (0.12, -0.14), (s * 0.10, 0.06)):
-            end = (an.x + dx, -0.02 + dy, 0.025)
-            P.limb(g, side + "Foot", (an.x, -0.02, 0.07), end, 0.055, 0.04, pal["dark"])
+        P.limb(g, side + "UpperLeg", hip, kn, 0.18, 0.18, pal["body"], 0.03)
+        P.limb(g, side + "LowerLeg", kn, an, 0.16, 0.16, pal["dark"], 0.02)
+        P.put(g, side + "LowerLeg", kn + Vector((0, -0.05, 0.02)), (0.11, 0.07, 0.09), pal["light"], 0.008)
+        P.put(g, side + "Foot", (an.x, -0.04, 0.10), (0.18, 0.24, 0.14), pal["body"], 0.014)
 
 
 def fists(P, R, g, pal):
@@ -211,12 +208,17 @@ def cracks(P, g, color, bones=True):
     names = ["UpperChest", "Chest", "Chest", "Spine", "Hips"]
     for i in range(len(pts) - 1):
         a, b = pts[i], pts[i + 1]
-        P.limb(g, names[i], (a[0], -0.17, a[1]), (b[0], -0.17, b[1]), 0.028, 0.016, color)
+        P.limb(g, names[i], (a[0], -0.17, a[1]), (b[0], -0.17, b[1]), 0.032, 0.018, color)
     if not bones:
         return
     for s in (-1, 1):
-        P.limb(g, "Chest", (s * 0.08, -0.16, 1.22), (s * 0.16, -0.15, 1.08), 0.02, 0.012, color)
-        P.limb(g, "UpperChest", (s * 0.18, -0.08, 1.28), (s * 0.28, -0.06, 1.16), 0.018, 0.012, color)
+        P.limb(g, "Chest", (s * 0.08, -0.16, 1.22), (s * 0.16, -0.15, 1.08), 0.024, 0.014, color)
+        P.limb(g, "UpperChest", (s * 0.18, -0.08, 1.28), (s * 0.28, -0.06, 1.16), 0.022, 0.014, color)
+        P.limb(g, "Head", (s * 0.04, -0.18, 1.58), (s * 0.10, -0.16, 1.46), 0.018, 0.012, color)
+        P.limb(g, ("Left" if s > 0 else "Right") + "UpperArm",
+               (s * 0.30, -0.04, 1.22), (s * 0.38, -0.02, 1.04), 0.018, 0.012, color)
+        P.limb(g, ("Left" if s > 0 else "Right") + "UpperLeg",
+               (s * 0.12, -0.14, 0.70), (s * 0.16, -0.12, 0.50), 0.018, 0.012, color)
 
 
 def axe(P, frame, g, pal):
@@ -291,6 +293,8 @@ def willow(P, g, cols):
 def flame_crown(P, g, pal):
     cols = (pal["leaf"], pal["leaf2"], pal["leaf3"], pal["edge"])
     willow(P, g, cols)
+    P.put(g, "Head", (0, 0.10, 1.68), (0.28, 0.14, 0.30), pal["leaf2"], 0.012)
+    hanging(P, g, cols, (0.0, 0.08, 1.78), 4, 0.55, 0.12)
     P.put(g, "Head", (0, -0.16, 1.72), (0.10, 0.08, 0.16), pal["leaf3"], 0.008)
     for i in range(3):
         P.put(g, "Head", (0, -0.18, 1.78 + i * 0.08), (0.08 - i * 0.015, 0.06, 0.08), cols[min(i + 1, 3)], 0.006)
@@ -298,36 +302,37 @@ def flame_crown(P, g, pal):
 
 def water_hair(P, g, pal):
     cols = (pal["leaf"], pal["leaf2"], pal["leaf3"], pal["light"])
-    for i in range(6):
-        t = i / 5.0
+    for i in range(7):
+        t = i / 6.0
         pts = []
-        for k in range(7):
-            f = k / 6.0
-            x = -0.05 + t * 0.12 + f * (0.15 + t * 0.55)
-            y = -0.12 + f * 0.15 + math.sin(f * math.pi) * 0.08
-            z = 1.68 + math.sin(f * math.pi) * (0.22 + t * 0.08) - f * 0.16
+        for k in range(8):
+            f = k / 7.0
+            x = -0.08 + t * 0.10 + f * (0.22 + t * 0.50)
+            y = -0.14 + f * 0.18 + math.sin(f * math.pi) * 0.10
+            z = 1.70 + math.sin(f * math.pi) * (0.26 + t * 0.10) - f * 0.14
             pts.append((x, y, z))
-        for k in range(6):
-            P.limb(g, "Head", pts[k], pts[k + 1], 0.07 - k * 0.006, 0.045, cols[(i + k) % 4])
-    for x in (-0.08, -0.03, 0.02, 0.07):
-        P.limb(g, "Head", (x, -0.18, 1.46), (x * 1.4, -0.26, 1.08), 0.045, 0.035, pal["light"])
-        P.limb(g, "Chest", (x * 1.2, -0.24, 1.10), (x * 1.5, -0.22, 0.90), 0.032, 0.026, pal["leaf2"])
+        for k in range(7):
+            P.limb(g, "Head", pts[k], pts[k + 1], 0.08 - k * 0.006, 0.05, cols[(i + k) % 4])
+    for x in (-0.10, -0.04, 0.02, 0.08, 0.12):
+        P.limb(g, "Head", (x, -0.20, 1.48), (x * 1.5, -0.30, 1.12), 0.055, 0.04, pal["light"])
+        P.limb(g, "Chest", (x * 1.3, -0.28, 1.14), (x * 1.6, -0.24, 0.88), 0.04, 0.03, pal["leaf2"])
 
 
 def wind_crown(P, g, pal):
     cols = (pal["leaf3"], pal["light"], pal["leaf2"], pal["edge"])
-    P.put(g, "Head", (0, -0.16, 1.72), (0.08, 0.05, 0.10), pal["edge"], 0.008)
-    for k in range(18):
-        a = k * 0.62
-        r = 0.16 + (k % 6) * 0.045
-        x = math.cos(a) * r * 1.15
-        y = math.sin(a) * r * 0.42
-        z = 1.86 + math.sin(a * 1.7) * 0.05
-        P.put(g, "Head", (x, y, z), (0.22, 0.12, 0.05), cols[k % 4], 0.006)
-    for x, y in ((-0.48, -0.05), (0.55, 0.20)):
-        for k in range(4):
-            w = 0.11 - k * 0.02
-            P.put(g, "Hips", (x, y, 0.28 + k * 0.09), (w, w, 0.07), cols[k % 3], 0.006)
+    P.put(g, "Head", (0.04, -0.08, 1.88), (0.36, 0.28, 0.22), pal["light"], 0.016)
+    P.put(g, "Head", (0.18, 0.02, 1.98), (0.28, 0.22, 0.16), pal["leaf3"], 0.014)
+    for k in range(14):
+        a = k * 0.55
+        r = 0.18 + (k % 5) * 0.04
+        x = math.cos(a) * r * 1.2
+        y = -0.06 + math.sin(a) * r * 0.38
+        z = 1.90 + math.sin(a * 1.4) * 0.06
+        P.put(g, "Head", (x, y, z), (0.20, 0.11, 0.06), cols[k % 4], 0.006)
+    P.limb(g, "Head", (0.22, -0.10, 1.72), (0.48, 0.06, 1.52), 0.10, 0.07, pal["leaf2"])
+    for k in range(5):
+        w = 0.16 - k * 0.022
+        P.put(g, "RightFoot", (0.22, 0.08, 0.10 + k * 0.11), (w, w, 0.08), cols[k % 3], 0.006)
 
 
 def moss_crown(P, g):
@@ -357,13 +362,13 @@ def skirt(P, g, cols, kind):
 
 
 def splash(P, R, g, pal):
+    P.put(g, "Hips", (0.0, -0.04, 0.02), (0.95, 0.72, 0.03), pal["leaf3"], 0.008)
     for side in ("Left", "Right"):
         an = R.head[side + "Foot"]
-        for k in range(6):
-            a = k * 1.05
-            P.put(g, side + "Foot", (an.x + math.cos(a) * 0.16, -0.06 + math.sin(a) * 0.12, 0.05 + (k % 2) * 0.03),
-                  (0.08, 0.06, 0.05), pal["leaf3"] if k % 2 == 0 else pal["light"], 0.006)
-        P.limb(g, side + "Foot", (an.x - 0.18, 0.02, 0.04), (an.x + 0.20, -0.20, 0.09), 0.06, 0.035, pal["edge"])
+        for k in range(5):
+            a = k * 1.25
+            P.put(g, side + "Foot", (an.x + math.cos(a) * 0.18, -0.08 + math.sin(a) * 0.14, 0.04 + (k % 2) * 0.03),
+                  (0.09, 0.07, 0.04), pal["leaf3"] if k % 2 == 0 else pal["light"], 0.006)
 
 
 def eyes_only(P, g, color):
@@ -382,6 +387,9 @@ def body(P, R, g, pal, eyes, kind):
         antlers(P, g, pal)
         cracks(P, g, pal["crack"])
     elif kind == "water":
+        for s in (-1, 1):
+            P.limb(g, "Head", (s * 0.10, -0.02, 1.68), (s * 0.22, -0.08, 1.98), 0.032, 0.028, WOOD["antler"])
+            P.limb(g, "Head", (s * 0.16, -0.06, 1.88), (s * 0.30, -0.12, 2.06), 0.022, 0.02, WOOD["light"])
         cracks(P, g, pal["crack"], bones=False)
         for s in (-1, 1):
             for k in range(4):

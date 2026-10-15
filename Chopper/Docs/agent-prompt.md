@@ -16,7 +16,7 @@ Sources: Chopper/Docs/TASKBOARD.md. Read W11-51 through W11-57 and the latest da
 Trust Chopper/Docs/TASKBOARD.md over this paragraph if a later dated line exists. Do not invent check results.
 W11-51 motion is LOCKED in the exe. Do not redo it. Do not retune it. Leave these numbers: move 6, sprint 9.5, crouch 2.6, acceleration 16, deceleration 22, turn 480, jump 1.05, gravity 26, landing recovery height 3 / 0.2 s / 0.35, swing commit 0.85, swing move 0.45, swing turn 0.35, strike step 2.5, hit-stop 0.07 / heavy 0.09, hit kick 0.05 / heavy 0.12. Feel goal is Valheim x Enshrouded / Minecraft weight. Feel is the human's.
 W11-52/53 cave PLAN is kept. Do not restart as wallpaper. Human rejected the gray checker and then the 3D occupancy cube wallpaper (hard on the eyes). Latest intended look is planar Chopper/Block faces (dirt floors, stone walls, timber courses) with quieter _Edge/_Jitter (world 0.055/0.72, cave 0.035/0.62) in build-1015-0137, tour-Mine-1015-0138 RESULT PASS, tour-Crypt-1015-0121 shots. Flatten exe was build-1015-0119 / tour-Mine-1015-0120 RESULT PASS. Still off: empty box rooms, crypt_1 is a pine not the temple, empty chest, pale vein, no water run. Edges still rough vs 2.0.
-W11-54 elementals are in build-1014-1934 / tour-Fly-1014-1935. That look was locked to the older chopper-*elemental-3D-concept-3.0.jpg sheets. The human now wants those four bodies rebuilt from the four new tree jpgs after the character Concept proof. Do not invent a new rig or clips.
+W11-54 elementals were rebuilt from the four new tree jpgs after the character legs PASS. Proof: unity-ChopperRigEnemy_RebuildEnemies-1015-0257 (Elemental_Walk / Elemental_Slam, 6 renderers, humanoid True), editmode-1015-0301 passed 319 failed 0, build-1015-0305 Success CS 0, tour-Fly-1015-0306. Older chopper-*elemental-3D-concept-3.0.jpg are backup only. Do not invent a new rig or clips.
 W11-55 voxel character was REJECTED on 2026-10-14. Live body is build_chopper.py smooth modules plus atlas. Stance is CharacterSizes.PlayerLegX 0.20 with a remesured Humanoid (build-1014-2239, tour-Concept-1014-2240). Do not run build_chopper_voxel.py.
 W11-56 forests, cave mouths, and a fishing start have RESULT lines. Do not restart world lighting. Fishing VISUALS were rebuilt 2026-10-15 01:39: build_fish.py Blender perch (teal, cream belly) in build-1015-0137 / tour-Fishing-1015-0139. Tour cameras still sit under the pond; the bank rod is hard to read.
 W11-57 skills are in the exe. EditMode editmode-1014-2239 passed 319, failed 0. tour-Logging-1014-2243 RESULT PASS: skill 0 large 14 swings (plain 9), skill 100 + top gear 3 (still more than one). Mining and fishing skills are hooked. Do not invent a huge skill tree. Do not replace axe, armour, hut, rune, rod, or lure upgrades. Light shafts, rain, and snow already have tour proof on build-1014-2239; do not restart them.
@@ -65,7 +65,7 @@ E:\Projects\project-chop\Chopper\Art\Concepts\non elemental tree.jpg → Bark / 
 E:\Projects\project-chop\Chopper\Art\Concepts\fire elemental tree.jpg → fire
 E:\Projects\project-chop\Chopper\Art\Concepts\water elemental tree.jpg → water
 E:\Projects\project-chop\Chopper\Art\Concepts\wind elemental tree.jpg → wind
-Older chopper-*elemental-3D-concept-3.0.jpg still exist; these four tree jpgs are the new enemy lock. chopper-3D-concept-3.0.jpg remains TREE-ENEMY overview, not a player turnaround.
+Older chopper-*elemental-3D-concept-3.0.jpg still exist; these four tree jpgs are the new enemy lock. chopper-3D-concept-3.0.jpg remains TREE-ENEMY overview, not a player turnaround. As of 2026-10-15 03:06 the four-body Fly proof exists (tour-Fly-1015-0306). Named misses on that line (short bark willow, unread fire cracks/skirt, unread water beard/puddle, unread wind tornado) are leftover notes, not a reopen, unless a later board line says so.
 
 3. Soften remaining hard block edges (Chopper/Block knobs / merged faces / shallow chamfer on props). No shader replace. No 3D occupancy caves.
 
@@ -100,7 +100,7 @@ Return a short report: what changed, the check counts and log names, which shots
 </handoff>
 
 <start>
-Unity editor must be closed. If it is open, say so and stop. If it is closed, read the task board, then start item 1: the character vs chopper-character-and-axe-3D-concept-2.0.jpg, legs first. As of 2026-10-15 02:49 that legs proof exists (tour-Concept-1015-0249 Legs PASS). If the board still says that and no later line reopens the legs, skip to item 2 (tree elementals from the four tree jpgs). Do not start tree enemies until that character Concept proof exists. Do not retune W11-51. Do not deploy the site.
+Unity editor must be closed. If it is open, say so and stop. If it is closed, read the task board, then start item 1: the character vs chopper-character-and-axe-3D-concept-2.0.jpg, legs first. As of 2026-10-15 02:49 that legs proof exists (tour-Concept-1015-0249 Legs PASS). If the board still says that and no later line reopens the legs, skip to item 2. As of 2026-10-15 03:06 the four-tree-elemental Fly proof exists (tour-Fly-1015-0306). If the board still says that and no later line reopens the trees, skip to item 3 (soften remaining hard block edges). Do not start tree enemies until the character Concept proof exists. Do not retune W11-51. Do not deploy the site.
 </start>
 
 </prompt>
