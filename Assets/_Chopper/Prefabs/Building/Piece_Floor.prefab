@@ -32,7 +32,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7617264694411717805}
-  - {fileID: 3750878550112904403}
+  - {fileID: 6579026044971865109}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &8732013906096233406
@@ -68,7 +68,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 991c6179af38c4f49ad7bad9e416f8a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Chopper.Runtime::Chopper.World.Building.PieceView
---- !u!1 &7393206273030633801
+--- !u!1 &6874179699037099817
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -76,7 +76,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 3750878550112904403}
+  - component: {fileID: 6579026044971865109}
   m_Layer: 0
   m_Name: Voxel
   m_TagString: Untagged
@@ -84,29 +84,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &3750878550112904403
+--- !u!4 &6579026044971865109
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7393206273030633801}
+  m_GameObject: {fileID: 6874179699037099817}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 1511648091600317039}
+  - {fileID: 1053040530624089465}
   m_Father: {fileID: 1827626217187325528}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1400842218356772228
+--- !u!1001 &655167874692639378
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 3750878550112904403}
+    m_TransformParent: {fileID: 6579026044971865109}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 7f9e450dd92f8064db017575997f2b6b, type: 3}
       propertyPath: m_LocalPosition.x
@@ -161,10 +161,10 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7f9e450dd92f8064db017575997f2b6b, type: 3}
---- !u!4 &1511648091600317039 stripped
+--- !u!4 &1053040530624089465 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7f9e450dd92f8064db017575997f2b6b, type: 3}
-  m_PrefabInstance: {fileID: 1400842218356772228}
+  m_PrefabInstance: {fileID: 655167874692639378}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7944152504096623430
 PrefabInstance:
