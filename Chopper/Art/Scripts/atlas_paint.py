@@ -376,19 +376,20 @@ def strands(p, n, t, base, darkc, light):
 
 
 def clumps(p, n, t, base, darkc, light):
-    """Hair pixels as chunky locks (model sheet): 2x3 texel clumps, each a shade, with a dark lower lip."""
+    """Hair and beard as vertical locks (model sheet): 3 texel wide strands, each a shade, a thin seam between them."""
     if abs(n.z) > 0.7:
         col = math.floor(p.x / t)
         row = math.floor(p.y / t)
     else:
         col = math.floor(side_coord(p, n) / t)
         row = math.floor(p.z / t)
-    ci = col // 5
-    cj = (row + (ci % 2)) // 7
-    hsh = h3(ci, cj, 23)
-    c = mix(base, darkc, 0.35) if hsh < 0.3 else mix(base, light, 0.35) if hsh > 0.8 else base
-    if abs(n.z) <= 0.7 and (row + (ci % 2)) % 7 == 0:
-        return mix(c, darkc, 0.6)
+    lock = col // 3
+    hsh = h3(lock, 0, 29)
+    c = mix(base, darkc, 0.45) if hsh < 0.33 else mix(base, light, 0.40) if hsh > 0.72 else base
+    if col % 3 == 0:
+        c = mix(c, darkc, 0.50)
+    if (row + lock) % 4 == 0:
+        c = mix(c, darkc, 0.22)
     return c
 
 
@@ -491,13 +492,14 @@ def paint_armour(name, p, n, rgb):
     if name == "chopper_chainmail":
         t = TEXEL_M
         if z < 0.575 or abs(n.z) > 0.7:
-            return S(40, 40, 44)
-        ring = 4
-        lk = math.floor(z / t) % ring
-        lc = math.floor(side_coord(p, n) / t) % ring
-        if lk == 0 or lc == 0 or lk == ring - 1 or lc == ring - 1:
-            return S(36, 36, 40)
-        return S(108, 106, 104) if ((math.floor(z / (t * ring)) + math.floor(side_coord(p, n) / (t * ring))) % 2) == 0 else S(72, 70, 68)
+            return S(44, 44, 48)
+        col = math.floor(side_coord(p, n) / t)
+        row = math.floor(z / t)
+        link = (col + (row % 2)) % 2
+        base = S(120, 126, 136) if link == 0 else S(52, 54, 62)
+        if row % 2 == 0:
+            base = mix(base, S(168, 174, 185), 0.28)
+        return grain(base, p, t, 0.06)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
             return dark(rgb, 0.62)
