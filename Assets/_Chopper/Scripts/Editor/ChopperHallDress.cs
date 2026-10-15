@@ -36,7 +36,8 @@ namespace Chopper.Editor
                 foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
                 {
                     renderer.sharedMaterial = mat;
-                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.receiveShadows = false;
                 }
                 Directory.CreateDirectory(Path.GetDirectoryName(PrefabPath));
                 PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);

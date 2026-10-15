@@ -154,6 +154,7 @@ namespace Chopper.Networking
             if (director == null) return;
             Vector3 outfitAt = WorldStart.KitSpot(0);
             Vector3 axeAt = WorldStart.KitSpot(1);
+            Vector3 shieldAt = WorldStart.KitSpot(2);
             // One kit per player still without an outfit: an unused kit left on the bank (a saved player came back
             // dressed, or rejoined) is enough, so kits do not pile up over many joins.
             int spare = 0;
@@ -172,6 +173,7 @@ namespace Chopper.Networking
             int durability = axe != null ? axe.MaxDurability : 1;
             director.ServerDropItem(GroundItemKind.Outfit, 1, outfitAt, outfitAt);
             director.ServerDropItem(GroundItemKind.Axe, durability, axeAt, axeAt);
+            director.ServerDropItem(GroundItemKind.Shield, 1, shieldAt, shieldAt);
         }
     }
 }

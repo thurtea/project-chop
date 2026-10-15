@@ -1,6 +1,6 @@
 Chopper rig / FBX check report
 ========================================================================
-  [PASS] file exists: Export\chopper.fbx (5368092 bytes)
+  [PASS] file exists: Export\chopper.fbx (6100172 bytes)
   [PASS] file exists: Export\chopper_axe.fbx (32540 bytes)
   [PASS] file exists: Export\chopper_axe_bear.fbx (30876 bytes)
   [PASS] file exists: Export\chopper_shield.fbx (40476 bytes)
@@ -35,9 +35,13 @@ RAW FBX: chopper.fbx
   [PASS] take Gather present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
   [PASS] take Elemental_Walk present, frames 0.00-40.00 (expected 0-40 = 1.33 s at 30 fps)
   [PASS] take Elemental_Slam present, frames 0.00-36.00 (expected 0-36 = 1.20 s at 30 fps)
+  [PASS] take Elemental_Chop present, frames 0.00-28.00 (expected 0-28 = 0.93 s at 30 fps)
+  [PASS] take Elemental_Thrust present, frames 0.00-22.00 (expected 0-22 = 0.73 s at 30 fps)
+  [PASS] take Elemental_Smash present, frames 0.00-32.00 (expected 0-32 = 1.07 s at 30 fps)
+  [PASS] take Elemental_Stab present, frames 0.00-24.00 (expected 0-24 = 0.80 s at 30 fps)
   [PASS] take Draugr_Walk present, frames 0.00-36.00 (expected 0-36 = 1.20 s at 30 fps)
   [PASS] take Draugr_Attack present, frames 0.00-30.00 (expected 0-30 = 1.00 s at 30 fps)
-  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'Draugr_Attack', 'Draugr_Walk', 'Elemental_Slam', 'Elemental_Walk', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'Gather', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'Draugr_Attack', 'Draugr_Walk', 'Elemental_Slam', 'Elemental_Walk', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'Gather', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
+  [PASS] takes are exactly ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'Draugr_Attack', 'Draugr_Walk', 'Elemental_Chop', 'Elemental_Slam', 'Elemental_Smash', 'Elemental_Stab', 'Elemental_Thrust', 'Elemental_Walk', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'Gather', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'] (found ['Air', 'Attack_1', 'Attack_2', 'Attack_3', 'CrouchIdle', 'CrouchWalk', 'Death', 'Draugr_Attack', 'Draugr_Walk', 'Elemental_Chop', 'Elemental_Slam', 'Elemental_Smash', 'Elemental_Stab', 'Elemental_Thrust', 'Elemental_Walk', 'FishCast', 'FishCatch', 'FishFight', 'FishWait', 'Gather', 'HitReact', 'Idle', 'LandHard', 'Roll', 'Run', 'Sprint', 'Swim', 'SwimIdle', 'Walk'])
 
 IMPORTED chopper.fbx
 ------------------------------------------------------------------------
@@ -275,6 +279,30 @@ TAKE Elemental_Slam (imported)
   [PASS] Elemental_Slam moves (body vertex delta mid-clip 1.464 m)
   [PASS] Elemental_Slam: feet stay above Z=-0.02 (lowest -0.0000)
 
+TAKE Elemental_Chop (imported)
+  [PASS] action for take Elemental_Chop found (chopper_rig|Elemental_Chop)
+  [PASS] imported frame range 1-29 (expected 1-29)
+  [PASS] Elemental_Chop moves (body vertex delta mid-clip 0.159 m)
+  [PASS] Elemental_Chop: feet stay above Z=-0.02 (lowest -0.0000)
+
+TAKE Elemental_Thrust (imported)
+  [PASS] action for take Elemental_Thrust found (chopper_rig|Elemental_Thrust)
+  [PASS] imported frame range 1-23 (expected 1-23)
+  [PASS] Elemental_Thrust moves (body vertex delta mid-clip 0.377 m)
+  [PASS] Elemental_Thrust: feet stay above Z=-0.02 (lowest -0.0000)
+
+TAKE Elemental_Smash (imported)
+  [PASS] action for take Elemental_Smash found (chopper_rig|Elemental_Smash)
+  [PASS] imported frame range 1-33 (expected 1-33)
+  [PASS] Elemental_Smash moves (body vertex delta mid-clip 1.553 m)
+  [PASS] Elemental_Smash: feet stay above Z=-0.02 (lowest -0.0000)
+
+TAKE Elemental_Stab (imported)
+  [PASS] action for take Elemental_Stab found (chopper_rig|Elemental_Stab)
+  [PASS] imported frame range 1-25 (expected 1-25)
+  [PASS] Elemental_Stab moves (body vertex delta mid-clip 0.883 m)
+  [PASS] Elemental_Stab: feet stay above Z=-0.02 (lowest -0.0000)
+
 TAKE Draugr_Walk (imported)
   [PASS] action for take Draugr_Walk found (chopper_rig|Draugr_Walk)
   [PASS] imported frame range 1-37 (expected 1-37)
@@ -358,4 +386,4 @@ BEARD CLEARANCE (beard vertices vs vest, shirt and body)
 RENDERS (Workbench 1024 px, from the imported FBX): rig_idle_front.png, rig_rest_front.png, rig_walk_contact_side.png, rig_walk_contact_threequarter.png, rig_walk_passing_side.png, rig_warrior_idle.png
 
 ========================================================================
-SUMMARY: 242 PASS, 0 FAIL -> ALL PASS
+SUMMARY: 262 PASS, 0 FAIL -> ALL PASS

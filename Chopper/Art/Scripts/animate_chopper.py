@@ -1,6 +1,7 @@
 """Author Chopper's takes on chopper_rig: Idle, Walk, Run, Sprint, CrouchIdle, CrouchWalk, Air, LandHard, Roll,
 SwimIdle, Swim, Attack_1, Attack_2, Attack_3, HitReact, Death, and the fishing takes FishWait, FishCast, FishFight
 and FishCatch, and Gather. Enemy takes on the same rig: Elemental_Walk and Elemental_Slam (tree elemental),
+Elemental_Chop, Elemental_Thrust, Elemental_Smash and Elemental_Stab (arm-weapon archetypes),
 Draugr_Walk and Draugr_Attack (draugr on Chopper's mesh).
 
 Weight (W11-51): weight comes from timing, not noise. The walk and run drop onto each heel strike and shift the hips
@@ -65,6 +66,10 @@ ELEMENTAL_WALK_LEN = 40
 ELEMENTAL_WALK_SPEED = 0.70
 SLAM_LEN = 36
 SLAM_IMPACT = 22
+ELEMENTAL_CHOP_LEN = 28
+ELEMENTAL_THRUST_LEN = 22
+ELEMENTAL_SMASH_LEN = 32
+ELEMENTAL_STAB_LEN = 24
 DRAUGR_WALK_LEN = 36
 DRAUGR_WALK_SPEED = 0.65
 DRAUGR_ATTACK_LEN = 30
@@ -625,12 +630,30 @@ CHOP_KEYS = {
                       ((DRAUGR_IMPACT - 1) / 30, -4, 32, 8, 0, 7, -6, 30, 0.12),
                       (23 / 30, 0, 30, 5, 0, 3, -4, 26, 0.10),
                       (1.0, 0, 0, 0, 0, 0, 0, 14, 0.04)],
+    "Elemental_Chop": [(0.0, 12, -8, 18, 0, 0, 0, 4, 0.0),
+                       (0.32, 28, -85, 40, -30, 0, -22, 6, 0.0),
+                       (0.55, -8, 78, 12, 8, 0, 28, 16, 0.05),
+                       (0.74, -6, 60, 14, 0, 0, 14, 10, 0.03),
+                       (1.0, 12, -8, 18, 0, 0, 0, 4, 0.0)],
+    "Elemental_Thrust": [(0.0, 36, 6, -30, 0, 0, 0, 2, 0.0),
+                         (0.30, 48, 4, -95, 15, 0, -4, -8, 0.0),
+                         (0.55, 82, 6, -6, 0, 0, 2, 20, 0.03),
+                         (0.74, 80, 6, -8, 0, 0, 0, 14, 0.02),
+                         (1.0, 36, 6, -30, 0, 0, 0, 2, 0.0)],
+    "Elemental_Stab": [(0.0, 18, 0, 22, 0, 0, 0, 4, 0.0),
+                       (0.28, 30, -12, -78, 0, 0, -10, -4, 0.0),
+                       (0.58, 92, 2, -2, 0, 0, -8, 52, 0.07),
+                       (0.76, 88, 2, -4, 0, 0, -4, 40, 0.05),
+                       (1.0, 18, 0, 22, 0, 0, 0, 4, 0.0)],
 }
 CHOP_EASE = {
     "Attack_1": ["out", "smooth", "in", "out", "smooth"],
     "Attack_2": ["out", "smooth", "in", "out", "smooth"],
     "Attack_3": ["out", "smooth", "in", "out", "smooth"],
     "Draugr_Attack": ["smooth", "out", "smooth", "in", "out", "smooth"],
+    "Elemental_Chop": ["out", "in", "out", "smooth"],
+    "Elemental_Thrust": ["out", "in", "out", "smooth"],
+    "Elemental_Stab": ["out", "in", "out", "smooth"],
 }
 
 
@@ -745,6 +768,40 @@ attack1_pose = chop_pose("Attack_1", ATTACK1_LEN)
 attack2_pose = chop_pose("Attack_2", ATTACK2_LEN)
 attack3_pose = chop_pose("Attack_3", ATTACK3_LEN)
 draugr_attack_pose = chop_pose("Draugr_Attack", DRAUGR_ATTACK_LEN)
+elemental_chop_pose = chop_pose("Elemental_Chop", ELEMENTAL_CHOP_LEN)
+elemental_thrust_pose = chop_pose("Elemental_Thrust", ELEMENTAL_THRUST_LEN)
+_elemental_stab = chop_pose("Elemental_Stab", ELEMENTAL_STAB_LEN)
+
+
+def stab_pose(rig, f):
+    hips_off, deltas, feet = _elemental_stab(rig, f)
+    deltas["LeftUpperArm"] = R(X, -42.0) @ deltas["LeftUpperArm"]
+    deltas["Spine"] = R(X, 18.0) @ deltas["Spine"]
+    deltas["Chest"] = R(X, 16.0) @ deltas["Chest"]
+    return hips_off, deltas, feet
+
+
+SMASH_KEYS = [(0.0, 0, 16, 6, 0.02),
+              (0.18, -24, 22, 4, 0.02),
+              (0.40, -150, 30, -6, 0.0),
+              (0.52, -162, 42, -8, 0.0),
+              (0.72, -28, 24, 10, 0.03),
+              (0.84, -16, 18, 6, 0.02),
+              (1.0, 0, 16, 6, 0.02)]
+SMASH_EASE = ["smooth", "out", "smooth", "in", "out", "smooth"]
+
+
+def smash_pose(rig, f):
+    p = (f - 1) / ELEMENTAL_SMASH_LEN
+    pitch, elbow, lean, drop = chop_values(SMASH_KEYS, p, SMASH_EASE)
+    deltas = {}
+    deltas["Spine"] = R(X, lean * 0.55)
+    deltas["Chest"] = R(X, lean * 0.45)
+    deltas["Neck"] = R(X, -lean * 0.15)
+    deltas["Head"] = R(X, -lean * 0.15)
+    arm_base(rig, deltas, 20.0, 14.0, elbow)
+    deltas["RightUpperArm"] = R(Z, -32.0) @ R(X, pitch) @ deltas["RightUpperArm"]
+    return Vector((0, 0, -drop)), deltas, planted()
 
 SLAM_KEYS = [(0.0, 0, 15, 8, 0.02),
              (4 / 36, 12, 22, 13, 0.07),
@@ -893,6 +950,10 @@ def main():
         ("Gather", GATHER_LEN, gather_pose, False),
         ("Elemental_Walk", ELEMENTAL_WALK_LEN, elemental_walk_pose, True),
         ("Elemental_Slam", SLAM_LEN, slam_pose, False),
+        ("Elemental_Chop", ELEMENTAL_CHOP_LEN, elemental_chop_pose, False),
+        ("Elemental_Thrust", ELEMENTAL_THRUST_LEN, elemental_thrust_pose, False),
+        ("Elemental_Smash", ELEMENTAL_SMASH_LEN, smash_pose, False),
+        ("Elemental_Stab", ELEMENTAL_STAB_LEN, stab_pose, False),
         ("Draugr_Walk", DRAUGR_WALK_LEN, draugr_walk_pose, True),
         ("Draugr_Attack", DRAUGR_ATTACK_LEN, draugr_attack_pose, False),
     )

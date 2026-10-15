@@ -611,6 +611,12 @@ namespace Chopper.Networking
                 float Rise() => wood.transform.position.y - home.y;
 
                 // The outside steps to the door, across the main floor to the loft stairs (rising toward +X), and up them.
+                yield return TeleportLocalPlayer(new Vector2(home.x + 1f * hs, home.z + 6.2f * hs), 180f);
+                houseCam.DebugSetDistance(2.6f);
+                houseCam.SnapYaw(180f);
+                houseCam.DebugSetPitch(-12f);
+                yield return new WaitForSeconds(0.8f);
+                yield return Shot(folder, "house_porch_behind");
                 yield return TeleportLocalPlayer(new Vector2(home.x + 1f * hs, home.z + 7f * hs), 180f);
                 houseCam.DebugSetDistance(3f);
                 yield return new WaitForSeconds(0.8f);
@@ -2631,25 +2637,27 @@ namespace Chopper.Networking
                 fishing.TryToggle();
                 yield return new WaitForSeconds(0.8f);
                 float water = Chopper.World.Generation.WorldGen.WaterHeight;
-                Vector3 PondSide(Vector3 target, float along, float lift)
+                float ClearOfWater(float extra) => Mathf.Max(water + 1.85f, wood.transform.position.y + 1.45f) + extra;
+                Vector3 PondSide(Vector3 target, float along, float extra)
                 {
-                    Vector3 pond = new Vector3(gen.PondCenter.x, target.y, gen.PondCenter.y);
+                    Vector3 pond = new Vector3(gen.PondCenter.x, 0f, gen.PondCenter.y);
                     Vector3 dir = pond - target;
                     dir.y = 0f;
                     if (dir.sqrMagnitude < 0.01f) dir = Vector3.forward;
                     dir.Normalize();
-                    Vector3 at = target + dir * along + Vector3.up * lift;
-                    if (at.y < water + 0.55f) at.y = water + 0.55f;
+                    Vector3 at = target + dir * along;
+                    at.y = ClearOfWater(extra);
                     return at;
                 }
                 Vector3 stand = wood.transform.position;
-                Vector3 toPond = new Vector3(gen.PondCenter.x, stand.y, gen.PondCenter.y) - stand;
+                Vector3 toPond = new Vector3(gen.PondCenter.x, 0f, gen.PondCenter.y) - stand;
                 toPond.y = 0f;
                 if (toPond.sqrMagnitude < 0.01f) toPond = Vector3.left;
                 toPond.Normalize();
-                Vector3 rodCam = stand - toPond * 1.1f + Vector3.Cross(toPond, Vector3.up) * 1.7f + Vector3.up * 1.45f;
-                if (rodCam.y < water + 0.55f) rodCam.y = water + 0.55f;
-                cam.DebugHold(rodCam, Quaternion.LookRotation(stand + toPond * 1.3f + Vector3.up * 0.95f - rodCam));
+                Vector3 rodCam = stand - toPond * 2.2f + Vector3.Cross(toPond, Vector3.up) * 1.8f;
+                rodCam.y = ClearOfWater(0.15f);
+                cam.DebugHold(rodCam, Quaternion.LookRotation(stand + toPond * 0.6f + Vector3.up * 1.05f - rodCam));
+                Debug.Log($"[Fishing] rod cam y {rodCam.y:F2} water {water:F2} above {rodCam.y - water:F2}");
                 yield return Shot(folder, "fish_2_rod_out");
                 fishing.ServerForceKind((int)FishKind.Pike);
                 fishing.DebugCast(0.7f);
@@ -2664,13 +2672,14 @@ namespace Chopper.Networking
                 fishing.DebugPoseSchool(lure);
                 Debug.Log($"[Fishing] school {fishing.DebugSchoolCount} bobber {lure.y:F2} water {water:F2}");
                 Vector3 playerAt = wood.transform.position;
-                Vector3 bankLook = Vector3.Lerp(playerAt + Vector3.up * 1.15f, lure + Vector3.up * 0.12f, 0.55f);
+                Vector3 bankLook = Vector3.Lerp(playerAt + Vector3.up * 1.15f, lure + Vector3.up * 0.25f, 0.48f);
                 Vector3 across = Vector3.Cross(lure - playerAt, Vector3.up);
                 if (across.sqrMagnitude < 0.01f) across = Vector3.right;
                 across.Normalize();
-                Vector3 bankCam = bankLook + across * 2.6f + Vector3.up * 0.5f;
-                if (bankCam.y < water + 0.55f) bankCam.y = water + 0.55f;
+                Vector3 bankCam = playerAt - toPond * 2.6f + across * 2.3f;
+                bankCam.y = ClearOfWater(0.35f);
                 cam.DebugHold(bankCam, Quaternion.LookRotation(bankLook - bankCam));
+                Debug.Log($"[Fishing] bank cam y {bankCam.y:F2} water {water:F2} above {bankCam.y - water:F2} lure {lure.y:F2}");
                 yield return new WaitForSeconds(0.35f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "fish_3b_following");
@@ -3795,6 +3804,37 @@ namespace Chopper.Networking
                 PlayerCamera.Local.DebugSetDistance(2.1f);
                 yield return new WaitForSeconds(0.12f);
                 yield return Shot(folder, "fly_elem_" + names[i] + "_back");
+                string[] attacks = { "Elemental_Chop", "Elemental_Thrust", "Elemental_Smash", "Elemental_Stab" };
+                float[] strike = { 0.55f, 0.55f, 0.72f, 0.58f };
+                float ay = WorldGround.HeightAt(ex + 0.7f, ez);
+                one.transform.position = new Vector3(ex + 0.7f, ay, ez);
+                UnityEngine.AI.NavMeshAgent agent = one.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+                yield return TeleportLocalPlayer(new Vector2(ex - 0.4f, ez - 2.7f), 12f);
+                Vector3 face = wood.transform.position - one.transform.position;
+                face.y = 0f;
+                if (face.sqrMagnitude > 0.01f) one.transform.rotation = Quaternion.LookRotation(face);
+                PlayerCamera.Local.SnapYaw(12f);
+                PlayerCamera.Local.DebugSetPitch(4f);
+                PlayerCamera.Local.DebugSetDistance(3.1f);
+                Renderer[] hidden = wood.GetComponentsInChildren<Renderer>();
+                foreach (Renderer r in hidden) r.enabled = false;
+                Animator anim = one.BodyAnimator;
+                if (anim != null)
+                {
+                    anim.SetInteger("Weapon", i);
+                    anim.speed = 0f;
+                    anim.Play(attacks[i], 0, strike[i]);
+                    yield return null;
+                    anim.Play(attacks[i], 0, strike[i]);
+                    anim.speed = 0f;
+                    AnimatorStateInfo info = anim.GetCurrentAnimatorStateInfo(0);
+                    Debug.Log($"[Fly] elem {names[i]} attack {attacks[i]} playing {info.IsName(attacks[i])} t {info.normalizedTime:F2}");
+                }
+                yield return null;
+                yield return Shot(folder, "fly_elem_" + names[i] + "_atk");
+                foreach (Renderer r in hidden) if (r != null) r.enabled = true;
+                if (anim != null) anim.speed = 1f;
             }
             ui.DebugConsole("day");
             ui.DebugShow(0);
@@ -4793,10 +4833,10 @@ namespace Chopper.Networking
             PlayerMotor motor = wood.GetComponent<PlayerMotor>();
             float water = Chopper.World.Generation.WorldGen.WaterHeight;
             bool droppedIn = firstSeen.y > water + 10f;
-            bool startedBare = !axe.HasAxe && !upgrades.Dressed;
+            bool startedBare = !axe.HasAxe && !upgrades.Dressed && !upgrades.HasShield;
             int kitPieces = 0;
             foreach (GroundItem item in GroundItem.All)
-                if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit)) kitPieces++;
+                if (item != null && GroundItem.IsShoreGear(item.Kind)) kitPieces++;
             Debug.Log($"[Arrival] first seen at {firstSeen:F1} (water {water:F2}), dropped in {droppedIn}; no outfit and no axe {startedBare}; kit pieces on the ground {kitPieces}");
             PlayerCamera cam = wood.GetComponent<PlayerCamera>();
             cam.DebugSetDistance(7f);
@@ -4807,7 +4847,7 @@ namespace Chopper.Networking
             // Swim to the kit and walk over both pieces.
             Gamepad pad = InputSystem.AddDevice<Gamepad>();
             float start = Time.time;
-            for (int piece = 0; piece < 2; piece++)
+            for (int piece = 0; piece < 3; piece++)
             {
                 Vector3 target = WorldStart.KitSpot(piece);
                 float pieceStart = Time.time;
@@ -4831,7 +4871,8 @@ namespace Chopper.Networking
                     Quaternion savedRot = wood.transform.rotation;
                     Vector3 outfitAt = WorldStart.KitSpot(0);
                     Vector3 axeAt = WorldStart.KitSpot(1);
-                    Vector3 mid = (outfitAt + axeAt) * 0.5f;
+                    Vector3 shieldAt = WorldStart.KitSpot(2);
+                    Vector3 mid = (outfitAt + axeAt + shieldAt) / 3f;
                     Vector3 along = axeAt - outfitAt;
                     along.y = 0f;
                     if (along.sqrMagnitude < 0.01f) along = Vector3.forward;
@@ -4847,7 +4888,7 @@ namespace Chopper.Networking
                     wood.transform.SetPositionAndRotation(saved, savedRot);
                 }
                 foreach (GroundItem item in GroundItem.All)
-                    if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit))
+                    if (item != null && GroundItem.IsShoreGear(item.Kind))
                         Debug.Log($"[Arrival] piece {piece}: {item.Kind} at {item.transform.position:F1}, {Vector3.Distance(item.transform.position, wood.transform.position):F2} m");
                 GroundItem reach = GroundItem.GearInReach(wood.transform.position, wood.gameObject);
                 Debug.Log($"[Arrival] piece {piece}: player {wood.transform.position:F1}, kit spot {target:F1}, in reach {(reach != null ? reach.Kind.ToString() : "none")}, blocked {UiState.GameplayBlocked}");
@@ -4865,8 +4906,8 @@ namespace Chopper.Networking
             InputSystem.QueueStateEvent(pad, new GamepadState());
             InputSystem.RemoveDevice(pad);
             yield return new WaitForSeconds(1f);
-            bool equipped = axe.HasAxe && upgrades.Dressed;
-            Debug.Log($"[Arrival] reached the kit in {Time.time - start:F1} s, swimming {motor.IsSwimming}; axe {axe.HasAxe} (durability {axe.Durability}), outfit {upgrades.Dressed}");
+            bool equipped = axe.HasAxe && upgrades.Dressed && upgrades.HasShield;
+            Debug.Log($"[Arrival] reached the kit in {Time.time - start:F1} s, swimming {motor.IsSwimming}; axe {axe.HasAxe} (durability {axe.Durability}), outfit {upgrades.Dressed}, shield {upgrades.HasShield}");
             cam.SnapYaw(wood.transform.eulerAngles.y + 160f);
             cam.DebugSetDistance(3.4f);
             yield return new WaitForSeconds(0.8f);
@@ -4880,7 +4921,7 @@ namespace Chopper.Networking
             int left = 0;
             foreach (GroundItem item in GroundItem.All)
             {
-                if (item == null || (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit)) continue;
+                if (item == null || !GroundItem.IsShoreGear(item.Kind)) continue;
                 Vector3 off = item.transform.position - fellAt;
                 off.y = 0f;
                 if (off.magnitude < 3f) left++;
@@ -4891,12 +4932,12 @@ namespace Chopper.Networking
             yield return new WaitForSeconds(0.25f);
             Vector3 again = wood.transform.position;
             bool backInAir = again.y > water + 10f;
-            bool bareAgain = !axe.HasAxe && !upgrades.Dressed;
-            Debug.Log($"[Arrival] fell {fell}; gear left where they fell {left} of 2; arrives again at {again:F1}, in the air over the pond {backInAir}, empty-handed {bareAgain}");
+            bool bareAgain = !axe.HasAxe && !upgrades.Dressed && !upgrades.HasShield;
+            Debug.Log($"[Arrival] fell {fell}; gear left where they fell {left} of 3; arrives again at {again:F1}, in the air over the pond {backInAir}, empty-handed {bareAgain}");
             yield return new WaitForSeconds(2.5f);
             yield return Shot(folder, "arrival_4_back_in_the_pond");
 
-            bool pass = droppedIn && startedBare && kitPieces >= 2 && equipped && fell && left == 2 && backInAir && bareAgain;
+            bool pass = droppedIn && startedBare && kitPieces >= 3 && equipped && fell && left == 3 && backInAir && bareAgain;
             Debug.Log("[Arrival] RESULT " + (pass ? "PASS" : "FAIL"));
         }
 

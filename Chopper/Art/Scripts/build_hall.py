@@ -58,26 +58,25 @@ POST = srgb(72, 44, 24)
 BARGE = srgb(88, 54, 28)
 
 
+def log_tone(ix, iy, iz):
+    if iz % 2 == 0:
+        return LOG_DARK
+    return LOG_LIGHT if ((ix // 4) + (iy // 4)) % 2 else LOG
+
+
+def thatch_tone(ix, iy, iz):
+    band = iz % 3
+    if band == 0:
+        return THATCH_DARK
+    if band == 1:
+        return THATCH
+    return THATCH_LIGHT
+
+
 def h3(i, j, k):
     n = (i * 73856093) ^ (j * 19349663) ^ (k * 83492791)
     n = (n ^ (n >> 13)) * 1274126177
     return ((n ^ (n >> 16)) & 0xFFFF) / 65535.0
-
-
-def log_tone(ix, iy, iz):
-    a = h3(ix, iy, iz)
-    if iz % 2 == 0:
-        return LOG_DARK if a < 0.35 else LOG
-    return LOG_LIGHT if a > 0.72 else LOG
-
-
-def thatch_tone(ix, iy, iz):
-    a = h3(ix * 3, iy * 5, iz * 7)
-    if a < 0.22:
-        return THATCH_DARK
-    if a > 0.82:
-        return THATCH_LIGHT
-    return THATCH
 
 
 def stone_tone(ix, iy, iz):
@@ -197,31 +196,31 @@ def cells():
     fill(occ, 7, 9, -27, -25, 8, 16, lambda i, j, k: POST)
     fill(occ, -1, 9, -27, -25, 16, 17, lambda i, j, k: POST)
 
-    porch_half = 1.5
-    porch_eave, porch_ridge = MAIN + 1.55, MAIN + 3.15
-    for iy in range(-31, -18):
-        for ix in range(-3, 11):
-            across = (ix + 0.5) * S - 1.0
-            t = max(0.0, 1.0 - abs(across) / porch_half)
-            z = porch_eave + (porch_ridge - porch_eave) * t
-            iz_top = int(round(z / S))
-            for iz in range(max(14, iz_top - 2), iz_top + 1):
-                put(occ, ix, iy, iz, THATCH_DARK if (ix + iy + iz) % 3 == 0 else THATCH)
-    for face_y in (-32, -31):
-        for t in range(0, 8):
-            put(occ, -3 + t, face_y, 14 + t, BARGE)
-            put(occ, 10 - t, face_y, 14 + t, BARGE)
-        for t in range(0, 4):
-            put(occ, 3 + t, face_y, 21 + t, LOG_END)
-            put(occ, 4 - t, face_y, 21 + t, LOG_END)
-    for iz in range(14, 22):
-        span = porch_half * max(0.0, 1.0 - (iz * S - porch_eave) / (porch_ridge - porch_eave + 0.05))
-        if span < 0.12:
-            continue
-        ix_a = int(math.floor((1.0 - span) / S))
-        ix_b = int(math.ceil((1.0 + span) / S))
-        for ix in range(ix_a, ix_b):
-            put(occ, ix, -31, iz, log_tone(ix, -31, iz))
+    porch_half = 1.75
+    porch_ix0, porch_ix1 = -4, 12
+    porch_iy0, porch_iy1 = -32, -18
+
+    def porch_underside(ix, iy):
+        across = abs((ix + 0.5) * S - 1.0) / porch_half
+        along = (-18 - iy) / 14.0
+        rise = max(0.0, 1.0 - across) * max(0.0, min(1.0, along))
+        return 15 + int(round(4 * rise))
+
+    for iy in range(porch_iy0 + 1, porch_iy1):
+        for ix in range(porch_ix0, porch_ix1):
+            if abs((ix + 0.5) * S - 1.0) > porch_half:
+                continue
+            iz0 = porch_underside(ix, iy)
+            for iz in range(iz0, iz0 + 3):
+                put(occ, ix, iy, iz, thatch_tone(ix, iy, iz))
+    face_y = porch_iy0
+    for t in range(0, 8):
+        put(occ, -4 + t, face_y, 15 + t, BARGE)
+        put(occ, 11 - t, face_y, 15 + t, BARGE)
+    for t in range(0, 10):
+        iz = 15 + int(round(t * 6 / 9.0))
+        put(occ, -1 + t, face_y, iz, LOG_END)
+        put(occ, 8 - t, face_y, iz, LOG_END)
 
     fill(occ, 1, 7, -34, -29, 6, 7, lambda i, j, k: STONE if (i + j) % 2 == 0 else STONE_DARK)
     fill(occ, 1, 7, -29, -26, 7, 8, lambda i, j, k: PLANK if j % 2 == 0 else PLANK_DARK)
@@ -243,6 +242,14 @@ def mesh_from(occ):
     faces = []
     colors = []
     index = {}
+    thatch = {THATCH, THATCH_DARK, THATCH_LIGHT}
+    bottoms = {}
+    for (ix, iy, iz), color in occ.items():
+        if color not in thatch:
+            continue
+        prev = bottoms.get((ix, iy))
+        if prev is None or iz < prev:
+            bottoms[(ix, iy)] = iz
 
     def vert(ix, iy, iz, corner):
         key = (ix, iy, iz, corner)
@@ -253,12 +260,50 @@ def mesh_from(occ):
         bm_verts.append(((ix + cx) * S, (iy + cy) * S, (iz + cz) * S))
         return index[key]
 
+    def abs_vert(x, y, z):
+        key = ("s", x, y, z)
+        if key in index:
+            return index[key]
+        index[key] = len(bm_verts)
+        bm_verts.append((x * S, y * S, z * S))
+        return index[key]
+
+    def riser(ix, iy, iz, dx, dy):
+        own = bottoms.get((ix, iy))
+        nbr = bottoms.get((ix + dx, iy + dy))
+        if own is None or nbr is None or nbr <= own:
+            return False
+        return own <= iz < nbr
+
     for (ix, iy, iz), color in occ.items():
         for (dx, dy, dz), corners in FACE.items():
             if (ix + dx, iy + dy, iz + dz) in occ:
                 continue
+            if dz == -1 and bottoms.get((ix, iy)) == iz and color in thatch:
+                continue
+            if dz == 0 and riser(ix, iy, iz, dx, dy):
+                continue
             faces.append(tuple(vert(ix, iy, iz, c) for c in corners))
             colors.append(color)
+
+    for (ix, iy), iz in bottoms.items():
+        z00 = iz
+        z10 = bottoms.get((ix + 1, iy), iz)
+        z01 = bottoms.get((ix, iy + 1), iz)
+        z11 = bottoms.get((ix + 1, iy + 1), z10 if (ix + 1, iy) in bottoms else z01)
+        if (ix + 1, iy) not in bottoms:
+            z10 = z00
+        if (ix, iy + 1) not in bottoms:
+            z01 = z00
+        if (ix + 1, iy + 1) not in bottoms:
+            z11 = z10 if (ix + 1, iy) in bottoms else z01
+        faces.append((
+            abs_vert(ix, iy + 1, z01),
+            abs_vert(ix + 1, iy + 1, z11),
+            abs_vert(ix + 1, iy, z10),
+            abs_vert(ix, iy, z00),
+        ))
+        colors.append(THATCH)
     return bm_verts, faces, colors
 
 

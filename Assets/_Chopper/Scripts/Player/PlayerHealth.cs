@@ -198,6 +198,11 @@ namespace Chopper.Player
                 upgrades.ServerSetDressed(false);
                 director.ServerDropItem(Chopper.World.GroundItemKind.Outfit, 1, at, at - transform.right);
             }
+            if (upgrades != null && upgrades.HasShield)
+            {
+                upgrades.ServerSetShield(false);
+                director.ServerDropItem(Chopper.World.GroundItemKind.Shield, 1, at, at + transform.forward);
+            }
         }
 
         // Server only. Loading a saved player: their health when the world was saved (full if they were down).

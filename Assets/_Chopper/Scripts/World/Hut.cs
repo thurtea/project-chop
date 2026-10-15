@@ -163,10 +163,15 @@ namespace Chopper.World
                 {
                     Vector3 p = piece.localPosition;
                     bool inside = Mathf.Abs(p.x) < LayoutHalf.x && Mathf.Abs(p.z) < LayoutHalf.y;
-                    // The basement's stone-tinted walls too: the terrace buries their outside, and without them the
-                    // cellar showed the terrace's dirt.
                     bool basementWall = piece.name == "Wood wall" && p.y < 1f;
                     bool keep = (inside && (piece.name == "Wood floor" || piece.name == "Stairs")) || basementWall;
+                    if (basementWall)
+                    {
+                        Vector3 inset = Mathf.Abs(Mathf.Abs(p.z) - LayoutHalf.y) < 0.2f
+                            ? new Vector3(0f, 0f, -Mathf.Sign(p.z) * 0.12f)
+                            : new Vector3(-Mathf.Sign(p.x) * 0.12f, 0f, 0f);
+                        piece.localPosition = p + inset;
+                    }
                     if (keep) continue;
                     foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true))
                         renderer.enabled = false;

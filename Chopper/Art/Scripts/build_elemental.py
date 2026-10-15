@@ -5,10 +5,11 @@ In:   Art/Blender/chopper_rigged.blend (rig and takes, read only)
 Out:  Art/Blender/chopper_elemental.blend, Art/Export/chopper_elemental.fbx
 
 Bark is the shared wood body (neutral and earth): muscled torso, antlers, root feet,
-wooden axe and carved shield. Leaves0 adds the willow crown, blue eyes and leaf skirt.
-Leaves3 is a moss crown and amber eyes on that same body. Leaves1, Leaves2 and Leaves4
-are full water, fire and wind bodies. Axe boxes sit in the Weapon_R frame and are
-weighted to RightHand. Shield boxes sit in the LeftHand frame.
+a right arm shaped as an axe, and a carved shield. Leaves0 adds the willow crown, blue
+eyes and leaf skirt. Leaves3 is a moss crown and amber eyes on that same body.
+Leaves1, Leaves2 and Leaves4 are full water, fire and wind bodies, each with its own
+right-arm weapon (mace, sword, spear). Weapon boxes are weighted to the arm bones.
+Shield boxes sit in the LeftHand frame.
 """
 import math
 import os
@@ -177,7 +178,7 @@ def antlers(P, g, pal):
         P.limb(g, "UpperChest", (s * 0.16, -0.04, 1.26), (s * 0.26, -0.14, 1.40), 0.028, 0.024, pal["thorn"])
 
 
-def limbs(P, R, g, pal):
+def limbs(P, R, g, pal, weapon="axe"):
     for side, s in (("Left", 1), ("Right", -1)):
         sh = R.head[side + "UpperArm"]
         el = R.head[side + "LowerArm"]
@@ -186,8 +187,16 @@ def limbs(P, R, g, pal):
         P.limb(g, side + "UpperArm", sh, el, 0.13, 0.14, pal["body"], 0.03)
         mid = sh.lerp(el, 0.45)
         P.put(g, side + "UpperArm", mid + Vector((0, -0.04, 0.02)), (0.08, 0.06, 0.10), pal["muscle"], 0.01)
-        P.limb(g, side + "LowerArm", el, wr, 0.11, 0.12, pal["dark"], 0.02)
-        P.put(g, side + "LowerArm", el.lerp(wr, 0.55) + Vector((0, -0.03, 0)), (0.07, 0.05, 0.08), pal["light"], 0.008)
+        lw, ld = 0.11, 0.12
+        if side == "Right" and weapon == "sword":
+            lw, ld = 0.055, 0.14
+        elif side == "Right" and weapon == "spear":
+            lw, ld = 0.05, 0.05
+        elif side == "Right" and weapon == "mace":
+            lw, ld = 0.09, 0.09
+        P.limb(g, side + "LowerArm", el, wr, lw, ld, pal["dark"], 0.02)
+        if not (side == "Right" and weapon in ("sword", "spear", "mace")):
+            P.put(g, side + "LowerArm", el.lerp(wr, 0.55) + Vector((0, -0.03, 0)), (0.07, 0.05, 0.08), pal["light"], 0.008)
         hip, kn = R.head[side + "UpperLeg"], R.head[side + "LowerLeg"]
         an = R.head[side + "Foot"]
         P.limb(g, side + "UpperLeg", hip, kn, 0.18, 0.18, pal["body"], 0.03)
@@ -197,10 +206,32 @@ def limbs(P, R, g, pal):
 
 
 def fists(P, R, g, pal):
-    for side in ("Right", "Left"):
-        wr, ht = R.head[side + "Hand"], R.tail[side + "Hand"]
-        P.put(g, side + "Hand", wr.lerp(ht, 0.35), (0.11, 0.09, 0.10), pal["body"], 0.012)
-        P.put(g, side + "Hand", wr.lerp(ht, 0.7), (0.08, 0.07, 0.07), pal["dark"], 0.008)
+    wr, ht = R.head["LeftHand"], R.tail["LeftHand"]
+    P.put(g, "LeftHand", wr.lerp(ht, 0.35), (0.11, 0.09, 0.10), pal["body"], 0.012)
+    P.put(g, "LeftHand", wr.lerp(ht, 0.7), (0.08, 0.07, 0.07), pal["dark"], 0.008)
+
+
+def weapon_arm(P, R, g, pal, kind):
+    frame = R.frame["Weapon_R"]
+    bone = "RightHand"
+    if kind == "axe":
+        P.put_local(g, bone, frame, (0, 0, 0.06), (0.08, 0.08, 0.20), pal["haft"], 0.008)
+        P.put_local(g, bone, frame, (0.02, 0, 0.26), (0.14, 0.10, 0.16), pal["axe"], 0.01)
+        P.put_local(g, bone, frame, (0.16, 0, 0.26), (0.22, 0.055, 0.30), pal["blade"], 0.008)
+        P.put_local(g, bone, frame, (0.28, 0, 0.24), (0.10, 0.04, 0.20), pal["edge"], 0.006)
+    elif kind == "sword":
+        P.put_local(g, bone, frame, (0, 0, 0.08), (0.07, 0.06, 0.16), pal["haft"], 0.006)
+        P.put_local(g, bone, frame, (0, 0, 0.48), (0.16, 0.045, 0.72), pal["blade"], 0.006)
+        P.put_local(g, bone, frame, (0, 0, 0.86), (0.08, 0.03, 0.18), pal["edge"], 0.004)
+    elif kind == "mace":
+        P.put_local(g, bone, frame, (0, 0, 0.10), (0.11, 0.11, 0.24), pal["haft"], 0.008)
+        P.put_local(g, bone, frame, (0, 0, 0.42), (0.34, 0.32, 0.34), pal["edge"], 0.016)
+        P.put_local(g, bone, frame, (0.16, 0, 0.42), (0.20, 0.24, 0.24), pal["light"], 0.012)
+        P.put_local(g, bone, frame, (-0.12, 0.08, 0.46), (0.18, 0.20, 0.20), pal["axe"], 0.012)
+    else:
+        P.put_local(g, bone, frame, (0, 0, 0.08), (0.06, 0.06, 0.18), pal["haft"], 0.006)
+        P.put_local(g, bone, frame, (0, 0, 0.62), (0.045, 0.045, 0.95), pal["blade"], 0.005)
+        P.put_local(g, bone, frame, (0, 0, 1.12), (0.10, 0.10, 0.16), pal["edge"], 0.006)
 
 
 def cracks(P, g, color, bones=True):
@@ -263,8 +294,8 @@ def shield(P, frame, g, pal, kind):
                         (0.07, 0.04, 0.012), pal["carve"], 0.003)
 
 
-def gear(P, R, g, pal, kind):
-    axe(P, R.frame["Weapon_R"], g, pal)
+def gear(P, R, g, pal, kind, weapon):
+    weapon_arm(P, R, g, pal, weapon)
     shield(P, R.frame["LeftHand"], g, pal, kind)
 
 
@@ -376,10 +407,10 @@ def eyes_only(P, g, color):
         P.put(g, "Head", (s * 0.075, -0.205, 1.62), (0.06, 0.025, 0.038), color, 0.003)
 
 
-def body(P, R, g, pal, eyes, kind):
+def body(P, R, g, pal, eyes, kind, weapon):
     torso(P, g, pal)
     head(P, g, pal, eyes, pal["eye"])
-    limbs(P, R, g, pal)
+    limbs(P, R, g, pal, weapon)
     fists(P, R, g, pal)
     if kind == "wood":
         antlers(P, g, pal)
@@ -402,24 +433,24 @@ def body(P, R, g, pal, eyes, kind):
 
 
 def build_all(P, R):
-    body(P, R, "Bark", WOOD, False, "wood")
-    gear(P, R, "Bark", WOOD, "leaf")
+    body(P, R, "Bark", WOOD, False, "wood", "axe")
+    gear(P, R, "Bark", WOOD, "leaf", "axe")
     eyes_only(P, "Leaves0", WOOD["eye"])
     willow(P, "Leaves0", (WOOD["leaf"], WOOD["leaf2"], WOOD["leaf3"]))
     skirt(P, "Leaves0", (WOOD["leaf"], WOOD["leaf2"], WOOD["leaf3"]), "leaf")
-    body(P, R, "Leaves1", WATER, True, "water")
-    gear(P, R, "Leaves1", WATER, "swirl")
+    body(P, R, "Leaves1", WATER, True, "water", "mace")
+    gear(P, R, "Leaves1", WATER, "swirl", "mace")
     water_hair(P, "Leaves1", WATER)
     skirt(P, "Leaves1", (WATER["light"], WATER["leaf2"], WATER["leaf3"]), "cloth")
     splash(P, R, "Leaves1", WATER)
-    body(P, R, "Leaves2", FIRE, True, "fire")
-    gear(P, R, "Leaves2", FIRE, "brand")
+    body(P, R, "Leaves2", FIRE, True, "fire", "sword")
+    gear(P, R, "Leaves2", FIRE, "brand", "sword")
     flame_crown(P, "Leaves2", FIRE)
     skirt(P, "Leaves2", (FIRE["leaf"], FIRE["dark"], FIRE["leaf2"]), "flame")
     eyes_only(P, "Leaves3", EARTH_EYE)
     moss_crown(P, "Leaves3")
-    body(P, R, "Leaves4", WIND, True, "wind")
-    gear(P, R, "Leaves4", WIND, "wind")
+    body(P, R, "Leaves4", WIND, True, "wind", "spear")
+    gear(P, R, "Leaves4", WIND, "wind", "spear")
     wind_crown(P, "Leaves4", WIND)
     skirt(P, "Leaves4", (WIND["leaf"], WIND["light"], WIND["leaf3"]), "cloth")
 

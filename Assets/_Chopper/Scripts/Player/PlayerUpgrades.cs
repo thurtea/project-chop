@@ -42,6 +42,7 @@ namespace Chopper.Player
         // The everyday outfit (shirt, vest, belt; W9-01, user 2026-10-12): a new player wakes in the pond without it and
         // picks it up on the shore; a fallen player leaves it where they fell.
         private readonly SyncVar<bool> _dressed = new SyncVar<bool>();
+        private readonly SyncVar<bool> _hasShield = new SyncVar<bool>();
 
         // Raised on every client when this player puts the armour on (or a save loads it).
         public event System.Action OutfitChanged;
@@ -70,6 +71,7 @@ namespace Chopper.Player
         public int DomeStones => _domeStones.Value;
         public bool Armoured => _armoured.Value;
         public bool Dressed => _dressed.Value;
+        public bool HasShield => _hasShield.Value;
         public bool HasStone(Element element) => ElementBuffRules.HasStone(_stones.Value, element);
         public int WardLevel(Element element) => EssenceRules.Get(_wards.Value, element);
         // Share of damage from enemies of this element that the player's ward takes away.
@@ -98,6 +100,7 @@ namespace Chopper.Player
             _stones.OnChange += OnStonesChanged;
             _armoured.OnChange += OnArmouredChanged;
             _dressed.OnChange += OnDressedChanged;
+            _hasShield.OnChange += OnShieldChanged;
             OutfitChanged?.Invoke();
         }
 
@@ -112,6 +115,7 @@ namespace Chopper.Player
             _stones.OnChange -= OnStonesChanged;
             _armoured.OnChange -= OnArmouredChanged;
             _dressed.OnChange -= OnDressedChanged;
+            _hasShield.OnChange -= OnShieldChanged;
         }
 
         private void OnDressedChanged(bool previous, bool next, bool asServer)
@@ -122,6 +126,14 @@ namespace Chopper.Player
 
         // Server only. Puts the outfit on (picked up) or takes it off (dropped where the player fell).
         public void ServerSetDressed(bool dressed) => _dressed.Value = dressed;
+
+        public void ServerSetShield(bool shield) => _hasShield.Value = shield;
+
+        private void OnShieldChanged(bool previous, bool next, bool asServer)
+        {
+            if (asServer != IsServerInitialized) return;
+            OutfitChanged?.Invoke();
+        }
 
         private void OnArmouredChanged(bool previous, bool next, bool asServer)
         {

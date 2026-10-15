@@ -90,6 +90,7 @@ namespace Chopper.UI
 
         public static string AxeOnGroundPrompt => Prompt("Axe", KeyAction.Interact, "Pick up");
         public static string OutfitOnGroundPrompt => Prompt("Outfit", KeyAction.Interact, "Put on");
+        public static string ShieldOnGroundPrompt => Prompt("Shield", KeyAction.Interact, "Pick up");
 
         public static string WorkbenchPrompt => Prompt("Workbench", KeyAction.Interact, "Use");
 

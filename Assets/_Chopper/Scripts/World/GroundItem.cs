@@ -14,7 +14,8 @@ namespace Chopper.World
         Fiber = 2,
         // W9-01: a player's axe (amount = its durability) and outfit, on the pond bank at the start or where they fell.
         Axe = 3,
-        Outfit = 4
+        Outfit = 4,
+        Shield = 5
     }
 
     // Something lying on the ground, picked up by walking over it, the way Valheim does it: pressing interact on a
@@ -52,6 +53,7 @@ namespace Chopper.World
         private float _shownAt;
 
         public static IReadOnlyList<GroundItem> All => _all;
+        public static bool IsShoreGear(GroundItemKind kind) => kind == GroundItemKind.Axe || kind == GroundItemKind.Outfit || kind == GroundItemKind.Shield;
         public GroundItemKind Kind => (GroundItemKind)_kind.Value;
         public int Amount => _amount.Value;
 
@@ -75,7 +77,7 @@ namespace Chopper.World
             _from.Value = from;
             _readyAt = Time.time + ReadySeconds;
             // A player's own gear never rots away: it waits on the bank or where they fell.
-            _expiresAt = kind == GroundItemKind.Axe || kind == GroundItemKind.Outfit ? float.MaxValue : Time.time + LifetimeSeconds;
+            _expiresAt = IsShoreGear(kind) ? float.MaxValue : Time.time + LifetimeSeconds;
         }
 
         // Server only. Gone at once (the world load replaces the fresh start kits with the saved gear).
@@ -96,7 +98,7 @@ namespace Chopper.World
             }
             if (Time.time < _readyAt) return;
             // The axe and the outfit wait for interact. Everything else is taken by walking over it.
-            if (Kind == GroundItemKind.Axe || Kind == GroundItemKind.Outfit) return;
+            if (IsShoreGear(Kind)) return;
             Vector3 at = transform.position;
             foreach (PlayerWood player in PlayerWood.Active)
             {
@@ -124,21 +126,22 @@ namespace Chopper.World
         // With a taker, gear it cannot take (a second axe, a second outfit) is skipped.
         public static GroundItem GearInReach(Vector3 position, GameObject taker = null)
         {
-            bool hasAxe = false, dressed = false;
+            bool hasAxe = false, dressed = false, hasShield = false;
             if (taker != null)
             {
                 PlayerAxe axe = taker.GetComponent<PlayerAxe>();
                 PlayerUpgrades upgrades = taker.GetComponent<PlayerUpgrades>();
                 hasAxe = axe != null && axe.HasAxe;
                 dressed = upgrades != null && upgrades.Dressed;
+                hasShield = upgrades != null && upgrades.HasShield;
             }
             GroundItem best = null;
             float bestSqr = GearPickupRadius * GearPickupRadius;
             foreach (GroundItem item in _all)
             {
                 if (item == null) continue;
-                if (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit) continue;
-                if ((item.Kind == GroundItemKind.Axe && hasAxe) || (item.Kind == GroundItemKind.Outfit && dressed)) continue;
+                if (!IsShoreGear(item.Kind)) continue;
+                if ((item.Kind == GroundItemKind.Axe && hasAxe) || (item.Kind == GroundItemKind.Outfit && dressed) || (item.Kind == GroundItemKind.Shield && hasShield)) continue;
                 if (Time.time < item._readyAt) continue;
                 Vector3 offset = item.transform.position - position;
                 if (Mathf.Abs(offset.y) > MaxHeightGap) continue;
@@ -154,7 +157,7 @@ namespace Chopper.World
         public bool ServerTryTake(PlayerWood player)
         {
             if (!IsServerInitialized || player == null || Time.time < _readyAt) return false;
-            if (Kind != GroundItemKind.Axe && Kind != GroundItemKind.Outfit) return false;
+            if (!IsShoreGear(Kind)) return false;
             Vector3 offset = player.transform.position - transform.position;
             if (Mathf.Abs(offset.y) > MaxHeightGap) return false;
             offset.y = 0f;
@@ -192,6 +195,13 @@ namespace Chopper.World
                     PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
                     if (upgrades == null || upgrades.Dressed) return 0;
                     upgrades.ServerSetDressed(true);
+                    return amount;
+                }
+                case GroundItemKind.Shield:
+                {
+                    PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
+                    if (upgrades == null || upgrades.HasShield) return 0;
+                    upgrades.ServerSetShield(true);
                     return amount;
                 }
                 case GroundItemKind.Herb:
@@ -240,7 +250,7 @@ namespace Chopper.World
                 view.AddComponent<MeshRenderer>().sharedMaterial = _woodMaterial;
                 view.transform.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
             }
-            else if (Kind == GroundItemKind.Axe || Kind == GroundItemKind.Outfit)
+            else if (IsShoreGear(Kind))
             {
                 view = BuildGearView(Kind);
                 if (view == null) return;
@@ -264,8 +274,8 @@ namespace Chopper.World
 
         private static GameObject BuildGearView(GroundItemKind kind)
         {
-            string resource = kind == GroundItemKind.Axe ? "prop_ground_axe_voxel" : "prop_ground_outfit_voxel";
-            string name = kind == GroundItemKind.Axe ? "AxeOnGround" : "OutfitOnGround";
+            string resource = kind == GroundItemKind.Axe ? "prop_ground_axe_voxel" : kind == GroundItemKind.Outfit ? "prop_ground_outfit_voxel" : "prop_ground_shield_voxel";
+            string name = kind == GroundItemKind.Axe ? "AxeOnGround" : kind == GroundItemKind.Outfit ? "OutfitOnGround" : "ShieldOnGround";
             Transform spawned = FishSchoolView.Spawn(resource, name, 0f);
             if (spawned == null) return null;
             spawned.localRotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);

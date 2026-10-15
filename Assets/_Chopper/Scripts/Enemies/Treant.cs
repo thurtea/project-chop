@@ -106,6 +106,7 @@ namespace Chopper.Enemies
         private static readonly Color DraugrSkin = new Color(0.95f, 1.05f, 1f);
         private static readonly int SpeedParam = Animator.StringToHash("Speed");
         private static readonly int AttackParam = Animator.StringToHash("Attack");
+        private static readonly int WeaponParam = Animator.StringToHash("Weapon");
         private static readonly int HitParam = Animator.StringToHash("Hit");
         private static readonly int DeathParam = Animator.StringToHash("Death");
         // Client: the glowing material copies made for this enemy's look, destroyed with it.
@@ -419,11 +420,23 @@ namespace Chopper.Enemies
             if (PlayerCamera.Local != null) PlayerCamera.Local.AddShake(0.05f);
         }
 
+        private static int WeaponIndex(Element element)
+        {
+            if (element == Element.Fire) return 1;
+            if (element == Element.Water) return 2;
+            if (element == Element.Wind) return 3;
+            return 0;
+        }
+
         [ObserversRpc]
         private void WindupObserversRpc()
         {
             _windupStart = Time.time;
-            if (_draugr != null) _draugr.SetTrigger(AttackParam);
+            if (_draugr != null)
+            {
+                _draugr.SetInteger(WeaponParam, WeaponIndex(Element));
+                _draugr.SetTrigger(AttackParam);
+            }
             // A low whoosh as the branch comes back: the attack can be heard coming.
             Sfx.Play(ProceduralSfx.Swing, transform.position + Vector3.up * 1.5f, 0.75f, 0.55f, 0.05f);
         }
@@ -683,6 +696,7 @@ namespace Chopper.Enemies
             model.transform.localScale = Vector3.one;
             _model = model.transform;
             _draugr = model.GetComponentInChildren<Animator>();
+            if (_draugr != null) _draugr.SetInteger(WeaponParam, WeaponIndex(Element));
             ShowElementCrown(model);
             _modelBaseHeight = MeasureEnabledHeight(model);
             ApplyGolemScale();

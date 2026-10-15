@@ -8,7 +8,8 @@ namespace Chopper.Player
     // and the hair hides under the helmet. Every client runs this for every player it sees. Nothing here is networked.
     public class PlayerOutfit : MonoBehaviour
     {
-        private static readonly string[] ArmourParts = { "chopper_helmet", "chopper_shield" };
+        private static readonly string[] ArmourParts = { "chopper_helmet" };
+        private const string Shield = "chopper_shield";
         private const string Hair = "chopper_hair";
         // The everyday outfit (W9-01): shown once it is picked up on the shore (PlayerUpgrades.Dressed). Without it
         // Chopper wears his base layer (undershirt and braies): the shirt and body with the base-layer atlas.
@@ -20,6 +21,7 @@ namespace Chopper.Player
         private static Texture2D _baseLayer;
 
         private readonly List<Renderer> _armour = new List<Renderer>();
+        private readonly List<Renderer> _shield = new List<Renderer>();
         private readonly List<Renderer> _hair = new List<Renderer>();
         private readonly List<Renderer> _outfit = new List<Renderer>();
         private readonly List<Renderer> _baseLayerRenderers = new List<Renderer>();
@@ -34,6 +36,7 @@ namespace Chopper.Player
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
             {
                 if (IsArmour(renderer.transform)) _armour.Add(renderer);
+                else if (IsNamed(renderer.transform, Shield)) _shield.Add(renderer);
                 else if (renderer.gameObject.name == Hair) _hair.Add(renderer);
                 else if (System.Array.IndexOf(OutfitParts, renderer.gameObject.name) >= 0) _outfit.Add(renderer);
                 else if (System.Array.IndexOf(BaseLayerParts, renderer.gameObject.name) >= 0) _baseLayerRenderers.Add(renderer);
@@ -54,8 +57,11 @@ namespace Chopper.Player
         private void Apply()
         {
             ShowsArmour = _upgrades != null && _upgrades.Armoured;
+            bool showShield = _upgrades != null && (_upgrades.HasShield || _upgrades.Armoured);
             foreach (Renderer renderer in _armour)
                 if (renderer != null) renderer.enabled = ShowsArmour;
+            foreach (Renderer renderer in _shield)
+                if (renderer != null) renderer.enabled = showShield;
             foreach (Renderer renderer in _hair) if (renderer != null) renderer.enabled = !ShowsArmour;
             bool dressed = _upgrades == null || _upgrades.Dressed;
             foreach (Renderer renderer in _outfit)
@@ -86,6 +92,13 @@ namespace Chopper.Player
         {
             for (; t != null && t != transform; t = t.parent)
                 if (System.Array.IndexOf(ArmourParts, t.name) >= 0) return true;
+            return false;
+        }
+
+        private bool IsNamed(Transform t, string part)
+        {
+            for (; t != null && t != transform; t = t.parent)
+                if (t.name == part) return true;
             return false;
         }
     }

@@ -188,7 +188,7 @@ namespace Chopper.World.Saving
             }
             foreach (GroundItem item in GroundItem.All)
             {
-                if (item == null || (item.Kind != GroundItemKind.Axe && item.Kind != GroundItemKind.Outfit)) continue;
+                if (item == null || !GroundItem.IsShoreGear(item.Kind)) continue;
                 save.Gear.Add(new GearRecord { Position = item.transform.position, Kind = (int)item.Kind, Amount = item.Amount });
             }
 
@@ -243,6 +243,7 @@ namespace Chopper.World.Saving
                 record.DomeStones = upgrades.DomeStones;
                 record.Armoured = upgrades.Armoured;
                 record.Undressed = !upgrades.Dressed;
+                record.HasShield = upgrades.HasShield;
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();
             if (boons != null) record.Boons = boons.Packed;
@@ -304,11 +305,11 @@ namespace Chopper.World.Saving
             foreach (PileRecord pile in save.Piles) director.ServerDropWood(pile.Position, pile.Amount);
             // The fresh world's start kits make way for the saved gear (kits included), so nothing doubles up.
             foreach (GroundItem item in new List<GroundItem>(GroundItem.All))
-                if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit)) item.ServerRemove();
+                if (item != null && GroundItem.IsShoreGear(item.Kind)) item.ServerRemove();
             foreach (GearRecord gear in save.Gear)
             {
                 var kind = (GroundItemKind)gear.Kind;
-                if (kind == GroundItemKind.Axe || kind == GroundItemKind.Outfit) director.ServerDropItem(kind, gear.Amount, gear.Position, gear.Position);
+                if (GroundItem.IsShoreGear(kind)) director.ServerDropItem(kind, gear.Amount, gear.Position, gear.Position);
             }
 
             var looted = new List<(int, string)>();
@@ -367,6 +368,7 @@ namespace Chopper.World.Saving
                 upgrades.ServerLoadOutfit(record.ArmourKits, record.Armoured);
                 upgrades.ServerLoadDomeStones(record.DomeStones);
                 if (record.Undressed) upgrades.ServerSetDressed(false);
+                upgrades.ServerSetShield(record.HasShield);
             }
             PlayerBoons boons = player.GetComponent<PlayerBoons>();
             if (boons != null) boons.ServerLoad(record.Boons);

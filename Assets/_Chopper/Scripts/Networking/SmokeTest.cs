@@ -104,14 +104,14 @@ namespace Chopper.Networking
             PlayerFishing startRod = wood.GetComponent<PlayerFishing>();
             // W9-01 (user, 2026-10-12): players arrive in the pond with no axe and no outfit; both lie on the bank.
             PlayerUpgrades startUpgrades = wood.GetComponent<PlayerUpgrades>();
-            Check(!axe.HasAxe && !startUpgrades.Dressed, "players arrive with no axe and no outfit");
+            Check(!axe.HasAxe && !startUpgrades.Dressed && !startUpgrades.HasShield, "players arrive with no axe, no outfit and no shield");
             int kitPieces = 0;
             foreach (GroundItem item in GroundItem.All)
-                if (item != null && (item.Kind == GroundItemKind.Axe || item.Kind == GroundItemKind.Outfit)) kitPieces++;
-            Check(kitPieces >= 2, $"the start kit lies on the pond bank ({kitPieces} pieces)");
-            // The rest of the run uses them, as if picked up on the shore.
+                if (item != null && GroundItem.IsShoreGear(item.Kind)) kitPieces++;
+            Check(kitPieces >= 3, $"the start kit lies on the pond bank ({kitPieces} pieces)");
             axe.ServerResetTool();
             startUpgrades.ServerSetDressed(true);
+            startUpgrades.ServerSetShield(true);
             Check(axe.HasAxe && axe.Durability == config.AxeDurability, "the axe from the shore is new");
             Check(startRod != null && startRod.Rod >= 1 && startRod.CanFish, "players start with a fishing rod");
             Check(Workbench.All.Count >= 1 && Sign.Guide != null, "the house has a workbench and the yard a notice board");

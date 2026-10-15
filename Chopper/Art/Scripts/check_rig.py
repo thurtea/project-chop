@@ -38,7 +38,8 @@ SOCKETS = ["Weapon_R", "Shield_L", "Shield_Back"]
 TAKES = {"Idle": 60, "Walk": 30, "Run": 18, "Sprint": 16, "CrouchIdle": 40, "CrouchWalk": 24, "Air": 20, "LandHard": 18,
          "Roll": 24, "SwimIdle": 40, "Swim": 24, "Attack_1": 22, "Attack_2": 22, "Attack_3": 28, "HitReact": 15,
          "Death": 30, "FishWait": 60, "FishCast": 24, "FishFight": 20, "FishCatch": 24, "Gather": 30,
-         "Elemental_Walk": 40, "Elemental_Slam": 36, "Draugr_Walk": 36, "Draugr_Attack": 30}
+         "Elemental_Walk": 40, "Elemental_Slam": 36, "Elemental_Chop": 28, "Elemental_Thrust": 22,
+         "Elemental_Smash": 32, "Elemental_Stab": 24, "Draugr_Walk": 36, "Draugr_Attack": 30}
 LOOP_TAKES = {"Idle", "Walk", "Run", "Sprint", "CrouchIdle", "CrouchWalk", "Air", "SwimIdle", "Swim", "FishWait", "FishFight",
               "Elemental_Walk", "Draugr_Walk"}
 # Ground speed of each in-place gait (= animate_chopper GAITS), for the planted-foot slip check.

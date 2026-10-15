@@ -31,7 +31,7 @@ namespace Chopper.Editor
         static readonly string[] FishGear =
             { "prop_fish_voxel", "prop_rod_butt_voxel", "prop_rod_tip_voxel", "prop_bobber_voxel", "prop_aim_ring_voxel" };
         static readonly string[] GroundGear =
-            { "prop_ground_axe_voxel", "prop_ground_outfit_voxel" };
+            { "prop_ground_axe_voxel", "prop_ground_outfit_voxel", "prop_ground_shield_voxel" };
 
         public static void ApplyFish()
         {

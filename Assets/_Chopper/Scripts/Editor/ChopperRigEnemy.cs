@@ -143,8 +143,25 @@ namespace Chopper.Editor
             tree.children = children;
             machine.defaultState = locomotion;
 
-            AddAction(machine, locomotion, "Attack", attack, attackSpeed, 0.9f);
-            Debug.Log($"RESULT: {Path.GetFileNameWithoutExtension(path)} walk {(walk != null ? walk.name : "MISSING")} attack {(attack != null ? attack.name : "MISSING")}");
+            if (elemental)
+            {
+                controller.AddParameter("Weapon", AnimatorControllerParameterType.Int);
+                string[] weaponTakes = { "Elemental_Chop", "Elemental_Thrust", "Elemental_Smash", "Elemental_Stab" };
+                var used = new System.Text.StringBuilder();
+                for (int i = 0; i < weaponTakes.Length; i++)
+                {
+                    AnimationClip clip = CharacterSetup.ChopperTake(weaponTakes[i]);
+                    if (i > 0) used.Append(", ");
+                    used.Append(clip != null ? clip.name : "MISSING");
+                    AddWeaponAttack(machine, locomotion, weaponTakes[i], clip ?? attack, i, attackSpeed);
+                }
+                Debug.Log($"RESULT: {Path.GetFileNameWithoutExtension(path)} walk {(walk != null ? walk.name : "MISSING")} attacks {used}");
+            }
+            else
+            {
+                AddAction(machine, locomotion, "Attack", attack, attackSpeed, 0.9f);
+                Debug.Log($"RESULT: {Path.GetFileNameWithoutExtension(path)} walk {(walk != null ? walk.name : "MISSING")} attack {(attack != null ? attack.name : "MISSING")}");
+            }
             AddAction(machine, locomotion, "Hit", CharacterSetup.ChopperTake("HitReact"), 1f, 0.8f);
             AnimatorState death = machine.AddState("Death");
             death.motion = CharacterSetup.ChopperTake("Death");
@@ -154,6 +171,22 @@ namespace Chopper.Editor
             toDeath.canTransitionToSelf = false;
             EditorUtility.SetDirty(controller);
             return controller;
+        }
+
+        private static void AddWeaponAttack(AnimatorStateMachine machine, AnimatorState back, string stateName, Motion clip, int weapon, float speed)
+        {
+            AnimatorState state = machine.AddState(stateName);
+            state.motion = clip;
+            state.speed = speed;
+            AnimatorStateTransition enter = machine.AddAnyStateTransition(state);
+            enter.AddCondition(AnimatorConditionMode.If, 0f, "Attack");
+            enter.AddCondition(AnimatorConditionMode.Equals, weapon, "Weapon");
+            enter.duration = 0.05f;
+            enter.canTransitionToSelf = false;
+            AnimatorStateTransition exit = state.AddTransition(back);
+            exit.hasExitTime = true;
+            exit.exitTime = 0.92f;
+            exit.duration = 0.1f;
         }
 
         private static void AddAction(AnimatorStateMachine machine, AnimatorState back, string trigger, Motion clip, float speed, float exitTime)

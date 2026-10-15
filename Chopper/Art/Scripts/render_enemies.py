@@ -30,9 +30,10 @@ def WALK8(n):
 DRAUGR_ROWS = (("Draugr_Walk", WALK8(36), -90, 0), ("Draugr_Walk", WALK8(36), 0, 0), ("Walk", WALK8(30), -90, 0),
                ("Draugr_Attack", (1, 4, 12, 17, 19, 20, 24, 31), -35, 6),
                ("Draugr_Attack", (1, 4, 12, 17, 19, 20, 24, 31), -90, 0))
-ELEMENTAL_ROWS = (("Elemental_Walk", WALK8(40), -90, 0), ("Elemental_Walk", WALK8(40), 0, 0),
-                  ("Elemental_Slam", (1, 5, 14, 19, 21, 22, 25, 37), -90, 0),
-                  ("Elemental_Slam", (1, 5, 14, 19, 21, 22, 25, 37), -35, 6))
+ELEMENTAL_ROWS = (("Elemental_Chop", (1, 10, 16, 17, 21, 29), -70, 4),
+                  ("Elemental_Thrust", (1, 7, 13, 14, 17, 23), -70, 4),
+                  ("Elemental_Smash", (1, 14, 18, 24, 27, 33), -70, 4),
+                  ("Elemental_Stab", (1, 8, 15, 16, 19, 25), -70, 4))
 
 
 def pose(rig, take="Idle", frame=16):

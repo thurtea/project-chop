@@ -32,7 +32,8 @@ namespace Chopper.World
             if (gen == null) return Vector3.zero;
             Vector2 toHut = gen.PondCenter.sqrMagnitude > 0.01f ? -gen.PondCenter.normalized : Vector2.up;
             Vector2 bank = gen.PondCenter + (Vector2)(Quaternion.Euler(0f, 0f, KitTurn) * toHut) * (WorldGen.PondOuterRadius + KitBank);
-            Vector2 along = new Vector2(-toHut.y, toHut.x) * (piece == 0 ? -0.5f : 0.5f);
+            float side = piece == 0 ? -0.75f : piece == 1 ? 0.75f : 0f;
+            Vector2 along = new Vector2(-toHut.y, toHut.x) * side;
             Vector3 spot = new Vector3(bank.x + along.x, 0f, bank.y + along.y);
             spot.y = WorldGround.HeightAt(spot);
             return spot;

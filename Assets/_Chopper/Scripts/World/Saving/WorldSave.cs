@@ -159,6 +159,7 @@ namespace Chopper.World.Saving
         // W9-02: the everyday outfit and the axe left where the player fell (false in older saves: dressed, axe in hand).
         public bool Undressed;
         public bool AxeDropped;
+        public bool HasShield;
         // Fishing: rod and lure levels, the fish carried (one count per kind), and the old packed int for the first four.
         public int Rod;
         public int Lure;

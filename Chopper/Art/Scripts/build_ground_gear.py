@@ -14,6 +14,11 @@ PLAID_D = kit.srgb(36, 16, 14)
 VEST = kit.srgb(118, 74, 42)
 VEST_D = kit.srgb(86, 52, 30)
 BELT = kit.srgb(62, 38, 22)
+WOOD = kit.srgb(150, 96, 52)
+WOOD_D = kit.srgb(118, 72, 38)
+RIM = kit.srgb(58, 58, 62)
+BOSS = kit.srgb(168, 174, 185)
+PINE = kit.srgb(48, 110, 42)
 
 
 def box(out, x0, x1, y0, y1, z0, z1, colour):
@@ -52,9 +57,24 @@ def outfit_cells():
     return out
 
 
+def shield_cells():
+    out = {}
+    for iy in range(-6, 7):
+        half = 4 if iy >= 2 else max(0, (iy + 6) // 2)
+        for ix in range(-half, half + 1):
+            rim = abs(ix) == half or iy == -6 or iy == 6
+            colour = RIM if rim else (WOOD_D if (ix + iy) % 5 == 0 else WOOD)
+            box(out, ix, ix + 1, iy, iy + 1, 0, 2, colour)
+    box(out, -1, 2, 0, 3, 1, 2, BOSS)
+    for ix, iy in ((-3, -4), (-3, -3), (-3, -2), (-2, -1), (2, -4), (2, -3), (2, -2), (1, -1)):
+        box(out, ix, ix + 1, iy, iy + 1, 1, 2, PINE)
+    return out
+
+
 SPECS = [
     ("prop_ground_axe_voxel", axe_cells, {"h": (0.14, 0.20), "w": (0.92, 1.00), "d": (1.16, 1.24), "tris": 600}),
     ("prop_ground_outfit_voxel", outfit_cells, {"h": (0.30, 0.36), "w": (0.60, 0.68), "d": (0.44, 0.52), "tris": 400}),
+    ("prop_ground_shield_voxel", shield_cells, {"h": (0.14, 0.20), "w": (0.64, 0.80), "d": (0.96, 1.12), "tris": 900}),
 ]
 
 
