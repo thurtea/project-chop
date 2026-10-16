@@ -60,7 +60,6 @@ namespace Chopper.Enemies
         [SerializeField] private GameConfig _config;
         [SerializeField] private ElementPalette _palette;
         [Tooltip("Model used for each element, indexed by the Element value (Neutral, Water, Fire, Earth, Wind).")]
-        [SerializeField] private GameObject[] _modelsByElement;
         [Tooltip("The crypt enemy's look: an animated humanoid with a sword (built by DraugrSetup).")]
         [SerializeField] private GameObject _draugrPrefab;
         [Tooltip("The night forest creature (built by GolemSetup). Shown while a non-guardian enemy is awake.")]
@@ -648,12 +647,12 @@ namespace Chopper.Enemies
                 return;
             }
 
-            int elementIndex = Mathf.Clamp(_element.Value, 0, _modelsByElement.Length - 1);
-            GameObject model = Instantiate(_modelsByElement[elementIndex], _visualRoot);
+            GameObject voxel = Resources.Load<GameObject>("Props/prop_sapling_" + Mathf.Clamp(_element.Value, 0, 4) + "_voxel");
+            if (voxel == null) return;
+            GameObject model = Instantiate(voxel, _visualRoot);
             model.transform.localPosition = Vector3.zero;
             _model = model.transform;
             _modelBaseHeight = MeasureHeight(model);
-            TreeTint.ApplyTreant(model, Element);
             ApplyScale();
             if (State == TreantState.Active) ApplyGlow(model);
             RefreshWardenLook();

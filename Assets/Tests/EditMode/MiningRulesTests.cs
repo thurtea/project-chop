@@ -63,7 +63,7 @@ namespace Chopper.Tests.EditMode
                 Assert.AreNotEqual(MineFindKind.Aquamarine, fire);
                 Assert.AreNotEqual(MineFindKind.OldPickHead, fire);
             }
-            Assert.AreEqual("Drip Mine", MiningRules.MineName(MineZone.Water));
+            Assert.AreEqual("Mine", MiningRules.MineName(MineZone.Water));
             Assert.AreEqual(MineZone.Fire, MiningRules.ZoneOf(Element.Fire));
         }
 

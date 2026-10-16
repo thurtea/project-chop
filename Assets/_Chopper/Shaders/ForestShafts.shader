@@ -39,14 +39,14 @@ Shader "Hidden/Chopper/ForestShafts"
                     p += stepUv;
                     float3 sample = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, saturate(p)).rgb;
                     float lum = dot(sample, float3(0.25, 0.55, 0.20));
-                    float bright = saturate((lum - 0.16) * 2.6);
+                    float bright = saturate((lum - 0.32) * 2.2);
                     accum += bright * decay;
                     decay *= 0.97;
                 }
                 accum /= 24.0;
                 float radial = saturate(1.0 - dist * 0.9);
                 radial = radial * radial * (3.0 - 2.0 * radial);
-                color.rgb += float3(1.15, 0.78, 0.40) * accum * radial * strength * 3.6;
+                color.rgb += float3(1.15, 0.78, 0.40) * accum * radial * strength * 1.7;
                 float low = saturate((0.58 - uv.y) * 1.35) * strength;
                 color.rgb = lerp(color.rgb, color.rgb * float3(0.45, 0.58, 0.72), low * 0.30);
                 return color;

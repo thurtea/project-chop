@@ -133,6 +133,28 @@ namespace Chopper.World
                 Vector3 normal = hasGround ? WorldGround.NormalAt(_positions[i]) : Vector3.up;
                 Quaternion tilt = Quaternion.FromToRotation(Vector3.up, normal);
                 view.transform.SetPositionAndRotation(_positions[i], tilt * Quaternion.Euler(0f, (i * 137) % 360, 0f));
+                GameObject voxel = Resources.Load<GameObject>("Props/prop_branch_" + (i % 4) + "_voxel");
+                if (voxel != null)
+                {
+                    GameObject model = Instantiate(voxel, view.transform);
+                    model.transform.localPosition = Vector3.zero;
+                    foreach (Collider collider in model.GetComponentsInChildren<Collider>(true)) Destroy(collider);
+                    Bounds bounds = default;
+                    bool any = false;
+                    foreach (Renderer r in model.GetComponentsInChildren<Renderer>())
+                    {
+                        r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+                        if (!any) { bounds = r.bounds; any = true; }
+                        else bounds.Encapsulate(r.bounds);
+                    }
+                    if (any)
+                    {
+                        Vector3 local = view.transform.InverseTransformPoint(bounds.center);
+                        model.transform.localPosition = new Vector3(-local.x, 0f, -local.z);
+                    }
+                    _views[i] = view;
+                    continue;
+                }
                 view.AddComponent<MeshFilter>().sharedMesh = _meshes[i % _meshes.Length];
                 var meshRenderer = view.AddComponent<MeshRenderer>();
                 meshRenderer.sharedMaterial = _material;

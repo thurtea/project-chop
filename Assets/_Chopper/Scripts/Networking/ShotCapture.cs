@@ -586,6 +586,18 @@ namespace Chopper.Networking
                     yield return new WaitForSeconds(1.5f);
                     yield return Shot(folder, name);
                 }
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.85f);
+                yield return new WaitForSeconds(2f);
+                yield return LookAtHouse(new Vector2(home.x + 22f, home.z + 30f), 3.5f, 2f, "house_concept_view");
+                {
+                    Vector2 pondAt = Chopper.World.Generation.WorldSession.Gen.PondCenter;
+                    Vector2 hut2 = new Vector2(home.x, home.z);
+                    Vector2 toHut = (hut2 - pondAt).normalized;
+                    Vector2 side = new Vector2(-toHut.y, toHut.x);
+                    Vector2 stand = pondAt + toHut * (Chopper.World.Generation.WorldGen.PondOuterRadius + 3f) + side * 9f;
+                    if (Vector2.Distance(stand, hut2) > 45f) stand = hut2 + (stand - hut2).normalized * 45f;
+                    yield return LookAtHouse(stand, 3.2f, 1f, "house_concept_pond");
+                }
                 yield return LookAtHouse(new Vector2(home.x + 12f, home.z + 24f), 6f, 10f, "house_out_front");
                 yield return LookAtHouse(new Vector2(home.x - 24f, home.z - 8f), 6f, 10f, "house_out_side");
                 yield return LookAtHouse(new Vector2(home.x + 1.5f * hs, home.z + 11f * hs), 4.2f, 16f, "house_out_steps");
@@ -610,7 +622,7 @@ namespace Chopper.Networking
                 }
                 float Rise() => wood.transform.position.y - home.y;
 
-                // The outside steps to the door, across the main floor to the loft stairs (rising toward +X), and up them.
+                // The outside steps to the door, across the main floor, and a look round every wall and up at the roof.
                 yield return TeleportLocalPlayer(new Vector2(home.x + 1f * hs, home.z + 6.2f * hs), 180f);
                 houseCam.DebugSetDistance(2.6f);
                 houseCam.SnapYaw(180f);
@@ -621,6 +633,10 @@ namespace Chopper.Networking
                 houseCam.DebugSetDistance(3f);
                 yield return new WaitForSeconds(0.8f);
                 float startRise = Rise();
+                yield return WalkTo(1f, 4.3f, 4f);
+                houseCam.DebugSetPitch(10f);
+                yield return new WaitForSeconds(0.2f);
+                yield return Shot(folder, "house_door_walkthrough");
                 yield return WalkTo(1f, 2.8f, 4f);
                 float atDoor = Rise();
                 Vector3 doorAt = wood.transform.position - home;
@@ -628,20 +644,21 @@ namespace Chopper.Networking
                 houseCam.DebugSetPitch(20f);
                 yield return new WaitForSeconds(0.5f);
                 yield return Shot(folder, "house_in_main");
-                yield return WalkTo(1.4f, 1f, 3f);
-                yield return WalkTo(5f, 1f, 4f);
+                yield return WalkTo(-1f, 0f, 4f);
                 float atTop = Rise();
                 Vector3 topAt = wood.transform.position - home;
-                Debug.Log($"[House] inside stairs: {atTop:F2} m at {topAt.x:F2},{topAt.z:F2}");
-                houseCam.SnapYaw(0f);
-                houseCam.DebugSetPitch(25f);
-                // Along the loft, round the stairwell (open at 3, 1), not across it.
-                yield return WalkTo(5f, -1f, 3f);
-                yield return WalkTo(-1f, -1f, 4f);
+                Debug.Log($"[House] one floor: main floor at {atTop:F2} m at {topAt.x:F2},{topAt.z:F2}");
+                houseCam.DebugSetDistance(2.2f);
+                foreach ((float yaw, float pitch, string label) in new[] { (0f, 8f, "house_in_back"), (90f, 8f, "house_in_west"), (180f, 8f, "house_in_front"), (270f, 8f, "house_in_east"), (0f, 55f, "house_in_roof") })
+                {
+                    houseCam.SnapYaw(yaw);
+                    houseCam.DebugSetPitch(pitch);
+                    yield return new WaitForSeconds(0.6f);
+                    yield return Shot(folder, label);
+                }
                 float upstairs = Rise();
-                yield return new WaitForSeconds(0.5f);
-                yield return Shot(folder, "house_in_upstairs");
 
+                ui.DebugShow(0);
                 // The basement, up its stairs at the -X end to the main floor.
                 yield return TeleportLocalPlayer(new Vector2(home.x - 3f * hs, home.z + 2f * hs), 180f);
                 houseCam.SnapYaw(0f);
@@ -649,8 +666,15 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.8f);
                 float basement = Rise();
                 yield return Shot(folder, "house_in_basement");
-                yield return WalkTo(-5f, 2.6f, 3f);
-                yield return WalkTo(-5f, -3f, 4f);
+                yield return WalkTo(-5f, 2.6f, 5f);
+                houseCam.SnapYaw(0f);
+                houseCam.DebugSetPitch(20f);
+                houseCam.DebugSetDistance(3f);
+                yield return Shot(folder, "house_stairs_bottom");
+                yield return WalkTo(-5f, 0f, 4f);
+                Debug.Log($"[House] stairs mid rise {Rise():F2} m at {(wood.transform.position - home).x / hs:F2},{(wood.transform.position - home).z / hs:F2}");
+                yield return Shot(folder, "house_stairs_mid");
+                yield return WalkTo(-5f, -3f, 5f);
                 float fromBasement = Rise();
                 Debug.Log($"[House] upstairs across the floor at {upstairs:F2} m; basement at {basement:F2} m, up its stairs to {fromBasement:F2} m");
                 InputSystem.RemoveDevice(walkPad);
@@ -661,9 +685,9 @@ namespace Chopper.Networking
                     Vector3 yard = home + new Vector3(1f, 0f, 12f) * hs;
                     yard.y = WorldGround.HeightAt(yard);
                     bool yardOnMesh = UnityEngine.AI.NavMesh.SamplePosition(yard, out UnityEngine.AI.NavMeshHit yardHit, 3f, UnityEngine.AI.NavMesh.AllAreas);
-                    foreach ((string floor, Vector3 local) in new[] { ("basement", new Vector3(-3f, 0f, 2f)), ("main floor", new Vector3(-2f, 2f, 0f)), ("loft", new Vector3(-1f, 4f, -0.5f)) })
+                    foreach ((string floor, Vector3 local) in new[] { ("basement", new Vector3(-3f, 0f, 2f)), ("main floor", new Vector3(-2f, 2f, 0f)) })
                     {
-                        Vector3 from = home + local * hs;
+                        Vector3 from = home + local * hs + Vector3.down * Chopper.World.Generation.WorldGen.HutSink;
                         if (!yardOnMesh || !UnityEngine.AI.NavMesh.SamplePosition(from, out UnityEngine.AI.NavMeshHit fromHit, 1.5f, UnityEngine.AI.NavMesh.AllAreas))
                         {
                             pathsOut = false;
@@ -678,8 +702,9 @@ namespace Chopper.Networking
                     }
                 }
 
-                bool houseOk = pathsOut && beds == 2 && benches == 2 && atDoor > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
-                               && atTop > 2f * storey - 0.2f && upstairs > 2f * storey - 0.2f && basement < 0.6f && fromBasement > storey - 0.2f;
+                Debug.Log($"[House] check paths {pathsOut} beds {beds} benches {benches} door {atDoor - basement:F2} doorZ {doorAt.z:F2} top {atTop - basement:F2} up {upstairs - basement:F2} basement {basement:F2} fromBasement {fromBasement:F2} storey {storey:F2}");
+                bool houseOk = pathsOut && beds == 2 && benches == 2 && atDoor - basement > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
+                               && Mathf.Abs(atTop - basement - storey) < 0.35f && Mathf.Abs(upstairs - basement - storey) < 0.35f && basement < 0.6f && fromBasement > storey - 0.2f;
                 Debug.Log("[House] RESULT " + (houseOk ? "PASS" : "FAIL"));
                 Application.Quit(houseOk ? 0 : 1);
                 yield break;
@@ -1355,6 +1380,29 @@ namespace Chopper.Networking
                 }
                 yield return new WaitForSeconds(6f);
                 ui.DebugShow(0);
+                Debug.Log("[AxeHand] " + wood.GetComponent<PlayerAxe>().HandReport());
+                if (hosting)
+                {
+                    Vector3 row = wood.transform.position + Vector3.forward * 4f;
+                    for (int e = 0; e < 5; e++)
+                    {
+                        Vector3 at = row + Vector3.right * (e - 2) * 1.6f;
+                        at.y = Chopper.World.WorldGround.HeightAt(at);
+                        EnemyDirector.Instance.ServerSpawn((Element)e, TreeSize.Small, false, at);
+                    }
+                    yield return new WaitForSeconds(1.5f);
+                    PlayerCamera rowCamera = wood.GetComponent<PlayerCamera>();
+                    rowCamera.SnapYaw(0f);
+                    yield return Shot(folder, "sapling_row");
+                    int voxelSaplings = 0, saplings = 0;
+                    foreach (Treant t in Treant.All)
+                    {
+                        if (t == null || t.IsActive) continue;
+                        saplings++;
+                        foreach (Transform c in t.GetComponentsInChildren<Transform>()) if (c.name.StartsWith("prop_sapling_")) { voxelSaplings++; break; }
+                    }
+                    Debug.Log($"[Sapling] {saplings} dormant, {voxelSaplings} with the voxel look");
+                }
                 PlayerCamera moveCamera = wood.GetComponent<PlayerCamera>();
                 Gamepad pad = InputSystem.AddDevice<Gamepad>();
                 int snapBacks = 0;
@@ -1414,6 +1462,38 @@ namespace Chopper.Networking
                         last = now;
                     }
                     Debug.Log($"[Move] {leg.label}: ended at {wood.transform.position:F1}");
+                    yield return GripStop(pad, wood, leg.label, folder);
+                }
+                if (hosting)
+                {
+                    var gripColumns = Chopper.World.Voxel.VoxelColumns.Current;
+                    Vector2 snowSpot = Vector2.zero;
+                    float best = float.MaxValue;
+                    for (int gx = 2; gripColumns != null && gx < Chopper.World.Voxel.VoxelColumns.Resolution - 2; gx += 2)
+                        for (int gz = 2; gz < Chopper.World.Voxel.VoxelColumns.Resolution - 2; gz += 2)
+                        {
+                            bool flat = true;
+                            for (int ox = -2; ox <= 2 && flat; ox++)
+                                for (int oz = -2; oz <= 2 && flat; oz++)
+                                    flat = gripColumns.TypeAt(gx + ox, gz + oz) == Chopper.World.Voxel.BlockType.Snow && gripColumns.TopUnits(gx + ox, gz + oz) == gripColumns.TopUnits(gx, gz);
+                            if (!flat) continue;
+                            Vector2 w = new Vector2(Chopper.World.Voxel.VoxelColumns.WorldX(gx) + 0.5f, Chopper.World.Voxel.VoxelColumns.WorldZ(gz) + 0.5f);
+                            if (w.sqrMagnitude < best) { best = w.sqrMagnitude; snowSpot = w; }
+                        }
+                    if (best < float.MaxValue)
+                    {
+                        yield return TeleportLocalPlayer(snowSpot - new Vector2(0f, 1.6f), 0f);
+                        yield return new WaitForSeconds(2f);
+                        float runStart = Time.time;
+                        while (Time.time - runStart < 1.5f)
+                        {
+                            InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up }.WithButton(GamepadButton.LeftStick));
+                            moveCamera.SnapYaw(0f);
+                            yield return null;
+                        }
+                        yield return GripStop(pad, wood, "snow patch", folder);
+                    }
+                    else Debug.Log("[Grip] no flat snow patch found");
                 }
                 InputSystem.QueueStateEvent(pad, new GamepadState());
                 InputSystem.RemoveDevice(pad);
@@ -2319,10 +2399,14 @@ namespace Chopper.Networking
                 var mines = Chopper.World.Generation.MineWorld.Plans;
                 Debug.Log($"[Mine] mines {mines.Count}, veins {Chopper.World.Generation.MineWorld.Veins.Count}");
                 PlayerCamera mineCam = wood.GetComponent<PlayerCamera>();
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.45f);
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                yield return new WaitForSeconds(4f);
+                Debug.Log($"[Mine] portal light: phase {DayNightCycle.Instance.Phase}, darkness {DayNightCycle.Instance.Darkness:F2}");
                 for (int m = 0; m < mines.Count; m++)
                 {
                     var plan = mines[m];
-                    Vector3 front = plan.DoorSpot + Quaternion.Euler(0f, plan.Site.Yaw, 0f) * Vector3.forward * 5f;
+                    Vector3 front = plan.DoorSpot + Quaternion.Euler(0f, plan.Site.Yaw, 0f) * Vector3.forward * 7.5f;
                     Debug.Log($"[Mine] {plan.Name} at {plan.Site.Position} yaw {plan.Site.Yaw:F0}, {plan.Rooms.Count} chambers, {plan.Veins.Count} veins");
                     yield return TeleportLocalPlayer(new Vector2(front.x, front.z), plan.Site.Yaw + 180f);
                     mineCam.SnapYaw(plan.Site.Yaw + 180f);
@@ -2634,8 +2718,31 @@ namespace Chopper.Networking
                 cam.DebugSetDistance(4f);
                 cam.SnapYaw(270f);
                 yield return new WaitForSeconds(0.6f);
-                fishing.TryToggle();
-                yield return new WaitForSeconds(0.8f);
+                bool rodOut = false;
+                float bankR = Chopper.World.Generation.WorldGen.PondOuterRadius;
+                for (float r = Chopper.World.Generation.WorldGen.PondOuterRadius + 1.2f; r > 2f; r -= 0.5f)
+                {
+                    Vector2 probe = gen.PondCenter + Vector2.right * r;
+                    Vector3 probe3 = new Vector3(probe.x, Chopper.World.WorldGround.HeightAt(new Vector3(probe.x, 0f, probe.y)), probe.y);
+                    if (!PlayerFishing.AtWater(probe3)) continue;
+                    Debug.Log($"[Fishing] first fishing bank at r {r:F1}");
+                    bankR = r;
+                    yield return TeleportLocalPlayer(probe, 270f);
+                    cam.SnapYaw(270f);
+                    yield return new WaitForSeconds(0.8f);
+                    break;
+                }
+                for (int step = 0; step < 6 && !rodOut; step++)
+                {
+                    rodOut = fishing.TryToggle();
+                    Debug.Log($"[Fishing] rod toggle {rodOut} at {wood.transform.position:F1}, can fish {fishing.CanFish}, at water {PlayerFishing.AtWater(wood.transform.position)}, owner {fishing.IsOwner}, busy {fishing.Busy}, pond {gen.PondCenter:F1} r {Chopper.World.Generation.WorldGen.PondOuterRadius:F1}, swim {WaterSystem.IsSwimming(wood.transform.position)}, under {Chopper.World.Generation.CryptWorld.IsUnderground(wood.transform.position)}");
+                    if (rodOut) break;
+                    Vector2 closer = gen.PondCenter + Vector2.right * (bankR - step * 0.5f);
+                    yield return TeleportLocalPlayer(closer, 270f);
+                    cam.SnapYaw(270f);
+                    yield return new WaitForSeconds(0.8f);
+                }
+                yield return new WaitForSeconds(1.2f);
                 float water = Chopper.World.Generation.WorldGen.WaterHeight;
                 float ClearOfWater(float extra) => Mathf.Max(water + 1.85f, wood.transform.position.y + 1.45f) + extra;
                 Vector3 PondSide(Vector3 target, float along, float extra)
@@ -2698,16 +2805,33 @@ namespace Chopper.Networking
                 cam.DebugSetPitch(8f);
                 cam.DebugSetDistance(4f);
                 cam.SnapYaw(270f);
-                yield return TeleportLocalPlayer(bank, 270f);
+                yield return null;
                 fishing.DebugBiteNow();
                 yield return new WaitForSeconds(0.2f);
                 yield return Shot(folder, "fish_4_bite");
                 fishing.DebugHook();
                 yield return new WaitForSeconds(0.4f);
+                for (int retry = 0; retry < 3 && fishing.CurrentStage != PlayerFishing.Stage.Fighting; retry++)
+                {
+                    if (fishing.CurrentStage == PlayerFishing.Stage.Off) fishing.TryToggle();
+                    yield return new WaitForSeconds(0.6f);
+                    fishing.DebugCast(0.7f);
+                    yield return new WaitForSeconds(1.6f);
+                    fishing.DebugBiteNow();
+                    yield return new WaitForSeconds(0.25f);
+                    fishing.DebugHook();
+                    yield return new WaitForSeconds(0.4f);
+                }
+                Debug.Log($"[Fishing] fight stage {fishing.CurrentStage}");
                 fishing.DebugSetTension(0.7f, 0.5f);
+                ui.DebugShow(0);
                 lure = fishing.BobberWorld;
-                Vector3 fightCam = PondSide(lure, 1.75f, 0.9f);
-                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.up * 0.08f) - fightCam));
+                Vector3 fightFrom = wood.transform.position;
+                Vector3 fightSide = Vector3.Cross(lure - fightFrom, Vector3.up);
+                fightSide = fightSide.sqrMagnitude < 0.01f ? Vector3.right : fightSide.normalized;
+                Vector3 fightCam = Vector3.Lerp(fightFrom, lure, 0.3f) + fightSide * 1.8f;
+                fightCam.y = Mathf.Max(Chopper.World.WorldGround.HeightAt(fightCam), Chopper.World.Generation.WorldGen.WaterHeight) + 2.4f;
+                cam.DebugHold(fightCam, Quaternion.LookRotation((lure + Vector3.up * 0.5f) - fightCam));
                 yield return new WaitForSeconds(0.35f);
                 yield return Shot(folder, "fish_5_reeling");
                 FishSpecies pike = fishing.SpeciesOf(FishKind.Pike);
@@ -3455,6 +3579,9 @@ namespace Chopper.Networking
                 CryptManager.Instance.ServerTryExit(traveller);
                 yield return new WaitForSeconds(2.5f);
                 yield return Shot(folder, "crypt_10_back_up");
+                bool cryptBackUp = !Chopper.World.Generation.CryptWorld.IsUnderground(wood.transform.position);
+                Debug.Log($"[Crypt] back up {cryptBackUp} at {wood.transform.position:F1}; health {health.Health}");
+                Debug.Log("[Crypt] RESULT " + (cryptBackUp ? "PASS" : "FAIL") + " (crypt_11_crushed is the deliberate crush test, not a door death)");
 
                 health.ServerCrush();
                 yield return new WaitForSeconds(1.5f);
@@ -4495,6 +4622,25 @@ namespace Chopper.Networking
                 yield return Shot(folder, "log_fish_cast");
             }
 
+            int stumpVoxel = 0, stumpOld = 0;
+            if (EnemyDirector.Instance != null)
+            {
+                Vector3 stumpAt = wood.transform.position + wood.transform.forward * 2.5f;
+                int before = Treant.All.Count;
+                EnemyDirector.Instance.ServerOnTreeHit(stumpAt, Element.Earth, TreeSize.Large, null);
+                yield return new WaitForSeconds(1.2f);
+                foreach (Treant t in Treant.All)
+                {
+                    bool voxel = false;
+                    foreach (Transform c in t.GetComponentsInChildren<Transform>()) if (c.name.StartsWith("prop_sapling_")) { voxel = true; break; }
+                    if (voxel) stumpVoxel++; else if (!t.ShowsGolem) stumpOld++;
+                }
+                if (PlayerCamera.Local != null) { PlayerCamera.Local.DebugSetDistance(4.5f); PlayerCamera.Local.DebugSetPitch(25f); }
+                yield return new WaitForSeconds(0.6f);
+                ui.DebugShow(0);
+                yield return Shot(folder, "log_stump_saplings");
+                Debug.Log($"[Log] stump saplings planted {Treant.All.Count - before}, voxel {stumpVoxel}, old look {stumpOld}");
+            }
             bool skill0Ok = felled0 && swings0 > plainLarge && swings0 > largeHits;
             bool skill100Ok = felled100 && size100 == TreeSize.Large && swings100 >= 2;
             bool pass = skill0Ok && skill100Ok && mineStruck && fishCast;
@@ -5416,6 +5562,30 @@ namespace Chopper.Networking
             return solid;
         }
 
+        private static IEnumerator GripStop(Gamepad pad, PlayerWood wood, string label, string folder)
+        {
+            InputSystem.QueueStateEvent(pad, new GamepadState());
+            PlayerMotor motor = wood.GetComponent<PlayerMotor>();
+            bool slippery = motor.OnSlipperyGround(false);
+            Debug.Log($"[Grip] {label}: release at {wood.transform.position:F1}, anim speed {wood.GetComponentInChildren<Animator>().GetFloat("Speed"):F2}");
+            Vector3 from = wood.transform.position;
+            float start = Time.time, stoppedAt = -1f;
+            Vector3 last = from;
+            bool shot = false;
+            while (Time.time - start < 2.5f)
+            {
+                yield return null;
+                Vector3 now = wood.transform.position;
+                Vector3 step = now - last;
+                step.y = 0f;
+                last = now;
+                if (!shot && Time.time - start > 0.1f) { shot = true; yield return Shot(folder, "grip_" + label.Replace(' ', '_')); }
+                if (step.magnitude / Mathf.Max(Time.deltaTime, 1e-4f) < 0.05f) { stoppedAt = Time.time - start; break; }
+            }
+            Vector3 slide = wood.transform.position - from;
+            slide.y = 0f;
+            Debug.Log($"[Grip] {label}: anim speed after {wood.GetComponentInChildren<Animator>().GetFloat("Speed"):F2}, slippery {slippery}, slide {slide.magnitude:F2} m, stopped in {(stoppedAt < 0f ? "over 2.5" : stoppedAt.ToString("F2"))} s");
+        }
         private static IEnumerator TeleportLocalPlayer(Vector2 position, float yaw)
         {
             PlayerWood wood = PlayerWood.Local;

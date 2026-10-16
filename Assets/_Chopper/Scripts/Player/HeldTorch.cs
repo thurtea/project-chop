@@ -30,7 +30,7 @@ namespace Chopper.Player
 
         private void Awake()
         {
-            if (_light != null) _intensity = _light.intensity;
+            if (_light != null) { _light.range = 12f; _intensity = _light.intensity * 1.9f; }
             _seed = Random.value * 100f;
             if (_body != null)
             {

@@ -214,6 +214,8 @@ def fists(P, R, g, pal):
 def weapon_arm(P, R, g, pal, kind):
     frame = R.frame["Weapon_R"]
     bone = "RightHand"
+    P.put_local(g, bone, frame, (0, 0, -0.04), (0.16, 0.15, 0.26), pal["dark"], 0.012)
+    P.put_local(g, bone, frame, (0.03, 0.02, 0.10), (0.11, 0.10, 0.12), pal["body"], 0.01)
     if kind == "axe":
         P.put_local(g, bone, frame, (0, 0, 0.06), (0.08, 0.08, 0.20), pal["haft"], 0.008)
         P.put_local(g, bone, frame, (0.02, 0, 0.26), (0.14, 0.10, 0.16), pal["axe"], 0.01)

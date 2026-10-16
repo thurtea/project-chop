@@ -217,6 +217,15 @@ namespace Chopper.Player
         }
 
         // The axe shows while it is whole: in the hand while drawn, on the back while holstered or while the rod is out.
+        public string HandReport()
+        {
+            string renderers = "";
+            if (_axePivot != null)
+                foreach (Renderer r in _axePivot.GetComponentsInChildren<Renderer>(true))
+                    renderers += $" {r.name}(on {r.enabled}, active {r.gameObject.activeInHierarchy}, bounds {r.bounds.size.magnitude:F2}, at {r.bounds.center:F2})";
+            return $"has {_hasAxe.Value}, drawn {_drawn.Value}, stowed {_stowed}, miningStowed {_miningStowed}, pivot {(_axePivot == null ? "null" : _axePivot.name + " active " + _axePivot.gameObject.activeInHierarchy + " parent " + (_axePivot.parent ? _axePivot.parent.name : "-") + " at " + _axePivot.position.ToString("F2"))}, player at {transform.position:F2}, renderers{renderers}";
+        }
+
         private void ApplyAxeVisual()
         {
             _stowing = false;
@@ -225,10 +234,14 @@ namespace Chopper.Player
             if (_backAxe != null) _backAxe.gameObject.SetActive(false);
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
             {
-                bool extra = false;
+                bool hand = false, back = false;
                 for (Transform t = renderer.transform; t != null && t != transform; t = t.parent)
-                    if (t.name == "chopper_axe" || t.name == "AxeOnBack") { extra = true; break; }
-                if (extra && !inHand) renderer.enabled = false;
+                {
+                    if (t.name == "AxeOnBack") back = true;
+                    else if (t.name == "chopper_axe") hand = true;
+                }
+                if (back) renderer.enabled = false;
+                else if (hand) renderer.enabled = inHand;
             }
         }
 

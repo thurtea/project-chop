@@ -56,12 +56,12 @@ namespace Chopper.World
         {
             switch (zone)
             {
-                case Element.Water: return 0.0120f;
-                case Element.Fire: return 0.0110f;
-                case Element.Earth: return 0.0130f;
-                case Element.Wind: return 0.0090f;
+                case Element.Water: return 0.0060f;
+                case Element.Fire: return 0.0055f;
+                case Element.Earth: return 0.0065f;
+                case Element.Wind: return 0.0040f;
                 // W11-08 thicker hub mist (was 0.0060). Half fog near 88 m.
-                default: return 0.0095f;
+                default: return 0.0060f;
             }
         }
 

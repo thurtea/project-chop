@@ -21,8 +21,6 @@ namespace Chopper.Editor
         // Same order as Element (Neutral, Water, Fire, Earth, Wind) and as MeadowBuilder.TreantModels.
         private static readonly string[] Trees =
         {
-            "pixel_tree_lowpoly_dark", "pixel_tree_lowpoly_blue", "pixel_tree_lowpoly_red",
-            "pixel_tree_lowpoly_yellow", "pixel_tree_lowpoly_lightgreen"
         };
         private const float CrownWidth = 1.15f;
         private const float TuftWidth = 0.42f;

@@ -1,106 +1,97 @@
 <prompt>
 
 <goal>
-Make Chopper look and play closer to the concept sheets, in the order below, and prove each item in Builds/Dev/Chopper.exe before starting the next. Feel is judged only by the human. Never call the game or the feel finished.
+Keep making Chopper look and play like the concept sheets, picking up where the 2026-10-15 session stopped. Prove each item in Builds/Dev/Chopper.exe before starting the next. Use the smallest useful team. No proof, no done. Feel is judged only by the human. Never call the game or the feel finished.
 </goal>
 
 <project_brief>
-Project: Chopper, a co-op survival game (one to four players). Live Unity 6000.5.10f1 project at E:\Projects\project-chop (FishNet, URP). Art is made by script in Blender: Chopper/Art/Scripts. Concepts are in Chopper/Art/Concepts. The shared record is Chopper/Docs/TASKBOARD.md. Week 11 is the truth. Smallest team. No proof, no done. No deploy without the human's approval. Never call the game or the feel finished.
+Project: Chopper, a co-op survival game (one to four players). Live Unity 6000.5.10f1 project at E:\Projects\project-chop (FishNet, URP). Art is made by script in Blender: Chopper/Art/Scripts. Concepts are in Chopper/Art/Concepts. The shared record is Chopper/Docs/TASKBOARD.md.
+Desired outcome: the exe matches the concept sheets item by item, with tour shots as proof.
 Audience: one developer playing the Windows dev build, sometimes with friends.
 Deadline: none.
-Available tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. .NET 10 SDK. Git (no gh CLI). Checks: pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 <task> (build, player, editmode, blender, unity <Class.Method>, tour <Name>).
-Sources: Chopper/Docs/TASKBOARD.md. Read W11-51 through W11-57 and the latest dated RESULT lines before editing. Open the named concept sheet before building toward it. Site compare is local only.
+Done means: every item in what_to_do has a fresh build, EditMode 0 failed, a tour, opened shots compared with the named sheet, and a TASKBOARD RESULT line.
+Available tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. .NET 10 SDK. Git (no gh CLI). Checks: pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 <task> (build, player, editmode, blender, unity <Class.Method>, tour <Name>). Tours: Concept, House, Mine, Crypt, Zones, Gear, Shafts, Fishing, Fly, Logging, MoveTest, Arrival. Shots land in Logs\homework\tour-<Name>-<MMdd-HHmm>\ and comparison sheets in C:\Users\itsth\chopper-shots\.
+Sources and assets: Chopper/Docs/TASKBOARD.md (read W11-51 to W11-57 and every dated RESULT line from 2026-10-15 19:00 onward before editing). Open the named concept sheet before building toward it.
+Constraints: see boundaries.
 </project_brief>
 
 <where_we_are>
-Trust Chopper/Docs/TASKBOARD.md over this paragraph if a later dated line exists. Do not invent check results.
-W11-51 motion is LOCKED in the exe. Do not redo it. Do not retune it. Leave these numbers: move 6, sprint 9.5, crouch 2.6, acceleration 16, deceleration 22, turn 480, jump 1.05, gravity 26, landing recovery height 3 / 0.2 s / 0.35, swing commit 0.85, swing move 0.45, swing turn 0.35, strike step 2.5, hit-stop 0.07 / heavy 0.09, hit kick 0.05 / heavy 0.12. Feel goal is Valheim x Enshrouded / Minecraft weight. Feel is the human's.
-W11-52/53 cave PLAN is kept. Do not restart as wallpaper. Human rejected the gray checker and then the 3D occupancy cube wallpaper (hard on the eyes). Latest intended look is planar Chopper/Block faces (dirt floors, stone walls, timber courses) with quieter _Edge/_Jitter (world 0.055/0.72, cave 0.035/0.62) in build-1015-0137, tour-Mine-1015-0138 RESULT PASS, tour-Crypt-1015-0121 shots. Flatten exe was build-1015-0119 / tour-Mine-1015-0120 RESULT PASS. Still off: empty box rooms, crypt_1 is a pine not the temple, empty chest, pale vein, no water run. Edges still rough vs 2.0.
-W11-54 elementals were rebuilt from the four new tree jpgs after the character legs PASS. Proof: unity-ChopperRigEnemy_RebuildEnemies-1015-0257 (Elemental_Walk / Elemental_Slam, 6 renderers, humanoid True), editmode-1015-0301 passed 319 failed 0, build-1015-0305 Success CS 0, tour-Fly-1015-0306. Older chopper-*elemental-3D-concept-3.0.jpg are backup only. Do not invent a new rig or clips.
-W11-55 voxel character was REJECTED on 2026-10-14. Live body is build_chopper.py smooth modules plus atlas. Stance is CharacterSizes.PlayerLegX 0.20 with a remesured Humanoid (build-1014-2239, tour-Concept-1014-2240). Do not run build_chopper_voxel.py.
-W11-56 forests, cave mouths, and a fishing start have RESULT lines. Do not restart world lighting. Fishing VISUALS were rebuilt 2026-10-15 01:39: build_fish.py Blender perch (teal, cream belly) in build-1015-0137 / tour-Fishing-1015-0139. Tour cameras still sit under the pond; the bank rod is hard to read.
-W11-57 skills are in the exe. EditMode editmode-1014-2239 passed 319, failed 0. tour-Logging-1014-2243 RESULT PASS: skill 0 large 14 swings (plain 9), skill 100 + top gear 3 (still more than one). Mining and fishing skills are hooked. Do not invent a huge skill tree. Do not replace axe, armour, hut, rune, rod, or lure upgrades. Light shafts, rain, and snow already have tour proof on build-1014-2239; do not restart them.
-Hut: 0.25 m voxels in build_hall.py (2026-10-14 23:25, build-1014-2324, tour-House-1014-2325 RESULT PASS). Two-post porch gable is in tour-House-1015-0015 RESULT PASS (build-1015-0014). Still off vs the hut-zone / start-menu sheets: porch X reads as a blob; house_out_steps is the terrace more than the porch treads.
-AxeOnBack: the holstered spine copy is hidden in build-1015-0201 / tour-Concept-1015-0202. Do not re-hunt back props as the legs bug.
-GroundItem axe/outfit are already Blender modules as of 2026-10-15 02:11 (prop_ground_axe_voxel / prop_ground_outfit_voxel on build-1015-0201, tour-Arrival-1015-0211 RESULT PASS). Not Unity cubes. Still off vs the sheet: block-stepped bits, folded outfit stack, held axe is still the single-blade bear axe. Do not restart them as cubes.
-Character vs chopper-character-and-axe-3D-concept-2.0.jpg: that sheet IS the player. Human: the pond-behind "tail" / extra limbs were THE LEGS, not shield/AxeOnBack — two thick columns with a gap, not a thigh out the back. 2026-10-15 02:49 RESULT PASS on the tail/lump: classify threshold 0.2 -> 0.36, PlayerLegForward 0.03 / LEG_Y -0.03, player-1015-0247, editmode-1015-0248 passed 319 failed 0, build-1015-0248 Build Finished Result Success error CS 0, tour-Concept-1015-0249 shots only. Shots opened beside that sheet: sheet_front, sheet_three_quarter, sheet_back, sheet_above, pond_behind. Legs PASS (two columns, no stub). Still off: front gap tighter than the turnaround; vest crossbelt shows on the back (sheet back is plaid only); held axe is still the single-blade bear axe; boots taller than the sheet's short blocks. Shield/vest/mail stay visible. If a later board line reopens the legs, trust that line and finish character first. If 02:49 still stands, do not restart the legs hunt.
-Website: in-game stills were stripped 2026-10-15 02:30. Landing page is logo + banner only. Gallery is concept art from Chopper/Art/Concepts/. Use concept art on the site for now. No gameplay stills until the human asks. No deploy.
-Frame-time budget already on the board (W5-08): hut 6 ms, night with 16 enemies 7 ms. Keep it.
+State at 2026-10-15 21:55. Trust a later dated TASKBOARD line over this paragraph. Do not invent check results. Latest exe: build-1015-2149 (CS 0), editmode-1015-2150 passed 321 failed 0.
+W11-51 motion is LOCKED. Do not retune: move 6, sprint 9.5, crouch 2.6, acceleration 16, deceleration 22, turn 480, jump 1.05, gravity 26, landing recovery 3 / 0.2 s / 0.35, swing commit 0.85, swing move 0.45, swing turn 0.35, strike step 2.5, hit-stop 0.07 / heavy 0.09, hit kick 0.05 / heavy 0.12. Feel goal is Valheim x Enshrouded / Minecraft weight.
+Grip (19:20 to 19:44): GripRules (Core) stop rate = PlayerDeceleration x StopGrip, 2.5 on normal ground (firm stop, about 0.50 m), 0.4 on Snow (glides about 4.8x farther). Slippery = feet within 0.6 m of a Snow column top (no isGrounded). PlayerAnimator StopSmoothing 14/s rising, 28/s falling, so legs stop with the body. build-1015-1939, tour-MoveTest proof. Done; leave it.
+Hand axe (19:32): PlayerAxe.ApplyAxeVisual no longer leaves chopper_axe renderers off after a holster. Axe shows in the right hand (tour-Concept-1015-2024). No AxeOnBack.
+Saplings: build_saplings.py voxel saplings, one per element, Props/prop_sapling_N_voxel. Every spawn goes EnemyDirector.ServerSpawn -> Treant.BuildVisual -> voxel. tour-Logging-1015-2038 RESULT PASS (voxel 11, old look 0). The pixel_tree_lowpoly fallback in Treant was removed at 21:55.
+Branches: build_branches.py, 4 voxel sticks, BranchManager uses Props/prop_branch_N_voxel. The human likes them. Leave them.
+Mine: "Drip Mine" renamed "Mine" (MiningRules.MineName(MineZone.Water)); the other mines are still Cinder Mine, Deep Root Mine, High Gallery Mine (the human was asked whether they should be "Mine" too; no answer yet). CaveVoxel floor sink fixed (tour-Mine-1015-2013 RESULT PASS, feet on floor).
+Caves (new lock: Chopper/Art/Concepts/cave-chopper-concept-3.0.jpeg). 3D chunky stepped caves are now WANTED; this supersedes the old "no occupancy cubes / planar only" rule. Target: dark teal stone, saturated cyan crystal clusters, timber mine frames with crossed braces, warm lanterns, stepped relief and ledges. Done so far: crystals cyan (.10/.85/.92) with glow pools; Roughen ledges/overhangs; Chopper/Block got a _Fill property (default 0.22, surface unchanged), cave stone 0.03, portal stone 0.3; underground exposure 0.18 with teal-dark ambient; lanterns 4.6 / 11 m; entrance adits 4.4 m deep with near-black back, two 40 deg timber braces and a king post, 4 threshold crystals. Proof: tour-Mine-1015-2134 RESULT PASS, tour-Crypt-1015-2126 (the "You died!" shot is the tour's deliberate crush test, not a bug). Still off: chambers flat and evenly lit vs the sheet, floors flat, crystals too big and too few, timber frames read dark, no tall stepped cliffs. Entrances still look dusky in daytime: they sit in canyon shade with trees in front of two portals. OPEN.
+Fog and light (t20u to t23u, Valheim-style): ZonePalette fog roughly halved; light sky-tinted haze far away, near and mid ground clear; ForestShafts 1.7; DayNightCycle forest grade eased (sun canopy 0.72, sky exposure x0.72, exposure -0.2, tint 0.35). Nights are properly dark (moon 0.32, night exposure 0.02); held torch warm, 1.9x, range 12 m (enough to see a few trees ahead). tour-Zones-1015-2135, tour-Gear-1015-2114 (night torch on/off).
+Hut (lock: chopper-start-menu-background-3D-concept-2.0.jpg, plus chopper-hut-zone-3D-concept-3.0.jpg). One floor (loft removed, beds on the main floor), HouseScale 1.8 (storey 3.6 m, he fits the door), WorldGen.TerraceHeight 3.1 so floor and door sit on the ground, stairs draw their 8 collider treads (no clipping), golden-tan roof planks, crossed log corners, posts, shutters, door lintel, 8-board plank floor with seams, roof rafters/purlins. Proof: build-1015-2149, tour-House-1015-2150. The human says it looks NOTHING like the concept yet. Target: low log cabin sitting on the grass (not on a big mound), round notched logs, steep golden shingle roof with crossed gable boards, porch gable, dormer, framed by layered blocky pines, a stepped pond and stone paths. Still off: square logs, flat ceiling, no dormer, sits high, no door leaf, the House tour storey check fails after the hut was lowered, and the steps are still an old asset.
+Old assets: the human wants old assets DELETED entirely so nothing can fall back to them, once nothing uses them. Still used: pixel_tree_lowpoly (forest trees, Golem), Piece_Stairs colliders/steps. Replace with voxel versions first, then delete, then list every deleted file for the human (deletion is approved for these; git keeps history).
+Fishing (target: New World x Ocarina of Time): cameras above water (rod cam 2.43 m, bank cam 2.63 m); tour probes in to the bank so the rod comes out; pond clarity raised, fish lifted, 1.25x, faint emission; "HOOKED!" 50 px outlined, tension arc readable with black backing (tour-Fishing-1015-2053, 2115). Still off: yellow line arc thin, arcs small at distance, underwater view a little pale, no OoT/New World polish judged by the human.
+Enemy weapon arms: build_elemental.py tree elementals carry axe / mace / sword / spear right arms with Elemental_Chop / Thrust / Smash / Stab, bark wrist sleeve so the weapon grows from the arm (tour-Fly-1015-2022). ENEMY ONLY. No player swords, spears, maces, or ranged. Each zone gets several archetypes. Still off: enemies read small.
+Character: chopper-character-and-axe-3D-concept-2.0.jpg IS the player. Legs proof stands (tour-Concept-1015-0249). Do not run build_chopper_voxel.py. Leftovers: tighter leg gap, vest X on the back, single-blade held axe, tall boots.
+Website: the human now WANTS gameplay stills (supersedes concept-only). Gallery has an "In game" section (Website/images/shots/ingame-*.jpg, 1600x900) above the concept art. Landing page stays logo + banner. No deploy, no upload.
+Frame-time budget (W5-08): hut 6 ms, night with 16 enemies 7 ms. Keep it.
 </where_we_are>
 
 <look_lock>
-Open the relevant sheet before every asset. Overall block language is planar texel blocks (chopper-3D-concept-2.0.jpg), NOT 3D cube wallpaper, NOT a razor 1 m black lattice. chopper-3D-concept-3.0.jpg is the TREE-ENEMY overview, not a character turnaround. chopper-character-and-axe-3D-concept-2.0.jpg is the PLAYER lock. The four *elemental tree.jpg files are the new enemy lock (older chopper-*elemental-3D-concept-3.0.jpg still exist as backup only).
+Open the relevant sheet before every asset. chopper-character-and-axe-3D-concept-2.0.jpg is the PLAYER. cave-chopper-concept-3.0.jpeg is the CAVE lock. chopper-start-menu-background-3D-concept-2.0.jpg and chopper-hut-zone-3D-concept-3.0.jpg are the HUT and hub world. The four *elemental tree.jpg files are the enemy lock (the older chopper-*elemental-3D-concept-3.0.jpg are backup only). chopper-3D-concept-3.0.jpg is the tree-enemy overview, not a character turnaround.
+E:\Projects\project-chop\Chopper\Art\Concepts\cave-chopper-concept-3.0.jpeg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-3D-concept-2.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-all-2-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-all-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-character-and-axe-3D-concept-2.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-earth-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-fire-hut-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-fire-zone-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-fireelemental-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-hut-zone-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-nonelemental-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-start-menu-background-3D-concept-2.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-water-crypt-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-water-hut-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-water-zone-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-waterelemental-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-wind-hut-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-wind-zone-3D-concept-3.0.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\chopper-windelemental-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\non elemental tree.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\fire elemental tree.jpg
+E:\Projects\project-chop\Chopper\Art\Concepts\non elemental tree.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\water elemental tree.jpg
 E:\Projects\project-chop\Chopper\Art\Concepts\wind elemental tree.jpg
 </look_lock>
 
 <what_to_do>
-Work these items in order. Finish one item's proof in Builds/Dev/Chopper.exe before starting the next. Do not stop after a handful of files. Do not stop while an item below is still unproven. Do not redesign skills or combat motion. Do not retune W11-51.
+Work in order. Finish one item's proof before starting the next. Do not stop while an item is unproven.
 
-1. Character vs E:\Projects\project-chop\Chopper\Art\Concepts\chopper-character-and-axe-3D-concept-2.0.jpg. That sheet IS the character — very simple, make that character. Legs: two thick columns, clear gap, under the torso, no thigh behind the spine. Keep Weapon_R, AxeGrip, HeldItemFrame. Do not hide the shield. AxeOnBack spawn is already off (build-1015-0201). As of 2026-10-15 02:49 the legs-as-tail proof exists (tour-Concept-1015-0249 Legs PASS). If the board still says that and no later line reopens the legs, skip to item 2. If a later line reopens the legs, finish this proof first (front / behind / above / three-quarter beside that sheet) and do not start trees until it exists. Remaining sheet misses after 02:49 (tighter gap, vest X on the back, single-blade held axe, taller boots) are leftover notes, not a reopen of the tail bug.
+1. Hut and hub vs chopper-start-menu-background-3D-concept-2.0.jpg (TOP PRIORITY, the human is frustrated). Low log cabin on the grass, round notched logs, golden shingle roof with crossed gable boards, porch gable, dormer, sloped ceiling, door leaf. Lower the mound so it reads as sitting on the meadow. Frame it with layered blocky pines, a stepped pond, and stone paths. Fix the House tour storey check. Replace the old steps with voxel steps. Give the wood a real plank and log grain texture. Proof: tour-House concept_view beside the sheet.
 
-2. AFTER the character Concept proof exists: rebuild tree-elemental enemies from the four new tree jpgs at the same accuracy as the character. Scripted boxes on Chopper's rig (build_elemental.py). Keep Humanoid, Elemental_Walk / Elemental_Slam. Map:
-E:\Projects\project-chop\Chopper\Art\Concepts\non elemental tree.jpg → Bark / nonelemental
-E:\Projects\project-chop\Chopper\Art\Concepts\fire elemental tree.jpg → fire
-E:\Projects\project-chop\Chopper\Art\Concepts\water elemental tree.jpg → water
-E:\Projects\project-chop\Chopper\Art\Concepts\wind elemental tree.jpg → wind
-Older chopper-*elemental-3D-concept-3.0.jpg still exist; these four tree jpgs are the new enemy lock. chopper-3D-concept-3.0.jpg remains TREE-ENEMY overview, not a player turnaround. As of 2026-10-15 03:06 the four-body Fly proof exists (tour-Fly-1015-0306). Named misses on that line (short bark willow, unread fire cracks/skirt, unread water beard/puddle, unread wind tornado) are leftover notes, not a reopen, unless a later board line says so.
+2. Old assets: replace pixel_tree_lowpoly (forest trees, Golem) and Piece_Stairs with voxel versions, prove nothing references the old files (search + tours), then delete them and list every deleted file.
 
-3. Soften remaining hard block edges (Chopper/Block knobs / merged faces / shallow chamfer on props). No shader replace. No 3D occupancy caves.
+3. Caves vs cave-chopper-concept-3.0.jpeg: stepped 3D relief and tall stepped cliffs, uneven floors, more and smaller cyan crystals, lit timber frames with crossed braces, warm lantern pools against dark teal. Then the entrances: read as a dark framed adit in daylight from a distance (canyon shade and trees in front are the known cause).
 
-4. GroundItem look vs chopper-character-and-axe-3D-concept-2.0.jpg and chopper-3D-concept-2.0.jpg. Modules already exist (02:11). Do not restart as Unity cubes. Refine the block-stepped bits toward the sheet.
+4. Fishing toward New World x Ocarina of Time: thicker, readable line arc; arcs readable at distance; clear (not pale) underwater view with the fish easy to see.
 
-5. Fishing cameras above water. Bank shot must show the rod and the perch body. Blender perch already exists (01:39).
+5. Enemy weapon-arm archetypes per zone (axe / sword / mace / spear, each its own attack: sword sweep, spear thrust, mace overhead smash). Enemies read bigger. Enemy only.
 
-6. Weapon types = axe, pick, rod as first-class (no invented bow/sword skill tree). A double-bit axe look is allowed without moving the grip frame. No AxeOnBack tail.
+6. Leftovers still unproven: item 3 soften hard block edges, item 4 ground items (axe/outfit) vs the sheets, item 6 pick and rod first-class beside the axe.
 
-7. Hut porch vs chopper-hut-zone-3D-concept-3.0.jpg and chopper-start-menu-background-3D-concept-2.0.jpg. Two-post gable is already in tour-House-1015-0015. Refine the weak porch X if still weak; do not restart the 0.25 m hall.
+7. Queued after the above: a craftable little boat that goes out on the ocean, and a shark fishing minigame for ocean spaces (the shark tows the boat around; tire it out, then reel it in). Ask the human whether the boat needs the workbench.
 
-8. Cave rooms vs chopper-water-crypt-zone-3D-concept-3.0.jpg (temple mouth, water, vein). Planar Chopper/Block only. No occupancy cubes. No gray checker.
-
-9. Website stays concept-only until the human asks for gameplay stills. Landing page stays logo + banner only. No deploy. No new video.
+8. Website: when a new item gets strong clean shots, add them to Website/gallery.html "In game" (copy to Website/images/shots/ as 1600x900 JPG). Skip sheets, composites, failed and "You died!" shots. Landing page stays logo + banner. No deploy.
 </what_to_do>
 
 <proof>
-No proof, no done. For each item, with the Unity editor closed, one Unity batch job at a time: homework.ps1 build ends Build Finished, Result: Success, error CS lines: 0; EditMode has 0 failed; one tour shows the change; you open the shots and compare them with the named sheets; a TASKBOARD RESULT line names the check counts, log names, shots opened, and what is still off. A script summary is not a picture. Feel is the human's to judge.
-Item 1 proof is a Concept tour in Builds/Dev/Chopper.exe: front, behind, above, and three-quarter opened beside chopper-character-and-axe-3D-concept-2.0.jpg (exists as tour-Concept-1015-0249 unless a later line reopens it). Item 2 proof is an enemy/Fly tour beside the four tree jpgs. Item 5 proof is a Fishing tour with cameras above water and a bank shot that shows rod + perch. Do not add // or # comments in code. Rationale goes on the TASKBOARD. Edit this file only when asked. Do not touch Assets/_Chopper/Resources/Audio.
+No proof, no done. With the Unity editor closed, one Unity batch job at a time: homework.ps1 build ends Build Finished, Result: Success, error CS 0; EditMode has 0 failed (321 at last count); one tour shows the change; open the shots and compare them with the named sheet; write a TASKBOARD RESULT line with check counts, log names, shots opened, and what is still off. A script summary is not a picture. Feel is the human's to judge.
 </proof>
 
 <boundaries>
-Stay inside this prompt. Do not commit, push, delete, deploy, upload, or buy. If the Unity editor is open, say so and stop. If a tool fails, report the error and make the smallest fix. Do not invent files, test results, or completed actions. Do not retune W11-51. Do not restart W11-52 or W11-53 as wallpaper or occupancy cubes. Do not restart W11-54 unless you are on item 2 (the four new tree jpgs). Do not run build_chopper_voxel.py. Do not replace Chopper/Block, Chopper/Water, the chunk meshes, DayNightCycle, or ZonePalette. Do not fight Unity if another bot has the editor. Work on main. The human commits.
+Do not commit, push, deploy, upload, or buy. The human commits. Only delete the old assets named in item 2, after replacements are proven, and list them. Do not add // or # comments in code; rationale goes on the TASKBOARD. Do not touch Assets/_Chopper/Resources/Audio. Do not retune W11-51. Do not run build_chopper_voxel.py. Do not add player swords, spears, maces, or ranged. Do not replace Chopper/Block, Chopper/Water, the chunk meshes, DayNightCycle, or ZonePalette (tuning values is fine). If the Unity editor is open or another bot has it, say so and do not fight it. Work on main. If a tool fails, report the error and make the smallest fix. Do not invent files, test results, or completed actions. Ask one focused question only if it blocks the goal.
 </boundaries>
 
 <completion_gate>
-Before saying an item is done, confirm: the change is in a fresh build made with the editor closed; EditMode has 0 failed; a tour ran; the shots were opened; the TASKBOARD line is written; misses are named. Then start the next item. Never call the game or the feel finished. Return a partial status until each started item has that proof.
+Before saying an item is done, confirm: the change is in a fresh build made with the editor closed; EditMode 0 failed; a tour ran; the shots were opened beside the sheet; the TASKBOARD line is written; misses are named. Never call the game or the feel finished. Return a partial status until every started item has that proof.
 </completion_gate>
 
 <handoff>
-Return a short report: what changed, the check counts and log names, which shots you opened and how they compare, what is still off, which item is next, and one suggested commit line with no author line.
+Return a short report: what changed, the build to test, check counts and log names, which shots you opened and how they compare, what is still off, which item is next, any files deleted, and one suggested commit line with no author line.
 </handoff>
 
 <start>
-Unity editor must be closed. If it is open, say so and stop. If it is closed, read the task board, then start item 1: the character vs chopper-character-and-axe-3D-concept-2.0.jpg, legs first. As of 2026-10-15 02:49 that legs proof exists (tour-Concept-1015-0249 Legs PASS). If the board still says that and no later line reopens the legs, skip to item 2. As of 2026-10-15 03:06 the four-tree-elemental Fly proof exists (tour-Fly-1015-0306). If the board still says that and no later line reopens the trees, skip to item 3 (soften remaining hard block edges). Do not start tree enemies until the character Concept proof exists. Do not retune W11-51. Do not deploy the site.
+Check the Unity editor is closed. Read Chopper/Docs/TASKBOARD.md from 2026-10-15 19:00 onward, then start item 1 (hut and hub vs chopper-start-menu-background-3D-concept-2.0.jpg).
 </start>
 
 </prompt>

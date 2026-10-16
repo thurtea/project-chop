@@ -83,9 +83,9 @@ namespace Chopper.Core
             switch (kind)
             {
                 case WeatherKind.Cloudy:
-                    return new WeatherLook { Sun = 0.55f, Ambient = 0.85f, Sky = 0.6f, Overcast = 0.65f, Saturation = -12f, FogDensity = 1.5f, FogTint = new Color(0.86f, 0.87f, 0.88f), Rain = 0f, Wind = 1.4f };
+                    return new WeatherLook { Sun = 0.55f, Ambient = 0.85f, Sky = 0.6f, Overcast = 0.65f, Saturation = -12f, FogDensity = 1.25f, FogTint = new Color(0.86f, 0.87f, 0.88f), Rain = 0f, Wind = 1.4f };
                 case WeatherKind.Rain:
-                    return new WeatherLook { Sun = 0.3f, Ambient = 0.66f, Sky = 0.38f, Overcast = 1f, Saturation = -22f, FogDensity = 2.6f, FogTint = new Color(0.68f, 0.72f, 0.76f), Rain = 1f, Wind = 2f };
+                    return new WeatherLook { Sun = 0.3f, Ambient = 0.66f, Sky = 0.38f, Overcast = 1f, Saturation = -22f, FogDensity = 1.8f, FogTint = new Color(0.68f, 0.72f, 0.76f), Rain = 1f, Wind = 2f };
                 case WeatherKind.Snow:
                     return new WeatherLook { Sun = 1f, Ambient = 1f, Sky = 1f, Overcast = 0f, Saturation = 0f, FogDensity = 1f, FogTint = Color.white, Snow = 1f, Wind = 1.2f };
                 default:

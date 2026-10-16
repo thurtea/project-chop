@@ -60,7 +60,8 @@ namespace Chopper.Player
         // The top of the locomotion blend (the sprint loop's speed in CharacterSetup); faster than this, the loop plays
         // faster so the feet keep pace.
         private const float TopBlendSpeed = 8.7f;
-        private const float SpeedSmoothing = 6.5f;
+        private const float SpeedSmoothing = 14f;
+        private const float StopSmoothing = 28f;
         private const float GroundCheckHeight = 0.3f;
         private const float GroundCheckDistance = 0.55f;
         private const float MinFootstepSpeed = 0.7f;
@@ -299,7 +300,7 @@ namespace Chopper.Player
             // Teleports (respawn) would read as a huge speed for one frame; ignore anything unreasonable.
             if (measured > _config.PlayerMoveSpeed * 3f) measured = 0f;
             _lastPosition = transform.position;
-            _speed = Mathf.Lerp(_speed, measured, 1f - Mathf.Exp(-SpeedSmoothing * Time.deltaTime));
+            _speed = Mathf.Lerp(_speed, measured, 1f - Mathf.Exp(-(measured < _speed ? StopSmoothing : SpeedSmoothing) * Time.deltaTime));
 
             float waterDepth = WaterSystem.DepthAt(transform.position, out float surfaceY);
             bool swimming = waterDepth >= WaterSystem.SwimDepth;

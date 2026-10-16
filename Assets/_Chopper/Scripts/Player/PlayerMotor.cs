@@ -387,7 +387,7 @@ namespace Chopper.Player
             if (committed && !swimming) topSpeed *= _config.SwingMoveMultiplier;
             if (recovering && !swimming) topSpeed *= _config.LandingRecoverySpeedMultiplier;
             Vector3 targetVelocity = direction * topSpeed;
-            float rate = direction.sqrMagnitude > TurnInputThreshold ? _config.PlayerAcceleration : _config.PlayerDeceleration;
+            float rate = direction.sqrMagnitude > TurnInputThreshold ? _config.PlayerAcceleration : _config.PlayerDeceleration * GripRules.StopGrip(OnSlipperyGround(swimming || wading));
             if (swimming) rate *= Time.time < _mantleUntil ? 1.1f : 0.85f;
             _horizontalVelocity = Vector3.MoveTowards(_horizontalVelocity, targetVelocity, rate * Time.deltaTime);
             if (recovering && !swimming) _horizontalVelocity = Vector3.ClampMagnitude(_horizontalVelocity, Mathf.Max(topSpeed, _config.PlayerMoveSpeed * _config.LandingRecoverySpeedMultiplier));
@@ -465,6 +465,15 @@ namespace Chopper.Player
         // True when the terrain under the feet is steeper than the controller may climb; downhill is the flat
         // direction down the slope. The slope is the terrain's own smoothed steepness at the feet, not a contact
         // normal: a sphere touching the seam between two terrain triangles reports edge normals far steeper than the
+        public bool OnSlipperyGround(bool inWater)
+        {
+            if (inWater) return false;
+            Chopper.World.Voxel.VoxelColumns columns = Chopper.World.Voxel.VoxelColumns.Current;
+            if (columns == null) return false;
+            Vector3 p = transform.position;
+            if (!columns.TryTopAt(p.x, p.z, out float top) || p.y > top + 0.6f || p.y < top - 0.6f) return false;
+            return columns.TypeAtWorld(p.x, p.z) == Chopper.World.Voxel.BlockType.Snow;
+        }
         // hill, which slid players about on ordinary slopes. Standing on a rock or log (not the terrain) never slides.
         private bool OnSteepGround(out Vector3 downhill)
         {

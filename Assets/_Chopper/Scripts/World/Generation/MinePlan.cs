@@ -57,7 +57,7 @@ namespace Chopper.World.Generation
         // The portal on the surface.
         public const float PortalWidth = 3.2f;
         public const float PortalHeight = 3.1f;
-        private const float PortalDepth = 2.2f;
+        private const float PortalDepth = 4.4f;
         private const float PortalSink = 1.2f;
         public const float ClearRadius = 6f;
 
@@ -381,6 +381,9 @@ namespace Chopper.World.Generation
                 Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.5f + 1.1f) - forward * (PortalDepth * 0.5f) + Vector3.up * (postHeight * 0.5f - PortalSink), new Vector3(1.4f, postHeight + 0.6f, PortalDepth + 0.6f), CryptMaterial.Wall, turn);
             }
             Add(EntranceBoxes, foot + Vector3.up * (PortalHeight + BeamDepth * 0.7f), new Vector3(PortalWidth + 1.2f, BeamDepth * 1.4f, PostSize * 1.5f), CryptMaterial.Timber, turn);
+            foreach (float s in new[] { 1f, -1f })
+                Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.32f) + forward * 0.05f + Vector3.up * (PortalHeight - 0.45f), new Vector3(1.5f, PostSize * 0.8f, PostSize * 0.8f), CryptMaterial.Timber, turn * Quaternion.Euler(0f, 0f, s * 40f));
+            Add(EntranceBoxes, foot + Vector3.up * (PortalHeight + BeamDepth * 1.4f + 0.9f), new Vector3(PostSize * 1.1f, 1.8f, PostSize * 1.1f), CryptMaterial.Timber, turn);
             Add(EntranceBoxes, foot - forward * (PortalDepth * 0.5f) + Vector3.up * (PortalHeight + 1f), new Vector3(PortalWidth + 3.6f, 1.6f, PortalDepth + 0.6f), CryptMaterial.Wall, turn);
             // The dark adit going into the mountain.
             Add(EntranceBoxes, foot - forward * PortalDepth + Vector3.up * (PortalHeight * 0.5f - 0.3f), new Vector3(PortalWidth, PortalHeight + 0.6f, 0.1f), CryptMaterial.Void, turn);

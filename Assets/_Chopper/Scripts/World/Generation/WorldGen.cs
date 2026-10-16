@@ -124,23 +124,24 @@ namespace Chopper.World.Generation
         private const float ApronReach = 6f;
 
         // The hut at the center; the yard torches stand on a ring of WallRadius (where the palisade stood).
-        public const float WallRadius = 14f;
+        public const float WallRadius = 16.5f;
         // The hub house is 18 m x 12 m (Hut.HouseHalfSize), with log steps out of the front: no grass inside or on them.
-        public const float HutHalfWidth = 9.5f;
-        public const float HutHalfDepth = 6.5f;
+        public const float HutHalfWidth = 11.3f;
+        public const float HutHalfDepth = 7.7f;
 
         // The house terrace (concept 2.0: the hall stands on a raised grass terrace with stone steps). Around the 18 m x
         // 12 m footprint the ground is raised TerraceHeight, TerraceMargin wide (wider at the front for the porch), then
         // steps down TerraceStep at a time, one metre a step. Inside the footprint the ground stays at the hut floor, so
         // the basement storey is under the terrace.
-        public const float HouseHalfX = 9f;
-        public const float HouseHalfZ = 6f;
-        public const float TerraceHeight = 2.5f;
+        public const float HouseHalfX = 10.8f;
+        public const float HouseHalfZ = 7.2f;
+        public const float TerraceHeight = 0.5f;
+        public const float HutSink = 3.1f;
         public const float TerraceMargin = 3f;
         public const float TerraceFrontMargin = 5f;
         public const float TerraceStep = 0.5f;
         // The stone steps run down the front from the porch, this wide either side of the door (x = 1.5 m).
-        public const float TerraceStairsX = 1.5f;
+        public const float TerraceStairsX = 1.8f;
         public const float TerraceStairsHalfWidth = 2f;
 
         // How far outside the terrace top a point is, in metres (0 or less on the top).
@@ -153,7 +154,7 @@ namespace Chopper.World.Generation
 
         public static float TerraceRaise(float x, float z)
         {
-            if (Mathf.Abs(x) < HouseHalfX && Mathf.Abs(z) < HouseHalfZ) return 0f;
+            if (Mathf.Abs(x) < HouseHalfX && Mathf.Abs(z) < HouseHalfZ) return -HutSink;
             float d = TerraceDistance(x, z);
             if (d <= 0f) return TerraceHeight;
             int steps = Mathf.CeilToInt(d);

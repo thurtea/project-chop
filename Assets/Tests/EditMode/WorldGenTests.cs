@@ -48,7 +48,7 @@ namespace Chopper.Tests.EditMode
             {
                 var gen = new WorldGen(seed, HubRadius);
                 // The house terrace (W8-02) sits on the mound: spots outside the house stand on it.
-                Assert.AreEqual(WorldGen.MoundHeight, gen.HeightAt(0f, 0f), 0.01f);
+                Assert.AreEqual(WorldGen.MoundHeight - WorldGen.HutSink, gen.HeightAt(0f, 0f), 0.01f);
                 Assert.AreEqual(WorldGen.MoundHeight + WorldGen.TerraceRaise(4.6f, 6.6f), gen.HeightAt(4.6f, 6.6f), 0.01f, "the axe table spot");
                 Assert.AreEqual(WorldGen.MoundHeight + WorldGen.TerraceRaise(-4.6f, 6.6f), gen.HeightAt(-4.6f, 6.6f), 0.01f, "the notice board spot");
             }

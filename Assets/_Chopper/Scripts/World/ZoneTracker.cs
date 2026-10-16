@@ -46,9 +46,9 @@ namespace Chopper.World
             target = Color.Lerp(target, CryptFog, below);
             target.a = 1f;
             RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, target, (forest ? 2.8f : FogEaseSpeed) * Time.deltaTime);
-            float nightFog = forest ? 1.9f : NightFogDensityScale;
+            float nightFog = forest ? 1.35f : NightFogDensityScale;
             float density = ZonePalette.FogDensity(Current) * Mathf.Lerp(1f, nightFog, darkness) * weather.FogDensity;
-            if (forest) density *= Mathf.Lerp(1f, 1.7f, low);
+            if (forest) density *= Mathf.Lerp(1f, 1.15f, low);
             density = Mathf.Lerp(density, CryptFogDensity, below);
             RenderSettings.fogDensity = Mathf.Lerp(RenderSettings.fogDensity, density, (forest ? 2.8f : FogEaseSpeed) * Time.deltaTime);
         }

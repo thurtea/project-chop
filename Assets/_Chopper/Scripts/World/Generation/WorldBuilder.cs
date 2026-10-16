@@ -434,7 +434,61 @@ namespace Chopper.World.Generation
             return _blockMaterial;
         }
 
+        private static Material _crystal;
+
+        private static void PlaceThreshold(Transform mine, MinePlan plan)
+        {
+            GameObject prefab = Resources.Load<GameObject>("Props/prop_mine_crystal_voxel");
+            Quaternion turn = Quaternion.Euler(0f, plan.Site.Yaw, 0f);
+            Vector3 right = turn * Vector3.right;
+            Vector3 forward = turn * Vector3.forward;
+            Vector3 door = plan.DoorSpot;
+            int n = 0;
+            foreach (float s in new[] { 1f, -1f, 0.55f, -0.6f })
+            {
+                Vector3 at = door + right * s * (MinePlan.PortalWidth * 0.5f + 0.2f) - forward * (0.4f + n * 0.5f);
+                at.y = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(at) : at.y;
+                GameObject crystal = prefab != null ? Object.Instantiate(prefab, mine) : GameObject.CreatePrimitive(PrimitiveType.Cube);
+                crystal.name = "ThresholdCrystal";
+                crystal.transform.SetParent(mine, true);
+                crystal.transform.SetPositionAndRotation(at, Quaternion.Euler(0f, plan.Site.Yaw + n * 47f, 0f));
+                crystal.transform.localScale = Vector3.one * (prefab != null ? (n < 2 ? 1.1f : 0.7f) : 0.3f);
+                foreach (Collider c in crystal.GetComponentsInChildren<Collider>()) Object.Destroy(c);
+                foreach (Renderer r in crystal.GetComponentsInChildren<Renderer>()) r.sharedMaterial = CrystalMaterial();
+                n++;
+            }
+            var glow = new GameObject("ThresholdGlow");
+            glow.transform.SetParent(mine, false);
+            glow.transform.position = door - forward * 0.8f + Vector3.up * 0.7f;
+            var light = glow.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = CaveVoxel.CrystalColor;
+            light.range = 6f;
+            light.intensity = 2.2f;
+            light.shadows = LightShadows.None;
+        }
+        private static Material CrystalMaterial()
+        {
+            if (_crystal != null) return _crystal;
+            Shader unlit = Shader.Find("Universal Render Pipeline/Unlit");
+            _crystal = unlit != null ? new Material(unlit) { name = "M_CaveCrystal" } : new Material(BlockMaterial()) { name = "M_CaveCrystal" };
+            if (_crystal.HasProperty("_BaseColor")) _crystal.SetColor("_BaseColor", CaveVoxel.CrystalColor);
+            return _crystal;
+        }
+
         private static Material _caveStone;
+
+        private static Material _portalStone;
+
+        private static Material PortalStoneMaterial()
+        {
+            if (_portalStone != null) return _portalStone;
+            Material source = CaveStoneMaterial();
+            if (source == null) return null;
+            _portalStone = new Material(source) { name = "M_PortalStone" };
+            _portalStone.SetFloat("_Fill", 0.3f);
+            return _portalStone;
+        }
 
         private static Material CaveStoneMaterial()
         {
@@ -444,12 +498,13 @@ namespace Chopper.World.Generation
             _caveStone = new Material(source) { name = "M_CaveStone" };
             _caveStone.SetFloat("_Jitter", 0.62f);
             _caveStone.SetFloat("_Edge", 0.035f);
+            _caveStone.SetFloat("_Fill", 0.03f);
             return _caveStone;
         }
         // Warmer and tighter than the old flat pools (was 1, 0.62, 0.3 at range 13, intensity 4.5).
-        private static readonly Color LanternColor = new Color(1f, 0.40f, 0.09f);
-        private const float LanternRange = 8f;
-        private const float LanternIntensity = 2.8f;
+        private static readonly Color LanternColor = new Color(1f, 0.62f, 0.22f);
+        private const float LanternRange = 11f;
+        private const float LanternIntensity = 4.6f;
         private static readonly Color EmberColor = new Color(1f, 0.32f, 0.06f);
 
         private void BuildCrypts(WorldGen gen, bool graphics)
@@ -500,6 +555,45 @@ namespace Chopper.World.Generation
             foreach (int group in groups)
             {
                 List<CryptBox> inGroup = boxes.FindAll(box => box.Group == group);
+                if (blockColors != null)
+                {
+                    Mesh cave = CaveVoxel.Build(inGroup, out Mesh crystals);
+                    if (cave != null)
+                    {
+                        var shell = new GameObject($"Cave_{group}");
+                        shell.transform.SetParent(root.transform, false);
+                        shell.AddComponent<MeshFilter>().sharedMesh = cave;
+                        var shellRenderer = shell.AddComponent<MeshRenderer>();
+                        shellRenderer.sharedMaterial = name == "Portal" ? PortalStoneMaterial() : CaveStoneMaterial();
+                        shellRenderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                        shellRenderer.shadowCastingMode = ShadowCastingMode.Off;
+                        shell.isStatic = true;
+                    }
+                    if (crystals != null)
+                    {
+                        var glint = new GameObject($"Crystals_{group}");
+                        glint.transform.SetParent(root.transform, false);
+                        glint.AddComponent<MeshFilter>().sharedMesh = crystals;
+                        var glintRenderer = glint.AddComponent<MeshRenderer>();
+                        glintRenderer.sharedMaterial = CrystalMaterial();
+                        glintRenderer.shadowCastingMode = ShadowCastingMode.Off;
+                        glint.isStatic = true;
+                        Bounds cb = crystals.bounds;
+                        for (int g = 0; g < 3; g++)
+                        {
+                            var glow = new GameObject("CrystalGlow");
+                            glow.transform.SetParent(glint.transform, false);
+                            glow.transform.localPosition = new Vector3(Mathf.Lerp(cb.min.x, cb.max.x, 0.2f + g * 0.3f), cb.min.y + 0.6f, Mathf.Lerp(cb.min.z, cb.max.z, 0.8f - g * 0.3f));
+                            var light = glow.AddComponent<Light>();
+                            light.type = LightType.Point;
+                            light.color = CaveVoxel.CrystalColor;
+                            light.range = 9f;
+                            light.intensity = 1.1f;
+                            light.shadows = LightShadows.None;
+                        }
+                    }
+                    continue;
+                }
                 for (int m = 0; m < materials.Length; m++)
                 {
                     if (materials[m] == null) continue;
@@ -566,7 +660,8 @@ namespace Chopper.World.Generation
                 BuildBlocks(mine, "Chambers", plan.Boxes, graphics, materials, MineTileMeters, MineBlockColors);
                 if (graphics)
                 {
-                    foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(mine, lantern, false, false);
+                    foreach (CryptLantern lantern in plan.EntranceLanterns) PlaceLantern(mine, lantern, true, true);
+                    PlaceThreshold(mine, plan);
                     foreach (CryptLantern lantern in plan.Lanterns) PlaceLantern(mine, lantern, true, true);
                     Color glow = MineGlow(plan.Zone);
                     foreach (MineVein vein in plan.Veins) PlaceVein(mine, vein, veinId++, glow);

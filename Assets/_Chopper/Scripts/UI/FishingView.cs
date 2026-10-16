@@ -14,9 +14,9 @@ namespace Chopper.UI
     public class FishingView
     {
         private const float Width = 300f;
-        private static readonly Color Calm = new Color(0.45f, 0.78f, 0.38f);
-        private static readonly Color Strained = new Color(0.95f, 0.62f, 0.2f);
-        private static readonly Color Breaking = new Color(0.92f, 0.22f, 0.16f);
+        private static readonly Color Calm = new Color(0.25f, 1f, 0.35f);
+        private static readonly Color Strained = new Color(1f, 0.62f, 0.08f);
+        private static readonly Color Breaking = new Color(1f, 0.12f, 0.1f);
         private static readonly Color Mark = new Color(0.05f, 0.05f, 0.05f, 0.9f);
 
         private readonly RectTransform _root;
@@ -29,6 +29,8 @@ namespace Chopper.UI
         private readonly UiKit.Bar _tension;
         private LineRenderer _tensionArc;
         private LineRenderer _lineArc;
+        private LineRenderer _tensionBack;
+        private LineRenderer _lineBack;
         private readonly Text _debug;
         private readonly Text _cue;
         private const float CueHold = 0.6f;
@@ -48,8 +50,11 @@ namespace Chopper.UI
             UiKit.Place(_debug.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -20f), new Vector2(Width, 40f));
             _root.gameObject.SetActive(false);
 
-            _cue = UiKit.Heading(hud, string.Empty, 34, TextAnchor.MiddleCenter, GoodCue);
-            UiKit.Place(_cue.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -260f), new Vector2(500f, 50f));
+            _cue = UiKit.Heading(hud, string.Empty, 50, TextAnchor.MiddleCenter, GoodCue);
+            var cueOutline = _cue.gameObject.AddComponent<UnityEngine.UI.Outline>();
+            cueOutline.effectColor = new Color(0f, 0f, 0f, 0.95f);
+            cueOutline.effectDistance = new Vector2(3f, -3f);
+            UiKit.Place(_cue.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -260f), new Vector2(760f, 72f));
         }
 
         // The newest of fishing's and mining's words (they share the spot under the crosshair).
@@ -165,6 +170,8 @@ namespace Chopper.UI
             {
                 if (_tensionArc != null) _tensionArc.gameObject.SetActive(false);
                 if (_lineArc != null) _lineArc.gameObject.SetActive(false);
+                if (_tensionBack != null) _tensionBack.gameObject.SetActive(false);
+                if (_lineBack != null) _lineBack.gameObject.SetActive(false);
                 return;
             }
 
@@ -175,16 +182,20 @@ namespace Chopper.UI
             Color arc = zone == TensionZone.Safe ? Calm : zone == TensionZone.Risky ? Strained : Breaking;
             if (_tensionArc == null)
             {
-                _tensionArc = MakeArc("TensionArc", 0.045f);
-                _lineArc = MakeArc("LineArc", 0.022f);
+                _tensionBack = MakeArc("TensionBack", 0.24f);
+                _lineBack = MakeArc("LineBack", 0.2f);
+                _tensionArc = MakeArc("TensionArc", 0.17f);
+                _lineArc = MakeArc("LineArc", 0.14f);
             }
             Camera camera = Camera.main;
             Vector3 right = camera != null ? camera.transform.right : Vector3.right;
             Vector3 bob = fishing.BobberWorld;
-            Vector3 center = bob + right * 0.7f + Vector3.up * 0.48f;
-            DrawArc(_tensionArc, center, right, Vector3.up, 0.34f, tension, arc);
+            Vector3 center = bob + right * 0.9f + Vector3.up * 0.7f;
+            DrawArc(_tensionBack, center, right, Vector3.up, 0.62f, 1f, new Color(0.03f, 0.03f, 0.04f, 1f));
+            DrawArc(_lineBack, center, right, Vector3.up, 0.98f, 1f, new Color(0.03f, 0.03f, 0.04f, 1f));
+            DrawArc(_tensionArc, center, right, Vector3.up, 0.62f, tension, arc);
             float line = fight.StartDistance > 0.05f ? Mathf.Clamp01(fight.Distance / fight.StartDistance) : tension;
-            DrawArc(_lineArc, center, right, Vector3.up, 0.5f, line, new Color(0.96f, 0.82f, 0.32f, 1f));
+            DrawArc(_lineArc, center, right, Vector3.up, 0.98f, line, new Color(1f, 0.88f, 0.25f, 1f));
             _debug.text = PlayerFishing.DebugShowValues
                 ? $"tension {fight.Tension:F2}  distance {fight.Distance:F1}/{fight.StartDistance:F1}  time {fight.Elapsed:F1}s  {fishing.Phase}"
                 : string.Empty;

@@ -19,6 +19,7 @@ WOOD_D = kit.srgb(118, 72, 38)
 RIM = kit.srgb(58, 58, 62)
 BOSS = kit.srgb(168, 174, 185)
 PINE = kit.srgb(48, 110, 42)
+IRON_EDGE = kit.srgb(196, 200, 206)
 
 
 def box(out, x0, x1, y0, y1, z0, z1, colour):
@@ -30,18 +31,21 @@ def box(out, x0, x1, y0, y1, z0, z1, colour):
 
 def axe_cells():
     out = {}
-    box(out, -1, 1, -7, 6, 0, 2, kit.LOG)
-    box(out, -1, 1, -2, 1, 0, 2, kit.LOG_DARK)
-    box(out, -1, 1, -7, -6, 0, 2, kit.LOG_END)
-    box(out, -1, 1, 5, 7, 0, 2, kit.IRON)
-    box(out, -4, -1, 4, 8, 0, 2, kit.IRON_LIGHT)
-    box(out, -5, -4, 5, 8, 0, 2, kit.IRON_LIGHT)
-    box(out, -6, -5, 5, 7, 0, 2, kit.IRON)
-    box(out, 1, 4, 4, 8, 0, 2, kit.IRON_LIGHT)
-    box(out, 4, 5, 5, 8, 0, 2, kit.IRON_LIGHT)
-    box(out, 5, 6, 5, 7, 0, 2, kit.IRON)
+    box(out, -1, 1, -8, 6, 0, 2, kit.LOG)
+    box(out, -1, 1, -8, -4, 0, 2, BELT)
+    for iy in (-7, -5):
+        box(out, -1, 1, iy, iy + 1, 0, 2, kit.LOG_END)
+    box(out, -1, 1, 6, 8, 0, 2, kit.LOG_DARK)
+    box(out, -1, 1, 4, 7, 0, 2, kit.IRON)
+    for side in (-1, 1):
+        for dx in range(1, 6):
+            half = 1 + dx // 2
+            for iy in range(5 - half, 6 + half):
+                ix = dx if side > 0 else -dx - 1
+                edge = dx == 5 or iy in (5 - half, 5 + half)
+                colour = IRON_EDGE if dx == 5 else (kit.IRON if edge else kit.IRON_LIGHT)
+                box(out, ix, ix + 1, iy, iy + 1, 0, 2, colour)
     return out
-
 
 def outfit_cells():
     out = {}
@@ -60,21 +64,25 @@ def outfit_cells():
 def shield_cells():
     out = {}
     for iy in range(-6, 7):
-        half = 4 if iy >= 2 else max(0, (iy + 6) // 2)
+        half = 4 if iy >= 1 else max(1, (iy + 8) // 2)
         for ix in range(-half, half + 1):
             rim = abs(ix) == half or iy == -6 or iy == 6
-            colour = RIM if rim else (WOOD_D if (ix + iy) % 5 == 0 else WOOD)
+            colour = RIM if rim else (WOOD if (ix // 2) % 2 == 0 else WOOD_D)
             box(out, ix, ix + 1, iy, iy + 1, 0, 2, colour)
-    box(out, -1, 2, 0, 3, 1, 2, BOSS)
-    for ix, iy in ((-3, -4), (-3, -3), (-3, -2), (-2, -1), (2, -4), (2, -3), (2, -2), (1, -1)):
-        box(out, ix, ix + 1, iy, iy + 1, 1, 2, PINE)
+    box(out, 0, 1, -3, 5, 1, 2, WOOD_D)
+    box(out, -2, 0, 3, 5, 1, 2, BOSS)
+    box(out, 1, 3, 3, 5, 1, 2, BOSS)
+    box(out, -1, 2, -1, 2, 1, 2, RIM)
+    box(out, 0, 1, 0, 1, 1, 2, BOSS)
+    for px in (-2, 2):
+        box(out, px, px + 1, -3, 1, 1, 2, PINE)
+        box(out, px - 1 if px < 0 else px, px + 1 if px < 0 else px + 2, -2, -1, 1, 2, PINE)
     return out
 
-
 SPECS = [
-    ("prop_ground_axe_voxel", axe_cells, {"h": (0.14, 0.20), "w": (0.92, 1.00), "d": (1.16, 1.24), "tris": 600}),
-    ("prop_ground_outfit_voxel", outfit_cells, {"h": (0.30, 0.36), "w": (0.60, 0.68), "d": (0.44, 0.52), "tris": 400}),
-    ("prop_ground_shield_voxel", shield_cells, {"h": (0.14, 0.20), "w": (0.64, 0.80), "d": (0.96, 1.12), "tris": 900}),
+    ("prop_ground_axe_voxel", axe_cells, {"h": (0.14, 0.20), "w": (0.92, 1.00), "d": (1.24, 1.36), "tris": 3000}),
+    ("prop_ground_outfit_voxel", outfit_cells, {"h": (0.30, 0.36), "w": (0.60, 0.68), "d": (0.44, 0.52), "tris": 1600}),
+    ("prop_ground_shield_voxel", shield_cells, {"h": (0.14, 0.20), "w": (0.64, 0.80), "d": (0.96, 1.12), "tris": 3600}),
 ]
 
 
@@ -84,7 +92,7 @@ def main():
     mat.diffuse_color = (0.7, 0.7, 0.7, 1.0)
     built = []
     for name, cells, rule in SPECS:
-        obj = kit.build(name, cells(), mat, size=(C, C, C))
+        obj = kit.soften(kit.build(name, cells(), mat, size=(C, C, C)), C * 0.2)
         built.append((obj, rule))
         b = kit.bounds(obj)
         print("built %s tris %d size %.3f x %.3f x %.3f" % (

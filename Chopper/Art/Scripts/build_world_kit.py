@@ -693,6 +693,26 @@ def build(name, occ, mat, size=(S, S, S), shade_bottom=None):
     return obj
 
 
+def soften(obj, width):
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.remove_doubles(threshold=1e-5)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    mod = obj.modifiers.new("Soften", "BEVEL")
+    mod.width = width
+    mod.segments = 1
+    mod.limit_method = "ANGLE"
+    mod.angle_limit = 0.5236
+    mod.harden_normals = False
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    for poly in obj.data.polygons:
+        poly.use_smooth = False
+    return obj
+
+
 def bounds(obj):
     xs, ys, zs = [], [], []
     for v in obj.data.vertices:

@@ -41,8 +41,8 @@ def srgb(r, g, b):
     return (lin(r), lin(g), lin(b))
 
 
-LOG = srgb(118, 76, 44)
-LOG_DARK = srgb(86, 54, 30)
+LOG = srgb(112, 72, 40)
+LOG_DARK = srgb(70, 44, 24)
 LOG_LIGHT = srgb(148, 98, 58)
 LOG_END = srgb(188, 142, 90)
 STONE = srgb(132, 128, 120)
@@ -50,9 +50,9 @@ STONE_DARK = srgb(96, 94, 88)
 STONE_LIGHT = srgb(158, 154, 146)
 PLANK = srgb(128, 86, 50)
 PLANK_DARK = srgb(104, 68, 38)
-THATCH = srgb(214, 184, 118)
-THATCH_DARK = srgb(176, 144, 86)
-THATCH_LIGHT = srgb(232, 206, 142)
+THATCH = srgb(196, 146, 82)
+THATCH_DARK = srgb(146, 100, 54)
+THATCH_LIGHT = srgb(222, 176, 106)
 FRAME = srgb(62, 38, 22)
 POST = srgb(72, 44, 24)
 BARGE = srgb(88, 54, 28)
@@ -67,7 +67,7 @@ def log_tone(ix, iy, iz):
 def thatch_tone(ix, iy, iz):
     band = iz % 3
     if band == 0:
-        return THATCH_DARK
+        return THATCH_DARK if (ix // 2) % 2 else THATCH
     if band == 1:
         return THATCH
     return THATCH_LIGHT
@@ -151,6 +151,26 @@ def cells():
     fill(occ, -26, -24, iy0, iy1, 16, 17, lambda i, j, k: POST)
     fill(occ, 24, 26, iy0, iy1, 16, 17, lambda i, j, k: POST)
 
+    for iz in range(8, 17, 2):
+        for ix, iy, dx, dy in ((-25, -17, -1, -1), (24, -17, 1, -1), (-25, 16, -1, 1), (24, 16, 1, 1)):
+            occ.setdefault((ix + dx, iy, iz), LOG_END)
+            occ.setdefault((ix, iy + dy, iz), LOG_END)
+            occ.setdefault((ix + 2 * dx, iy, iz), LOG_END)
+    for ix in (-21, -9, 10, 21):
+        fill(occ, ix, ix + 1, -18, -17, 8, 16, lambda i, j, k: POST)
+    for ix in (-17, -1, 17):
+        fill(occ, ix, ix + 1, 17, 18, 8, 16, lambda i, j, k: POST)
+    for lo, hi in ((-17, -13), (13, 17)):
+        fill(occ, lo - 1, hi + 2, -18, -17, 10, 11, lambda i, j, k: FRAME)
+        fill(occ, lo - 1, hi + 2, -18, -17, 15, 16, lambda i, j, k: FRAME)
+        fill(occ, lo - 2, lo - 1, -18, -17, 11, 15, lambda i, j, k: BARGE)
+        fill(occ, hi + 2, hi + 3, -18, -17, 11, 15, lambda i, j, k: BARGE)
+    for lo, hi in ((-9, -5), (9, 13)):
+        fill(occ, lo - 1, hi + 2, 17, 18, 10, 11, lambda i, j, k: FRAME)
+        fill(occ, lo - 1, hi + 2, 17, 18, 15, 16, lambda i, j, k: FRAME)
+    fill(occ, -1, 9, -18, -17, 16, 17, lambda i, j, k: FRAME)
+    fill(occ, -1, 0, -18, -17, 8, 16, lambda i, j, k: POST)
+    fill(occ, 8, 9, -18, -17, 8, 16, lambda i, j, k: POST)
     eave_half = D + OVER
     ix_r0, ix_r1 = -27, 27
     iy_r0 = int(math.floor((-eave_half) / S))
@@ -164,9 +184,55 @@ def cells():
             for iz in range(iz_top - 2, iz_top + 1):
                 if iz < 15:
                     continue
-                put(occ, ix, iy, iz, thatch_tone(ix, iy, iz))
+                if iz == iz_top - 2:
+                    put(occ, ix, iy, iz, LOG_DARK if iy % 2 else LOG_LIGHT)
+                else:
+                    put(occ, ix, iy, iz, thatch_tone(ix, iy, iz))
             if t > 0.88:
                 put(occ, ix, iy, iz_top + 1, BARGE)
+            if t < 0.06:
+                put(occ, ix, iy, iz_top - 3, THATCH_DARK if (ix % 3) else THATCH)
+            elif int(t * 40) % 6 == 0 and iz_top + 1 >= 15:
+                occ.setdefault((ix, iy, iz_top + 1), THATCH_LIGHT if (ix + iy) % 2 else THATCH_DARK)
+
+    for iz in range(9, 16, 2):
+        for ix in range(ix0, ix1):
+            if not (in_door(ix, iz) or in_front_window(ix, iz) or in_door(ix, iz - 1) or in_door(ix, iz + 1) or in_front_window(ix, iz - 1) or in_front_window(ix, iz + 1)):
+                occ.setdefault((ix, -18, iz), LOG_LIGHT)
+            if not (in_back_window(ix, iz) or in_back_window(ix, iz - 1) or in_back_window(ix, iz + 1)):
+                occ.setdefault((ix, 17, iz), LOG_LIGHT)
+        for iy in range(iy0, iy1):
+            if not (in_end_window(iy, iz) or in_end_window(iy, iz - 1) or in_end_window(iy, iz + 1)):
+                occ.setdefault((-26, iy, iz), LOG_LIGHT)
+                occ.setdefault((25, iy, iz), LOG_LIGHT)
+
+    def roof_z(iy):
+        across = (iy + 0.5) * S
+        t = max(0.0, 1.0 - abs(across) / eave_half)
+        return int(round((EAVE + (RIDGE - EAVE) * t) / S))
+
+    dx0, dx1, dfront = -15, -5, iy_r0 + 6
+    dtop = roof_z(dfront) + 6
+    for ix in range(dx0, dx1):
+        for iz in range(roof_z(dfront) - 1, dtop):
+            win = dx0 + 3 <= ix <= dx1 - 4 and roof_z(dfront) + 1 <= iz <= dtop - 2
+            put(occ, ix, dfront, iz, srgb(54, 66, 78) if win else (FRAME if ix in (dx0, dx1 - 1) else log_tone(ix, dfront, iz)))
+        for iy in range(dfront, dfront + 8):
+            for iz in range(roof_z(iy), dtop):
+                if ix in (dx0, dx1 - 1):
+                    occ.setdefault((ix, iy, iz), log_tone(ix, iy, iz))
+    mid = (dx0 + dx1 - 1) / 2.0
+    for ix in range(dx0 - 1, dx1 + 1):
+        h = dtop + int(round((dx1 - dx0) / 2.0 - abs(ix - mid)))
+        for iy in range(dfront - 1, dfront + 9):
+            if h >= roof_z(iy):
+                put(occ, ix, iy, h, thatch_tone(ix, iy, h))
+                put(occ, ix, iy, h - 1, THATCH_DARK)
+        for iz in range(dtop, h - 1):
+            occ.setdefault((ix, dfront, iz), log_tone(ix, dfront, iz))
+    for k in range(0, 4):
+        put(occ, int(mid) - 3 + k, dfront - 1, dtop + 1 + k, BARGE)
+        put(occ, int(mid) + 4 - k, dfront - 1, dtop + 1 + k, BARGE)
 
     for side_ix in (-29, -28, 27, 28):
         for t in range(0, 24):
@@ -190,6 +256,44 @@ def cells():
             if (24, iy, iz) not in occ:
                 put(occ, 24, iy, iz, log_tone(24, iy, iz))
 
+    def roof_under(iy):
+        t = max(0.0, 1.0 - abs((iy + 0.5) * S) / eave_half)
+        return int(round((EAVE + (RIDGE - EAVE) * t) / S)) - 2
+
+    ring = [(ix, -17) for ix in range(ix0, ix1)] + [(ix, 16) for ix in range(ix0, ix1)]
+    ring += [(-25, iy) for iy in range(iy0, iy1)] + [(24, iy) for iy in range(iy0, iy1)]
+    for ix, iy in ring:
+        for iz in range(8, roof_under(iy) + 1):
+            if (ix, iy, iz) in occ:
+                continue
+            if iy == -17 and (in_door(ix, iz) or in_front_window(ix, iz)):
+                continue
+            if iy == 16 and in_back_window(ix, iz):
+                continue
+            if ix in (-25, 24) and in_end_window(iy, iz):
+                continue
+            put(occ, ix, iy, iz, log_tone(ix, iy, iz))
+    for ix in range(-24, 24, 6):
+        for iy in range(iy0, iy1):
+            top = roof_under(iy)
+            if top >= 16:
+                occ.setdefault((ix, iy, top), BARGE)
+    for iy in (-9, 8):
+        for ix in range(-24, 24):
+            top = roof_under(iy)
+            if top >= 16:
+                occ.setdefault((ix, iy, top), FRAME)
+    glass = srgb(54, 66, 78)
+    for iz in range(8, 17):
+        for ix in range(ix0, ix1):
+            if in_front_window(ix, iz):
+                put(occ, ix, -17, iz, glass)
+            if in_back_window(ix, iz):
+                put(occ, ix, 16, iz, glass)
+        for iy in range(iy0, iy1):
+            if in_end_window(iy, iz):
+                put(occ, -25, iy, iz, glass)
+                put(occ, 24, iy, iz, glass)
     fill(occ, -1, 9, -27, -17, 7, 8, lambda i, j, k: PLANK if j % 2 == 0 else PLANK_DARK)
     fill(occ, -1, 9, -27, -17, 6, 7, lambda i, j, k: PLANK_DARK)
     fill(occ, -1, 1, -27, -25, 8, 16, lambda i, j, k: POST)
@@ -214,9 +318,12 @@ def cells():
             for iz in range(iz0, iz0 + 3):
                 put(occ, ix, iy, iz, thatch_tone(ix, iy, iz))
     face_y = porch_iy0
-    for t in range(0, 8):
-        put(occ, -4 + t, face_y, 15 + t, BARGE)
-        put(occ, 11 - t, face_y, 15 + t, BARGE)
+    for t in range(0, 11):
+        for dy in (0, -1):
+            put(occ, -4 + t, face_y + dy, 15 + t, BARGE)
+            put(occ, 11 - t, face_y + dy, 15 + t, BARGE)
+            put(occ, -4 + t, face_y + dy, 16 + t, BARGE)
+            put(occ, 11 - t, face_y + dy, 16 + t, BARGE)
     for t in range(0, 10):
         iz = 15 + int(round(t * 6 / 9.0))
         put(occ, -1 + t, face_y, iz, LOG_END)

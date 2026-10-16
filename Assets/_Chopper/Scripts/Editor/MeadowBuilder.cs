@@ -36,12 +36,6 @@ namespace Chopper.Editor
         public const string DirectorPrefabPath = "Assets/_Chopper/Prefabs/World/EnemyDirector.prefab";
         private const string PalettePath = "Assets/_Chopper/Config/SO_ElementPalette.asset";
         private const string SpawnTablePathFormat = "Assets/_Chopper/Config/SO_SpawnTable_{0}.asset";
-        // Models used for the treant body per element, in Element value order (Neutral, Water, Fire, Earth, Wind).
-        // The pack ships its pine in six leaf colors, so the element is carried by the model itself.
-        private static readonly string[] TreantModels =
-        {
-            "pixel_tree_lowpoly_dark", "pixel_tree_lowpoly_blue", "pixel_tree_lowpoly_red", "pixel_tree_lowpoly_yellow", "pixel_tree_lowpoly_lightgreen"
-        };
         public const string TreesPrefabPath = "Assets/_Chopper/Prefabs/World/TreeManager.prefab";
         private const string WorldAssetsPath = "Assets/_Chopper/Config/SO_WorldAssets.asset";
         private const string MaterialsFolder = "Assets/_Chopper/Materials/World";
@@ -56,6 +50,7 @@ namespace Chopper.Editor
             var model = AssetDatabase.LoadAssetAtPath<GameObject>(PixelMeshes + name + ".fbx");
             if (model == null) model = AssetDatabase.LoadAssetAtPath<GameObject>(NatureMeshes + name + ".fbx");
             if (model == null) model = ChopperMeadowSwap.MeadowModel(name);
+            if (model == null) model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Chopper/Art/Meadow/" + name + ".prefab");
             return model;
         }
 
@@ -73,11 +68,11 @@ namespace Chopper.Editor
         {
             switch (zone)
             {
-                case Element.Water: return new[] { "pixel_tree_lowpoly_blue" };
-                case Element.Fire: return new[] { "pixel_tree_lowpoly_red", "pixel_tree_lowpoly_orange" };
-                case Element.Wind: return new[] { "pixel_tree_lowpoly_lightgreen" };
-                case Element.Earth: return new[] { "pixel_tree_lowpoly_dark", "pixel_tree_lowpoly_yellow" };
-                default: return new[] { "pixel_tree_lowpoly", "pixel_tree2_lowpoly", "pixel_tree2_lowpoly", "pixel_tree2_pink_lowpoly" };
+                case Element.Water: return new[] { "prop_pine_Water" };
+                case Element.Fire: return new[] { "prop_pine_Fire", "prop_pine_FireOrange" };
+                case Element.Wind: return new[] { "prop_pine_Wind" };
+                case Element.Earth: return new[] { "prop_pine_Earth", "prop_pine_EarthYellow" };
+                default: return new[] { "prop_pine_Hub", "prop_pine_HubOak", "prop_pine_HubOak", "prop_pine_HubPink" };
             }
         }
 
@@ -629,7 +624,7 @@ namespace Chopper.Editor
         {
             Texture2D ripples = CreateRippleNormal();
             // Concept 2.0: muted grey-teal, lighter in the shallows. No ripple, no sun glint.
-            pond = CreateWaterMaterial("M_Water", new Color(0.42f, 0.58f, 0.60f), new Color(0.13f, 0.29f, 0.36f), ripples, 1.6f, 0.28f, 3.5f);
+            pond = CreateWaterMaterial("M_Water", new Color(0.30f, 0.56f, 0.56f), new Color(0.06f, 0.24f, 0.32f), ripples, 3.0f, 0.58f, 3.5f);
             marsh = CreateWaterMaterial("M_MarshWater", new Color(0.42f, 0.58f, 0.42f), new Color(0.16f, 0.28f, 0.18f), ripples, 1.2f, 0.22f, 3f);
             sea = CreateWaterMaterial("M_Sea", new Color(0.34f, 0.52f, 0.58f), new Color(0.10f, 0.25f, 0.36f), ripples, 2.2f, 0.22f, 6f);
         }
@@ -928,12 +923,6 @@ namespace Chopper.Editor
             so.FindProperty("_palette").objectReferenceValue = AssetDatabase.LoadAssetAtPath<ElementPalette>(PalettePath);
             so.FindProperty("_draugrPrefab").objectReferenceValue = DraugrSetup.Build();
             so.FindProperty("_golemPrefab").objectReferenceValue = GolemSetup.Build();
-            SerializedProperty models = so.FindProperty("_modelsByElement");
-            models.arraySize = TreantModels.Length;
-            for (int i = 0; i < TreantModels.Length; i++)
-            {
-                models.GetArrayElementAtIndex(i).objectReferenceValue = PixelModel(TreantModels[i]);
-            }
             so.ApplyModifiedPropertiesWithoutUndo();
 
             var aiSo = new SerializedObject(ai);

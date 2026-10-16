@@ -230,7 +230,7 @@ namespace Chopper.Core
         {
             switch (zone)
             {
-                case MineZone.Water: return "Drip Mine";
+                case MineZone.Water: return "Mine";
                 case MineZone.Fire: return "Cinder Mine";
                 case MineZone.Earth: return "Deep Root Mine";
                 case MineZone.Wind: return "High Gallery Mine";

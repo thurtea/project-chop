@@ -49,6 +49,44 @@ namespace Chopper.Editor
             Debug.Log("[ChopperProps] RESULT " + (n == FishGear.Length ? "PASS" : "FAIL"));
         }
 
+        static readonly string[] Saplings =
+            { "prop_sapling_0_voxel", "prop_sapling_1_voxel", "prop_sapling_2_voxel", "prop_sapling_3_voxel", "prop_sapling_4_voxel" };
+
+        static readonly string[] Branches =
+            { "prop_branch_0_voxel", "prop_branch_1_voxel", "prop_branch_2_voxel", "prop_branch_3_voxel" };
+
+        public static void ApplyBranches()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (mat == null) throw new FileNotFoundException("Missing M_World.");
+            Directory.CreateDirectory(PropsResources);
+            int n = 0;
+            foreach (string name in Branches)
+            {
+                Import(name);
+                if (SaveResourcesPrefab(name, mat)) n++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ChopperProps] branches {n}/{Branches.Length}");
+            Debug.Log("[ChopperProps] RESULT " + (n == Branches.Length ? "PASS" : "FAIL"));
+        }
+
+        public static void ApplySaplings()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (mat == null) throw new FileNotFoundException("Missing M_World.");
+            Directory.CreateDirectory(PropsResources);
+            int n = 0;
+            foreach (string name in Saplings)
+            {
+                Import(name);
+                if (SaveResourcesPrefab(name, mat)) n++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ChopperProps] saplings {n}/{Saplings.Length}");
+            Debug.Log("[ChopperProps] RESULT " + (n == Saplings.Length ? "PASS" : "FAIL"));
+        }
+
         public static void ApplyGround()
         {
             Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");

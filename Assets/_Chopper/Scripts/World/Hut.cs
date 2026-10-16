@@ -87,7 +87,7 @@ namespace Chopper.World
         // crossed beams at each end, and the upstairs is a loft inside the roof. Stairs go up from the basement at the
         // -X end and from the main floor into the loft. Two workbenches (main floor and basement), two beds (loft), the
         // chest and the fireplace on the main floor.
-        public const float HouseScale = 1.5f;
+        public const float HouseScale = 1.8f;
         public const float StoreyHeight = 2f * HouseScale;
         // Half the house in piece-metres (the layout) and in metres (the walls enemies hit).
         static readonly Vector2 LayoutHalf = new Vector2(6f, 4f);
@@ -106,12 +106,18 @@ namespace Chopper.World
             var root = new GameObject("Cabin").transform;
             root.SetParent(transform, false);
             root.localScale = Vector3.one * HouseScale;
+            root.localPosition = Vector3.down * Chopper.World.Generation.WorldGen.HutSink;
+            foreach (PlayerSpawnPoint point in new System.Collections.Generic.List<PlayerSpawnPoint>(PlayerSpawnPoint.Active))
+            {
+                Vector3 local = transform.InverseTransformPoint(point.transform.position);
+                if (Mathf.Abs(local.x) < HouseHalfSize.x && Mathf.Abs(local.z) < HouseHalfSize.y && local.y > -1f && local.y < 1.5f)
+                    point.transform.position -= Vector3.up * Chopper.World.Generation.WorldGen.HutSink;
+            }
             // Piece-metres under the scaled root: basement floor, main floor, loft floor (= the eaves).
             const float main = 2f, loft = 4f;
             const float doorX = 1f;
             // The basement stairwell is two tiles long at the -X end, so the flight rises at half the pitch (W11-14).
             var basementHoles = new[] { new Vector2(-5f, -1f), new Vector2(-5f, 1f) };
-            var loftHole = new Vector2(3f, 1f);         // main floor stairs, under the loft
 
             foreach (float x in TilesX)
             {
@@ -119,8 +125,6 @@ namespace Chopper.World
                 {
                     Put(root, "Wood floor", new Vector3(x, 0f, z), 0f);
                     if (System.Array.IndexOf(basementHoles, new Vector2(x, z)) < 0) Put(root, "Wood floor", new Vector3(x, main, z), 0f);
-                    // The loft covers the middle of the house, where the roof is high enough to stand.
-                    if (Mathf.Abs(z) < 2f && new Vector2(x, z) != loftHole) Put(root, "Wood floor", new Vector3(x, loft, z), 0f);
                 }
             }
 
@@ -136,7 +140,6 @@ namespace Chopper.World
             // Stairs: from the basement up toward the back at the -X end, and from the main floor up into the loft
             // (rising toward +X).
             Put(root, "Stairs", new Vector3(-5f, 0f, 0f), 180f, new Vector3(1f, 1f, 2f));
-            Put(root, "Stairs", new Vector3(loftHole.x, main, loftHole.y), 90f);
             BuildPorch(root, doorX, main);
 
             // Thatch: ridge along X at z = 0, two roof pieces (4 m rise) down the front and the back; log gables at both
@@ -176,6 +179,72 @@ namespace Chopper.World
                     foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true))
                         renderer.enabled = false;
                 }
+                foreach (Transform piece in root)
+                {
+                    if (piece.name != "Wood floor") continue;
+                    Vector3 fp = piece.localPosition;
+                    if (Mathf.Abs(fp.x) >= LayoutHalf.x || Mathf.Abs(fp.z) >= LayoutHalf.y) continue;
+                    Renderer look = piece.GetComponentInChildren<Renderer>(true);
+                    if (look == null) continue;
+                    Material wood = look.sharedMaterial;
+                    Bounds b = look.localBounds;
+                    foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+                    var boards = new GameObject("Boards").transform;
+                    boards.SetParent(piece, false);
+                    const int count = 8;
+                    for (int k = 0; k < count; k++)
+                    {
+                        GameObject board = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        board.name = "Board";
+                        Destroy(board.GetComponent<Collider>());
+                        board.transform.SetParent(boards, false);
+                        float w = 2f / count;
+                        board.transform.localPosition = new Vector3(-1f + (k + 0.5f) * w, 0.03f, ((k * 37) % 5) * 0.02f);
+                        board.transform.localScale = new Vector3(w * 0.92f, 0.06f, 2f);
+                        var mr = board.GetComponent<MeshRenderer>();
+                        mr.sharedMaterial = wood;
+                        var block = new MaterialPropertyBlock();
+                        float tone = ((k * 7 + Mathf.RoundToInt(fp.x * 3f + fp.z * 5f)) % 3) * 0.06f;
+                        block.SetColor(TintId, new Color(0.62f + tone, 0.44f + tone * 0.8f, 0.28f + tone * 0.5f));
+                        mr.SetPropertyBlock(block);
+                    }
+                    var seam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    seam.name = "Seams";
+                    Destroy(seam.GetComponent<Collider>());
+                    seam.transform.SetParent(boards, false);
+                    seam.transform.localPosition = new Vector3(0f, 0.005f, 0f);
+                    seam.transform.localScale = new Vector3(2f, 0.04f, 2f);
+                    var sr = seam.GetComponent<MeshRenderer>();
+                    sr.sharedMaterial = wood;
+                    var sb = new MaterialPropertyBlock();
+                    sb.SetColor(TintId, new Color(0.22f, 0.14f, 0.08f));
+                    sr.SetPropertyBlock(sb);
+                }
+                foreach (Transform piece in root)
+                {
+                    if (piece.name != "Stairs") continue;
+                    Transform treads = piece.Find("Treads");
+                    Renderer look = piece.GetComponentInChildren<Renderer>(true);
+                    if (treads == null || look == null) continue;
+                    Material wood = look.sharedMaterial;
+                    foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
+                    int step = 0;
+                    foreach (BoxCollider box in treads.GetComponents<BoxCollider>())
+                    {
+                        GameObject tread = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        tread.name = "TreadLook";
+                        Destroy(tread.GetComponent<Collider>());
+                        tread.transform.SetParent(treads, false);
+                        tread.transform.localPosition = box.center;
+                        tread.transform.localScale = box.size;
+                        var mr = tread.GetComponent<MeshRenderer>();
+                        mr.sharedMaterial = wood;
+                        var block = new MaterialPropertyBlock();
+                        block.SetColor(TintId, step % 2 == 0 ? new Color(0.78f, 0.58f, 0.40f) : new Color(0.66f, 0.47f, 0.31f));
+                        mr.SetPropertyBlock(block);
+                        step++;
+                    }
+                }
                 Transform hall = Instantiate(hallPrefab, root).transform;
                 hall.name = "Hall";
                 hall.localPosition = Vector3.zero;
@@ -193,10 +262,10 @@ namespace Chopper.World
                 Transform bed = house.Find("Bed");
                 if (bed != null)
                 {
-                    PlaceAt(bed, Spot(-3.6f, loft, 0f), 90f);
+                    PlaceAt(bed, Spot(-3f, main, 1.4f), 90f);
                     Transform second = Instantiate(bed.gameObject, bed.parent).transform;
                     second.name = "Bed";
-                    PlaceAt(second, Spot(-1.6f, loft, 0f), 90f);
+                    PlaceAt(second, Spot(-1.2f, main, 1.4f), 90f);
                 }
             }
             GameObject yardBench = GameObject.Find("HutYard/Workbench");
@@ -239,7 +308,7 @@ namespace Chopper.World
         // the crossed beams at the front) on two log posts. Piece-metres under the scaled root.
         void BuildPorch(Transform root, float doorX, float main)
         {
-            float terrace = Chopper.World.Generation.WorldGen.TerraceHeight / HouseScale;
+            float terrace = (Chopper.World.Generation.WorldGen.TerraceHeight + Chopper.World.Generation.WorldGen.HutSink) / HouseScale;
             float z0 = LayoutHalf.y;                       // the front wall
             Put(root, "Wood floor", new Vector3(doorX - 1f, main, z0 + 1f), 0f);
             Put(root, "Wood floor", new Vector3(doorX + 1f, main, z0 + 1f), 0f);
@@ -287,7 +356,7 @@ namespace Chopper.World
         }
 
         // A point on a floor of the house, from piece-metres to the hut's local metres (just above the planks).
-        static Vector3 Spot(float x, float floor, float z) => new Vector3(x, floor, z) * HouseScale + Vector3.up * 0.12f;
+        static Vector3 Spot(float x, float floor, float z) => new Vector3(x, floor, z) * HouseScale + Vector3.up * (0.12f - Chopper.World.Generation.WorldGen.HutSink);
 
         void PlaceAt(Transform prop, Vector3 local, float yaw)
         {

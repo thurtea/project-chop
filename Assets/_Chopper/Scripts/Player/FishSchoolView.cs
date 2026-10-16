@@ -8,7 +8,7 @@ namespace Chopper.Player
     // the way they swim, sizes them by weight, and lets the ones that fled fade away.
     public class FishSchoolView
     {
-        private const float Lift = -0.12f;
+        private const float Lift = -0.06f;
         private const float GlideSharpness = 6f;
         private const float FleeFadeSeconds = 1.2f;
         private const float JumpSeconds = 0.9f;
@@ -215,7 +215,17 @@ namespace Chopper.Player
 
         private static Transform MakeBody(float length)
         {
-            return Spawn(FishProp, "SchoolFish", length);
+            Transform body = Spawn(FishProp, "SchoolFish", length * 1.25f);
+            if (body == null) return null;
+            foreach (Renderer renderer in body.GetComponentsInChildren<Renderer>())
+            {
+                foreach (Material material in renderer.materials)
+                {
+                    material.EnableKeyword("_EMISSION");
+                    material.SetColor("_EmissionColor", new Color(0.32f, 0.36f, 0.30f));
+                }
+            }
+            return body;
         }
     }
 }

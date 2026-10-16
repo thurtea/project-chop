@@ -25,10 +25,10 @@ namespace Chopper.World
         private const float NoonIntensity = 1.45f;
         private const float LowSunIntensity = 1.1f;
         private const float LowSunSpan = 0.75f;
-        private const float MoonIntensity = 1.0f;
+        private const float MoonIntensity = 0.32f;
         private const float NightSkyExposure = 0.08f;
         private const float DayExposure = 0.20f;
-        private const float NightExposure = 0.15f;
+        private const float NightExposure = 0.02f;
         // Valheim grade: muted, desaturated colours.
         private const float DaySaturation = -34f;
         private const float NightSaturation = -18f;
@@ -45,14 +45,14 @@ namespace Chopper.World
         private static readonly Color LightingSky = new Color(0.72f, 0.66f, 0.56f);
         private static readonly Color LightingEquator = new Color(0.70f, 0.62f, 0.50f);
         private static readonly Color LightingGround = new Color(0.42f, 0.40f, 0.30f);
-        private static readonly Color NightSky = new Color(0.26f, 0.34f, 0.58f);
-        private static readonly Color NightEquator = new Color(0.20f, 0.26f, 0.42f);
-        private static readonly Color NightGround = new Color(0.10f, 0.12f, 0.20f);
+        private static readonly Color NightSky = new Color(0.09f, 0.12f, 0.22f);
+        private static readonly Color NightEquator = new Color(0.06f, 0.08f, 0.14f);
+        private static readonly Color NightGround = new Color(0.025f, 0.03f, 0.05f);
         // Underground (crypts and mines): no sun or moon. Darker and warmer than the old grey fill.
-        private static readonly Color CryptSky = new Color(0.18f, 0.10f, 0.06f);
-        private static readonly Color CryptEquator = new Color(0.13f, 0.07f, 0.04f);
-        private static readonly Color CryptGround = new Color(0.05f, 0.03f, 0.02f);
-        private const float CryptExposure = 0.62f;
+        private static readonly Color CryptSky = new Color(0.07f, 0.12f, 0.13f);
+        private static readonly Color CryptEquator = new Color(0.05f, 0.08f, 0.09f);
+        private static readonly Color CryptGround = new Color(0.02f, 0.03f, 0.03f);
+        private const float CryptExposure = 0.18f;
         private const float UndergroundBlendSpeed = 3f;
 
         public static DayNightCycle Instance { get; private set; }
@@ -253,7 +253,7 @@ namespace Chopper.World
                 bool forest = ZoneTracker.Current != Element.Neutral && u < 0.35f;
                 if (forest) sunColor = Color.Lerp(sunColor, new Color(1f, 0.70f, 0.38f), 0.4f);
                 _sun.color = Color.Lerp(sunColor, MoonColor, d);
-                float canopy = forest ? 0.42f : 1f;
+                float canopy = forest ? 0.72f : 1f;
                 _sun.intensity = Mathf.Lerp(Mathf.Lerp(LowSunIntensity, NoonIntensity, elevation), MoonIntensity, d) * (1f - u) * weather.Sun * canopy;
                 _sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(sunPitch, MoonPitch, d), Mathf.Lerp(sunYaw, MoonYaw, d), 0f);
             }
@@ -280,7 +280,7 @@ namespace Chopper.World
                 if (_skyRuntime.HasProperty(ExposureId))
                 {
                     float skyExposure = Mathf.Lerp(1.3f, NightSkyExposure, d) * weather.Sky;
-                    if (inForest) skyExposure *= 0.42f;
+                    if (inForest) skyExposure *= 0.72f;
                     _skyRuntime.SetFloat(ExposureId, skyExposure);
                 }
                 // A thicker atmosphere at a low sun paints the long orange horizon of morning and evening.
@@ -288,7 +288,7 @@ namespace Chopper.World
                 if (_skyRuntime.HasProperty(AtmosphereId)) _skyRuntime.SetFloat(AtmosphereId, Mathf.Lerp(1.45f, 1.75f, lowSun));
                 // An overcast sky loses its blue and its warm low sun tint and turns flat grey.
                 Color tint = Color.Lerp(new Color(0.64f, 0.56f, 0.46f), new Color(0.62f, 0.48f, 0.36f), lowSun);
-                if (inForest) tint = Color.Lerp(tint, new Color(0.38f, 0.48f, 0.62f), 0.7f);
+                if (inForest) tint = Color.Lerp(tint, new Color(0.38f, 0.48f, 0.62f), 0.35f);
                 if (_skyRuntime.HasProperty(SkyTintId)) _skyRuntime.SetColor(SkyTintId, Color.Lerp(tint, OvercastSky, weather.Overcast));
                 if (_skyRuntime.HasProperty(GroundColorId)) _skyRuntime.SetColor(GroundColorId, Color.Lerp(SeaHorizon, SeaHorizon * 0.15f, d));
                 // The visible sun is the block disc (BlockSky). This disc in the skybox stays a small glow behind it.
@@ -298,7 +298,7 @@ namespace Chopper.World
             if (_colorAdjustments != null)
             {
                 float exposure = Mathf.Lerp(Mathf.Lerp(DayExposure, NightExposure, d), CryptExposure, u);
-                if (inForest) exposure -= 0.55f;
+                if (inForest) exposure -= 0.2f;
                 _colorAdjustments.postExposure.value = exposure;
                 Color filter = Color.Lerp(Color.white, NightFilter, d);
                 if (inForest) filter = filter * new Color(0.82f, 0.90f, 1.08f);

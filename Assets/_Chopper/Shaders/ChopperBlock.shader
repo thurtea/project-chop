@@ -8,6 +8,7 @@ Shader "Chopper/Block"
     {
         _Edge ("Edge darkening", Range(0, 1)) = 0.16
         _Jitter ("Texel shade strength", Range(0, 1)) = 1
+        _Fill ("Flat fill light", Range(0, 0.5)) = 0.22
         _Dark ("Dark texel shade", Range(0.3, 1)) = 0.72
         _Light ("Light texel shade", Range(1, 2)) = 1.32
         // sRGB: Unity converts Color properties to linear once. The old default was already linear, so it was
@@ -24,6 +25,7 @@ Shader "Chopper/Block"
         CBUFFER_START(UnityPerMaterial)
             half _Edge;
             half _Jitter;
+        half _Fill;
             half _Dark;
             half _Light;
             half4 _LipColor;
@@ -150,7 +152,7 @@ Shader "Chopper/Block"
                 #endif
                 half3 ambient = SampleSH(n);
                 // A low sun leaves flat tops in deep shadow. A little fill keeps the block colour readable.
-                half3 c = albedo * (direct + ambient + 0.22);
+                half3 c = albedo * (direct + ambient + _Fill);
                 c = MixFog(c, i.fogFactor);
                 return half4(c, 1);
             }
