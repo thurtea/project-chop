@@ -38,10 +38,21 @@ namespace Chopper.Core
     // Swimming: slower than walking, and moving through water costs stamina. Out of stamina, the player only paddles.
     public static class SwimRules
     {
-        public const float SpeedMultiplier = 0.4f;
+        public const float SpeedMultiplier = 0.5f;
+        public const float SprintMultiplier = 1.6f;
         public const float StaminaPerSecond = 5f;
         public const float ExhaustedMultiplier = 0.5f;
 
-        public static float Speed(float walkSpeed, bool exhausted) => walkSpeed * SpeedMultiplier * (exhausted ? ExhaustedMultiplier : 1f);
+        public static float Speed(float walkSpeed, bool exhausted) => Speed(walkSpeed, exhausted, false);
+
+        public static float Speed(float walkSpeed, bool exhausted, bool sprinting) => walkSpeed * SpeedMultiplier * (exhausted ? ExhaustedMultiplier : (sprinting ? SprintMultiplier : 1f));
+
+        public static bool KeepsSprint(bool swimming, bool blocking) => !blocking;
+
+        public static bool NextCrouch(bool crouchToggled, bool crouchPressed, bool sprintPressed, bool down, bool swimming)
+        {
+            if (swimming || down || sprintPressed) return false;
+            return crouchPressed ? !crouchToggled : crouchToggled;
+        }
     }
 }

@@ -56,6 +56,12 @@ namespace Chopper.World
         }
 
         // Flat distance from a position to the house's walls (0 inside).
+        public bool IsIndoors(Vector3 at)
+        {
+            Vector3 local = transform.InverseTransformPoint(at);
+            return Mathf.Abs(local.x) < HouseHalfSize.x && Mathf.Abs(local.z) < HouseHalfSize.y && local.y > -3.5f && local.y < 4f * StoreyHeight;
+        }
+
         public float DistanceToWalls(Vector3 from)
         {
             Vector3 local = from - transform.position;
@@ -88,6 +94,7 @@ namespace Chopper.World
         // crossed beams at each end, and the upstairs is a loft inside the roof. Stairs go up from the basement at the
         // -X end and from the main floor into the loft. Two workbenches (main floor and basement), two beds (loft), the
         // chest and the fireplace on the main floor.
+        public static Bounds LadderZone;
         public const float HouseScale = 1.8f;
         public const float StoreyHeight = 2f * HouseScale;
         // Half the house in piece-metres (the layout) and in metres (the walls enemies hit).
@@ -219,10 +226,12 @@ namespace Chopper.World
                     point.transform.position -= Vector3.up * Chopper.World.Generation.WorldGen.HutSink;
             }
             // Piece-metres under the scaled root: basement floor, main floor, loft floor (= the eaves).
-            const float main = 2f, loft = 4f;
+            const float main = 2f, second = 4f, third = 6f, loft = 8f;
             const float doorX = 1f;
             // The basement stairwell is two tiles long at the -X end, so the flight rises at half the pitch (W11-14).
             var basementHoles = new[] { new Vector2(-5f, -1f), new Vector2(-5f, 1f) };
+            var secondHoles = new[] { new Vector2(5f, -1f), new Vector2(5f, 1f) };
+            var thirdHoles = basementHoles;
 
             foreach (float x in TilesX)
             {
@@ -230,6 +239,8 @@ namespace Chopper.World
                 {
                     Put(root, "Wood floor", new Vector3(x, 0f, z), 0f);
                     if (System.Array.IndexOf(basementHoles, new Vector2(x, z)) < 0) Put(root, "Wood floor", new Vector3(x, main, z), 0f);
+                    if (System.Array.IndexOf(secondHoles, new Vector2(x, z)) < 0) Put(root, "Wood floor", new Vector3(x, second, z), 0f);
+                    if (System.Array.IndexOf(thirdHoles, new Vector2(x, z)) < 0) Put(root, "Wood floor", new Vector3(x, third, z), 0f);
                 }
             }
 
@@ -241,10 +252,33 @@ namespace Chopper.World
             Walls(root, main,
                 new[] { "Wood wall", "Log window", "Wood wall", "Wood wall", "Log window", "Wood wall" },
                 new[] { "Log window", "Wood wall", "Log window", "Doorway", "Log window", "Wood wall" }, 1f, Color.white);
+            Walls(root, second,
+                new[] { "Wood wall", "Log window", "Wood wall", "Wood wall", "Log window", "Wood wall" },
+                new[] { "Log window", "Wood wall", "Wood wall", "Log window", "Wood wall", "Log window" }, -1f, Color.white);
+            Walls(root, third,
+                new[] { "Wood wall", "Wood wall", "Log window", "Wood wall", "Log window", "Wood wall" },
+                new[] { "Log window", "Wood wall", "Wood wall", "Log window", "Wood wall", "Log window" }, -1f, Color.white);
 
             // Stairs: from the basement up toward the back at the -X end, and from the main floor up into the loft
             // (rising toward +X).
+            foreach (Transform piece in root)
+            {
+                Vector3 lp = piece.localPosition;
+                if (piece.name == "Wood wall" && Mathf.Approximately(lp.x, LayoutHalf.x) && Mathf.Approximately(lp.y, third) && Mathf.Approximately(lp.z, 3f)) { Destroy(piece.gameObject); break; }
+            }
+            Put(root, "Doorway", new Vector3(LayoutHalf.x, third, 3f), 90f);
+            Chopper.World.Ladder.Clear();
+            {
+                Vector3 lo = root.TransformPoint(new Vector3(LayoutHalf.x + 0.15f, -0.2f, 2.15f));
+                Vector3 hi = root.TransformPoint(new Vector3(LayoutHalf.x + 1.3f, third, 3.45f)) + Vector3.up * 0.75f;
+                var zone = new Bounds((lo + hi) * 0.5f, Vector3.zero);
+                zone.Encapsulate(lo); zone.Encapsulate(hi);
+                Chopper.World.Ladder.Add(zone, -root.right);
+                LadderZone = zone;
+            }
             Put(root, "Stairs", new Vector3(-5f, 0f, 0f), 180f, new Vector3(1f, 1f, 2f));
+            Put(root, "Stairs", new Vector3(5f, main, 0f), 180f, new Vector3(1f, 1f, 2f));
+            Put(root, "Stairs", new Vector3(-5f, second, 0f), 180f, new Vector3(1f, 1f, 2f));
             BuildPorch(root, doorX, main);
 
             // Thatch: ridge along X at z = 0, two roof pieces (4 m rise) down the front and the back; log gables at both
@@ -336,27 +370,87 @@ namespace Chopper.World
             if (house != null)
             {
                 HideOldHouse();
-                PlaceAt(house.Find("Fireplace"), Spot(0f, main, -3.6f), 0f);
-                PlaceAt(house.Find("StorageChest"), Spot(-2.6f, main, -3.6f), 0f);
+                PlaceAt(house.Find("Fireplace"), Spot(-2.9f, main, -3.6f), 0f);
+                PlaceAt(house.Find("StorageChest"), Spot(0.6f, main, -3.5f), 0f);
                 Transform bed = house.Find("Bed");
                 if (bed != null)
                 {
-                    PlaceAt(bed, Spot(-3f, main, 1.4f), 90f);
-                    Transform second = Instantiate(bed.gameObject, bed.parent).transform;
-                    second.name = "Bed";
-                    PlaceAt(second, Spot(-1.2f, main, 1.4f), 90f);
+                    PlaceAt(bed, Spot(-2.6f, second, -2.9f), 90f);
+                    Transform bed2 = Instantiate(bed.gameObject, bed.parent).transform;
+                    bed2.name = "Bed";
+                    PlaceAt(bed2, Spot(-0.6f, second, -2.9f), 90f);
                 }
             }
             GameObject yardBench = GameObject.Find("HutYard/Workbench");
             if (yardBench != null)
             {
-                PlaceAt(yardBench.transform, Spot(3.2f, main, -3.4f), 0f);
-                Transform second = Instantiate(yardBench, yardBench.transform.parent).transform;
-                second.name = "Workbench";
-                PlaceAt(second, Spot(-1f, 0f, 2.8f), 0f);
+                PlaceAt(yardBench.transform, Spot(1.6f, third, -3.3f), 0f);
+                Transform bench2 = Instantiate(yardBench, yardBench.transform.parent).transform;
+                bench2.name = "Workbench";
+                PlaceAt(bench2, Spot(-1f, 0f, 2.8f), 0f);
             }
+            Furnish(main, second, third);
             OpenEnemyPaths(root);
             _houseHalfExtents = HouseHalfSize;
+        }
+
+        void Furnish(float main, float second, float third)
+        {
+            var spots = new (string prop, float x, float y, float z, float yaw)[]
+            {
+                ("prop_mine_barrel_voxel", -2.2f, 0f, -3.2f, 0f), ("prop_mine_barrel_voxel", -1.2f, 0f, -3.3f, 30f), ("prop_mine_barrel_voxel", 2.2f, 0f, -3.2f, 10f),
+                ("prop_mine_crate_voxel", 3.2f, 0f, -3.1f, 0f), ("prop_mine_crate_voxel", 4.3f, 0f, -3.1f, 15f), ("prop_mine_crate_voxel", 2.6f, 0f, 2.9f, 0f),
+                ("prop_hut_sack_voxel", 4.2f, 0f, 2.6f, 0f), ("prop_hut_sack_voxel", 4.8f, 0f, 3.1f, 40f), ("prop_hut_sack_voxel", 0.4f, 0f, -3.3f, 70f),
+                ("prop_hut_notice_voxel", 3.2f, main, -3.75f, 0f),
+                ("prop_hut_table_voxel", -2.2f, main, 0.8f, 0f), ("prop_hut_table_voxel", 2.4f, main, 0.6f, 90f),
+                ("prop_hut_stool_voxel", -3.2f, main, 0.8f, 0f), ("prop_hut_stool_voxel", -1.2f, main, 0.8f, 0f), ("prop_hut_stool_voxel", 2.4f, main, -0.5f, 0f), ("prop_hut_stool_voxel", 2.4f, main, 1.7f, 0f),
+                ("prop_hut_bunk_voxel", 0.6f, second, 3.2f, 180f), ("prop_hut_bunk_voxel", 2.6f, second, 3.2f, 180f),
+                ("prop_mine_crate_voxel", -2.6f, second, -1.5f, 0f), ("prop_mine_crate_voxel", 4.4f, second, 3.2f, 0f),
+                ("prop_mine_barrel_voxel", -4.0f, main, -3.3f, 0f), ("prop_mine_crate_voxel", -4.0f, main, -2.3f, 20f), ("prop_hut_sack_voxel", 0.4f, main, -2.6f, 0f),
+                ("prop_hut_table_voxel", -0.2f, main, 2.4f, 0f), ("prop_hut_stool_voxel", -1.2f, main, 2.4f, 0f), ("prop_hut_stool_voxel", 0.8f, main, 2.4f, 0f),
+                ("prop_hut_bunk_voxel", -2.8f, second, 3.2f, 180f), ("prop_hut_bunk_voxel", 4.4f, second, -3.2f, 0f), ("prop_hut_stool_voxel", 1.6f, second, 0.4f, 0f), ("prop_hut_table_voxel", 1.6f, second, -0.6f, 0f),
+                ("prop_mine_crate_voxel", 0.9f, second, -3.3f, 0f), ("prop_mine_lantern_voxel", 1.6f, second, -0.6f, 0f),
+                ("prop_hut_toolwall_voxel", -1.2f, third, -3.8f, 0f), ("prop_hut_table_voxel", 3.8f, third, -3.2f, 0f), ("prop_hut_vise_voxel", 3.8f, third, -3.2f, 0f),
+                ("prop_mine_crate_voxel", 4.6f, third, 1.0f, 0f), ("prop_mine_barrel_voxel", 4.6f, third, 0.0f, 0f), ("prop_hut_sack_voxel", -0.4f, third, 3.2f, 0f), ("prop_hut_stool_voxel", -1.2f, third, 2.6f, 0f),
+                ("prop_mine_lantern_voxel", 1.6f, third, -3.0f, 0f), ("prop_mine_lantern_voxel", -0.2f, main, 2.4f, 0f),
+                ("prop_hut_toolwall_voxel", 1.6f, third, -3.8f, 0f), ("prop_hut_vise_voxel", -0.4f, third, -3.3f, 0f),
+                ("prop_hut_wheel_voxel", -2.4f, third, 2.6f, 200f), ("prop_hut_stool_voxel", 1.6f, third, -2.3f, 0f), ("prop_hut_table_voxel", 3.6f, third, 2.4f, 0f),
+            };
+            Transform holder = new GameObject("HutFurniture").transform;
+            holder.SetParent(transform, false);
+            int placed = 0;
+            foreach (var s in spots)
+            {
+                GameObject prefab = Resources.Load<GameObject>("Props/" + s.prop);
+                if (prefab == null) { Debug.LogWarning("[Hut] missing prop " + s.prop); continue; }
+                Vector3 at = transform.TransformPoint(Spot(s.x, s.y, s.z));
+                GameObject g = PlaceProp(prefab, holder, at, at.y - 0.1f, transform.eulerAngles.y + s.yaw, 1f, 0f);
+                g.name = s.prop;
+                Bounds gb = WorldBounds(g);
+                if (placed < 3 || s.y > 5f) Debug.Log($"[Hut] prop {s.prop} at {gb.center:F2} size {gb.size:F2}");
+                if (g.GetComponentInChildren<Collider>() == null)
+                {
+                    Bounds b = WorldBounds(g);
+                    var box = g.AddComponent<BoxCollider>();
+                    box.center = g.transform.InverseTransformPoint(b.center);
+                    Vector3 ls = g.transform.lossyScale;
+                    box.size = new Vector3(b.size.x / Mathf.Max(0.001f, ls.x), b.size.y / Mathf.Max(0.001f, ls.y), b.size.z / Mathf.Max(0.001f, ls.z));
+                    if (s.prop.Contains("notice") || s.prop.Contains("toolwall")) box.enabled = false;
+                }
+                placed++;
+            }
+            foreach (var (fy, lx, lz) in new[] { (0f, 0f, 0f), (main, -1f, 0f), (main, 3f, 0f), (second, -2f, 0f), (second, 2.5f, 0f), (third, -2f, 0f), (third, 2.5f, -1f) })
+            {
+                var lamp = new GameObject("HutLamp").AddComponent<Light>();
+                lamp.transform.SetParent(holder, false);
+                lamp.transform.position = transform.TransformPoint(Spot(lx, fy, lz) + Vector3.up * 2.6f);
+                lamp.type = LightType.Point;
+                lamp.color = new Color(1f, 0.74f, 0.45f);
+                lamp.range = 11f;
+                lamp.intensity = fy > 5f ? 3.2f : 2.4f;
+                lamp.shadows = LightShadows.None;
+            }
+            Debug.Log($"[Hut] furniture {placed}/{spots.Length}");
         }
 
         // The old house carved its whole floor out of the NavMesh (KeepOut), and that box still crossed the new

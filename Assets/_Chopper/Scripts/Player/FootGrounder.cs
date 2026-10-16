@@ -22,6 +22,9 @@ namespace Chopper.Player
         private float _ankle = -1f;
         private float _hip;
         private int _calib;
+        private bool _meshFit;
+        public bool MeshFit => _meshFit;
+        public float FittedRadius { get; private set; }
         public float Ankle => _ankle;
         public bool Ready { get; private set; }
         // Last measured gap between each sole and the ground below it, after grounding (negative = sunk in).
@@ -90,6 +93,7 @@ namespace Chopper.Player
                 float a = Mathf.Clamp(Mathf.Min(_footL.position.y, _footR.position.y) - baseY, 0.02f, 0.25f);
                 _ankle = _ankle < 0f ? a : Mathf.Min(_ankle, a);
                 _calib++;
+                if (_calib == 12 && FitToMesh()) _calib = 40;
                 return;
             }
             float gL = Ground(_footL.position, out bool hitL);
@@ -112,6 +116,60 @@ namespace Chopper.Player
             if (hitR) Lift(_thighR, _calfR, _footR, gR, pole);
             GapL = hitL ? (_footL.position.y - _ankle) - gL : 0f;
             GapR = hitR ? (_footR.position.y - _ankle) - gR : 0f;
+        }
+
+        private bool FitToMesh()
+        {
+            SkinnedMeshRenderer[] skins = GetComponentsInChildren<SkinnedMeshRenderer>();
+            if (skins.Length == 0) return false;
+            Transform body = _controller != null ? _controller.transform : transform;
+            float baseY = body.position.y;
+            Vector3 fl = _footL.position, fr = _footR.position;
+            float lowL = float.PositiveInfinity, lowR = float.PositiveInfinity, top = float.NegativeInfinity;
+            var mesh = new Mesh();
+            var verts = new List<Vector3>();
+            var all = new List<Vector3>();
+            foreach (SkinnedMeshRenderer s in skins)
+            {
+                if (!s.enabled || s.sharedMesh == null) continue;
+                s.BakeMesh(mesh, true);
+                mesh.GetVertices(verts);
+                Matrix4x4 m = Matrix4x4.TRS(s.transform.position, s.transform.rotation, Vector3.one);
+                foreach (Vector3 v in verts)
+                {
+                    Vector3 w = m.MultiplyPoint3x4(v);
+                    all.Add(w);
+                    top = Mathf.Max(top, w.y);
+                    float dl = new Vector2(w.x - fl.x, w.z - fl.z).magnitude, dr = new Vector2(w.x - fr.x, w.z - fr.z).magnitude;
+                    if (dl < 0.22f && dl <= dr && w.y < fl.y + 0.05f) lowL = Mathf.Min(lowL, w.y);
+                    if (dr < 0.22f && dr < dl && w.y < fr.y + 0.05f) lowR = Mathf.Min(lowR, w.y);
+                }
+            }
+            Destroy(mesh);
+            if (float.IsInfinity(lowL) || float.IsInfinity(lowR)) return false;
+            _ankle = Mathf.Clamp(((fl.y - lowL) + (fr.y - lowR)) * 0.5f, 0.02f, 0.25f);
+            _meshFit = true;
+            if (_controller != null)
+            {
+                float h = top - baseY;
+                var radial = new List<float>();
+                Vector3 c = body.position;
+                foreach (Vector3 w in all)
+                {
+                    float y = w.y - baseY;
+                    if (y < h * 0.35f || y > h * 0.65f) continue;
+                    radial.Add(new Vector2(w.x - c.x, w.z - c.z).magnitude);
+                }
+                if (radial.Count > 20)
+                {
+                    radial.Sort();
+                    float r = Mathf.Clamp(radial[(int)(radial.Count * 0.75f)] + 0.04f, 0.28f, 0.5f);
+                    _controller.radius = r;
+                    FittedRadius = r;
+                }
+            }
+            Debug.Log($"[FootGrounder] {transform.root.name} mesh fit ankle {_ankle:F3} radius {FittedRadius:F2} top {top - baseY:F2}");
+            return true;
         }
 
         private void Lift(Transform thigh, Transform calf, Transform foot, float ground, Vector3 pole)

@@ -87,6 +87,8 @@ namespace Chopper.Player
         public void DebugSetCrouch(bool crouch) => _crouchToggled = crouch;
 #endif
         public bool IsSwimming => _swimming;
+        private bool _climbing;
+        public bool IsClimbing => _climbing;
 
         // True while sprint is toggled on (owner only; others infer it from speed).
         public bool IsSprinting => IsOwner && _sprintToggled;
@@ -186,16 +188,13 @@ namespace Chopper.Player
         }
 
         // Shift toggles sprint, Ctrl (held) crouches. Crouching and standing still both end a sprint.
-        private void UpdateStance(float inputMagnitude)
+        private void UpdateStance(float inputMagnitude, bool swimming)
         {
             bool blockedInput = UiState.GameplayBlocked;
             // Both toggles follow the bindings, on the keyboard and on the gamepad.
             bool crouchPressed = !blockedInput && Keybinds.WasPressed(KeyAction.Crouch);
             bool sprintPressed = !blockedInput && Keybinds.WasPressed(KeyAction.Sprint);
-            if (crouchPressed) _crouchToggled = !_crouchToggled;
-            // Sprinting stands you up; being knocked down ends the crouch.
-            if (sprintPressed) _crouchToggled = false;
-            if (_health != null && _health.IsDown) _crouchToggled = false;
+            _crouchToggled = SwimRules.NextCrouch(_crouchToggled, crouchPressed, sprintPressed, _health != null && _health.IsDown, swimming);
             bool wantsCrouch = _crouchToggled;
             if (sprintPressed)
             {
@@ -370,15 +369,23 @@ namespace Chopper.Player
                 _verticalVelocity -= _config.PlayerGravity * Time.deltaTime;
             }
 
+            bool onLadder = Ladder.At(transform.position + Vector3.up * 0.4f, out Vector3 ladderIn, out float ladderTop);
+            _climbing = !swimming && onLadder;
+            if (_climbing)
+            {
+                _verticalVelocity = Ladder.Climb(direction, ladderIn);
+                _airJumpsLeft = AirJumps;
+            }
+
             // Weight: ramp horizontal velocity toward the target instead of setting it instantly.
-            UpdateStance(direction.magnitude);
-            if (swimming || blocking) _sprintToggled = false;
+            UpdateStance(direction.magnitude, swimming);
+            if (!SwimRules.KeepsSprint(swimming, blocking)) _sprintToggled = false;
             float topSpeed = _crouching ? _config.PlayerCrouchSpeed : (_sprintToggled ? _config.PlayerSprintSpeed : _config.PlayerMoveSpeed);
             if (swimming)
             {
                 // Slow, and every stroke costs stamina; out of breath the player only paddles (SwimRules).
                 if (direction.sqrMagnitude > TurnInputThreshold && _stamina != null) _stamina.Drain(SwimRules.StaminaPerSecond * Time.deltaTime);
-                topSpeed = SwimRules.Speed(_config.PlayerMoveSpeed, _stamina != null && _stamina.Exhausted);
+                topSpeed = SwimRules.Speed(_config.PlayerMoveSpeed, _stamina != null && _stamina.Exhausted, _sprintToggled);
             }
             else if (wading) topSpeed *= WaterSystem.WadeSpeedMultiplier;
             if (!swimming && IsWet) topSpeed *= WetRules.RunSpeedMultiplier;

@@ -682,6 +682,91 @@ namespace Chopper.Networking
                 yield return WalkTo(-5f, -3f, 5f);
                 float fromBasement = Rise();
                 Debug.Log($"[House] upstairs across the floor at {upstairs:F2} m; basement at {basement:F2} m, up its stairs to {fromBasement:F2} m");
+                houseCam.DebugSetDistance(2.4f);
+                yield return WalkTo(-2f, -2.6f, 4f);
+                yield return WalkTo(3.6f, -2.6f, 5f);
+                yield return WalkTo(3.6f, 2.8f, 6f);
+                yield return WalkTo(5f, 2.8f, 3f);
+                houseCam.SnapYaw(180f); houseCam.DebugSetPitch(15f);
+                yield return Shot(folder, "house_stairs2_bottom");
+                yield return WalkTo(5f, 0f, 4f);
+                yield return WalkTo(5f, -3f, 5f);
+                float atSecond = Rise();
+                yield return WalkTo(3f, -1f, 4f);
+                foreach ((float yaw, string label) in new[] { (0f, "house_in_dorm_back"), (180f, "house_in_dorm_front"), (90f, "house_in_dorm_east") })
+                {
+                    houseCam.SnapYaw(yaw); houseCam.DebugSetPitch(12f);
+                    yield return new WaitForSeconds(0.6f);
+                    yield return Shot(folder, label);
+                }
+                yield return WalkTo(-3.4f, 2.8f, 6f);
+                yield return WalkTo(-5f, 2.8f, 3f);
+                yield return WalkTo(-5f, 0f, 4f);
+                yield return WalkTo(-5f, -3f, 5f);
+                float atThird = Rise();
+                yield return WalkTo(-2f, -1f, 4f);
+                foreach ((float yaw, string label) in new[] { (0f, "house_in_shop_back"), (180f, "house_in_shop_front"), (270f, "house_in_shop_west"), (0f, "house_in_shop_roof") })
+                {
+                    houseCam.SnapYaw(yaw); houseCam.DebugSetPitch(label.EndsWith("roof") ? 50f : 12f);
+                    yield return new WaitForSeconds(0.6f);
+                    yield return Shot(folder, label);
+                }
+                Debug.Log($"[House] three storeys: main {fromBasement - basement:F2} m, second {atSecond - basement:F2} m, third {atThird - basement:F2} m over the basement (storey {storey:F2})");
+                var roomCam = new GameObject("RoomCamera").AddComponent<Camera>();
+                roomCam.depth = 50f; roomCam.fieldOfView = 72f; roomCam.nearClipPlane = 0.05f; roomCam.enabled = false;
+                Transform hutT = Hut.Instance.transform;
+                foreach ((string label, float fy, Vector3 from, Vector3 to) in new[] {
+                    ("room_basement", 0f, new Vector3(5.4f, 1.3f, 3.4f), new Vector3(-3f, 0.2f, -3f)),
+                    ("room_hub", 2f, new Vector3(5.4f, 1.3f, 3.4f), new Vector3(-3f, 0.3f, -3.4f)),
+                    ("room_hub2", 2f, new Vector3(-5.6f, 1.3f, 3.6f), new Vector3(3f, 0.3f, -3f)),
+                    ("room_dorm", 4f, new Vector3(-3.6f, 1.3f, 3.6f), new Vector3(3f, 0.3f, -3f)),
+                    ("room_dorm2", 4f, new Vector3(3.6f, 1.3f, -3.6f), new Vector3(-3f, 0.3f, 3f)),
+                    ("room_shop", 6f, new Vector3(-3.4f, 1.3f, 3.6f), new Vector3(3f, 0.3f, -3.4f)),
+                    ("room_shop2", 6f, new Vector3(5.2f, 1.3f, 0f), new Vector3(-3f, 0.3f, -2f)) })
+                {
+                    Vector3 eye = hutT.TransformPoint(new Vector3(from.x, fy + from.y, from.z) * hs + Vector3.down * Chopper.World.Generation.WorldGen.HutSink);
+                    Vector3 at = hutT.TransformPoint(new Vector3(to.x, fy + to.y, to.z) * hs + Vector3.down * Chopper.World.Generation.WorldGen.HutSink);
+                    roomCam.transform.position = eye; roomCam.transform.LookAt(at);
+                    roomCam.enabled = true;
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, label);
+                }
+                roomCam.fieldOfView = 50f;
+                foreach ((string label, Vector3 off, float lookUp) in new[] { ("out_full_front", new Vector3(26f, 9f, 34f), 7f), ("out_full_ladder", new Vector3(34f, 7f, 10f), 8f), ("out_full_back", new Vector3(-20f, 10f, -32f), 8f) })
+                {
+                    Vector3 eye = hutT.TransformPoint(off);
+                    roomCam.transform.position = eye; roomCam.transform.LookAt(hutT.position + Vector3.up * lookUp);
+                    roomCam.enabled = true;
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "house_" + label);
+                }
+                roomCam.enabled = false;
+
+                float ladderTopRise = 0f; bool inThird = false;
+                if (Hut.LadderZone.size.sqrMagnitude > 0.01f)
+                {
+                    Bounds lz = Hut.LadderZone;
+                    Vector3 foot = new Vector3(lz.max.x + 0.6f, 0f, lz.center.z);
+                    foot.y = WorldGround.HeightAt(foot) + 0.2f;
+                    yield return TeleportExact(foot, hutT.eulerAngles.y - 90f);
+                    yield return new WaitForSeconds(0.6f);
+                    houseCam.SnapYaw(hutT.eulerAngles.y - 90f); houseCam.DebugSetPitch(10f); houseCam.DebugSetDistance(4f);
+                    Vector3 inward = -hutT.right;
+                    for (float t = 0f; t < 12f; t += Time.deltaTime)
+                    {
+                        Vector3 stick = Quaternion.Euler(0f, -houseCam.Yaw, 0f) * inward;
+                        InputSystem.QueueStateEvent(walkPad, new GamepadState { leftStick = new Vector2(stick.x, stick.z) });
+                        if (t > 2.5f && t < 2.6f) yield return Shot(folder, "house_ladder_climb");
+                        if (Rise() - basement > 3f * storey - 0.2f && Hut.Instance.IsIndoors(wood.transform.position)) { inThird = true; break; }
+                        ladderTopRise = Mathf.Max(ladderTopRise, Rise() - basement);
+                        yield return null;
+                    }
+                    InputSystem.QueueStateEvent(walkPad, new GamepadState());
+                    yield return new WaitForSeconds(0.5f);
+                    ladderTopRise = Mathf.Max(ladderTopRise, Rise() - basement);
+                    yield return Shot(folder, "house_ladder_top");
+                }
+                Debug.Log($"[House] ladder: zones {Chopper.World.Ladder.Count}, climbed to {ladderTopRise:F2} m over the basement, inside the workshop {inThird}");
                 InputSystem.RemoveDevice(walkPad);
 
                 // Each floor to the front yard. PathComplete means the doorway and the stairs are on the NavMesh.
@@ -690,7 +775,7 @@ namespace Chopper.Networking
                     Vector3 yard = home + new Vector3(1f, 0f, 12f) * hs;
                     yard.y = WorldGround.HeightAt(yard);
                     bool yardOnMesh = UnityEngine.AI.NavMesh.SamplePosition(yard, out UnityEngine.AI.NavMeshHit yardHit, 3f, UnityEngine.AI.NavMesh.AllAreas);
-                    foreach ((string floor, Vector3 local) in new[] { ("basement", new Vector3(-3f, 0f, 2f)), ("main floor", new Vector3(-2f, 2f, 0f)) })
+                    foreach ((string floor, Vector3 local) in new[] { ("basement", new Vector3(-3f, 0f, 2f)), ("main floor", new Vector3(-2f, 2f, 0f)), ("second floor", new Vector3(3f, 4f, -1f)), ("third floor", new Vector3(-2f, 6f, -1f)) })
                     {
                         Vector3 from = home + local * hs + Vector3.down * Chopper.World.Generation.WorldGen.HutSink;
                         if (!yardOnMesh || !UnityEngine.AI.NavMesh.SamplePosition(from, out UnityEngine.AI.NavMeshHit fromHit, 1.5f, UnityEngine.AI.NavMesh.AllAreas))
@@ -709,7 +794,8 @@ namespace Chopper.Networking
 
                 Debug.Log($"[House] check paths {pathsOut} beds {beds} benches {benches} door {atDoor - basement:F2} doorZ {doorAt.z:F2} top {atTop - basement:F2} up {upstairs - basement:F2} basement {basement:F2} fromBasement {fromBasement:F2} storey {storey:F2}");
                 bool houseOk = pathsOut && beds == 2 && benches == 2 && atDoor - basement > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
-                               && Mathf.Abs(atTop - basement - storey) < 0.35f && Mathf.Abs(upstairs - basement - storey) < 0.35f && basement < 0.6f && fromBasement - basement > storey - 0.2f;
+                               && Mathf.Abs(atTop - basement - storey) < 0.35f && Mathf.Abs(upstairs - basement - storey) < 0.35f && basement < 0.6f && fromBasement - basement > storey - 0.2f
+                               && Mathf.Abs(atSecond - basement - 2f * storey) < 0.35f && Mathf.Abs(atThird - basement - 3f * storey) < 0.35f && inThird;
                 Debug.Log("[House] RESULT " + (houseOk ? "PASS" : "FAIL"));
                 Application.Quit(houseOk ? 0 : 1);
                 yield break;
@@ -5799,7 +5885,7 @@ namespace Chopper.Networking
             wood.GetComponent<PlayerCombat>().ServerSetGod(true);
             var cam = new GameObject("FeetCamera").AddComponent<Camera>();
             cam.depth = 50f; cam.fieldOfView = 45f; cam.nearClipPlane = 0.02f; cam.enabled = false;
-            float worstSole = 0f; int buried = 0; int stops = 0;
+            float worstSole = 0f; int buried = 0; int stops = 0; float worstMeshFrac = 0f; int meshSampled = 0;
             var lines = new System.Collections.Generic.List<string>();
             IEnumerator Stop(string label, bool walk)
             {
@@ -5852,16 +5938,82 @@ namespace Chopper.Networking
                         if (!(c is CharacterController) && !c.transform.IsChildOf(wood.transform)) { stopBuried++; Debug.Log($"[Feet] {label}: {hb} inside {c.name}"); break; }
                 }
                 buried += stopBuried;
-                string line = $"[Feet] {label}: at {wood.transform.position:F2} worst sole {stopWorst:F3} m, buried bones {stopBuried};{who}";
+                int sampled = 0, inside = 0; float deepest = 0f; string deepName = "";
+                Transform hipsBone = anim != null && anim.isHuman ? anim.GetBoneTransform(HumanBodyBones.Hips) : null;
+                if (hipsBone != null)
+                {
+                    var bake = new Mesh(); var vs = new System.Collections.Generic.List<Vector3>();
+                    Vector3 o = hipsBone.position;
+                    foreach (SkinnedMeshRenderer smr in wood.GetComponentsInChildren<SkinnedMeshRenderer>())
+                    {
+                        if (!smr.enabled) continue;
+                        smr.BakeMesh(bake, true); bake.GetVertices(vs);
+                        Matrix4x4 m = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one);
+                        for (int i = 0; i < vs.Count; i += 3)
+                        {
+                            Vector3 w = m.MultiplyPoint3x4(vs[i]);
+                            Vector3 d = w - o; float len = d.magnitude;
+                            if (len < 0.05f) continue;
+                            sampled++;
+                            foreach (RaycastHit h in Physics.RaycastAll(o, d / len, len, ~0, QueryTriggerInteraction.Ignore))
+                            {
+                                if (h.collider is CharacterController || h.collider.transform.IsChildOf(wood.transform)) continue;
+                                float depth = len - h.distance;
+                                if (depth > 0.04f) { inside++; if (depth > deepest) { deepest = depth; deepName = h.collider.name; } break; }
+                            }
+                        }
+                    }
+                    UnityEngine.Object.Destroy(bake);
+                }
+                float insideFrac = sampled > 0 ? inside / (float)sampled : 0f;
+                worstMeshFrac = Mathf.Max(worstMeshFrac, insideFrac);
+                meshSampled += sampled;
+                var pg = wood.GetComponentInChildren<Chopper.Player.FootGrounder>();
+                var cc = wood.GetComponent<CharacterController>();
+                string line = $"[Feet] {label}: at {wood.transform.position:F2} worst sole {stopWorst:F3} m, buried bones {stopBuried}, mesh verts in solids {inside}/{sampled} ({insideFrac:P2}, deepest {deepest:F3} m {deepName}), capsule r {(cc != null ? cc.radius : 0f):F2} meshfit {(pg != null && pg.MeshFit)};{who}";
                 Debug.Log(line); lines.Add(line);
                 Vector3 p = wood.transform.position;
-                foreach (var (n, side) in new[] { ("side", wood.transform.right), ("front", wood.transform.forward) })
+                Vector3 focus = p + Vector3.up * 0.9f;
+                int taken = 0;
+                foreach (var (n, side) in new[] { ("side", wood.transform.right), ("front", wood.transform.forward), ("left", -wood.transform.right), ("back", -wood.transform.forward), ("diag", (wood.transform.right + wood.transform.forward).normalized), ("diag2", (wood.transform.forward - wood.transform.right).normalized) })
                 {
-                    cam.transform.position = p + side * 1.7f + Vector3.up * 0.55f;
-                    cam.transform.LookAt(p + Vector3.up * 0.35f);
+                    if (taken >= 2) break;
+                    float dist = 3.4f;
+                    foreach (RaycastHit h in Physics.RaycastAll(focus, (side * 3.4f + Vector3.up * 0.2f).normalized, 3.5f, ~0, QueryTriggerInteraction.Ignore))
+                        if (!(h.collider is CharacterController) && !h.collider.transform.IsChildOf(wood.transform)) dist = Mathf.Min(dist, h.distance - 0.25f);
+                    if (dist < 1.5f) continue;
+                    cam.transform.position = focus + (side * 3.4f + Vector3.up * 0.2f).normalized * dist;
+                    cam.transform.LookAt(focus);
                     cam.enabled = true;
                     ui.DebugShow(0);
                     yield return Shot(folder, $"feet_{label}_{n}");
+                    taken++;
+                }
+                if (taken == 0)
+                {
+                    cam.transform.position = p + wood.transform.right * 1.4f + Vector3.up * 1.0f;
+                    cam.transform.LookAt(focus);
+                    cam.enabled = true;
+                    yield return Shot(folder, $"feet_{label}_close");
+                }
+                foreach (Treant tr in Treant.All)
+                {
+                    if (tr == null || Vector3.Distance(tr.transform.position, p) > 8f) continue;
+                    Vector3 ef = tr.transform.position + Vector3.up * 0.6f;
+                    for (int k = 0; k < 8; k++)
+                    {
+                        Vector3 dir = Quaternion.Euler(0f, k * 45f, 0f) * Vector3.forward;
+                        Vector3 eye = ef + dir * 2.8f + Vector3.up * 0.3f;
+                        bool clear = true;
+                        foreach (RaycastHit h in Physics.RaycastAll(eye, (ef - eye).normalized, Vector3.Distance(eye, ef) - 0.4f, ~0, QueryTriggerInteraction.Ignore))
+                            if (!h.collider.transform.IsChildOf(tr.transform)) { clear = false; break; }
+                        if (!clear) continue;
+                        cam.transform.position = eye; cam.transform.LookAt(tr.transform.position + Vector3.up * 0.2f);
+                        cam.enabled = true;
+                        yield return Shot(folder, $"feet_{label}_enemy");
+                        break;
+                    }
+                    break;
                 }
                 cam.enabled = false;
             }
@@ -5897,6 +6049,22 @@ namespace Chopper.Networking
             Vector3 inside = new Vector3(hut.position.x, wood.transform.position.y + 0.4f, hut.position.z);
             yield return TeleportExact(inside, hut.eulerAngles.y + 180f);
             yield return Stop("hut_wall", true);
+            Collider stair = null; var stairs = new System.Collections.Generic.List<Collider>();
+            foreach (Collider c in hut.GetComponentsInChildren<Collider>())
+            {
+                string cn = c.name.ToLowerInvariant();
+                if (!c.isTrigger && (cn.Contains("stair") || cn.Contains("tread") || cn.Contains("step"))) stairs.Add(c);
+            }
+            stairs.Sort((x, y) => x.bounds.max.y.CompareTo(y.bounds.max.y));
+            if (stairs.Count > 0) stair = stairs[stairs.Count / 2];
+            if (stair != null)
+            {
+                Vector3 top = stair.bounds.center; top.y = stair.bounds.max.y + 0.15f;
+                Debug.Log($"[Feet] stairs {stair.name} of {stairs.Count} at {top:F2}");
+                yield return TeleportExact(top, hut.eulerAngles.y);
+                yield return Stop("hut_stairs", false);
+                yield return Stop("hut_stairs_walk", true);
+            }
 
             // A mine chamber.
             var plans = Chopper.World.Generation.MineWorld.Plans;
@@ -5905,10 +6073,50 @@ namespace Chopper.Networking
                 yield return TeleportExact(plans[0].RoomCenter(1) + Vector3.up * 0.1f, 0f);
                 yield return Stop("cave", false);
                 yield return Stop("cave_walk", true);
+                if (plans.Count > 1 && plans[1].Rooms.Count > 1)
+                {
+                    yield return TeleportExact(plans[1].RoomCenter(1) + Vector3.up * 0.1f, 90f);
+                    yield return Stop("cave2", false);
+                    yield return Stop("cave2_walk", true);
+                }
             }
 
-            bool pass = stops >= 6 && worstSole > -0.04f && buried == 0;
-            Debug.Log($"[Feet] RESULT {(pass ? "PASS" : "FAIL")} ({stops} stops, worst sole {worstSole:F3} m, {buried} buried bones)");
+            bool swimOk = false;
+            {
+                var motor = wood.GetComponent<PlayerMotor>();
+                var fSprint = typeof(PlayerMotor).GetField("_sprintToggled", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var fCrouch = typeof(PlayerMotor).GetField("_crouchToggled", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                yield return TeleportLocalPlayer(new Vector2(0f, Chopper.World.Generation.WorldGen.SeaInnerRadius + 25f), 0f);
+                yield return new WaitForSeconds(2f);
+                Gamepad spad = InputSystem.AddDevice<Gamepad>();
+                float[] speeds = new float[2];
+                for (int leg = 0; leg < 2; leg++)
+                {
+                    float t0 = Time.time; Vector3 from = Vector3.zero; float measureStart = 0f;
+                    while (Time.time - t0 < 3.5f)
+                    {
+                        if (leg == 1) fSprint.SetValue(motor, true);
+                        InputSystem.QueueStateEvent(spad, new GamepadState { leftStick = Vector2.up });
+                        PlayerCamera.Local.SnapYaw(0f);
+                        if (measureStart == 0f && Time.time - t0 >= 1f) { measureStart = Time.time; from = wood.transform.position; }
+                        yield return null;
+                    }
+                    speeds[leg] = SpeedCheck.HorizontalDistance(from, wood.transform.position) / (Time.time - measureStart);
+                    Debug.Log($"[Feet] swim leg {(leg == 0 ? "normal" : "sprint")} speed {speeds[leg]:F2} m/s, swimming {motor.IsSwimming}, sprint toggle {fSprint.GetValue(motor)}");
+                }
+                InputSystem.QueueStateEvent(spad, new GamepadState());
+                fSprint.SetValue(motor, false);
+                fCrouch.SetValue(motor, true);
+                for (int i = 0; i < 5; i++) yield return null;
+                bool crouchCleared = !(bool)fCrouch.GetValue(motor);
+                InputSystem.RemoveDevice(spad);
+                swimOk = motor.IsSwimming && speeds[1] > speeds[0] * 1.2f && crouchCleared;
+                Debug.Log($"[Feet] swim RESULT {(swimOk ? "PASS" : "FAIL")} normal {speeds[0]:F2} m/s, sprint {speeds[1]:F2} m/s, crouch cleared in water {crouchCleared}");
+                ui.DebugShow(0); yield return Shot(folder, "feet_swim");
+            }
+
+            bool pass = stops >= 6 && worstSole > -0.04f && buried == 0 && meshSampled > 0 && worstMeshFrac <= 0.005f && swimOk;
+            Debug.Log($"[Feet] RESULT {(pass ? "PASS" : "FAIL")} ({stops} stops, worst sole {worstSole:F3} m, {buried} buried bones, worst mesh-in-solid {worstMeshFrac:P2} of {meshSampled} sampled verts)");
         }
 
         private static IEnumerator Shot(string folder, string name)

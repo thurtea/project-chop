@@ -144,6 +144,7 @@ namespace Chopper.Enemies
         // Server: stunned by a hit or a parry, so it cannot walk or attack for a moment.
         public bool IsStaggered => Time.time < _staggerUntil;
         public Animator BodyAnimator => _draugr;
+        public Transform VisualModel => _model;
         // Walking speed before the long distance charge bonus.
         public float BaseSpeed { get; private set; }
 
@@ -653,6 +654,7 @@ namespace Chopper.Enemies
             _model = model.transform;
             _modelBaseHeight = MeasureHeight(model);
             ApplyScale();
+            _visualRoot.gameObject.AddComponent<ModelGrounder>().Model = _model;
             if (State == TreantState.Active) ApplyGlow(model);
             RefreshWardenLook();
         }

@@ -350,6 +350,7 @@ namespace Chopper.World
             }
             Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, strength));
             float hazeAmount = cam != null ? (1f - UndergroundBlend) * Mathf.Lerp(0.42f, 0.12f, darkness) * (inForest ? 0.7f : 1f) : 0f;
+            if (cam != null && Hut.Instance != null && Hut.Instance.IsIndoors(cam.transform.position)) { hazeAmount *= 0.12f; strength = 0f; Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, 0f)); }
             float hazeLight = Mathf.Lerp(1f, 0.25f, darkness);
             Shader.SetGlobalVector("_ChopperHaze", new Vector4(0.0040f, cam != null ? cam.transform.position.y - 4f : 0f, hazeAmount, hazeLight));
             LastShaftStrength = strength;

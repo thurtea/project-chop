@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -87,6 +87,8 @@ def hut_cells():
                     put(occ, ix, Y1, iz, GLASS)
             for iy in range(Y0, Y1 + 1):
                 for ex in (X0, X1):
+                    if ex == X1 and s == 2 and -15 <= iy <= -9 and iz <= z0 + 6:
+                        continue
                     put(occ, ex, iy, iz, GLASS if window("end", iy, iz, s) else plank(iy + ex, iz, s))
         # window frames, proud by one cell
         for face, y, out in (("front", Y0, -1), ("back", Y1, 1)):

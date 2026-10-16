@@ -56,7 +56,7 @@ namespace Chopper.Editor
             { "prop_branch_0_voxel", "prop_branch_1_voxel", "prop_branch_2_voxel", "prop_branch_3_voxel" };
 
         static readonly string[] Yard =
-            { "prop_yard_pond_voxel", "prop_yard_water_voxel", "prop_floor_boards_voxel", "prop_path_stone_voxel", "prop_mountain_backdrop_voxel", "prop_mine_portal_voxel" };
+            { "prop_yard_pond_voxel", "prop_yard_water_voxel", "prop_floor_boards_voxel", "prop_path_stone_voxel", "prop_mountain_backdrop_voxel", "prop_mine_portal_voxel", "prop_hut_bunk_voxel", "prop_hut_notice_voxel", "prop_hut_sack_voxel", "prop_hut_stool_voxel", "prop_hut_table_voxel", "prop_hut_toolwall_voxel", "prop_hut_vise_voxel", "prop_hut_wheel_voxel" };
 
         public static void ApplyYard()
         {

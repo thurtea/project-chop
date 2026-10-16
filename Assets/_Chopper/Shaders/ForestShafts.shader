@@ -65,6 +65,12 @@ Shader "Hidden/Chopper/ForestShafts"
                     float3 sample = SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, saturate(p)).rgb;
                     float lum = dot(sample, float3(0.25, 0.55, 0.20));
                     float bright = saturate((lum - 0.32) * 2.2);
+                    float sd = SampleSceneDepth(saturate(p));
+                    #if UNITY_REVERSED_Z
+                    bright *= sd < 0.00001 ? 1.0 : 0.0;
+                    #else
+                    bright *= sd > 0.99999 ? 1.0 : 0.0;
+                    #endif
                     accum += bright * decay;
                     decay *= 0.97;
                 }

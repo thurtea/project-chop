@@ -35,8 +35,29 @@ namespace Chopper.Tests.EditMode
         public void SwimmingIsSlowerThanWalkingAndSlowerStillWhenExhausted()
         {
             float walk = 6f;
-            Assert.Less(SwimRules.Speed(walk, false), walk * 0.5f);
+            Assert.Less(SwimRules.Speed(walk, false), walk * 0.6f);
             Assert.Less(SwimRules.Speed(walk, true), SwimRules.Speed(walk, false));
+        }
+
+        [Test]
+        public void SprintToggleMakesSwimmingFaster()
+        {
+            float walk = 6f;
+            Assert.IsTrue(SwimRules.KeepsSprint(true, false));
+            Assert.Greater(SwimRules.Speed(walk, false, true), SwimRules.Speed(walk, false, false));
+            Assert.Less(SwimRules.Speed(walk, false, true), walk);
+            Assert.AreEqual(SwimRules.Speed(walk, true, true), SwimRules.Speed(walk, true, false), 1e-4f);
+            Assert.IsFalse(SwimRules.KeepsSprint(true, true));
+        }
+
+        [Test]
+        public void CrouchIsBlockedInWater()
+        {
+            Assert.IsTrue(SwimRules.NextCrouch(false, true, false, false, false));
+            Assert.IsFalse(SwimRules.NextCrouch(false, true, false, false, true));
+            Assert.IsFalse(SwimRules.NextCrouch(true, false, false, false, true));
+            Assert.IsTrue(SwimRules.NextCrouch(true, false, false, false, false));
+            Assert.IsFalse(SwimRules.NextCrouch(true, true, false, false, false));
         }
 
         [Test]
