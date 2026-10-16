@@ -59,7 +59,6 @@ namespace Chopper.Enemies
 
         [SerializeField] private GameConfig _config;
         [SerializeField] private ElementPalette _palette;
-        [Tooltip("Model used for each element, indexed by the Element value (Neutral, Water, Fire, Earth, Wind).")]
         [Tooltip("The crypt enemy's look: an animated humanoid with a sword (built by DraugrSetup).")]
         [SerializeField] private GameObject _draugrPrefab;
         [Tooltip("The night forest creature (built by GolemSetup). Shown while a non-guardian enemy is awake.")]

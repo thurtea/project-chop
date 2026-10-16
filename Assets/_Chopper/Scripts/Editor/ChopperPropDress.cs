@@ -55,6 +55,27 @@ namespace Chopper.Editor
         static readonly string[] Branches =
             { "prop_branch_0_voxel", "prop_branch_1_voxel", "prop_branch_2_voxel", "prop_branch_3_voxel" };
 
+        static readonly string[] Yard =
+            { "prop_yard_pond_voxel", "prop_yard_water_voxel", "prop_floor_boards_voxel", "prop_path_stone_voxel", "prop_mountain_backdrop_voxel", "prop_mine_portal_voxel" };
+
+        public static void ApplyYard()
+        {
+            Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");
+            if (mat == null) throw new FileNotFoundException("Missing M_World.");
+            Directory.CreateDirectory(PropsResources);
+            int n = 0;
+            foreach (string name in Yard)
+            {
+                Import(name);
+                if (SaveResourcesPrefab(name, mat)) n++;
+                var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(ArtFolder + "/" + name + ".fbx");
+                if (mesh != null) Debug.Log($"[ChopperProps] {name} bounds {mesh.bounds}");
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[ChopperProps] yard {n}/{Yard.Length}");
+            Debug.Log("[ChopperProps] RESULT " + (n == Yard.Length ? "PASS" : "FAIL"));
+        }
+
         public static void ApplyBranches()
         {
             Material mat = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_World.mat");

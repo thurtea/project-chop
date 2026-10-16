@@ -776,7 +776,7 @@ namespace Chopper.World.Generation
         // every tree keeps its index and saved worlds keep their felled trees.
         public void PushTreesOffMines(List<Chopper.Trees.TreeEntry> trees)
         {
-            float clear = MinePlan.ClearRadius + 3.5f;
+            float clear = MinePlan.ClearRadius + 9f;
             for (int i = 0; i < trees.Count; i++)
             {
                 Chopper.Trees.TreeEntry tree = trees[i];

@@ -19,7 +19,9 @@ namespace Chopper.World.Generation
 
         public static Mesh Build(List<CryptBox> boxes) => Build(boxes, out _);
 
-        public static Mesh Build(List<CryptBox> boxes, out Mesh crystals)
+        public static Mesh Build(List<CryptBox> boxes, out Mesh crystals) => Build(boxes, out crystals, true);
+
+        public static Mesh Build(List<CryptBox> boxes, out Mesh crystals, bool rough)
         {
             crystals = null;
             if (boxes == null || boxes.Count == 0) return null;
@@ -49,6 +51,11 @@ namespace Chopper.World.Generation
                 }
                 byte kind = KindOf(box.Material, box.Center);
                 Stamp(grid, min, nx, ny, nz, box, kind);
+            }
+            if (!rough)
+            {
+                crystals = new Mesh();
+                return MeshGrid(grid, nx, ny, nz, min);
             }
             Terrace(grid, nx, ny, nz);
             Roughen(grid, nx, ny, nz, min);

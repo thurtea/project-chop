@@ -74,6 +74,7 @@ namespace Chopper.World
         private void Start()
         {
             DressCabin();
+            DressYard();
             // The NavMesh was baked before the house existed.
             var surface = FindAnyObjectByType<Unity.AI.Navigation.NavMeshSurface>();
             if (surface != null && surface.navMeshData != null) surface.UpdateNavMesh(surface.navMeshData);
@@ -96,6 +97,110 @@ namespace Chopper.World
         static readonly float[] TilesZ = { -3f, -1f, 1f, 3f };
         static readonly Color BasementStone = new Color(0.62f, 0.60f, 0.58f);
         static readonly int TintId = Shader.PropertyToID("_BaseColor");
+
+        void DressYard()
+        {
+            var pine = Resources.Load<GameObject>("Props/yard_pine");
+            var yard = new GameObject("Yard").transform;
+            yard.SetParent(transform, false);
+            Vector2[] pines =
+            {
+                new Vector2(28.5f, 20.5f), new Vector2(30f, 15f), new Vector2(26f, 25.5f), new Vector2(4.5f, 26f),
+                new Vector2(-1.5f, 28.5f), new Vector2(-19f, -13f), new Vector2(-25f, -3f), new Vector2(-21f, 8f),
+                new Vector2(14f, -16f), new Vector2(23f, -9f), new Vector2(-8f, -18f)
+            };
+            if (pine != null)
+            {
+                for (int i = 0; i < pines.Length; i++)
+                {
+                    Vector3 at = Ground(pines[i]);
+                    GameObject tree = Instantiate(pine, at, Quaternion.Euler(0f, i * 47f, 0f), yard);
+                    tree.transform.localScale = Vector3.one * (1.1f + (i % 3) * 0.18f);
+                }
+            }
+            Vector3 pondAt = Ground(new Vector2(17f, 22f));
+            var pond = Resources.Load<GameObject>("Props/prop_yard_pond_voxel");
+            if (pond != null) PlaceProp(pond, yard, pondAt, pondAt.y - 0.25f, 15f, 1f, 0f);
+            var waterPrefab = Resources.Load<GameObject>("Props/prop_yard_water_voxel");
+            if (waterPrefab != null)
+            {
+                GameObject w = PlaceProp(waterPrefab, yard, pondAt, pondAt.y + 0.2f, 15f, 1f, 0f);
+                Material real = null;
+                foreach (Renderer r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                    if (r.sharedMaterial != null && r.sharedMaterial.shader != null && r.sharedMaterial.shader.name == "Chopper/Water" && !r.sharedMaterial.name.Contains("Marsh")) { real = r.sharedMaterial; break; }
+                if (real != null) foreach (Renderer r in w.GetComponentsInChildren<Renderer>()) r.sharedMaterial = real;
+                foreach (Collider c in w.GetComponentsInChildren<Collider>()) Destroy(c);
+            }
+            var stone = Resources.Load<GameObject>("Props/prop_path_stone_voxel");
+            if (stone != null)
+            {
+                int k = 0;
+                for (float z = HouseHalfSize.y + 2.8f; z < HouseHalfSize.y + 15f; z += 1.6f, k++)
+                {
+                    Vector3 at = Ground(new Vector2(1.8f + Mathf.Sin(z * 0.4f) * 0.5f, z));
+                    GameObject s = PlaceProp(stone, yard, at, at.y - 0.12f, (k % 2) * 90f + k * 7f, 0.8f, 0f);
+                    foreach (Collider c in s.GetComponentsInChildren<Collider>()) Destroy(c);
+                }
+            }
+            var mountain = Resources.Load<GameObject>("Props/prop_mountain_backdrop_voxel");
+            if (mountain != null)
+            {
+                Vector2 dir = new Vector2(-0.59f, -0.8f);
+                for (int m = -1; m <= 1; m++)
+                {
+                    Vector2 side = new Vector2(-dir.y, dir.x) * (m * 95f);
+                    Vector2 at2 = dir * (125f + Mathf.Abs(m) * 20f) + side * 0.8f;
+                    Vector3 at = transform.TransformPoint(new Vector3(at2.x, 0f, at2.y));
+                    float yaw = Mathf.Atan2(dir.x, dir.y) * Mathf.Rad2Deg + m * 12f;
+                    GameObject g = PlaceProp(mountain, yard, at, transform.position.y - 8f, yaw, 3.4f - Mathf.Abs(m) * 0.5f, 0f);
+                    foreach (Collider c in g.GetComponentsInChildren<Collider>()) Destroy(c);
+                }
+            }
+        }
+
+        static GameObject PlaceProp(GameObject prefab, Transform parent, Vector3 center, float bottom, float yaw, float scale, float fitWidth)
+        {
+            GameObject g = Instantiate(prefab, parent);
+            g.transform.rotation = Quaternion.Euler(0f, yaw, 0f) * prefab.transform.rotation;
+            g.transform.localScale = Vector3.one;
+            Bounds b = WorldBounds(g);
+            float s = scale;
+            if (fitWidth > 0f && b.size.x > 0.001f) s = fitWidth / b.size.x;
+            g.transform.localScale = g.transform.localScale * s;
+            b = WorldBounds(g);
+            g.transform.position += new Vector3(center.x - b.center.x, bottom - b.min.y, center.z - b.center.z);
+            return g;
+        }
+
+        static Bounds WorldBounds(GameObject g)
+        {
+            Renderer[] rs = g.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return new Bounds(g.transform.position, Vector3.zero);
+            Bounds b = rs[0].bounds;
+            foreach (Renderer r in rs) b.Encapsulate(r.bounds);
+            return b;
+        }
+        static readonly System.Collections.Generic.Dictionary<Color, Material> PlainCache = new System.Collections.Generic.Dictionary<Color, Material>();
+
+        static Material Plain(Material source, Color color)
+        {
+            if (PlainCache.TryGetValue(color, out Material m) && m != null) return m;
+            m = new Material(source);
+            foreach (string prop in m.GetTexturePropertyNames()) m.SetTexture(prop, null);
+            m.SetColor(TintId, color);
+            if (m.HasProperty("_Color")) m.SetColor("_Color", color);
+            PlainCache[color] = m;
+            return m;
+        }
+
+        Vector3 Ground(Vector2 local)
+        {
+            Vector3 p = transform.TransformPoint(new Vector3(local.x, 0f, local.y));
+            if (Physics.Raycast(p + Vector3.up * 60f, Vector3.down, out RaycastHit hit, 120f, ~0, QueryTriggerInteraction.Ignore))
+                return hit.point;
+            if (Chopper.World.WorldGround.Exists) p.y = Chopper.World.WorldGround.HeightAt(p);
+            return p;
+        }
 
         void DressCabin()
         {
@@ -189,36 +294,10 @@ namespace Chopper.World
                     Material wood = look.sharedMaterial;
                     Bounds b = look.localBounds;
                     foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true)) renderer.enabled = false;
-                    var boards = new GameObject("Boards").transform;
-                    boards.SetParent(piece, false);
-                    const int count = 8;
-                    for (int k = 0; k < count; k++)
-                    {
-                        GameObject board = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                        board.name = "Board";
-                        Destroy(board.GetComponent<Collider>());
-                        board.transform.SetParent(boards, false);
-                        float w = 2f / count;
-                        board.transform.localPosition = new Vector3(-1f + (k + 0.5f) * w, 0.03f, ((k * 37) % 5) * 0.02f);
-                        board.transform.localScale = new Vector3(w * 0.92f, 0.06f, 2f);
-                        var mr = board.GetComponent<MeshRenderer>();
-                        mr.sharedMaterial = wood;
-                        var block = new MaterialPropertyBlock();
-                        float tone = ((k * 7 + Mathf.RoundToInt(fp.x * 3f + fp.z * 5f)) % 3) * 0.06f;
-                        block.SetColor(TintId, new Color(0.62f + tone, 0.44f + tone * 0.8f, 0.28f + tone * 0.5f));
-                        mr.SetPropertyBlock(block);
-                    }
-                    var seam = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    seam.name = "Seams";
-                    Destroy(seam.GetComponent<Collider>());
-                    seam.transform.SetParent(boards, false);
-                    seam.transform.localPosition = new Vector3(0f, 0.005f, 0f);
-                    seam.transform.localScale = new Vector3(2f, 0.04f, 2f);
-                    var sr = seam.GetComponent<MeshRenderer>();
-                    sr.sharedMaterial = wood;
-                    var sb = new MaterialPropertyBlock();
-                    sb.SetColor(TintId, new Color(0.22f, 0.14f, 0.08f));
-                    sr.SetPropertyBlock(sb);
+                    Bounds old = look.bounds;
+                    var boardPrefab = Resources.Load<GameObject>("Props/prop_floor_boards_voxel");
+                    if (boardPrefab == null) { foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true)) renderer.enabled = true; continue; }
+                    PlaceProp(boardPrefab, piece, old.center, old.max.y - 0.1f, 0f, 1f, old.size.x);
                 }
                 foreach (Transform piece in root)
                 {

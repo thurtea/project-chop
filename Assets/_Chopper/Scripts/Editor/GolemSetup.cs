@@ -16,8 +16,7 @@ namespace Chopper.Editor
         private const string BodyMeshPath = "Assets/_Chopper/Prefabs/Enemies/Mesh_GolemBody.asset";
         private const string BarkMaterialPath = "Assets/_Chopper/Materials/World/M_GolemBark.mat";
         private const string BodyFbx = "Assets/ThirdParty/Quaternius_UniversalBaseCharacters/Bodies/Superhero_Male_FullBody.fbx";
-        private const string BarkSourcePath = "Assets/ThirdParty/PixelLowpoly_100Assets/Essential/Materials/tree_oak_log_psx2.mat";
-        private const string TreeFolder = "Assets/ThirdParty/PixelLowpoly_100Assets/Essential/Meshes/";
+        private const string BarkSourcePath = "Assets/_Chopper/Materials/World/M_Bark.mat";
         // Same order as Element (Neutral, Water, Fire, Earth, Wind) and as MeadowBuilder.TreantModels.
         private static readonly string[] Trees =
         {
@@ -87,7 +86,7 @@ namespace Chopper.Editor
             AddBody(model, bodyPrefab);
             for (int i = 0; i < Trees.Length; i++)
             {
-                string path = TreeFolder + Trees[i] + ".fbx";
+                string path = Trees[i];
                 var tree = AssetDatabase.LoadAssetAtPath<GameObject>(path);
                 if (tree == null) continue;
                 var instance = (GameObject)PrefabUtility.InstantiatePrefab(tree);

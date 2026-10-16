@@ -1501,7 +1501,7 @@ namespace Chopper.Editor
                 return heldHeight;
             }
 
-            Material bark = AssetDatabase.LoadAssetAtPath<Material>(PixelPackSetup.Root + "/Essential/Materials/tree_oak_log_psx2.mat");
+            Material bark = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/M_Bark.mat");
             if (bark == null) bark = TorchMaterial("M_TorchWood", new Color(0.30f, 0.19f, 0.10f), false);
             Material charred = TorchMaterial("M_TorchHead", new Color(0.09f, 0.07f, 0.06f), false);
             Material rope = TorchMaterial("M_TorchRope", new Color(0.42f, 0.33f, 0.2f), false);

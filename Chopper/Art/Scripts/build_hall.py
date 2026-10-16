@@ -67,10 +67,10 @@ def log_tone(ix, iy, iz):
 def thatch_tone(ix, iy, iz):
     band = iz % 3
     if band == 0:
-        return THATCH_DARK if (ix // 2) % 2 else THATCH
+        return THATCH_DARK if (ix // 2) % 4 == 0 else THATCH
     if band == 1:
-        return THATCH
-    return THATCH_LIGHT
+        return THATCH_LIGHT
+    return THATCH
 
 
 def h3(i, j, k):

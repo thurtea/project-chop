@@ -588,7 +588,12 @@ namespace Chopper.Networking
                 }
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.85f);
                 yield return new WaitForSeconds(2f);
-                yield return LookAtHouse(new Vector2(home.x + 22f, home.z + 30f), 3.5f, 2f, "house_concept_view");
+                {
+                    var hidden = new System.Collections.Generic.List<Renderer>();
+                    foreach (Renderer r in PlayerWood.Local.GetComponentsInChildren<Renderer>()) if (r.enabled) { r.enabled = false; hidden.Add(r); }
+                    yield return LookAtHouse(new Vector2(home.x + 22f, home.z + 30f), 3.5f, 2f, "house_concept_view");
+                    foreach (Renderer r in hidden) r.enabled = true;
+                }
                 {
                     Vector2 pondAt = Chopper.World.Generation.WorldSession.Gen.PondCenter;
                     Vector2 hut2 = new Vector2(home.x, home.z);
@@ -704,7 +709,7 @@ namespace Chopper.Networking
 
                 Debug.Log($"[House] check paths {pathsOut} beds {beds} benches {benches} door {atDoor - basement:F2} doorZ {doorAt.z:F2} top {atTop - basement:F2} up {upstairs - basement:F2} basement {basement:F2} fromBasement {fromBasement:F2} storey {storey:F2}");
                 bool houseOk = pathsOut && beds == 2 && benches == 2 && atDoor - basement > storey - 0.2f && doorAt.z < Hut.HouseHalfSize.y
-                               && Mathf.Abs(atTop - basement - storey) < 0.35f && Mathf.Abs(upstairs - basement - storey) < 0.35f && basement < 0.6f && fromBasement > storey - 0.2f;
+                               && Mathf.Abs(atTop - basement - storey) < 0.35f && Mathf.Abs(upstairs - basement - storey) < 0.35f && basement < 0.6f && fromBasement - basement > storey - 0.2f;
                 Debug.Log("[House] RESULT " + (houseOk ? "PASS" : "FAIL"));
                 Application.Quit(houseOk ? 0 : 1);
                 yield break;
@@ -1602,6 +1607,17 @@ namespace Chopper.Networking
                 yield break;
             }
 
+            // Feet and body against the world (-chopperFeet): close side shots of the player standing on flat ground, a
+            // slope, the hut steps, inside the hut against a wall and in a mine chamber, plus an enemy on the slope. Each
+            // stop measures every FootGrounder sole against the ground under it and probes the chest, head and hands for
+            // being inside solid geometry. Logs "[Feet] RESULT PASS" when no sole is more than 4 cm in and no bone is buried.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFeet") >= 0)
+            {
+                yield return FeetTour(folder, wood, ui);
+                Application.Quit(0);
+                yield break;
+            }
+
             // Plants and the held torch (-chopperPlants): one healing herb, the lit torch in the hand, and a placed campfire piece.
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperPlants") >= 0)
             {
@@ -2412,7 +2428,11 @@ namespace Chopper.Networking
                     mineCam.SnapYaw(plan.Site.Yaw + 180f);
                     mineCam.DebugSetDistance(4.5f);
                     yield return new WaitForSeconds(1.5f);
-                    ui.DebugShow(0); yield return Shot(folder, $"mine_{m}_portal");
+                    ui.DebugShow(0);
+                    var hiddenP = new System.Collections.Generic.List<Renderer>();
+                    if (PlayerWood.Local != null) foreach (Renderer r in PlayerWood.Local.GetComponentsInChildren<Renderer>()) if (r.enabled) { r.enabled = false; hiddenP.Add(r); }
+                    yield return Shot(folder, $"mine_{m}_portal");
+                    foreach (Renderer r in hiddenP) if (r != null) r.enabled = true;
                 }
 
                 // Down the first mine through its portal, as a player would.
@@ -5771,6 +5791,112 @@ namespace Chopper.Networking
             Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
             File.WriteAllBytes(path, shot.EncodeToPNG());
             UnityEngine.Object.Destroy(shot);
+        }
+
+        private static IEnumerator FeetTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            var cam = new GameObject("FeetCamera").AddComponent<Camera>();
+            cam.depth = 50f; cam.fieldOfView = 45f; cam.nearClipPlane = 0.02f; cam.enabled = false;
+            float worstSole = 0f; int buried = 0; int stops = 0;
+            var lines = new System.Collections.Generic.List<string>();
+            IEnumerator Stop(string label, bool walk)
+            {
+                yield return new WaitForSeconds(1.4f);
+                if (walk)
+                {
+                    Gamepad pad = InputSystem.AddDevice<Gamepad>();
+                    for (float t = 0f; t < 0.8f; t += Time.deltaTime) { InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up * 0.5f }); yield return null; }
+                    InputSystem.QueueStateEvent(pad, new GamepadState());
+                    yield return null;
+                    InputSystem.RemoveDevice(pad);
+                    yield return new WaitForSeconds(0.5f);
+                }
+                stops++;
+                float stopWorst = 0f; string who = "";
+                foreach (Chopper.Player.FootGrounder g in Chopper.Player.FootGrounder.All)
+                {
+                    if (g == null || !g.Ready || Vector3.Distance(g.transform.position, wood.transform.position) > 12f) continue;
+                    float m = Mathf.Min(g.GapL, g.GapR);
+                    who += $" {g.transform.root.name}:{g.GapL:F3}/{g.GapR:F3}(ankle {g.Ankle:F3})";
+                    stopWorst = Mathf.Min(stopWorst, m);
+                }
+                foreach (Animator an in UnityEngine.Object.FindObjectsByType<Animator>(FindObjectsSortMode.None))
+                {
+                    if (Vector3.Distance(an.transform.position, wood.transform.position) > 12f) continue;
+                    var fg = an.GetComponent<Chopper.Player.FootGrounder>();
+                    string hits = "";
+                    if (fg != null && fg.Ready) { fg.Ground(fg.FootL.position, out bool h1); var all = Physics.RaycastAll(fg.FootL.position + Vector3.up * 0.7f, Vector3.down, 1.8f, ~0, QueryTriggerInteraction.Ignore); foreach (var hh in all) hits += hh.collider.name + "@" + hh.point.y.ToString("F2") + " "; hits = $"hit {h1} foot y {fg.FootL.position.y:F2} root y {an.transform.position.y:F2} rays [{hits}]"; }
+                    Debug.Log($"[Feet] {label} animator {an.transform.root.name}/{an.name} human {an.isHuman} grounder {(fg == null ? "none" : fg.Ready.ToString())} {hits}");
+                }
+                worstSole = Mathf.Min(worstSole, stopWorst);
+                int stopBuried = 0;
+                Animator anim = wood.GetComponentInChildren<Animator>();
+                foreach (HumanBodyBones hb in new[] { HumanBodyBones.Chest, HumanBodyBones.Head, HumanBodyBones.LeftHand, HumanBodyBones.RightHand, HumanBodyBones.Hips })
+                {
+                    Transform b = anim != null && anim.isHuman ? anim.GetBoneTransform(hb) : null;
+                    if (b == null) continue;
+                    foreach (Collider c in Physics.OverlapSphere(b.position, 0.04f, ~0, QueryTriggerInteraction.Ignore))
+                        if (!(c is CharacterController) && !c.transform.IsChildOf(wood.transform)) { stopBuried++; Debug.Log($"[Feet] {label}: {hb} inside {c.name}"); break; }
+                }
+                buried += stopBuried;
+                string line = $"[Feet] {label}: at {wood.transform.position:F2} worst sole {stopWorst:F3} m, buried bones {stopBuried};{who}";
+                Debug.Log(line); lines.Add(line);
+                Vector3 p = wood.transform.position;
+                foreach (var (n, side) in new[] { ("side", wood.transform.right), ("front", wood.transform.forward) })
+                {
+                    cam.transform.position = p + side * 1.7f + Vector3.up * 0.55f;
+                    cam.transform.LookAt(p + Vector3.up * 0.35f);
+                    cam.enabled = true;
+                    ui.DebugShow(0);
+                    yield return Shot(folder, $"feet_{label}_{n}");
+                }
+                cam.enabled = false;
+            }
+
+            // Flat ground in the hub.
+            yield return TeleportLocalPlayer(new Vector2(0f, 30f), 0f);
+            yield return Stop("flat", false);
+
+            // The steepest walkable slope near the hub.
+            Vector2 slope = new Vector2(0f, 30f); float steep = 0f;
+            for (int r = 20; r <= 90; r += 5)
+                for (int a = 0; a < 360; a += 15)
+                {
+                    Vector2 q = new Vector2(Mathf.Sin(a * Mathf.Deg2Rad), Mathf.Cos(a * Mathf.Deg2Rad)) * r;
+                    float s = Chopper.World.WorldGround.SteepnessAt(new Vector3(q.x, 0f, q.y));
+                    if (s > steep && s < 40f) { steep = s; slope = q; }
+                }
+            Debug.Log($"[Feet] slope at {slope} steepness {steep:F0}");
+            yield return TeleportLocalPlayer(slope, 0f);
+            yield return Stop("slope", false);
+            yield return Stop("slope_walk", true);
+            Vector3 sp = wood.transform.position + wood.transform.forward * 2.2f;
+            sp.y = Chopper.World.WorldGround.HeightAt(sp);
+            EnemyDirector.Instance.ServerSpawn(Element.Earth, TreeSize.Small, true, sp);
+            yield return Stop("slope_enemy", false);
+
+            // The hut: on its door steps, then inside walking into the back wall.
+            Transform hut = Hut.Instance.transform;
+            Vector3 door = hut.position + hut.forward * 4.2f;
+            yield return TeleportLocalPlayer(new Vector2(door.x, door.z), hut.eulerAngles.y + 180f);
+            yield return Stop("hut_steps", true);
+            Vector3 inside = hut.position + Vector3.up * 0.5f;
+            yield return TeleportExact(inside, hut.eulerAngles.y + 180f);
+            yield return Stop("hut_wall", true);
+
+            // A mine chamber.
+            var plans = Chopper.World.Generation.MineWorld.Plans;
+            if (plans != null && plans.Count > 0 && plans[0].Rooms.Count > 1)
+            {
+                yield return TeleportExact(plans[0].RoomCenter(1) + Vector3.up * 0.1f, 0f);
+                yield return Stop("cave", false);
+                yield return Stop("cave_walk", true);
+            }
+
+            bool pass = stops >= 6 && worstSole > -0.04f && buried == 0;
+            Debug.Log($"[Feet] RESULT {(pass ? "PASS" : "FAIL")} ({stops} stops, worst sole {worstSole:F3} m, {buried} buried bones)");
         }
 
         private static IEnumerator Shot(string folder, string name)

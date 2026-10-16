@@ -89,6 +89,7 @@ namespace Chopper.World.Generation
                 WorldGen.StampRocks(grass, gen.CryptClearings());
                 WorldGen.StampRocks(grass, gen.MineClearings());
                 WorldGen.StampRocks(grass, FireClearings(fires));
+            WorldGen.StampRocks(grass, new List<RockSpot> { new RockSpot { Position = new Vector2(17f, 22f), Size = 11f } });
                 BuildGrass(grass);
             }
             BuildSpawns(gen);
@@ -446,7 +447,7 @@ namespace Chopper.World.Generation
             int n = 0;
             foreach (float s in new[] { 1f, -1f, 0.55f, -0.6f })
             {
-                Vector3 at = door + right * s * (MinePlan.PortalWidth * 0.5f + 0.2f) - forward * (0.4f + n * 0.5f);
+                Vector3 at = door + right * s * (MinePlan.PortalWidth * 0.5f + 0.9f + n * 0.25f) + forward * (0.5f + n * 0.45f);
                 at.y = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(at) : at.y;
                 GameObject crystal = prefab != null ? Object.Instantiate(prefab, mine) : GameObject.CreatePrimitive(PrimitiveType.Cube);
                 crystal.name = "ThresholdCrystal";
@@ -459,13 +460,100 @@ namespace Chopper.World.Generation
             }
             var glow = new GameObject("ThresholdGlow");
             glow.transform.SetParent(mine, false);
-            glow.transform.position = door - forward * 0.8f + Vector3.up * 0.7f;
+            glow.transform.position = door + forward * 1.2f + Vector3.up * 0.7f;
             var light = glow.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = CaveVoxel.CrystalColor;
             light.range = 6f;
             light.intensity = 2.2f;
             light.shadows = LightShadows.None;
+            PlaceTimberPortal(mine, plan, door, forward, turn);
+        }
+
+        private static void PlaceTimberPortal(Transform mine, MinePlan plan, Vector3 door, Vector3 forward, Quaternion turn)
+        {
+            Vector3 at = door - forward * 0.35f;
+            float ground = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(at) : at.y;
+            GameObject lanternPrefab = Resources.Load<GameObject>("Props/prop_mine_lantern_voxel");
+            Vector3 hang = new Vector3(at.x, ground + MinePlan.PortalHeight - 0.4f, at.z) + forward * 1.1f;
+            if (lanternPrefab != null)
+            {
+                GameObject lantern = Object.Instantiate(lanternPrefab, hang, turn, mine);
+                lantern.name = "PortalLantern";
+                foreach (Collider c in lantern.GetComponentsInChildren<Collider>()) Object.Destroy(c);
+            }
+            Vector3 baseAt = new Vector3(at.x, ground, at.z);
+            GameObject portalPrefab = Resources.Load<GameObject>("Props/prop_mine_portal_voxel");
+            if (portalPrefab != null)
+            {
+                GameObject frame = Object.Instantiate(portalPrefab, baseAt - forward * 1.3f, turn, mine);
+                frame.name = "PortalFrame";
+                foreach (Collider c in frame.GetComponentsInChildren<Collider>()) Object.Destroy(c);
+            }
+            GameObject railPrefab = Resources.Load<GameObject>("Props/prop_mine_rail_voxel");
+            GameObject cartPrefab = Resources.Load<GameObject>("Props/prop_mine_cart_voxel");
+            if (railPrefab != null)
+            {
+                float len = Mathf.Max(0.5f, RendererBounds(railPrefab).size.z);
+                for (int k = 0; k < 3; k++)
+                {
+                    Vector3 p = baseAt + forward * (0.6f + len * (k + 0.5f));
+                    p.y = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(p) + 0.02f : p.y;
+                    GameObject rail = Object.Instantiate(railPrefab, p, turn, mine);
+                    rail.name = "PortalRail";
+                }
+            }
+            if (cartPrefab != null)
+            {
+                Vector3 p = baseAt + forward * 2.2f + (turn * Vector3.right) * 2.4f;
+                p.y = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(p) + 0.12f : p.y;
+                GameObject cart = Object.Instantiate(cartPrefab, p, turn * Quaternion.Euler(0f, 4f, 0f), mine);
+                cart.name = "PortalCart";
+                Bounds cb = RendererBounds(cart);
+                cart.transform.position += new Vector3(p.x - cb.center.x, p.y + 0.1f - cb.min.y, p.z - cb.center.z);
+                var cartLight = new GameObject("PortalCartLight");
+                cartLight.transform.SetParent(mine, false);
+                cartLight.transform.position = cart.transform.position + forward * 1.6f + Vector3.up * 1.8f;
+                var cl = cartLight.AddComponent<Light>();
+                cl.type = LightType.Point; cl.color = LanternColor; cl.range = 5f; cl.intensity = 2.5f; cl.shadows = LightShadows.None;
+                Debug.Log($"[Mine] portal cart at {cart.transform.position} size {cb.size}");
+            }
+            var dark = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            dark.name = "PortalDark";
+            Object.Destroy(dark.GetComponent<Collider>());
+            dark.transform.SetParent(mine, false);
+            dark.transform.position = new Vector3(at.x, ground + MinePlan.PortalHeight * 0.5f - 0.05f, at.z) + forward * 0.8f;
+            dark.transform.rotation = turn * Quaternion.Euler(0f, 180f, 0f);
+            dark.transform.localScale = new Vector3(MinePlan.PortalWidth + 0.1f, MinePlan.PortalHeight + 0.2f, 1f);
+            {
+                var black = new Material(CrystalMaterial()) { name = "M_PortalDark" };
+                if (black.HasProperty("_BaseColor")) black.SetColor("_BaseColor", new Color(0.01f, 0.012f, 0.014f));
+                dark.GetComponent<MeshRenderer>().sharedMaterial = black;
+                var mf = dark.GetComponent<MeshFilter>();
+                Mesh quad = Object.Instantiate(mf.sharedMesh);
+                var cols = new Color[quad.vertexCount];
+                for (int c = 0; c < cols.Length; c++) cols[c] = new Color(0.01f, 0.012f, 0.014f, 1f);
+                quad.colors = cols;
+                mf.sharedMesh = quad;
+            }
+            var lampGo = new GameObject("PortalLanternLight");
+            lampGo.transform.SetParent(mine, false);
+            lampGo.transform.position = hang - Vector3.up * 0.3f + forward * 0.8f;
+            var lamp = lampGo.AddComponent<Light>();
+            lamp.type = LightType.Point;
+            lamp.color = LanternColor;
+            lamp.range = 8f;
+            lamp.intensity = 4f;
+            lamp.shadows = LightShadows.None;
+        }
+
+        private static Bounds RendererBounds(GameObject g)
+        {
+            Renderer[] rs = g.GetComponentsInChildren<Renderer>();
+            if (rs.Length == 0) return new Bounds(g.transform.position, Vector3.zero);
+            Bounds b = rs[0].bounds;
+            foreach (Renderer r in rs) b.Encapsulate(r.bounds);
+            return b;
         }
         private static Material CrystalMaterial()
         {
@@ -557,7 +645,7 @@ namespace Chopper.World.Generation
                 List<CryptBox> inGroup = boxes.FindAll(box => box.Group == group);
                 if (blockColors != null)
                 {
-                    Mesh cave = CaveVoxel.Build(inGroup, out Mesh crystals);
+                    Mesh cave = CaveVoxel.Build(inGroup, out Mesh crystals, name != "Portal");
                     if (cave != null)
                     {
                         var shell = new GameObject($"Cave_{group}");

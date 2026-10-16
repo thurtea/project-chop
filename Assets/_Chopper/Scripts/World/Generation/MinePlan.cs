@@ -376,15 +376,28 @@ namespace Chopper.World.Generation
             float postHeight = PortalHeight + PortalSink;
             foreach (float s in new[] { 1f, -1f })
             {
-                Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.5f + PostSize * 0.5f) + Vector3.up * (postHeight * 0.5f - PortalSink), new Vector3(PostSize * 1.3f, postHeight, PostSize * 1.3f), CryptMaterial.Timber, turn);
+                Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.5f + PostSize * 0.5f) + Vector3.up * (postHeight * 0.5f - PortalSink), new Vector3(PostSize * 1.3f, postHeight, PostSize * 1.3f), CryptMaterial.Wall, turn);
                 // Rough stone cheeks either side of the posts, deep into the slope.
                 Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.5f + 1.1f) - forward * (PortalDepth * 0.5f) + Vector3.up * (postHeight * 0.5f - PortalSink), new Vector3(1.4f, postHeight + 0.6f, PortalDepth + 0.6f), CryptMaterial.Wall, turn);
             }
-            Add(EntranceBoxes, foot + Vector3.up * (PortalHeight + BeamDepth * 0.7f), new Vector3(PortalWidth + 1.2f, BeamDepth * 1.4f, PostSize * 1.5f), CryptMaterial.Timber, turn);
+            Add(EntranceBoxes, foot + Vector3.up * (PortalHeight + BeamDepth * 0.7f), new Vector3(PortalWidth + 1.2f, BeamDepth * 1.4f, PostSize * 1.5f), CryptMaterial.Wall, turn);
             foreach (float s in new[] { 1f, -1f })
-                Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.32f) + forward * 0.05f + Vector3.up * (PortalHeight - 0.45f), new Vector3(1.5f, PostSize * 0.8f, PostSize * 0.8f), CryptMaterial.Timber, turn * Quaternion.Euler(0f, 0f, s * 40f));
-            Add(EntranceBoxes, foot + Vector3.up * (PortalHeight + BeamDepth * 1.4f + 0.9f), new Vector3(PostSize * 1.1f, 1.8f, PostSize * 1.1f), CryptMaterial.Timber, turn);
+                Add(EntranceBoxes, foot + right * s * (PortalWidth * 0.32f) + forward * 0.05f + Vector3.up * (PortalHeight - 0.45f), new Vector3(1.5f, PostSize * 0.8f, PostSize * 0.8f), CryptMaterial.Wall, turn * Quaternion.Euler(0f, 0f, s * 40f));
+            Add(EntranceBoxes, foot + Vector3.up * (PortalHeight + BeamDepth * 1.4f + 0.9f), new Vector3(PostSize * 1.1f, 1.8f, PostSize * 1.1f), CryptMaterial.Wall, turn);
             Add(EntranceBoxes, foot - forward * (PortalDepth * 0.5f) + Vector3.up * (PortalHeight + 1f), new Vector3(PortalWidth + 3.6f, 1.6f, PortalDepth + 0.6f), CryptMaterial.Wall, turn);
+            for (int k = 0; k < 4; k++)
+            {
+                foreach (float s in new[] { 1f, -1f })
+                {
+                    float out2 = PortalWidth * 0.5f + 2.2f + k * 0.9f;
+                    float h = postHeight + 0.6f - k * 0.9f;
+                    if (h < 0.6f) continue;
+                    Add(EntranceBoxes, foot + right * s * out2 - forward * (PortalDepth * 0.5f + k * 0.3f) + Vector3.up * (h * 0.5f - PortalSink), new Vector3(1f, h, PortalDepth + 0.4f - k * 0.5f), CryptMaterial.Wall, turn);
+                }
+                float top = PortalHeight + 1.8f + k * 0.5f;
+                Add(EntranceBoxes, foot - forward * (PortalDepth * 0.5f + 0.6f + k * 0.7f) + Vector3.up * top, new Vector3(PortalWidth + 3.6f - k * 0.9f, 0.5f, PortalDepth * 0.6f), CryptMaterial.Wall, turn);
+            }
+            Add(EntranceBoxes, foot - forward * (PortalDepth * 0.55f) + Vector3.up * (PortalHeight * 0.5f - 0.3f), new Vector3(PortalWidth - 0.3f, PortalHeight + 0.4f, 0.1f), CryptMaterial.Void, turn);
             // The dark adit going into the mountain.
             Add(EntranceBoxes, foot - forward * PortalDepth + Vector3.up * (PortalHeight * 0.5f - 0.3f), new Vector3(PortalWidth, PortalHeight + 0.6f, 0.1f), CryptMaterial.Void, turn);
             Add(EntranceBoxes, foot - forward * (PortalDepth * 0.5f) + Vector3.down * 0.25f, new Vector3(PortalWidth, 0.5f, PortalDepth), CryptMaterial.Floor, turn);

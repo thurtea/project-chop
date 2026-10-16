@@ -22,7 +22,7 @@ namespace Chopper.World
         private const float SunEndYaw = 110f;
         private const float MoonPitch = 42f;
         private const float MoonYaw = 290f;
-        private const float NoonIntensity = 1.45f;
+        private const float NoonIntensity = 1.65f;
         private const float LowSunIntensity = 1.1f;
         private const float LowSunSpan = 0.75f;
         private const float MoonIntensity = 0.32f;
@@ -42,9 +42,9 @@ namespace Chopper.World
         private static readonly Color MoonColor = new Color(0.50f, 0.62f, 1f);
         private static readonly Color NightFilter = new Color(0.66f, 0.76f, 1f);
         // W11-08: daylight fill follows the warm sky. Night stays blue below.
-        private static readonly Color LightingSky = new Color(0.72f, 0.66f, 0.56f);
-        private static readonly Color LightingEquator = new Color(0.70f, 0.62f, 0.50f);
-        private static readonly Color LightingGround = new Color(0.42f, 0.40f, 0.30f);
+        private static readonly Color LightingSky = new Color(0.58f, 0.64f, 0.74f);
+        private static readonly Color LightingEquator = new Color(0.62f, 0.60f, 0.56f);
+        private static readonly Color LightingGround = new Color(0.34f, 0.35f, 0.32f);
         private static readonly Color NightSky = new Color(0.09f, 0.12f, 0.22f);
         private static readonly Color NightEquator = new Color(0.06f, 0.08f, 0.14f);
         private static readonly Color NightGround = new Color(0.025f, 0.03f, 0.05f);
@@ -250,7 +250,7 @@ namespace Chopper.World
             if (_sun != null)
             {
                 Color sunColor = Color.Lerp(SunriseColor, NoonColor, elevation);
-                bool forest = ZoneTracker.Current != Element.Neutral && u < 0.35f;
+                bool forest = ZoneTracker.Current != Element.Neutral && u < 0.35f && !NearPortal();
                 if (forest) sunColor = Color.Lerp(sunColor, new Color(1f, 0.70f, 0.38f), 0.4f);
                 _sun.color = Color.Lerp(sunColor, MoonColor, d);
                 float canopy = forest ? 0.72f : 1f;
@@ -262,7 +262,7 @@ namespace Chopper.World
             float lowSun = 1f - Mathf.SmoothStep(0f, 1f, elevation / LowSunSpan);
             HazeTint = Color.Lerp(Color.Lerp(NoonHaze, LowSunHaze, lowSun), Color.white, d);
 
-            bool inForest = ZoneTracker.Current != Element.Neutral && u < 0.35f;
+            bool inForest = ZoneTracker.Current != Element.Neutral && u < 0.35f && !NearPortal();
             Color skyAmbient = Color.Lerp(Color.Lerp(LightingSky, NightSky, d), CryptSky, u);
             Color equatorAmbient = Color.Lerp(Color.Lerp(Color.Lerp(LightingEquator, LowSunEquator, lowSun * 0.6f), NightEquator, d), CryptEquator, u);
             Color groundAmbient = Color.Lerp(Color.Lerp(LightingGround, NightGround, d), CryptGround, u);
@@ -308,13 +308,29 @@ namespace Chopper.World
             if (_bloom != null) _bloom.intensity.value = inForest ? Mathf.Lerp(0.62f, 0.78f, d) : Mathf.Lerp(DayBloom, NightBloom, d);
             if (_grade != null)
             {
-                _grade.shadows.value = inForest ? new Vector4(0.70f, 0.80f, 1.16f, -0.04f) : new Vector4(1f, 1f, 1f, 0f);
-                _grade.highlights.value = inForest ? new Vector4(1.28f, 0.94f, 0.55f, 0.18f) : new Vector4(1.10f, 1.02f, 0.88f, 0.05f);
+                _grade.shadows.value = inForest ? new Vector4(0.70f, 0.80f, 1.16f, -0.04f) : new Vector4(0.84f, 0.92f, 1.12f, -0.03f);
+                _grade.highlights.value = inForest ? new Vector4(1.28f, 0.94f, 0.55f, 0.18f) : new Vector4(1.18f, 1.02f, 0.80f, 0.08f);
             }
             ApplyShafts(inForest, d);
         }
 
         public static float LastShaftStrength { get; private set; }
+
+        private static bool NearPortal()
+        {
+            Camera cam = Camera.main;
+            if (cam == null) return false;
+            var plans = Chopper.World.Generation.MineWorld.Plans;
+            if (plans == null) return false;
+            Vector3 p = cam.transform.position;
+            foreach (var plan in plans)
+            {
+                Vector3 d = plan.DoorSpot - p;
+                d.y = 0f;
+                if (d.sqrMagnitude < 28f * 28f) return true;
+            }
+            return false;
+        }
 
         private void ApplyShafts(bool inForest, float darkness)
         {
@@ -322,7 +338,7 @@ namespace Chopper.World
             float strength = 0f;
             float ahead = 0f;
             Vector2 sunUv = new Vector2(0.5f, 0.8f);
-            if (inForest && cam != null && _sun != null)
+            if (cam != null && _sun != null && UndergroundBlend < 0.5f)
             {
                 Vector3 toSun = -_sun.transform.forward;
                 Vector3 vp = cam.WorldToViewportPoint(cam.transform.position + toSun * 400f);
@@ -330,9 +346,12 @@ namespace Chopper.World
                 ahead = vp.z > 0f ? 1f : 0f;
                 // The sun below the horizon casts no shafts; low over it they fade with its light.
                 float above = Mathf.Clamp01(toSun.y * 4f);
-                strength = ahead * above * Mathf.Lerp(0.95f, 0f, darkness);
+                strength = ahead * above * Mathf.Lerp(0.95f, 0f, darkness) * (inForest ? 1f : 0.9f);
             }
             Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, strength));
+            float hazeAmount = cam != null ? (1f - UndergroundBlend) * Mathf.Lerp(0.42f, 0.12f, darkness) * (inForest ? 0.7f : 1f) : 0f;
+            float hazeLight = Mathf.Lerp(1f, 0.25f, darkness);
+            Shader.SetGlobalVector("_ChopperHaze", new Vector4(0.0040f, cam != null ? cam.transform.position.y - 4f : 0f, hazeAmount, hazeLight));
             LastShaftStrength = strength;
         }
 

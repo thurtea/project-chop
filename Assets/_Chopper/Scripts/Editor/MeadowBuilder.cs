@@ -39,16 +39,13 @@ namespace Chopper.Editor
         public const string TreesPrefabPath = "Assets/_Chopper/Prefabs/World/TreeManager.prefab";
         private const string WorldAssetsPath = "Assets/_Chopper/Config/SO_WorldAssets.asset";
         private const string MaterialsFolder = "Assets/_Chopper/Materials/World";
-        private const string PixelMeshes = PixelPackSetup.Root + "/Essential/Meshes/";
-        private const string PixelMaterials = PixelPackSetup.Root + "/Essential/Materials/";
 
         private const string NatureMeshes = "Assets/ThirdParty/Quaternius_StylizedNatureMegaKit/FBX/";
 
         // A model by name: the pixel pack first, then the Quaternius nature kit (grass, ferns, flowers, bushes).
         internal static GameObject PixelModel(string name)
         {
-            var model = AssetDatabase.LoadAssetAtPath<GameObject>(PixelMeshes + name + ".fbx");
-            if (model == null) model = AssetDatabase.LoadAssetAtPath<GameObject>(NatureMeshes + name + ".fbx");
+            var model = AssetDatabase.LoadAssetAtPath<GameObject>(NatureMeshes + name + ".fbx");
             if (model == null) model = ChopperMeadowSwap.MeadowModel(name);
             if (model == null) model = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_Chopper/Art/Meadow/" + name + ".prefab");
             return model;
@@ -56,7 +53,7 @@ namespace Chopper.Editor
 
         internal static Material PixelMaterial(string name)
         {
-            return AssetDatabase.LoadAssetAtPath<Material>(PixelMaterials + name + ".mat");
+            return AssetDatabase.LoadAssetAtPath<Material>("Assets/_Chopper/Materials/World/" + name + ".mat");
         }
 
         // The hut stands on a low hill: flat on top (the house and its yard), sloping gently down to the meadow.
@@ -104,7 +101,7 @@ namespace Chopper.Editor
             root.AddComponent<NetworkObject>();
             AddDistanceObserver(root, "DC_WoodPile", Chopper.Networking.NearbyClients.WoodPileRange);
             GroundItem item = root.AddComponent<GroundItem>();
-            Material bark = PixelMaterial("tree_oak_log_psx2");
+            Material bark = PixelMaterial("M_Bark");
             if (bark == null) bark = CreateColorMaterial("M_Branch", new Color(0.36f, 0.24f, 0.13f));
             var so = new SerializedObject(item);
             so.FindProperty("_config").objectReferenceValue = config;
@@ -123,7 +120,7 @@ namespace Chopper.Editor
             root.AddComponent<NetworkObject>();
             AddDistanceObserver(root, "DC_WoodPile", Chopper.Networking.NearbyClients.WoodPileRange);
             WoodPile pile = root.AddComponent<WoodPile>();
-            Material bark = PixelMaterial("tree_oak_log_psx2");
+            Material bark = PixelMaterial("M_Bark");
             if (bark == null) bark = CreateColorMaterial("M_Branch", new Color(0.36f, 0.24f, 0.13f));
             var so = new SerializedObject(pile);
             so.FindProperty("_material").objectReferenceValue = bark;
@@ -141,7 +138,7 @@ namespace Chopper.Editor
             EnsureFolder("Assets/_Chopper/Prefabs/World");
 
             DeleteObsoleteAssets();
-            Material stump = PixelMaterial("tree_oak_log_psx2");
+            Material stump = PixelMaterial("M_Bark");
             if (stump == null) stump = CreateColorMaterial("M_Stump", new Color(0.36f, 0.24f, 0.13f));
             Material particle = CreateParticleMaterial();
 
@@ -244,7 +241,7 @@ namespace Chopper.Editor
         }
 
         public const string CampfirePrefabPath = "Assets/_Chopper/Prefabs/World/Campfire.prefab";
-        internal const string FireEffectPath = "Assets/ThirdParty/PixelLowpoly_100Assets/_PREFABS/Effects/pixel_fire_effect_orange.prefab";
+        internal const string FireEffectPath = "";
 
         // A ring of small stones round three crossed logs, glowing embers, the pack's orange pixel flames shrunk to a
         // campfire (their black smoke left out), a warm flickering light and a solid collider. Placed by WorldBuilder;
@@ -287,7 +284,7 @@ namespace Chopper.Editor
             }
             else
             {
-                Material log = PixelMaterial("tree_oak_log_psx2");
+                Material log = PixelMaterial("M_Bark");
                 if (log == null) log = CreateColorMaterial("M_Branch", new Color(0.36f, 0.24f, 0.13f));
                 for (int i = 0; i < 3; i++)
                 {
@@ -865,7 +862,7 @@ namespace Chopper.Editor
             root.AddComponent<Chopper.World.Saving.WorldSaver>();
             BranchManager branches = root.AddComponent<BranchManager>();
             var branchSo = new SerializedObject(branches);
-            Material bark = PixelMaterial("tree_oak_log_psx2");
+            Material bark = PixelMaterial("M_Bark");
             if (bark == null) bark = CreateColorMaterial("M_Branch", new Color(0.36f, 0.24f, 0.13f));
             branchSo.FindProperty("_material").objectReferenceValue = bark;
             branchSo.ApplyModifiedPropertiesWithoutUndo();
