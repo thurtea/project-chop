@@ -5830,6 +5830,17 @@ namespace Chopper.Networking
                     if (fg != null && fg.Ready) { fg.Ground(fg.FootL.position, out bool h1); var all = Physics.RaycastAll(fg.FootL.position + Vector3.up * 0.7f, Vector3.down, 1.8f, ~0, QueryTriggerInteraction.Ignore); foreach (var hh in all) hits += hh.collider.name + "@" + hh.point.y.ToString("F2") + " "; hits = $"hit {h1} foot y {fg.FootL.position.y:F2} root y {an.transform.position.y:F2} rays [{hits}]"; }
                     Debug.Log($"[Feet] {label} animator {an.transform.root.name}/{an.name} human {an.isHuman} grounder {(fg == null ? "none" : fg.Ready.ToString())} {hits}");
                 }
+                foreach (Treant tr in Treant.All)
+                {
+                    if (tr == null || Vector3.Distance(tr.transform.position, wood.transform.position) > 15f) continue;
+                    Renderer[] rs = tr.GetComponentsInChildren<Renderer>();
+                    if (rs.Length == 0) continue;
+                    float low = float.PositiveInfinity; foreach (Renderer r in rs) low = Mathf.Min(low, r.bounds.min.y);
+                    float g = tr.transform.position.y;
+                    if (Physics.Raycast(tr.transform.position + Vector3.up * 1f, Vector3.down, out RaycastHit th, 3f, ~0, QueryTriggerInteraction.Ignore)) g = th.point.y;
+                    Debug.Log($"[Feet] {label} enemy {tr.name} lowest mesh {low:F2} ground {g:F2} sink {g - low:F3} animator {(tr.BodyAnimator != null)}");
+                    stopWorst = Mathf.Min(stopWorst, Mathf.Min(0f, low - g + 0.05f));
+                }
                 worstSole = Mathf.Min(worstSole, stopWorst);
                 int stopBuried = 0;
                 Animator anim = wood.GetComponentInChildren<Animator>();
@@ -5874,7 +5885,8 @@ namespace Chopper.Networking
             yield return Stop("slope_walk", true);
             Vector3 sp = wood.transform.position + wood.transform.forward * 2.2f;
             sp.y = Chopper.World.WorldGround.HeightAt(sp);
-            EnemyDirector.Instance.ServerSpawn(Element.Earth, TreeSize.Small, true, sp);
+            EnemyDirector.Instance.ServerSpawn(Element.Earth, TreeSize.Small, false, sp);
+            yield return new WaitForSeconds(2f);
             yield return Stop("slope_enemy", false);
 
             // The hut: on its door steps, then inside walking into the back wall.
@@ -5882,7 +5894,7 @@ namespace Chopper.Networking
             Vector3 door = hut.position + hut.forward * 4.2f;
             yield return TeleportLocalPlayer(new Vector2(door.x, door.z), hut.eulerAngles.y + 180f);
             yield return Stop("hut_steps", true);
-            Vector3 inside = hut.position + Vector3.up * 0.5f;
+            Vector3 inside = new Vector3(hut.position.x, wood.transform.position.y + 0.4f, hut.position.z);
             yield return TeleportExact(inside, hut.eulerAngles.y + 180f);
             yield return Stop("hut_wall", true);
 
