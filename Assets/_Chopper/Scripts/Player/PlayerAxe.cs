@@ -257,6 +257,46 @@ namespace Chopper.Player
         [ServerRpc]
         private void ToggleDrawnServerRpc() => _drawn.Value = !_drawn.Value;
 
+        private static readonly (KeyAction key, PlayerWeapon weapon)[] WeaponKeys =
+        {
+            (KeyAction.Axe, PlayerWeapon.Axe), (KeyAction.Weapon, PlayerWeapon.Sword), (KeyAction.Mace, PlayerWeapon.Mace), (KeyAction.Spear, PlayerWeapon.Spear)
+        };
+
+        private bool _swimShield;
+
+        public void RequestShieldToggle()
+        {
+            if (!IsOwner || _upgrades == null || !_upgrades.HasShield) return;
+            bool want = !_upgrades.ShieldInHand;
+            if (want && !SwimHolster.MayDraw(_motor != null && _motor.StowsTools)) return;
+            _upgrades.RequestShieldInHand(want);
+        }
+
+        public static bool WeaponKeyPressed()
+        {
+            foreach (var slot in WeaponKeys) if (Keybinds.WasPressed(slot.key)) return true;
+            return false;
+        }
+
+        public void RequestWield(PlayerWeapon weapon)
+        {
+            if (!IsOwner || !HasAxe) return;
+            if (_weapons == null)
+            {
+                if (weapon == PlayerWeapon.Axe) RequestToggleDrawn();
+                return;
+            }
+            if (!_weapons.Owns(weapon)) return;
+            _hiddenByUnequip = false;
+            if (_weapons.Selected == weapon)
+            {
+                RequestToggleDrawn();
+                return;
+            }
+            _weapons.RequestSelect(weapon);
+            if (!IsDrawn) RequestToggleDrawn();
+        }
+
         private bool _swimHolstered;
         private bool _climbStowed;
         public bool SwimHolstered => _swimHolstered;
@@ -269,6 +309,7 @@ namespace Chopper.Player
         // The torch, the rod and the hammer put themselves away on the same key.
         private void Unequip()
         {
+            if (_upgrades != null && _upgrades.ShieldInHand) _upgrades.RequestShieldInHand(false);
             if (IsDrawn)
             {
                 _hiddenByUnequip = true;
@@ -320,14 +361,17 @@ namespace Chopper.Player
             if (Keyboard.current != null && Keyboard.current.f9Key.wasPressedThisFrame) DebugSpamServer();
 #endif
             TickCommitment();
-            if (Keybinds.WasPressed(KeyAction.Axe) && !UiState.GameplayBlocked && (_fishing == null || !_fishing.Busy) && !SwingCommitted)
+            if (!UiState.GameplayBlocked && (_fishing == null || !_fishing.Busy) && !SwingCommitted)
             {
-                _hiddenByUnequip = false;
-                RequestToggleDrawn();
+                foreach (var slot in WeaponKeys)
+                    if (Keybinds.WasPressed(slot.key)) RequestWield(slot.weapon);
+                if (Keybinds.WasPressed(KeyAction.Shield)) RequestShieldToggle();
             }
             bool climbing = _motor != null && _motor.IsClimbing;
             if (climbing != _climbStowed) { _climbStowed = climbing; ApplyAxeVisual(); }
             if (HasAxe && SwimHolster.Step(_motor != null && _motor.StowsTools, IsDrawn, ref _swimHolstered)) RequestToggleDrawn();
+            if (_upgrades != null && _upgrades.HasShield && SwimHolster.Step(_motor != null && _motor.StowsTools, _upgrades.ShieldInHand, ref _swimShield))
+                _upgrades.RequestShieldInHand(!_upgrades.ShieldInHand);
             if (Keybinds.WasPressed(KeyAction.Unequip) && !UiState.GameplayBlocked) Unequip();
             PlayerInventory inventory = PlayerInventory.Local;
             _handsBusyLastFrame = (inventory != null && inventory.TorchLit) || (_fishing != null && _fishing.Busy) || PlayerBuilder.LocalBuilding;

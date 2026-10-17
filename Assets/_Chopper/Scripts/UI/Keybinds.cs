@@ -30,7 +30,10 @@ namespace Chopper.UI
         Build,
         Unequip,
         Pick,
-        Weapon
+        Weapon,
+        Mace,
+        Spear,
+        Shield
     }
 
     public static class Keybinds
@@ -48,17 +51,20 @@ namespace Chopper.UI
             "<Keyboard>/r",          // Repair; turns the piece while building
             "<Keyboard>/leftShift",  // Sprint
             "<Keyboard>/leftCtrl",   // Crouch
-            "<Keyboard>/2",          // Torch
-            "<Keyboard>/3",          // Potion
+            "<Keyboard>/3",          // Torch
+            "<Keyboard>/4",          // Potion
             "<Keyboard>/tab",        // Inventory
             "<Keyboard>/m",          // Map
-            "<Keyboard>/5",          // Food
-            "<Keyboard>/4",          // Rod
-            "<Keyboard>/1",          // Axe
-            "<Keyboard>/6",          // Build (the hammer)
+            "<Keyboard>/6",          // Food
+            "<Keyboard>/5",          // Rod
+            "<Keyboard>/2",          // Axe
+            "<Keyboard>/7",          // Build (the hammer)
             "<Keyboard>/h",          // Unequip: put away whatever is in the hands
-            "<Keyboard>/7",
-            "<Keyboard>/8"
+            "<Keyboard>/8",
+            "<Keyboard>/9",
+            "<Keyboard>/0",
+            "<Keyboard>/minus",
+            "<Keyboard>/1"
         };
 
         // Valheim style: triggers for the weapon and the guard, face buttons for jump, roll, interact and inventory,
@@ -84,6 +90,9 @@ namespace Chopper.UI
             HotbarPath,                    // Build (the hammer)
             "<Gamepad>/rightStickPress",   // Unequip (R3)
             HotbarPath,
+            HotbarPath,
+            HotbarPath,
+            HotbarPath,
             HotbarPath
         };
 
@@ -91,7 +100,8 @@ namespace Chopper.UI
         {
             "Chop and attack", "Block", "Roll", "Jump", "Interact", "Repair the hut", "Toggle sprint",
             "Toggle crouch", "Torch on or off", "Bandage", "Inventory", "Map", "Eat fish", "Fishing rod",
-            "Axe out or away", "Build (hammer)", "Put away (hands free)", "Pickaxe out or away", "Next weapon"
+            "Axe out or away", "Build (hammer)", "Put away (hands free)", "Pickaxe out or away", "Sword out or away",
+            "Mace out or away", "Spear out or away", "Shield on the arm or on the back"
         };
 
         private static readonly string[] Cache = new string[Defaults.Length];
@@ -275,6 +285,7 @@ namespace Chopper.UI
                 case "<Keyboard>/rightCtrl": return "Right Ctrl";
                 case "<Keyboard>/space": return "Space";
                 case "<Keyboard>/tab": return "Tab";
+                case "<Keyboard>/minus": return "-";
             }
             // Cached: the Input System builds this name by parsing device layouts, which made the HUD (that names
             // keys in its prompts every frame) throw away over half a megabyte a frame and stutter in the editor.

@@ -23,7 +23,7 @@ namespace Chopper.UI
     {
         private const float ReferenceWidth = 1920f;
         private const float ReferenceHeight = 1080f;
-        private const int HotbarSlots = 7;
+        private const int HotbarSlots = 11;
 
         // The console's hud command: hides the whole HUD, for taking clean screenshots.
         public static bool HudHidden { get; set; }
@@ -250,7 +250,7 @@ namespace Chopper.UI
 
         private void BuildHotbar()
         {
-            Sprite[] icons = { HotbarIcons.Axe, HotbarIcons.Torch, HotbarIcons.Bandage, HotbarIcons.Rod, HotbarIcons.Fish, HotbarIcons.Hammer, HotbarIcons.Pick };
+            Sprite[] icons = { HotbarIcons.Shield, HotbarIcons.Axe, HotbarIcons.Torch, HotbarIcons.Bandage, HotbarIcons.Rod, HotbarIcons.Fish, HotbarIcons.Hammer, HotbarIcons.Pick, HotbarIcons.Sword, HotbarIcons.Mace, HotbarIcons.Spear };
             // Made first so it sits behind the slots and shows only as a rim around the chosen one.
             _padCursor = UiKit.Box(_hud, "PadCursor", new Color(1f, 0.86f, 0.45f, 1f)).rectTransform;
             _padCursor.GetComponent<Image>().raycastTarget = false;
@@ -288,7 +288,7 @@ namespace Chopper.UI
                 fill.type = Image.Type.Filled;
                 fill.fillMethod = Image.FillMethod.Horizontal;
                 UiKit.Stretch(fill.rectTransform);
-                bar.gameObject.SetActive(i == 0 || i == 3);
+                bar.gameObject.SetActive(i == 1 || i == 4);
                 _wearBars.Add(bar);
                 _wearFills.Add(fill);
             }
@@ -667,44 +667,63 @@ namespace Chopper.UI
 
             Element charged = buffs != null ? buffs.StrongestCharged : Element.Neutral;
             Color normal = new Color(0.55f, 0.43f, 0.22f, 0.9f);
-            _slotFrames[0].color = charged == Element.Neutral ? normal : ZonePalette.Label(charged);
-            _slotCounts[0].text = upgrades != null && upgrades.AxeLevel > 0 ? $"L{upgrades.AxeLevel}" : string.Empty;
+            _slotFrames[1].color = charged == Element.Neutral ? normal : ZonePalette.Label(charged);
+            _slotCounts[1].text = upgrades != null && upgrades.AxeLevel > 0 ? $"L{upgrades.AxeLevel}" : string.Empty;
             PlayerAxe ownAxe = local.GetComponent<PlayerAxe>();
             // A broken axe leaves fists; the empty wear bar says why.
-            _slotIcons[0].sprite = ownAxe != null && !ownAxe.HasAxe ? HotbarIcons.Fists : HotbarIcons.Axe;
-            if (ownAxe != null) ShowWear(0, ownAxe.Durability, ownAxe.MaxDurability);
+            _slotIcons[1].sprite = ownAxe != null && !ownAxe.HasAxe ? HotbarIcons.Fists : HotbarIcons.Axe;
+            if (ownAxe != null) ShowWear(1, ownAxe.Durability, ownAxe.MaxDurability);
             // Holstered: the axe is faded and the frame plain; drawn: lit like the rod when it is out.
             bool holstered = ownAxe != null && ownAxe.HasAxe && !ownAxe.IsDrawn;
-            _slotIcons[0].color = holstered ? EmptySlot : Color.white;
-            if (charged == Element.Neutral && ownAxe != null && ownAxe.IsDrawn) _slotFrames[0].color = new Color(0.45f, 0.7f, 0.9f);
+            _slotIcons[1].color = holstered ? EmptySlot : Color.white;
+            if (charged == Element.Neutral && ownAxe != null && ownAxe.IsDrawn) _slotFrames[1].color = new Color(0.45f, 0.7f, 0.9f);
 
+            PlayerWeapons weapons = local.GetComponent<PlayerWeapons>();
+            PlayerWeapon held = weapons != null ? weapons.Selected : PlayerWeapon.Axe;
+            bool drawn = ownAxe != null && ownAxe.HasAxe && ownAxe.IsDrawn;
+            if (held != PlayerWeapon.Axe)
+            {
+                _slotIcons[1].color = EmptySlot;
+                if (charged == Element.Neutral) _slotFrames[1].color = normal;
+            }
+            for (int w = 1; w < WeaponRules.Count; w++)
+            {
+                int slot = HotbarSlots - WeaponRules.Count + w;
+                bool owned = weapons != null && weapons.Owns((PlayerWeapon)w);
+                bool inHand = owned && held == (PlayerWeapon)w && drawn;
+                _slotIcons[slot].color = owned && ownAxe != null && ownAxe.HasAxe ? (inHand ? Color.white : new Color(1f, 1f, 1f, 0.75f)) : EmptySlot;
+                _slotFrames[slot].color = inHand ? (charged == Element.Neutral ? new Color(0.45f, 0.7f, 0.9f) : ZonePalette.Label(charged)) : normal;
+            }
+            bool shieldInHand = upgrades != null && upgrades.ShieldInHand;
+            _slotIcons[0].color = upgrades != null && upgrades.HasShield ? (shieldInHand ? Color.white : new Color(1f, 1f, 1f, 0.75f)) : EmptySlot;
+            _slotFrames[0].color = shieldInHand ? new Color(0.45f, 0.7f, 0.9f) : normal;
             bool lit = inventory != null && inventory.TorchLit;
-            _slotFrames[1].color = lit ? new Color(1f, 0.7f, 0.25f) : normal;
-            _slotCounts[1].text = inventory == null || (!lit && inventory.Torches == 0) ? string.Empty : (lit ? $"{inventory.TorchSecondsLeft}s" : inventory.Torches.ToString());
-            _slotIcons[1].color = inventory != null && (lit || inventory.Torches > 0) ? Color.white : EmptySlot;
+            _slotFrames[2].color = lit ? new Color(1f, 0.7f, 0.25f) : normal;
+            _slotCounts[2].text = inventory == null || (!lit && inventory.Torches == 0) ? string.Empty : (lit ? $"{inventory.TorchSecondsLeft}s" : inventory.Torches.ToString());
+            _slotIcons[2].color = inventory != null && (lit || inventory.Torches > 0) ? Color.white : EmptySlot;
             // A lit torch already shows by its glowing frame and the seconds left.
-            _slotCounts[2].text = inventory == null || inventory.Salves == 0 ? string.Empty : inventory.Salves.ToString();
-            _slotIcons[2].color = inventory != null && inventory.Salves > 0 ? Color.white : EmptySlot;
+            _slotCounts[3].text = inventory == null || inventory.Salves == 0 ? string.Empty : inventory.Salves.ToString();
+            _slotIcons[3].color = inventory != null && inventory.Salves > 0 ? Color.white : EmptySlot;
             // The rod: lit while it is out, faded until the player has one. Fish: how many are carried.
             PlayerFishing fishing = local.GetComponent<PlayerFishing>();
             bool hasRod = fishing != null && fishing.Rod > 0;
-            _slotFrames[3].color = fishing != null && fishing.Busy ? new Color(0.45f, 0.7f, 0.9f) : normal;
-            _slotIcons[3].enabled = hasRod;
-            _slotIcons[3].color = fishing != null && fishing.RodBroken ? EmptySlot : Color.white;
-            if (fishing != null) ShowWear(3, fishing.RodDurability, fishing.RodMaxDurability);
+            _slotFrames[4].color = fishing != null && fishing.Busy ? new Color(0.45f, 0.7f, 0.9f) : normal;
+            _slotIcons[4].enabled = hasRod;
+            _slotIcons[4].color = fishing != null && fishing.RodBroken ? EmptySlot : Color.white;
+            if (fishing != null) ShowWear(4, fishing.RodDurability, fishing.RodMaxDurability);
             _fedIcon.gameObject.SetActive(fishing != null && fishing.FedBonus > 0);
             LayoutBadges();
             // The hammer: lit while building.
-            _slotFrames[5].color = PlayerBuilder.LocalBuilding ? new Color(0.45f, 0.7f, 0.9f) : normal;
+            _slotFrames[6].color = PlayerBuilder.LocalBuilding ? new Color(0.45f, 0.7f, 0.9f) : normal;
             PlayerMining localPick = PlayerMining.Local;
-            _slotFrames[6].color = localPick != null && localPick.PickOut ? new Color(0.45f, 0.7f, 0.9f) : normal;
-            _slotCounts[3].text = string.Empty;
+            _slotFrames[7].color = localPick != null && localPick.PickOut ? new Color(0.45f, 0.7f, 0.9f) : normal;
+            _slotCounts[4].text = string.Empty;
             int fishTotal = fishing != null ? fishing.FishTotal : 0;
-            _slotIcons[4].enabled = fishTotal > 0;
+            _slotIcons[5].enabled = fishTotal > 0;
             if (fishTotal != _shownFish)
             {
                 _shownFish = fishTotal;
-                _slotCounts[4].text = fishTotal > 0 ? fishTotal.ToString() : string.Empty;
+                _slotCounts[5].text = fishTotal > 0 ? fishTotal.ToString() : string.Empty;
             }
         }
 

@@ -115,7 +115,7 @@ namespace Chopper.UI
             mark.rectTransform.anchoredPosition = Vector2.zero;
         }
 
-        private static LineRenderer MakeArc(string name, float width)
+        private static LineRenderer MakeArc(string name, float width, int queue)
         {
             var go = new GameObject(name);
             var line = go.AddComponent<LineRenderer>();
@@ -133,6 +133,7 @@ namespace Chopper.UI
                 var mat = new Material(shader);
                 if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", Color.white);
                 if (mat.HasProperty("_Color")) mat.color = Color.white;
+                mat.renderQueue = queue;
                 line.material = mat;
             }
             go.SetActive(false);
@@ -182,16 +183,17 @@ namespace Chopper.UI
             Color arc = zone == TensionZone.Safe ? Calm : zone == TensionZone.Risky ? Strained : Breaking;
             if (_tensionArc == null)
             {
-                _tensionBack = MakeArc("TensionBack", 0.075f);
-                _lineBack = MakeArc("LineBack", 0.062f);
-                _tensionArc = MakeArc("TensionArc", 0.05f);
-                _lineArc = MakeArc("LineArc", 0.04f);
+                _tensionBack = MakeArc("TensionBack", 0.075f, 3000);
+                _lineBack = MakeArc("LineBack", 0.062f, 3000);
+                _tensionArc = MakeArc("TensionArc", 0.05f, 3001);
+                _lineArc = MakeArc("LineArc", 0.04f, 3001);
             }
             Camera camera = Camera.main;
             Vector3 right = camera != null ? camera.transform.right : Vector3.right;
             Vector3 bob = fishing.BobberWorld;
             float grow = camera != null ? Chopper.Core.FishShow.ArcScale(Vector3.Distance(camera.transform.position, bob)) : 1f;
             Vector3 center = bob + right * (0.32f * grow) + Vector3.up * (0.3f * grow);
+            Vector3 front = center - (camera != null ? camera.transform.forward : Vector3.forward) * (0.04f * grow);
             _tensionBack.widthMultiplier = 0.075f * grow;
             _lineBack.widthMultiplier = 0.062f * grow;
             _tensionArc.widthMultiplier = 0.05f * grow;
@@ -200,9 +202,9 @@ namespace Chopper.UI
             _tensionBack.enabled = _lineBack.enabled = _tensionArc.enabled = _lineArc.enabled = !cut;
             DrawArc(_tensionBack, center, right, Vector3.up, 0.2f * grow, 1f, new Color(0.03f, 0.03f, 0.04f, 1f));
             DrawArc(_lineBack, center, right, Vector3.up, 0.31f * grow, 1f, new Color(0.03f, 0.03f, 0.04f, 1f));
-            DrawArc(_tensionArc, center, right, Vector3.up, 0.2f * grow, tension, arc);
+            DrawArc(_tensionArc, front, right, Vector3.up, 0.2f * grow, tension, arc);
             float line = fight.StartDistance > 0.05f ? Mathf.Clamp01(fight.Distance / fight.StartDistance) : tension;
-            DrawArc(_lineArc, center, right, Vector3.up, 0.31f * grow, line, new Color(1f, 0.88f, 0.25f, 1f));
+            DrawArc(_lineArc, front, right, Vector3.up, 0.31f * grow, line, new Color(1f, 0.88f, 0.25f, 1f));
             _debug.text = PlayerFishing.DebugShowValues
                 ? $"tension {fight.Tension:F2}  distance {fight.Distance:F1}/{fight.StartDistance:F1}  time {fight.Elapsed:F1}s  {fishing.Phase}"
                 : string.Empty;

@@ -822,9 +822,15 @@ namespace Chopper.UI
         {
             Recipe r = RecipeBook.Get(recipe, _config);
             var text = new StringBuilder();
-            text.Append(recipe == RecipeBook.Torch
-                ? $"Lights the night around you for {Mathf.RoundToInt(_config.TorchBurnSeconds / 60f)} minutes. "
-                : $"Restores {_config.SalveHeal} health. ");
+            switch (recipe)
+            {
+                case RecipeBook.Torch: text.Append($"Lights the night around you for {Mathf.RoundToInt(_config.TorchBurnSeconds / 60f)} minutes. "); break;
+                case RecipeBook.Boat: text.Append("Carried in the bag, put in on the ocean. "); break;
+                case RecipeBook.Sword: text.Append("Sweeps through several enemies. "); break;
+                case RecipeBook.Mace: text.Append("Heavy smash that staggers and splashes. "); break;
+                case RecipeBook.Spear: text.Append("Long-reach thrust. "); break;
+                default: text.Append($"Restores {_config.SalveHeal} health. "); break;
+            }
             for (int i = 0; i < r.Inputs.Length; i++)
             {
                 Ingredient input = r.Inputs[i];

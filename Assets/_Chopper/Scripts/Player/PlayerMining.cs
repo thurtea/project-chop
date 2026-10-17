@@ -79,7 +79,7 @@ namespace Chopper.Player
             if (_pickDrawn.Value && motor != null && motor.IsSwimming) { RequestTogglePick(); return; }
             if (UiState.GameplayBlocked) return;
             if (Keybinds.WasPressed(KeyAction.Pick)) RequestTogglePick();
-            else if (_pickDrawn.Value && (Keybinds.WasPressed(KeyAction.Axe) || Keybinds.WasPressed(KeyAction.Unequip) || Keybinds.WasPressed(KeyAction.Rod) || Keybinds.WasPressed(KeyAction.Build) || Keybinds.WasPressed(KeyAction.Torch))) RequestTogglePick();
+            else if (_pickDrawn.Value && (PlayerAxe.WeaponKeyPressed() || Keybinds.WasPressed(KeyAction.Unequip) || Keybinds.WasPressed(KeyAction.Rod) || Keybinds.WasPressed(KeyAction.Build) || Keybinds.WasPressed(KeyAction.Torch))) RequestTogglePick();
         }
 
         public bool Engaged => _engagedVein >= 0;

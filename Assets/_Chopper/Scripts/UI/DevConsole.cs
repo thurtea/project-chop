@@ -58,7 +58,7 @@ namespace Chopper.UI
             Add("axe", "axe", "A whole new axe in the hand.", true, _ => Send(DevCommand.GiveAxe, 0));
             Add("boat", "boat", "A little boat in the bag (B on the ocean deploys it, tap B by it to board or leave, hold B to pick it up).", true, _ => { if (Chopper.Player.PlayerBoat.Local != null) { Chopper.Player.PlayerBoat.Local.RequestDevBoat(); Print("Boat given"); } });
             Add("sharkrod", "sharkrod", "The shark rod (normally crafted at the workbench after landing 10 fish). Rod key in the boat at sea casts for sharks.", true, _ => { if (Chopper.Player.PlayerBoat.Local != null) { Chopper.Player.PlayerBoat.Local.RequestSharkRod(); Print("Shark rod given"); } });
-            Add("weapons", "weapons", "A sword, a mace and a spear in the bag (8 picks the next weapon while the axe is out).", true, _ => { if (Chopper.Player.PlayerWeapons.Local != null) { Chopper.Player.PlayerWeapons.Local.RequestDevAll(); Print("Weapons given"); } });
+            Add("weapons", "weapons", "A sword, a mace and a spear in the bag (9, 0 and - hold the sword, mace and spear).", true, _ => { if (Chopper.Player.PlayerWeapons.Local != null) { Chopper.Player.PlayerWeapons.Local.RequestDevAll(); Print("Weapons given"); } });
             Add("day", "day", "Skip to day.", true, _ => Send(DevCommand.ToDay, 0));
             Add("night", "night", "Skip to night.", true, _ => Send(DevCommand.ToNight, 0));
             Add("next", "next", "Skip to the next part of the day.", true, _ => Send(DevCommand.NextPhase, 0));

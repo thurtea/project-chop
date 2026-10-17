@@ -4384,7 +4384,7 @@ namespace Chopper.Networking
                 pickUser.RequestTogglePick();
                 yield return new WaitForSeconds(0.8f);
                 bool stowed = !pickUser.PickDrawn && !pickUser.PickOut;
-                Debug.Log($"[Gear] pick owner {pickUser.IsOwner} server {pickUser.IsServerInitialized} swim {wood.GetComponent<PlayerMotor>().IsSwimming} blocked {UiState.GameplayBlocked}"); Debug.Log($"[Gear] pick slot {PadHotbar.Slots} slots, key {Keybinds.NameOf(KeyAction.Pick)}, before {before}, drawn {drawn}, axe stowed {axeAway}, put away {stowed} RESULT {(PadHotbar.Slots == 7 && !before && drawn && axeAway && stowed ? "PASS" : "FAIL")}");
+                Debug.Log($"[Gear] pick owner {pickUser.IsOwner} server {pickUser.IsServerInitialized} swim {wood.GetComponent<PlayerMotor>().IsSwimming} blocked {UiState.GameplayBlocked}"); Debug.Log($"[Gear] pick slot {PadHotbar.Slots} slots, key {Keybinds.NameOf(KeyAction.Pick)}, before {before}, drawn {drawn}, axe stowed {axeAway}, put away {stowed} RESULT {(PadHotbar.Slots == 11 && !before && drawn && axeAway && stowed ? "PASS" : "FAIL")}");
                 yield return Shot(folder, "1c_pick_away");
             }
             DayNightCycle.Instance.ServerSkipPhase();
@@ -6428,6 +6428,29 @@ namespace Chopper.Networking
             return false;
         }
 
+        private static IEnumerator ChopTrace(PlayerWood wood, string label, float seconds)
+        {
+            Animator anim = wood.GetComponentInChildren<Animator>();
+            if (anim == null) yield break;
+            int layer = anim.GetLayerIndex("Chop");
+            string[] names = { "Empty", "Punch", "Punch2", "Chop", "Mine", "HitReact", "Parry", "Guard", "Heal", "Swing", "Swing2", "Swing3", "Sword1", "Sword2", "Sword3", "Mace1", "Mace2", "Spear1", "Spear2", "Spear3" };
+            float start = Time.time;
+            string last = null;
+            var lines = new System.Collections.Generic.List<string>();
+            while (Time.time - start < seconds)
+            {
+                AnimatorStateInfo now = anim.GetCurrentAnimatorStateInfo(layer);
+                AnimatorStateInfo next = anim.GetNextAnimatorStateInfo(layer);
+                string a = "?", b = "-";
+                foreach (string n in names) { if (now.IsName(n)) a = n; if (anim.IsInTransition(layer) && next.IsName(n)) b = n; }
+                string entry = $"{a}>{b}";
+                if (entry != last) lines.Add($"{Time.time - start:F3}s {entry} n{now.normalizedTime:F2} w{anim.GetLayerWeight(layer):F1} sp{anim.GetFloat("SwingSpeed"):F2} as{anim.speed:F2}");
+                last = entry;
+                yield return null;
+            }
+            Debug.Log($"[ChopTrace] {label}: {string.Join(" | ", lines)}");
+        }
+
         private static IEnumerator WeaponsTour(string folder, PlayerWood wood, GameUi ui)
         {
             Application.runInBackground = true;
@@ -6443,6 +6466,70 @@ namespace Chopper.Networking
             if (weapons == null) { Debug.Log("[Weapons] RESULT FAIL no PlayerWeapons on the player"); yield break; }
             weapons.ServerGrantAll();
             if (!axe.IsDrawn) { axe.RequestToggleDrawn(); yield return new WaitForSeconds(1.1f); }
+            PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Iron, 20);
+            if (Workbench.All.Count > 0)
+            {
+                Transform bench = Workbench.All[0].transform;
+                foreach (Workbench wb in Workbench.All)
+                    if (Mathf.Abs(wb.transform.position.y - WorldGround.HeightAt(wb.transform.position)) < Mathf.Abs(bench.position.y - WorldGround.HeightAt(bench.position))) bench = wb.transform;
+                for (int k = 0; k < 8 && !Workbench.AnyInReach(wood.transform.position); k++)
+                {
+                    Vector3 stand = bench.position + Quaternion.Euler(0f, k * 45f, 0f) * bench.forward * 1.2f;
+                    yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), bench.eulerAngles.y + 180f + k * 45f);
+                    yield return new WaitForSeconds(0.4f);
+                }
+                Debug.Log($"[Weapons] bench in reach {Workbench.AnyInReach(wood.transform.position)}");
+            }
+            for (int page = 0; page < 2; page++)
+            {
+                ui.DebugShow(8);
+                yield return new WaitForSeconds(0.4f);
+                ui.DebugInventoryPage(page);
+                yield return new WaitForSeconds(0.5f);
+                yield return Shot(folder, "weapon_craft_page" + page);
+            }
+            ui.DebugShow(0);
+            yield return new WaitForSeconds(0.3f);
+            PlayerCamera cam0 = wood.GetComponent<PlayerCamera>();
+            axe.RequestWield(PlayerWeapon.Sword);
+            yield return new WaitForSeconds(0.8f);
+            bool swordInHand = weapons.Selected == PlayerWeapon.Sword && axe.IsDrawn && axe.Weapon == PlayerWeapon.Sword;
+            yield return Shot(folder, "weapon_hotbar_sword");
+            axe.RequestWield(PlayerWeapon.Axe);
+            yield return new WaitForSeconds(0.8f);
+            bool axeSwapped = weapons.Selected == PlayerWeapon.Axe && axe.IsDrawn;
+            axe.RequestWield(PlayerWeapon.Axe);
+            yield return new WaitForSeconds(0.8f);
+            bool axeAway = !axe.IsDrawn;
+            axe.RequestWield(PlayerWeapon.Spear);
+            yield return new WaitForSeconds(0.8f);
+            bool spearDrawn = weapons.Selected == PlayerWeapon.Spear && axe.IsDrawn;
+            yield return Shot(folder, "weapon_hotbar_spear");
+            PlayerUpgrades shieldUp = wood.GetComponent<PlayerUpgrades>();
+            PlayerOutfit outfit = wood.GetComponent<PlayerOutfit>();
+            shieldUp.ServerSetShield(true);
+            yield return new WaitForSeconds(0.5f);
+            bool shieldBackFirst = !shieldUp.ShieldInHand && outfit != null && !outfit.ShieldInHandShown;
+            axe.RequestShieldToggle();
+            yield return new WaitForSeconds(0.8f);
+            bool shieldInHand = shieldUp.ShieldInHand && outfit != null && outfit.ShieldInHandShown && axe.IsDrawn;
+            Vector3 meS = wood.transform.position;
+            Vector3 lookS = meS + Vector3.up * 1.1f;
+            foreach (var view in new[] { ("front", wood.transform.forward * 3.2f), ("left", -wood.transform.right * 3.2f) })
+            {
+                Vector3 eyeS = lookS + view.Item2 + Vector3.up * 0.3f;
+                cam0.DebugHold(eyeS, Quaternion.LookRotation(lookS - eyeS, Vector3.up));
+                yield return new WaitForSeconds(0.3f);
+                yield return Shot(folder, "weapon_shield_hand_" + view.Item1);
+            }
+            cam0.DebugRelease();
+            yield return Shot(folder, "weapon_hotbar_shield");
+            axe.RequestShieldToggle();
+            yield return new WaitForSeconds(0.8f);
+            bool shieldBack = !shieldUp.ShieldInHand && outfit != null && !outfit.ShieldInHandShown;
+            string shieldReport = $"starts on back {shieldBackFirst}, key puts it in the left hand {shieldInHand} beside the spear, key again back {shieldBack}";
+            bool hotbarOk = shieldBackFirst && shieldInHand && shieldBack && swordInHand && axeSwapped && axeAway && spearDrawn && PadHotbar.Slots == 11 && PadHotbar.ActionAt(0) == KeyAction.Shield && PadHotbar.ActionAt(1) == KeyAction.Axe && PadHotbar.ActionAt(8) == KeyAction.Weapon && PadHotbar.ActionAt(10) == KeyAction.Spear;
+            Debug.Log($"[Weapons] hotbar: slots {PadHotbar.Slots}, sword slot key {Keybinds.NameOf(KeyAction.Weapon)} mace {Keybinds.NameOf(KeyAction.Mace)} spear {Keybinds.NameOf(KeyAction.Spear)}; shield key {Keybinds.NameOf(KeyAction.Shield)} axe {Keybinds.NameOf(KeyAction.Axe)}; sword key puts the sword in hand {swordInHand}, axe key swaps back to the axe {axeSwapped}, axe key again puts it away {axeAway}, spear key from empty hands draws the spear {spearDrawn}; shield {shieldReport}; RESULT {(hotbarOk ? "PASS" : "FAIL")}");
             PlayerCamera cam = wood.GetComponent<PlayerCamera>();
             ToolPose pose = wood.GetComponent<ToolPose>();
             PlayerWeapon[] order = { PlayerWeapon.Axe, PlayerWeapon.Sword, PlayerWeapon.Mace, PlayerWeapon.Spear };
@@ -6479,6 +6566,7 @@ namespace Chopper.Networking
                 int swingsBefore = axe.ServerSwings;
                 cam.SnapYaw(0f);
                 bool swung = axe.TrySwing();
+                wood.StartCoroutine(ChopTrace(wood, w.ToString(), 1.2f));
                 Time.timeScale = 0.15f;
                 Vector3 side = Vector3.right;
                 Vector3 look = me + Vector3.forward * 0.8f + Vector3.up * 1.1f;
@@ -6488,12 +6576,12 @@ namespace Chopper.Networking
                 string name = WeaponRules.Name(w).ToLowerInvariant();
                 float press = Time.time;
                 while (pose != null && pose.Phase < 0.36f && Time.time - press < 2f) yield return null;
-                yield return Shot(folder, $"weapon_{i}_{name}_windup");
+                yield return HeldShot(folder, $"weapon_{i}_{name}_windup");
                 while (pose != null && pose.Phase < ToolMotion.Contact(WeaponRules.Tool(w)) + 0.01f && Time.time - press < 2f) yield return null;
                 stateOk[i] = ChopLayerIn(wood, WeaponRules.MoveStates[(int)w], out clipNames[i]);
-                yield return Shot(folder, $"weapon_{i}_{name}_contact");
+                yield return HeldShot(folder, $"weapon_{i}_{name}_contact");
                 while (pose != null && pose.Phase < 0.8f && Time.time - press < 3f) yield return null;
-                yield return Shot(folder, $"weapon_{i}_{name}_recovery");
+                yield return HeldShot(folder, $"weapon_{i}_{name}_recovery");
                 Time.timeScale = 1f;
                 cam.DebugRelease();
                 float wait = Time.time;
@@ -6534,6 +6622,7 @@ namespace Chopper.Networking
                 cam.SnapYaw(chopYaw);
                 Vector3 me2 = wood.transform.position;
                 bool chopped = axe.TrySwing();
+                wood.StartCoroutine(ChopTrace(wood, "tree chop", 1.2f));
                 Vector3 trunk = axe.LastTrunk;
                 Time.timeScale = 0.15f;
                 Vector3 fwd = Quaternion.Euler(0f, chopYaw, 0f) * Vector3.forward;
@@ -6542,16 +6631,16 @@ namespace Chopper.Networking
                 cam.DebugHold(eye2, Quaternion.LookRotation(look2 - eye2, Vector3.up));
                 float press2 = Time.time;
                 while (pose != null && pose.Phase < 0.36f && Time.time - press2 < 2f) yield return null;
-                yield return Shot(folder, "weapon_tree_chop_windup");
+                yield return HeldShot(folder, "weapon_tree_chop_windup");
                 while (pose != null && pose.Phase < ToolMotion.Contact(SwingTool.Axe) + 0.01f && Time.time - press2 < 2f) yield return null;
                 chopState = ChopLayerIn(wood, new[] { WeaponRules.TreeChopState }, out chopClip);
                 Vector3 toTrunk = trunk - wood.transform.position;
                 toTrunk.y = 0f;
                 chopReach = toTrunk.magnitude;
                 chopFaced = toTrunk.sqrMagnitude > 0.01f && Vector3.Angle(wood.transform.forward, toTrunk) < 12f;
-                yield return Shot(folder, "weapon_tree_chop_contact");
+                yield return HeldShot(folder, "weapon_tree_chop_contact");
                 while (pose != null && pose.Phase < 0.8f && Time.time - press2 < 3f) yield return null;
-                yield return Shot(folder, "weapon_tree_chop_recovery");
+                yield return HeldShot(folder, "weapon_tree_chop_recovery");
                 Time.timeScale = 1f;
                 cam.DebugRelease();
                 yield return new WaitForSeconds(1.5f);
@@ -6566,8 +6655,8 @@ namespace Chopper.Networking
             var uniqueClips = new System.Collections.Generic.HashSet<string>(clipNames);
             bool clipsUnique = uniqueClips.Count == 4 && !uniqueClips.Contains("none") && !uniqueClips.Contains(chopClip);
             Debug.Log($"[Weapons] clips at contact: axe {clipNames[0]} ({stateOk[0]}), sword {clipNames[1]} ({stateOk[1]}), mace {clipNames[2]} ({stateOk[2]}), spear {clipNames[3]} ({stateOk[3]}), tree chop {chopClip}");
-            bool pass = targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3] && clipsUnique && stateOk[0] && stateOk[1] && stateOk[2] && stateOk[3] && chopState && chopFaced && awayCombat;
-            Debug.Log($"[Weapons] RESULT {(pass ? "PASS" : "FAIL")}: targets axe {targets[0]} sword {targets[1]} mace {targets[2]} spear {targets[3]}; mace units {units[2]:F2} vs axe {units[0]:F2}; buff spent {buffSpent}; models shown sword {shown[1]} mace {shown[2]} spear {shown[3]}; unique clips {clipsUnique}, states {stateOk[0]}/{stateOk[1]}/{stateOk[2]}/{stateOk[3]}, tree chop state {chopState} faced {chopFaced}, away swing is combat {awayCombat}");
+            bool pass = hotbarOk && targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3] && clipsUnique && stateOk[0] && stateOk[1] && stateOk[2] && stateOk[3] && chopState && chopFaced && awayCombat;
+            Debug.Log($"[Weapons] RESULT {(pass ? "PASS" : "FAIL")}: hotbar {hotbarOk}; targets axe {targets[0]} sword {targets[1]} mace {targets[2]} spear {targets[3]}; mace units {units[2]:F2} vs axe {units[0]:F2}; buff spent {buffSpent}; models shown sword {shown[1]} mace {shown[2]} spear {shown[3]}; unique clips {clipsUnique}, states {stateOk[0]}/{stateOk[1]}/{stateOk[2]}/{stateOk[3]}, tree chop state {chopState} faced {chopFaced}, away swing is combat {awayCombat}");
         }
 
         private static System.Collections.Generic.Dictionary<Renderer, Vector3> TreeLikeSnapshot(out int treants)
@@ -7312,6 +7401,17 @@ namespace Chopper.Networking
 
         private static string BoatCamBlockers(Transform me) { Camera view = Camera.main; Vector3 pivot = me.position + Vector3.up * 1.6f; Vector3 back = -view.transform.forward; string found = string.Empty; foreach (RaycastHit h in Physics.SphereCastAll(pivot, 0.3f, back, 20f, ~0, QueryTriggerInteraction.Ignore)) { if (h.collider.transform.IsChildOf(me)) continue; found += h.collider.name + "@" + h.distance.ToString("F1") + " "; } return found; }
 
+
+        private static IEnumerator HeldShot(string folder, string name)
+        {
+            float keep = Time.timeScale;
+            Time.timeScale = 0f;
+            yield return new WaitForEndOfFrame();
+            ScreenCapture.CaptureScreenshot(Path.Combine(folder, name + ".png"));
+            yield return new WaitForSecondsRealtime(0.6f);
+            Time.timeScale = keep;
+            Debug.Log("[Shot] wrote " + name);
+        }
 
         private static IEnumerator Shot(string folder, string name)
         {

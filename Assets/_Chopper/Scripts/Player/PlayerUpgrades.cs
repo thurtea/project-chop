@@ -43,6 +43,7 @@ namespace Chopper.Player
         // picks it up on the shore; a fallen player leaves it where they fell.
         private readonly SyncVar<bool> _dressed = new SyncVar<bool>();
         private readonly SyncVar<bool> _hasShield = new SyncVar<bool>();
+        private readonly SyncVar<bool> _shieldDrawn = new SyncVar<bool>();
 
         // Raised on every client when this player puts the armour on (or a save loads it).
         public event System.Action OutfitChanged;
@@ -72,6 +73,7 @@ namespace Chopper.Player
         public bool Armoured => _armoured.Value;
         public bool Dressed => _dressed.Value;
         public bool HasShield => _hasShield.Value;
+        public bool ShieldInHand => _hasShield.Value && _shieldDrawn.Value;
         public bool HasStone(Element element) => ElementBuffRules.HasStone(_stones.Value, element);
         public int WardLevel(Element element) => EssenceRules.Get(_wards.Value, element);
         // Share of damage from enemies of this element that the player's ward takes away.
@@ -101,6 +103,7 @@ namespace Chopper.Player
             _armoured.OnChange += OnArmouredChanged;
             _dressed.OnChange += OnDressedChanged;
             _hasShield.OnChange += OnShieldChanged;
+            _shieldDrawn.OnChange += OnShieldChanged;
             OutfitChanged?.Invoke();
         }
 
@@ -116,6 +119,7 @@ namespace Chopper.Player
             _armoured.OnChange -= OnArmouredChanged;
             _dressed.OnChange -= OnDressedChanged;
             _hasShield.OnChange -= OnShieldChanged;
+            _shieldDrawn.OnChange -= OnShieldChanged;
         }
 
         private void OnDressedChanged(bool previous, bool next, bool asServer)
@@ -127,7 +131,20 @@ namespace Chopper.Player
         // Server only. Puts the outfit on (picked up) or takes it off (dropped where the player fell).
         public void ServerSetDressed(bool dressed) => _dressed.Value = dressed;
 
-        public void ServerSetShield(bool shield) => _hasShield.Value = shield;
+        public void ServerSetShield(bool shield)
+        {
+            _hasShield.Value = shield;
+            if (!shield) _shieldDrawn.Value = false;
+        }
+
+        public void RequestShieldInHand(bool inHand)
+        {
+            if (!IsOwner || !HasShield || inHand == ShieldInHand) return;
+            ShieldDrawnServerRpc(inHand);
+        }
+
+        [ServerRpc]
+        private void ShieldDrawnServerRpc(bool inHand) => _shieldDrawn.Value = inHand && _hasShield.Value;
 
         private void OnShieldChanged(bool previous, bool next, bool asServer)
         {

@@ -8,7 +8,7 @@ namespace Chopper.UI
     public static class PadHotbar
     {
         // The hotbar slots in order, left to right, as GameUi draws them.
-        private static readonly KeyAction[] Actions = { KeyAction.Axe, KeyAction.Torch, KeyAction.Potion, KeyAction.Rod, KeyAction.Food, KeyAction.Build, KeyAction.Pick };
+        private static readonly KeyAction[] Actions = { KeyAction.Shield, KeyAction.Axe, KeyAction.Torch, KeyAction.Potion, KeyAction.Rod, KeyAction.Food, KeyAction.Build, KeyAction.Pick, KeyAction.Weapon, KeyAction.Mace, KeyAction.Spear };
 
         public static int Slots => Actions.Length;
 

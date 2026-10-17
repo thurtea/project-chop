@@ -26,6 +26,11 @@ namespace Chopper.Player
         private readonly List<Renderer> _outfit = new List<Renderer>();
         private readonly List<Renderer> _baseLayerRenderers = new List<Renderer>();
         private MaterialPropertyBlock _block;
+        private Transform _shieldMount;
+        private Transform _shieldBack;
+        private Transform _shieldHand;
+        private Vector3 _shieldBackPosition;
+        private Quaternion _shieldBackRotation;
         private PlayerUpgrades _upgrades;
 
         public bool ShowsArmour { get; private set; }
@@ -41,6 +46,37 @@ namespace Chopper.Player
                 else if (System.Array.IndexOf(OutfitParts, renderer.gameObject.name) >= 0) _outfit.Add(renderer);
                 else if (System.Array.IndexOf(BaseLayerParts, renderer.gameObject.name) >= 0) _baseLayerRenderers.Add(renderer);
             }
+            _shieldMount = FindDeep(transform, Shield);
+            _shieldHand = FindDeep(transform, "Shield_L");
+            if (_shieldMount != null)
+            {
+                _shieldBack = _shieldMount.parent;
+                _shieldBackPosition = _shieldMount.localPosition;
+                _shieldBackRotation = _shieldMount.localRotation;
+            }
+        }
+
+        public bool ShieldInHandShown => _shieldMount != null && _shieldHand != null && _shieldMount.parent == _shieldHand;
+
+        private void MountShield(bool inHand)
+        {
+            if (_shieldMount == null || _shieldHand == null || _shieldBack == null) return;
+            Transform parent = inHand ? _shieldHand : _shieldBack;
+            if (_shieldMount.parent == parent) return;
+            _shieldMount.SetParent(parent, false);
+            _shieldMount.localPosition = inHand ? Vector3.zero : _shieldBackPosition;
+            _shieldMount.localRotation = inHand ? Quaternion.identity : _shieldBackRotation;
+        }
+
+        private static Transform FindDeep(Transform root, string name)
+        {
+            if (root.name == name) return root;
+            foreach (Transform child in root)
+            {
+                Transform found = FindDeep(child, name);
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void OnEnable()
@@ -62,6 +98,7 @@ namespace Chopper.Player
                 if (renderer != null) renderer.enabled = ShowsArmour;
             foreach (Renderer renderer in _shield)
                 if (renderer != null) renderer.enabled = showShield;
+            MountShield(_upgrades != null && _upgrades.ShieldInHand);
             foreach (Renderer renderer in _hair) if (renderer != null) renderer.enabled = !ShowsArmour;
             bool dressed = _upgrades == null || _upgrades.Dressed;
             foreach (Renderer renderer in _outfit)

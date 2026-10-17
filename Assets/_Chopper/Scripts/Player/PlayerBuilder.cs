@@ -104,7 +104,7 @@ namespace Chopper.Player
             if (SwimHolster.Step(swimNow, _active, ref _swimHolstered) && manager != null) SetActive(!_active);
             if (!UiState.GameplayBlocked && Keybinds.WasPressed(KeyAction.Build) && manager != null && SwimHolster.MayDraw(swimNow)) SetActive(!_active);
             // Anything else in the hands puts the hammer away.
-            if (_active && (down || (_fishing != null && _fishing.Busy) || Keybinds.WasPressed(KeyAction.Axe) || Keybinds.WasPressed(KeyAction.Unequip) || manager == null))
+            if (_active && (down || (_fishing != null && _fishing.Busy) || PlayerAxe.WeaponKeyPressed() || Keybinds.WasPressed(KeyAction.Unequip) || manager == null))
                 SetActive(false);
             if (!_active)
             {

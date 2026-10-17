@@ -41,8 +41,6 @@ namespace Chopper.Player
         private void Update()
         {
             ShowModel();
-            if (!IsOwner || UiState.GameplayBlocked) return;
-            if (Keybinds.WasPressed(KeyAction.Weapon)) RequestNext();
         }
 
         public void RequestNext()

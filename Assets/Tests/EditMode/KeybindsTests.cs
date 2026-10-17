@@ -47,15 +47,15 @@ namespace Chopper.Tests.EditMode
         }
 
         [Test]
-        public void TheSevenHotbarItemsUseThePadHotbarAndTheNumberKeys()
+        public void TheElevenHotbarItemsUseThePadHotbarAndTheNumberKeys()
         {
-            KeyAction[] order = { KeyAction.Axe, KeyAction.Torch, KeyAction.Potion, KeyAction.Rod, KeyAction.Food, KeyAction.Build, KeyAction.Pick };
+            KeyAction[] order = { KeyAction.Shield, KeyAction.Axe, KeyAction.Torch, KeyAction.Potion, KeyAction.Rod, KeyAction.Food, KeyAction.Build, KeyAction.Pick, KeyAction.Weapon, KeyAction.Mace, KeyAction.Spear };
             Assert.AreEqual(order.Length, PadHotbar.Slots);
             for (int slot = 0; slot < order.Length; slot++)
             {
                 Assert.AreEqual(order[slot], PadHotbar.ActionAt(slot));
                 Assert.AreEqual(Keybinds.HotbarPath, Keybinds.DefaultPadPath(order[slot]));
-                Assert.AreEqual("<Keyboard>/" + (slot + 1), Keybinds.DefaultPath(order[slot]));
+                Assert.AreEqual("<Keyboard>/" + (slot < 10 ? ((slot + 1) % 10).ToString() : "minus"), Keybinds.DefaultPath(order[slot]));
             }
             Assert.AreEqual("Hotbar", Keybinds.PadNameOf(KeyAction.Build));
         }
