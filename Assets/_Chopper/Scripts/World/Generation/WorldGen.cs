@@ -535,12 +535,23 @@ namespace Chopper.World.Generation
         public const float FishingReach = 6f;
         private const float FishingDepth = 0.4f;
 
+        public float SurfaceAt(float x, float z)
+        {
+            float cx = Mathf.Floor(x + HalfSize) + 0.5f - HalfSize;
+            float cz = Mathf.Floor(z + HalfSize) + 0.5f - HalfSize;
+            float centre = HeightAt(cx, cz);
+            float terraced = Chopper.World.Voxel.VoxelColumns.TerraceAt(this, cx, cz, centre);
+            if (terraced == centre) return HeightAt(x, z);
+            float step = Chopper.World.Voxel.VoxelColumns.Step;
+            return Mathf.Round(terraced / step) * step;
+        }
+
         public int FishableWaterAt(Vector2 p)
         {
             for (int i = 0; i < WaterBodies.Length; i++)
             {
                 float shore = ShoreEdge(WaterBodies[i]) * 1.02f;
-                if ((p - WaterBodies[i].Center).sqrMagnitude < shore * shore && HeightAt(p.x, p.y) < WaterHeight - FishingDepth) return i;
+                if ((p - WaterBodies[i].Center).sqrMagnitude < shore * shore && SurfaceAt(p.x, p.y) < WaterHeight - FishingDepth) return i;
             }
             return -1;
         }
@@ -789,7 +800,7 @@ namespace Chopper.World.Generation
                     p = site.PadCenter + dir * clear;
                 }
                 if (p.x == tree.Position.x && p.y == tree.Position.z) continue;
-                tree.Position = new Vector3(p.x, HeightAt(p.x, p.y), p.y);
+                tree.Position = new Vector3(p.x, SurfaceAt(p.x, p.y), p.y);
                 trees[i] = tree;
             }
         }
@@ -1198,7 +1209,7 @@ namespace Chopper.World.Generation
                 if (NearMountain(new Vector2(x, z), 8f)) continue;
                 float slope = Mathf.Atan(SlopeAt(x, z, 2f)) * Mathf.Rad2Deg;
                 if (slope > SpawnMaxSlopeDegrees) continue;
-                float height = HeightAt(x, z);
+                float height = SurfaceAt(x, z);
                 if (height < WaterHeight + 0.4f) continue;
                 // Facing the hut, so the camera looks toward home at first.
                 float yaw = Mathf.Atan2(-x, -z) * Mathf.Rad2Deg;
@@ -1301,7 +1312,7 @@ namespace Chopper.World.Generation
                 counts[chosen]++;
                 trees.Add(new TreeEntry
                 {
-                    Position = new Vector3(p.x, HeightAt(p.x, p.y), p.y),
+                    Position = new Vector3(p.x, SurfaceAt(p.x, p.y), p.y),
                     Yaw = (float)random.NextDouble() * 360f,
                     Scale = targetHeight / Mathf.Max(0.1f, modelHeights[modelIndex]),
                     Size = size,

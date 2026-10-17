@@ -25,6 +25,16 @@ namespace Chopper.Player
                 PlayerMining mining = player.GetComponent<PlayerMining>();
                 return mining != null ? mining.FindCount(ItemRules.FindOf(kind)) : 0;
             }
+            if (ItemRules.IsBoat(kind))
+            {
+                PlayerBoat boat = player.GetComponent<PlayerBoat>();
+                return boat != null ? boat.Boats : 0;
+            }
+            if (ItemRules.IsSharkRod(kind))
+            {
+                PlayerBoat rodBoat = player.GetComponent<PlayerBoat>();
+                return rodBoat != null && rodBoat.HasSharkRod ? 1 : 0;
+            }
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();
             if (inventory == null) return 0;
             switch ((ItemKind)kind)
@@ -48,6 +58,7 @@ namespace Chopper.Player
             if (kind == (int)ItemKind.Wood) return config.WoodCarryCap;
             if (ItemRules.IsFish(kind)) return FishingRules.MaxStack;
             if (ItemRules.IsFind(kind)) return MiningFindCap;
+            if (ItemRules.IsBoat(kind) || ItemRules.IsSharkRod(kind)) return 1;
             switch ((ItemKind)kind)
             {
                 case ItemKind.Herb: return config.HerbCarryCap;
@@ -78,6 +89,16 @@ namespace Chopper.Player
             {
                 PlayerMining mining = player.GetComponent<PlayerMining>();
                 return mining != null ? mining.ServerChangeFind(ItemRules.FindOf(kind), delta) : 0;
+            }
+            if (ItemRules.IsBoat(kind))
+            {
+                PlayerBoat boat = player.GetComponent<PlayerBoat>();
+                return boat != null ? boat.ServerChangeBoats(delta) : 0;
+            }
+            if (ItemRules.IsSharkRod(kind))
+            {
+                PlayerBoat rodBoat = player.GetComponent<PlayerBoat>();
+                return rodBoat != null ? rodBoat.ServerChangeSharkRod(delta) : 0;
             }
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();
             return inventory != null ? inventory.ServerChange((ItemKind)kind, delta) : 0;

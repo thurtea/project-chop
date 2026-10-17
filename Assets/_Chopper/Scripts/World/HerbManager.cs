@@ -69,6 +69,20 @@ namespace Chopper.World
         {
             if (Instance == this) Instance = null;
             Chopper.World.Generation.WorldSession.OnReady -= OnWorldReady;
+            Chopper.World.ScatterMask.Changed -= OnMaskChanged;
+        }
+
+        private void OnMaskChanged(Bounds zone)
+        {
+            if (_root == null) return;
+            zone.Expand(new Vector3(Chopper.World.ScatterMask.Margin * 2f, Chopper.World.ScatterMask.BelowReach * 2f, Chopper.World.ScatterMask.Margin * 2f));
+            foreach (Transform child in _root)
+            {
+                Vector3 p = child.position;
+                if (p.x < zone.min.x || p.x > zone.max.x || p.z < zone.min.z || p.z > zone.max.z) continue;
+                bool clear = !Chopper.World.ScatterMask.Blocked(p);
+                if (child.gameObject.activeSelf != clear) child.gameObject.SetActive(clear);
+            }
         }
 
         private void BuildPositions()
@@ -96,6 +110,7 @@ namespace Chopper.World
                 var p = new Vector3(spot.x, 0f, spot.y);
                 p.y = Chopper.World.WorldGround.HeightAt(p);
                 if (WaterSystem.DepthAt(p, out _) > 0.05f) continue;
+                if (!Chopper.World.ScatterMask.Allows(p, true)) continue;
                 list.Add(p);
             }
         }
@@ -103,6 +118,8 @@ namespace Chopper.World
         private void BuildViews()
         {
             _root = new GameObject("Plants").transform;
+            Chopper.World.ScatterMask.Changed -= OnMaskChanged;
+            Chopper.World.ScatterMask.Changed += OnMaskChanged;
             _root.SetParent(transform, false);
             _views = new GameObject[_positions.Length];
 

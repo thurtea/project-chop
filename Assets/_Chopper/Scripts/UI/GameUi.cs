@@ -23,7 +23,7 @@ namespace Chopper.UI
     {
         private const float ReferenceWidth = 1920f;
         private const float ReferenceHeight = 1080f;
-        private const int HotbarSlots = 6;
+        private const int HotbarSlots = 7;
 
         // The console's hud command: hides the whole HUD, for taking clean screenshots.
         public static bool HudHidden { get; set; }
@@ -250,7 +250,7 @@ namespace Chopper.UI
 
         private void BuildHotbar()
         {
-            Sprite[] icons = { HotbarIcons.Axe, HotbarIcons.Torch, HotbarIcons.Bandage, HotbarIcons.Rod, HotbarIcons.Fish, HotbarIcons.Hammer };
+            Sprite[] icons = { HotbarIcons.Axe, HotbarIcons.Torch, HotbarIcons.Bandage, HotbarIcons.Rod, HotbarIcons.Fish, HotbarIcons.Hammer, HotbarIcons.Pick };
             // Made first so it sits behind the slots and shows only as a rim around the chosen one.
             _padCursor = UiKit.Box(_hud, "PadCursor", new Color(1f, 0.86f, 0.45f, 1f)).rectTransform;
             _padCursor.GetComponent<Image>().raycastTarget = false;
@@ -696,6 +696,8 @@ namespace Chopper.UI
             LayoutBadges();
             // The hammer: lit while building.
             _slotFrames[5].color = PlayerBuilder.LocalBuilding ? new Color(0.45f, 0.7f, 0.9f) : normal;
+            PlayerMining localPick = PlayerMining.Local;
+            _slotFrames[6].color = localPick != null && localPick.PickOut ? new Color(0.45f, 0.7f, 0.9f) : normal;
             _slotCounts[3].text = string.Empty;
             int fishTotal = fishing != null ? fishing.FishTotal : 0;
             _slotIcons[4].enabled = fishTotal > 0;

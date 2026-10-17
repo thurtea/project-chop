@@ -26,7 +26,11 @@ namespace Chopper.Player
         GiveIron = 14,
         GiveShards = 15,
         GiveTorches = 16,
-        GiveBandages = 17
+        GiveBandages = 17,
+        SpawnElement = 18,
+        KillAll = 19,
+        Wave = 20,
+        SetTime = 21
     }
 
     // Developer and creative tools for the host: skip the clock, god mode, free wood, spawn enemies and so on.
@@ -154,6 +158,26 @@ namespace Chopper.Player
                 case DevCommand.GiveTorches:
                     if (_inventory != null) _inventory.ServerGrant(Mathf.Max(1, value), 0);
                     break;
+                case DevCommand.SpawnElement:
+                    if (director != null)
+                    {
+                        Chopper.UI.DevConsole.DecodeSpawn(value, out Element element, out int count);
+                        SpawnAround(director, count, element);
+                    }
+                    break;
+                case DevCommand.KillAll:
+                    foreach (Treant t in new System.Collections.Generic.List<Treant>(Treant.All)) if (t != null) t.ServerDespawn();
+                    break;
+                case DevCommand.Wave:
+                    if (director != null) SpawnWave(director, Mathf.Max(1, value));
+                    break;
+                case DevCommand.SetTime:
+                    if (cycle != null)
+                    {
+                        Chopper.UI.DevConsole.HourToClock(value / 100f, out DayPhase phase, out float fraction);
+                        cycle.ServerDebugSetClock(phase, fraction);
+                    }
+                    break;
                 case DevCommand.GiveBandages:
                     if (_inventory != null) _inventory.ServerGrant(0, Mathf.Max(1, value));
                     break;
@@ -166,6 +190,33 @@ namespace Chopper.Player
             if (hut == null) return;
             hut.ServerSetRepaired(true);
             hut.ServerHealToFull();
+        }
+
+        private void SpawnWave(EnemyDirector director, int count)
+        {
+            Hut hut = Hut.Instance;
+            Vector3 home = hut != null ? hut.transform.position : transform.position;
+            for (int i = 0; i < count; i++)
+            {
+                float angle = (i / (float)count) * Mathf.PI * 2f + Random.Range(-0.3f, 0.3f);
+                Vector3 p = home + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * Random.Range(24f, 32f);
+                if (Chopper.World.WorldGround.Exists) p.y = Chopper.World.WorldGround.HeightAt(p);
+                Element element = i % 3 == 2 ? Element.Neutral : (Element)Random.Range(1, 5);
+                Treant treant = director.ServerSpawn(element, (TreeSize)Random.Range(0, 3), false, p);
+                treant.ServerActivate();
+            }
+        }
+
+        private void SpawnAround(EnemyDirector director, int count, Element element)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                float angle = Random.value * Mathf.PI * 2f;
+                Vector3 p = transform.position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * Random.Range(SpawnRingMin, SpawnRingMax);
+                if (Chopper.World.WorldGround.Exists) p.y = Chopper.World.WorldGround.HeightAt(p);
+                Treant treant = director.ServerSpawn(element, (TreeSize)Random.Range(0, 3), false, p);
+                treant.ServerActivate();
+            }
         }
 
         private void SpawnAround(EnemyDirector director, int count)

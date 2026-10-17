@@ -138,17 +138,6 @@ namespace Chopper.World
                 if (real != null) foreach (Renderer r in w.GetComponentsInChildren<Renderer>()) r.sharedMaterial = real;
                 foreach (Collider c in w.GetComponentsInChildren<Collider>()) Destroy(c);
             }
-            var stone = Resources.Load<GameObject>("Props/prop_path_stone_voxel");
-            if (stone != null)
-            {
-                int k = 0;
-                for (float z = HouseHalfSize.y + 2.8f; z < HouseHalfSize.y + 15f; z += 1.6f, k++)
-                {
-                    Vector3 at = Ground(new Vector2(1.8f + Mathf.Sin(z * 0.4f) * 0.5f, z));
-                    GameObject s = PlaceProp(stone, yard, at, at.y - 0.12f, (k % 2) * 90f + k * 7f, 0.8f, 0f);
-                    foreach (Collider c in s.GetComponentsInChildren<Collider>()) Destroy(c);
-                }
-            }
             var mountain = Resources.Load<GameObject>("Props/prop_mountain_backdrop_voxel");
             if (mountain != null)
             {
@@ -269,12 +258,13 @@ namespace Chopper.World
             Put(root, "Doorway", new Vector3(LayoutHalf.x, third, 3f), 90f);
             Chopper.World.Ladder.Clear();
             {
-                Vector3 lo = root.TransformPoint(new Vector3(LayoutHalf.x + 0.15f, -0.2f, 2.15f));
-                Vector3 hi = root.TransformPoint(new Vector3(LayoutHalf.x + 1.3f, third, 3.45f)) + Vector3.up * 0.75f;
+                Vector3 lo = root.TransformPoint(new Vector3(LayoutHalf.x + 0.15f, -0.2f, 2.5f));
+                Vector3 hi = root.TransformPoint(new Vector3(LayoutHalf.x + 0.75f, third, 3.5f)) + Vector3.up * 0.75f;
                 var zone = new Bounds((lo + hi) * 0.5f, Vector3.zero);
                 zone.Encapsulate(lo); zone.Encapsulate(hi);
                 Chopper.World.Ladder.Add(zone, -root.right);
                 LadderZone = zone;
+                BuildLadderProp(root, root.TransformPoint(new Vector3(LayoutHalf.x + 0.45f, -0.2f, 3f)), root.TransformPoint(new Vector3(LayoutHalf.x + 0.45f, third, 3f)).y + 1.0f);
             }
             Put(root, "Stairs", new Vector3(-5f, 0f, 0f), 180f, new Vector3(1f, 1f, 2f));
             Put(root, "Stairs", new Vector3(5f, main, 0f), 180f, new Vector3(1f, 1f, 2f));
@@ -331,11 +321,12 @@ namespace Chopper.World
                     Bounds old = look.bounds;
                     var boardPrefab = Resources.Load<GameObject>("Props/prop_floor_boards_voxel");
                     if (boardPrefab == null) { foreach (Renderer renderer in piece.GetComponentsInChildren<Renderer>(true)) renderer.enabled = true; continue; }
-                    PlaceProp(boardPrefab, piece, old.center, old.max.y - 0.1f, 0f, 1f, old.size.x);
+                    PlaceProp(boardPrefab, piece, old.center, old.max.y - 0.1f, 0f, 1f, 2f * HouseScale - 0.004f);
                 }
                 foreach (Transform piece in root)
                 {
                     if (piece.name != "Stairs") continue;
+                    if (Mathf.Abs(piece.localPosition.x) >= LayoutHalf.x || Mathf.Abs(piece.localPosition.z) >= LayoutHalf.y) continue;
                     Transform treads = piece.Find("Treads");
                     Renderer look = piece.GetComponentInChildren<Renderer>(true);
                     if (treads == null || look == null) continue;
@@ -360,7 +351,7 @@ namespace Chopper.World
                 }
                 Transform hall = Instantiate(hallPrefab, root).transform;
                 hall.name = "Hall";
-                hall.localPosition = Vector3.zero;
+                hall.localPosition = new Vector3(0f, 0.015f, 0f);
                 hall.localRotation = Quaternion.identity;
                 hall.localScale = Vector3.one;
             }
@@ -394,6 +385,61 @@ namespace Chopper.World
             _houseHalfExtents = HouseHalfSize;
         }
 
+        public const float LadderRung = 0.3f;
+        public const float LadderWidth = 0.6f;
+        public const float LadderRail = 0.06f;
+
+        void BuildLadderProp(Transform root, Vector3 foot, float topY)
+        {
+            Transform old = transform.Find("LadderProp");
+            if (old != null) Destroy(old.gameObject);
+            var ladder = new GameObject("LadderProp").transform;
+            ladder.SetParent(transform, true);
+            ladder.SetPositionAndRotation(foot, root.rotation);
+            Material material = null;
+            Shader plain = Shader.Find("Chopper/VertexColorLit");
+            if (plain != null)
+            {
+                material = new Material(plain);
+                if (material.HasProperty("_UseAtlas")) material.SetFloat("_UseAtlas", 0f);
+                material.SetColor("_BaseColor", Color.white);
+            }
+            else
+            {
+                var catalog = Resources.Load<Chopper.Player.CharacterCatalog>("CharacterCatalog");
+                if (catalog != null) material = catalog.GearMaterial;
+            }
+            Color rail = new Color(0.70f, 0.50f, 0.32f);
+            Color rung = new Color(0.86f, 0.68f, 0.46f);
+            float height = topY - foot.y;
+            var barMeshes = new System.Collections.Generic.Dictionary<Color, Mesh>();
+            void Bar(Vector3 local, Vector3 size, Color tint)
+            {
+                GameObject bar = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                Destroy(bar.GetComponent<Collider>());
+                bar.name = "LadderBar";
+                var filter = bar.GetComponent<MeshFilter>();
+                if (!barMeshes.TryGetValue(tint, out Mesh barMesh))
+                {
+                    barMesh = Instantiate(filter.sharedMesh);
+                    var shade = new Color[barMesh.vertexCount];
+                    for (int i = 0; i < shade.Length; i++) shade[i] = tint;
+                    barMesh.colors = shade;
+                    barMeshes[tint] = barMesh;
+                }
+                filter.sharedMesh = barMesh;
+                bar.transform.SetParent(ladder, false);
+                bar.transform.localPosition = local;
+                bar.transform.localScale = size;
+                var r = bar.GetComponent<MeshRenderer>();
+                if (material != null) r.sharedMaterial = material;
+            }
+            for (int side = -1; side <= 1; side += 2)
+                Bar(new Vector3(0f, height * 0.5f, side * LadderWidth * 0.5f), new Vector3(LadderRail, height, LadderRail), rail);
+            for (float y = LadderRung; y < height - 0.9f; y += LadderRung)
+                Bar(new Vector3(0f, y, 0f), new Vector3(0.04f, 0.04f, LadderWidth), rung);
+        }
+
         void Furnish(float main, float second, float third)
         {
             var spots = new (string prop, float x, float y, float z, float yaw)[]
@@ -407,12 +453,12 @@ namespace Chopper.World
                 ("prop_hut_bunk_voxel", 0.6f, second, 3.2f, 180f), ("prop_hut_bunk_voxel", 2.6f, second, 3.2f, 180f),
                 ("prop_mine_crate_voxel", -2.6f, second, -1.5f, 0f), ("prop_mine_crate_voxel", 4.4f, second, 3.2f, 0f),
                 ("prop_mine_barrel_voxel", -4.0f, main, -3.3f, 0f), ("prop_mine_crate_voxel", -4.0f, main, -2.3f, 20f), ("prop_hut_sack_voxel", 0.4f, main, -2.6f, 0f),
-                ("prop_hut_table_voxel", -0.2f, main, 2.4f, 0f), ("prop_hut_stool_voxel", -1.2f, main, 2.4f, 0f), ("prop_hut_stool_voxel", 0.8f, main, 2.4f, 0f),
-                ("prop_hut_bunk_voxel", -2.8f, second, 3.2f, 180f), ("prop_hut_bunk_voxel", 4.4f, second, -3.2f, 0f), ("prop_hut_stool_voxel", 1.6f, second, 0.4f, 0f), ("prop_hut_table_voxel", 1.6f, second, -0.6f, 0f),
+                ("prop_hut_table_voxel", -3.4f, main, 2.6f, 0f), ("prop_hut_stool_voxel", -4.4f, main, 2.6f, 0f), ("prop_hut_stool_voxel", -2.4f, main, 2.6f, 0f),
+                ("prop_hut_bunk_voxel", -2.8f, second, 3.2f, 180f), ("prop_hut_bunk_voxel", -1.1f, second, 3.2f, 180f), ("prop_hut_stool_voxel", 1.6f, second, 0.4f, 0f), ("prop_hut_table_voxel", 1.6f, second, -0.6f, 0f),
                 ("prop_mine_crate_voxel", 0.9f, second, -3.3f, 0f), ("prop_mine_lantern_voxel", 1.6f, second, -0.6f, 0f),
                 ("prop_hut_toolwall_voxel", -1.2f, third, -3.8f, 0f), ("prop_hut_table_voxel", 3.8f, third, -3.2f, 0f), ("prop_hut_vise_voxel", 3.8f, third, -3.2f, 0f),
                 ("prop_mine_crate_voxel", 4.6f, third, 1.0f, 0f), ("prop_mine_barrel_voxel", 4.6f, third, 0.0f, 0f), ("prop_hut_sack_voxel", -0.4f, third, 3.2f, 0f), ("prop_hut_stool_voxel", -1.2f, third, 2.6f, 0f),
-                ("prop_mine_lantern_voxel", 1.6f, third, -3.0f, 0f), ("prop_mine_lantern_voxel", -0.2f, main, 2.4f, 0f),
+                ("prop_mine_lantern_voxel", 1.6f, third, -3.0f, 0f), ("prop_mine_lantern_voxel", -3.4f, main, 2.6f, 0f),
                 ("prop_hut_toolwall_voxel", 1.6f, third, -3.8f, 0f), ("prop_hut_vise_voxel", -0.4f, third, -3.3f, 0f),
                 ("prop_hut_wheel_voxel", -2.4f, third, 2.6f, 200f), ("prop_hut_stool_voxel", 1.6f, third, -2.3f, 0f), ("prop_hut_table_voxel", 3.6f, third, 2.4f, 0f),
             };
@@ -616,6 +662,7 @@ namespace Chopper.World
             _repaired.OnChange += OnRepairedChanged;
             ApplyRuinLook();
             HideOldHouse();
+            ScatterMask.SetFrom(this, gameObject);
         }
 
         public override void OnStopClient()
@@ -624,6 +671,7 @@ namespace Chopper.World
             _level.OnChange -= OnLevelChanged;
             _health.OnChange -= OnHealthChanged;
             _repaired.OnChange -= OnRepairedChanged;
+            ScatterMask.Clear(this);
         }
 
         private void OnRepairedChanged(bool previous, bool next, bool asServer)
@@ -631,6 +679,7 @@ namespace Chopper.World
             // Host: the server side call, whose arguments are trustworthy (see PlayerWood).
             if (asServer != IsServerInitialized) return;
             ApplyRuinLook();
+            ScatterMask.SetFrom(this, gameObject);
             if (next && !previous) Sfx.Play(ProceduralSfx.Upgrade, transform.position + Vector3.up * 2f, 1f);
         }
 
@@ -665,6 +714,7 @@ namespace Chopper.World
         private void OnLevelChanged(int previous, int next, bool asServer)
         {
             if (asServer == IsServerInitialized && next > previous) Sfx.Play(ProceduralSfx.Upgrade, transform.position + Vector3.up * 2f, 0.9f);
+            ScatterMask.SetFrom(this, gameObject);
         }
 
         // Hits on the hut thump; repairs (health going up) stay quiet because the deposit sound covers them.

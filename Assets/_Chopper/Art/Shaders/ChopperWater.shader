@@ -24,6 +24,10 @@ Shader "Chopper/Water"
         _FoamColor ("Foam color", Color) = (0.86, 0.9, 0.86, 1)
         _FoamDepth ("Foam depth (m)", Float) = 0.3
         _EdgeFade ("Shore fade (m)", Float) = 0.2
+        _Bands ("Depth bands", Float) = 4
+        _BandMix ("Band mix", Range(0, 1)) = 0.6
+        _FoamWidth ("Foam band (m)", Float) = 0.9
+        _FoamRings ("Foam rings", Float) = 2
     }
 
     SubShader
@@ -65,6 +69,10 @@ Shader "Chopper/Water"
                 half4 _FoamColor;
                 float _FoamDepth;
                 float _EdgeFade;
+                float _Bands;
+                half _BandMix;
+                float _FoamWidth;
+                float _FoamRings;
             CBUFFER_END
 
             TEXTURE2D(_BumpMap);
@@ -138,6 +146,8 @@ Shader "Chopper/Water"
 
                 // Light is soaked up with depth: the bottom fades into the water's own color.
                 half absorb = saturate(1.0 - exp(-max(0.0, refractedDepth) / max(0.05, _DepthDistance)));
+                half bands = max(1.0, _Bands);
+                absorb = lerp(absorb, floor(absorb * bands + 0.5) / bands, _BandMix);
                 half3 waterColor = lerp(_ShallowColor.rgb, _DeepColor.rgb, absorb) * lit;
                 half3 tintedBottom = bottom * lerp(half3(1, 1, 1), _ShallowColor.rgb * 1.6, 0.55);
                 half3 body = lerp(tintedBottom, waterColor, saturate(absorb + (1.0 - _Clarity) * 0.5));
@@ -158,6 +168,9 @@ Shader "Chopper/Water"
                 // A thin broken foam line where the water meets the shore or anything standing in it.
                 half shore = saturate(1.0 - depth / max(0.01, _FoamDepth));
                 half foam = shore * smoothstep(0.45, 0.85, shore + foamNoise * 0.8);
+                half ring = saturate(1.0 - depth / max(0.01, _FoamWidth));
+                half stripe = step(0.55, frac(ring * _FoamRings - _Time.y * 0.12 + foamNoise * 0.35)) * ring * ring * step(0.01, _FoamRings);
+                color = lerp(color, _FoamColor.rgb * lit * 1.15, stripe * 0.75);
                 color = lerp(color, _FoamColor.rgb * lit, foam * 0.5);
 
                 color = MixFog(color, input.fogCoord);

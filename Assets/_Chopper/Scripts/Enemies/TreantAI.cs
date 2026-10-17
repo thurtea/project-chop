@@ -136,7 +136,13 @@ namespace Chopper.Enemies
 
         private float HitMultiplier => (int)_treant.Size + 1;
 
-        private float PlayerReach => _treant.IsBoss ? BossPlayerReach : PlayerReachBase + PlayerReachPerSize * (int)_treant.Size;
+        private WeaponProfile Weapon => _treant.WeaponProfile;
+
+        public string WeaponName => Weapon.Weapon.ToString();
+
+        private float BaseReach => _treant.IsBoss ? BossPlayerReach : (PlayerReachBase + PlayerReachPerSize * (int)_treant.Size) * CharacterSizes.ElementalGrowth(_treant.Size);
+
+        private float PlayerReach => _treant.IsBoss ? BossPlayerReach : BaseReach * Weapon.Reach;
 
         private float RingRadius => PlayerReach + RingGap;
 
@@ -194,14 +200,31 @@ namespace Chopper.Enemies
             }
             // To the nearest wall of the house: the room itself is off the NavMesh.
             Vector3 wall = hut.ClosestWallPoint(transform.position);
+            FitBody(agent);
             agent.stoppingDistance = Mathf.Max(0.5f, HutWallReach - 0.6f);
             agent.SetDestination(wall);
             SetChargeSpeed(wall);
         }
 
+        private CapsuleCollider _body;
+
+        private void FitBody(NavMeshAgent agent)
+        {
+            if (_treant.IsBoss) return;
+            float height = _treant.CurrentHeight();
+            if (Mathf.Abs(agent.height - height) > 0.01f) agent.height = height;
+            agent.radius = CharacterSizes.EnemyAgentRadius;
+            if (_body == null) _body = GetComponent<CapsuleCollider>();
+            if (_body == null || Mathf.Abs(_body.height - height) < 0.01f) return;
+            _body.height = height;
+            _body.center = new Vector3(0f, height * 0.5f, 0f);
+            _body.radius = Mathf.Min(_treant.HitRadius, height * 0.5f);
+        }
+
         private void ChasePlayer(NavMeshAgent agent)
         {
             agent.updateRotation = true;
+            FitBody(agent);
             agent.stoppingDistance = PlayerReach * PlayerStopFraction;
             agent.SetDestination(_playerTarget.transform.position);
             SetChargeSpeed(_playerTarget.transform.position);
@@ -280,7 +303,7 @@ namespace Chopper.Enemies
 
         private void FaceTargetWhileManoeuvring()
         {
-            if (_playerTarget == null || _treant.Agent.updateRotation) return;
+            if (_playerTarget == null || _treant.Agent.updateRotation || _windingUp) return;
             Vector3 look = _playerTarget.transform.position - transform.position;
             look.y = 0f;
             if (look.sqrMagnitude < 0.01f) return;
@@ -365,16 +388,18 @@ namespace Chopper.Enemies
                 {
                     Vector3 away = _playerTarget.transform.position - transform.position;
                     away.y = 0f;
-                    if (away.magnitude <= PlayerReach * WindupSlackReach)
+                    bool landed = _treant.IsBoss ? away.magnitude <= PlayerReach * WindupSlackReach : EnemyWeaponRules.Hits(Weapon, BaseReach, transform.forward, away, WindupSlackReach);
+                    if (landed)
                     {
-                        int damage = _config.TreantPlayerDamage * (int)HitMultiplier * (_treant.IsBoss ? BossDamageMultiplier : 1);
+                        int damage = Mathf.Max(1, Mathf.RoundToInt(_config.TreantPlayerDamage * HitMultiplier * (_treant.IsBoss ? BossDamageMultiplier : 1) * (_treant.IsBoss ? 1f : Weapon.Damage)));
                         _playerTarget.ServerDamage(damage, _treant);
                         Swing();
                         if (!_treant.IsBoss) BeginBackOff();
                         return;
                     }
+                    LastWhiff = Time.time;
                 }
-                _nextAttack = Time.time + _config.TreantAttackInterval * 0.5f;
+                _nextAttack = Time.time + _config.TreantAttackInterval * 0.5f * Weapon.Recover;
                 if (!_treant.IsBoss) BeginBackOff();
                 return;
             }
@@ -388,7 +413,7 @@ namespace Chopper.Enemies
                 if (offset.magnitude <= PlayerReach)
                 {
                     _windingUp = true;
-                    _windupEnd = Time.time + _config.TreantWindupSeconds + WindupPerSize * (int)_treant.Size;
+                    _windupEnd = Time.time + (_config.TreantWindupSeconds + WindupPerSize * (int)_treant.Size) * (_treant.IsBoss ? 1f : Weapon.Windup);
                     _treant.Agent.isStopped = true;
                     if (offset.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(offset);
                     _treant.ServerPlayWindup();
@@ -473,9 +498,13 @@ namespace Chopper.Enemies
             if (EnemyDirector.Instance != null) EnemyDirector.Instance.ServerResetWarden(_treant);
         }
 
+        public float LastWhiff { get; private set; } = -100f;
+
+        public bool IsWindingUp => _windingUp;
+
         private void Swing()
         {
-            _nextAttack = Time.time + _config.TreantAttackInterval * IntervalScale;
+            _nextAttack = Time.time + _config.TreantAttackInterval * IntervalScale * (_treant.IsBoss ? 1f : Weapon.Recover);
             _treant.ServerPlayAttack();
         }
 

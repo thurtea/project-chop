@@ -210,6 +210,8 @@ namespace Chopper.Player
             UpdateCameraTransform();
         }
 
+        private static bool InvisibleWall(Collider c) => c.transform.parent != null && c.transform.parent.name == "Boundary";
+
         private float MaxDistance => _motor != null && _motor.IsFlying ? FlyingMaxDistance : _config.CameraMaxDistance;
 
         private Vector3 PivotPosition()
@@ -247,9 +249,13 @@ namespace Chopper.Player
             Vector3 pivot = _smoothedPivot + right * _shoulder;
 
             float wanted = _distance;
-            if (Physics.SphereCast(pivot, CameraRadius, backward, out RaycastHit hit, _distance, ~0, QueryTriggerInteraction.Ignore))
+            Transform me = _motor != null ? _motor.transform : transform.root;
+            Transform hutRoot = Chopper.World.Hut.Instance != null ? Chopper.World.Hut.Instance.transform : null;
+            foreach (RaycastHit hit in Physics.SphereCastAll(pivot, CameraRadius, backward, _distance, ~0, QueryTriggerInteraction.Ignore))
             {
-                wanted = Mathf.Max(MinCameraDistance, hit.distance - CameraWallMargin);
+                if (hit.collider is CharacterController || hit.collider.transform.IsChildOf(me) || hit.distance <= 0f || InvisibleWall(hit.collider)) continue;
+                if (CameraOcclusion.Fades(hit.collider, me, hutRoot)) continue;
+                wanted = Mathf.Min(wanted, Mathf.Max(MinCameraDistance, hit.distance - CameraWallMargin));
             }
             // Pull in at once when a wall comes between, ease back out when it clears. In tight rooms the cast flips
             // between hit and miss from frame to frame, and following it directly made the view pop and flicker.
@@ -261,7 +267,29 @@ namespace Chopper.Player
 
             bool hasGround = Chopper.World.WorldGround.Exists;
             // Inside a crypt the land is far overhead; the walls and ceiling stop the camera instead.
-            if (hasGround && !Chopper.World.Generation.CryptWorld.IsUnderground(_smoothedPivot))
+            Transform self = _motor != null ? _motor.transform : transform.root;
+            {
+                Vector3 seg = position - pivot;
+                float segLen = seg.magnitude;
+                float nearest = segLen;
+                if (segLen > 0.01f)
+                {
+                    foreach (RaycastHit h in Physics.SphereCastAll(pivot, 0.12f, seg / segLen, segLen, ~0, QueryTriggerInteraction.Ignore))
+                    {
+                        if (h.collider is CharacterController || h.collider.transform.IsChildOf(self) || InvisibleWall(h.collider)) continue;
+                        if (h.distance <= 0f || CameraOcclusion.Fades(h.collider, self, hutRoot)) continue;
+                        nearest = Mathf.Min(nearest, h.distance);
+                    }
+                    if (nearest < segLen)
+                    {
+                        float pulled = Mathf.Max(0.05f, nearest - CameraWallMargin);
+                        position = pivot + seg / segLen * pulled;
+                        _collisionDistance = Mathf.Min(_collisionDistance, pulled);
+                    }
+                }
+            }
+            bool indoors = Chopper.World.Hut.Instance != null && Chopper.World.Hut.Instance.IsIndoors(_smoothedPivot);
+            if (hasGround && !indoors && !Chopper.World.Generation.CryptWorld.IsUnderground(_smoothedPivot))
             {
                 float minY = Chopper.World.WorldGround.HeightAt(position) + MinHeightAboveTerrain;
                 if (position.y < minY) position.y = minY;
@@ -292,6 +320,7 @@ namespace Chopper.Player
             }
             _camera.fieldOfView = UserSettings.FieldOfView;
             _camera.transform.SetPositionAndRotation(position, rotation);
+            CameraOcclusion.Tick(position, _smoothedPivot, self);
         }
     }
 }

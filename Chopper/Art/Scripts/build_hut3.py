@@ -15,10 +15,20 @@ X0, X1 = -25, 24          # end walls (inclusive)
 Y0, Y1 = -17, 16          # front and back walls (inclusive)
 FLOORS = (8, 16, 24)
 EAVE, RIDGE = 32, 54
-SHINGLE = srgb(84, 56, 36)
-SHINGLE_DARK = srgb(62, 40, 26)
-SHINGLE_LIGHT = srgb(110, 76, 48)
+SHINGLE = srgb(214, 160, 80)
+SHINGLE_DARK = srgb(162, 112, 52)
+SHINGLE_LIGHT = srgb(236, 188, 108)
+HORN = srgb(150, 104, 54)
 GLASS = srgb(54, 66, 78)
+OPEN_PANES = True
+_kit_put = put
+
+
+def put(occ, x, y, z, col):
+    if OPEN_PANES and col == GLASS:
+        return
+    _kit_put(occ, x, y, z, col)
+
 GRASS = kit.GRASS_MID
 GRASS_DARK = kit.GRASS_DARK
 ROCK = srgb(112, 108, 102)
@@ -30,10 +40,17 @@ def h01(*v):
 
 
 def plank(a, iz, storey):
-    n = h01(a // 2, storey, 3)
-    if a % 2 == 0 and (a // 2) % 3 == 0:
-        return PLANK_DARK
-    return PLANK if n < 0.45 else (LOG if n < 0.8 else PLANK_DARK)
+    if iz % 2 == 0:
+        return LOG_DARK
+    n = h01(a // 6, iz, storey)
+    return LOG if n < 0.55 else (LOG_LIGHT if n < 0.85 else PLANK)
+
+
+def horns(occ, ix, cyi, zbase, span=9):
+    for k in range(span):
+        for t in (0, 1):
+            put(occ, ix, cyi - 3 + k, zbase + k + t, HORN)
+            put(occ, ix, cyi + 4 - k, zbase + k + t, HORN)
 
 
 def door(ix, iz):
@@ -144,9 +161,28 @@ def hut_cells():
             if ix in (X0 - 3, X1 + 3):
                 put(occ, ix, iy, z + 1, BARGE)
     for ix in range(X0 - 3, X1 + 4):
+        for iy in range(int(cy - half) - 1, int(cy + half) + 2):
+            t = max(0.0, 1.0 - abs(iy + 0.5 - cy - 0.5) / half)
+            z = int(round(EAVE - 2 + (RIDGE - EAVE + 2) * t))
+            if (iy - int(cy - half)) % 4 == 0 and t < 0.97:
+                put(occ, ix, iy + (-1 if iy < cy else 1), z, SHINGLE_DARK)
+    for ix in range(X0 - 3, X1 + 4):
         for iz in range(RIDGE, RIDGE + 2):
             put(occ, ix, int(cy), iz, LOG_DARK)
             put(occ, ix, int(cy) + 1, iz, LOG_DARK)
+    horns(occ, X0 - 3, int(cy), RIDGE - 1)
+    horns(occ, X1 + 3, int(cy), RIDGE - 1)
+    for ix in range(-4, 5):
+        for iy in range(int(cy) - 3, int(cy) + 5):
+            for iz in range(RIDGE + 2, RIDGE + 6):
+                edge = ix in (-4, 4) or iy in (int(cy) - 3, int(cy) + 4)
+                if edge:
+                    win = ix in (-4, 4) and int(cy) - 1 <= iy <= int(cy) + 2 and iz in (RIDGE + 3, RIDGE + 4)
+                    put(occ, ix, iy, iz, FRAME if win else plank(iy, iz, 4))
+    for ix in range(-6, 7):
+        for iy in range(int(cy) - 4, int(cy) + 6):
+            zz = RIDGE + 5 + max(0, 5 - abs(ix))
+            put(occ, ix, iy, zz, SHINGLE_LIGHT if abs(ix) % 2 else SHINGLE)
     # gable ends: planks up to the roof, a small window each
     for ex in (X0, X1):
         for iy in range(Y0, Y1 + 1):
@@ -165,13 +201,14 @@ def hut_cells():
                 occ.pop((ix, iy, z1 - 1), None)
                 put(occ, ix, iy, z1 - 2, srgb(30, 28, 26))
     # ladder up the +x end wall, front half, from the outcrop to the gable window
-    for iz in range(6, EAVE + 8):
+    LADDER_IN_MODEL = False
+    for iz in (range(6, EAVE + 8) if LADDER_IN_MODEL else ()):
         put(occ, X1 + 3, -13, iz, LOG)
         put(occ, X1 + 3, -9, iz, LOG)
         if iz % 3 == 0:
             for iy in range(-12, -9):
                 put(occ, X1 + 3, iy, iz, LOG_LIGHT)
-    for iz in range(6, EAVE + 8, 8):
+    for iz in (range(6, EAVE + 8, 8) if LADDER_IN_MODEL else ()):
         put(occ, X1 + 2, -13, iz, FRAME)
         put(occ, X1 + 2, -9, iz, FRAME)
     # porch: deck, steps, posts and a small shed roof over the door
@@ -180,9 +217,20 @@ def hut_cells():
     fill(occ, -1, 1, -27, -25, 8, 16, lambda i, j, k: POST)
     fill(occ, 7, 9, -27, -25, 8, 16, lambda i, j, k: POST)
     for iy in range(-28, -17):
-        z = 16 + (iy + 28) // 3
-        for ix in range(-2, 10):
+        for ix in range(-3, 12):
+            z = 15 + max(0, 6 - abs(ix - 4))
             put(occ, ix, iy, z, SHINGLE if (iy + ix) % 4 else SHINGLE_DARK)
+            if iy == -28:
+                put(occ, ix, iy - 1, z, BARGE)
+    for ix in range(0, 9):
+        top = 15 + max(0, 6 - abs(ix - 4))
+        for iz in range(16, top):
+            put(occ, ix, -27, iz, plank(ix, iz, 5))
+    for k in range(6):
+        for t in (0, 1):
+            put(occ, 4 - 2 + k, -29, 21 + k + t, HORN)
+            put(occ, 4 + 3 - k, -29, 21 + k + t, HORN)
+    fill(occ, 1, 7, -36, -34, 5, 6, lambda i, j, k: STONE_DARK if (i + j) % 2 else STONE)
     fill(occ, 1, 7, -34, -29, 6, 7, lambda i, j, k: STONE if (i + j) % 2 == 0 else STONE_DARK)
     fill(occ, 1, 7, -29, -26, 7, 8, lambda i, j, k: PLANK if j % 2 == 0 else PLANK_DARK)
     fill(occ, -1, 1, -34, -26, 6, 8, stone_tone)

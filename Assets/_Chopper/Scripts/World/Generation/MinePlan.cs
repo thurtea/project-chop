@@ -43,7 +43,7 @@ namespace Chopper.World.Generation
         public const float FloorY = -320f;
         public const float CellSize = 24f;
         public const float RoomSize = 16f;
-        public const float RoomHeight = 6.5f;
+        public const float RoomHeight = 8.5f;
         public const float WallThickness = 0.8f;
         public const float GalleryWidth = 5.5f;
         public const float GalleryHeight = 4.5f;
@@ -221,6 +221,8 @@ namespace Chopper.World.Generation
                 CaveShell.Chamfers(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut * 0.55f);
                 CaveShell.CeilingNibs(Boxes, _group, c, RoomSize * 0.5f, RoomHeight, CaveShell.Cut);
                 CaveShell.CeilingCourses(Boxes, _group, c, RoomSize * 0.5f, RoomHeight);
+                Relief(room, c);
+                FloorSteps(room, c);
             }
 
             // Galleries fill only the gap between the chambers' outer wall faces, with a timber frame halfway along.
@@ -241,6 +243,57 @@ namespace Chopper.World.Generation
                 CaveShell.CorridorJog(Boxes, _group, mid, t, Normal(side), length, GalleryWidth, GalleryHeight);
                 // One gallery-length rail. The mesh is placed from Dressing; this record stays for the plan.
                 Rails.Add(new MineProp { Position = mid, Yaw = YawOf(Normal(side)), Length = 6.4f });
+            }
+        }
+
+        private void Relief(int room, Vector3 c)
+        {
+            float half = RoomSize * 0.5f;
+            foreach (Vector2Int side in Directions)
+            {
+                Vector3 n = Normal(side);
+                Vector3 t = Tangent(side);
+                bool open = SideOpen(room, side);
+                for (float along = -half + 1f; along < half - 0.5f; along += 2f)
+                {
+                    if (open && Mathf.Abs(along) < GalleryWidth * 0.5f + 0.6f) continue;
+                    if (room == 0 && side == LadderSide && Mathf.Abs(along) < 1.8f) continue;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        int h = CaveShell.Hash(Index * 131 + room * 17 + k, Mathf.RoundToInt(along * 4f) + side.x * 7 + side.y * 13, 21);
+                        float depth = 0.4f + (h % 5) * 0.35f + k * 0.2f;
+                        float y0 = 2.5f + k * 2.0f + ((h / 5) % 3) * 0.25f;
+                        float tall = Mathf.Min(1.8f, RoomHeight - y0);
+                        if (tall <= 0.2f) continue;
+                        Add(c + n * (half - depth * 0.5f) + t * along + Vector3.up * (y0 + tall * 0.5f), SizeOn(side, depth, 2f, tall), CryptMaterial.Wall);
+                    }
+                }
+            }
+        }
+
+        private void FloorSteps(int room, Vector3 c)
+        {
+            if (room > 0 && room % 2 == 1)
+            {
+                int hc = CaveShell.Hash(Index * 53 + room, 7, 77);
+                float cx = (hc % 2) == 0 ? 1f : -1f;
+                float cz = ((hc / 2) % 2) == 0 ? 1f : -1f;
+                Vector3 top = c + new Vector3(cx * 4.6f, 0f, cz * 4.6f);
+                Add(top + Vector3.up * 0.9f, new Vector3(4f, 1.8f, 4f), CryptMaterial.Wall);
+                Add(top + new Vector3(-cx * 0.4f, 2.1f, -cz * 0.4f), new Vector3(3f, 0.6f, 3f), CryptMaterial.Wall);
+            }
+            for (int q = 0; q < 4; q++)
+            {
+                int h = CaveShell.Hash(Index * 71 + room * 29, q, 33);
+                float sx = (q & 1) == 0 ? 1f : -1f;
+                float sz = (q & 2) == 0 ? 1f : -1f;
+                Vector3 at = c + new Vector3(sx * (4.4f + (h % 3) * 0.3f), 0f, sz * (4.4f + ((h / 3) % 3) * 0.3f));
+                if (room == 0 && Vector3.Distance(at, c + Normal(LadderSide) * (RoomSize * 0.5f - 2.4f)) < 3f) continue;
+                if (room > 0 && room % 2 == 1 && sx == (((CaveShell.Hash(Index * 53 + room, 7, 77)) % 2) == 0 ? 1f : -1f) && sz == ((((CaveShell.Hash(Index * 53 + room, 7, 77)) / 2) % 2) == 0 ? 1f : -1f)) continue;
+                float size = 2.2f + (h % 2) * 0.6f;
+                Add(at + Vector3.up * 0.1f, new Vector3(size, 0.2f, size), CryptMaterial.Floor);
+                if ((h % 3) != 0)
+                    Add(at + new Vector3(sx * 0.4f, 0.3f, sz * 0.4f), new Vector3(size * 0.5f, 0.2f, size * 0.5f), CryptMaterial.Floor);
             }
         }
 
@@ -314,6 +367,13 @@ namespace Chopper.World.Generation
                 Lanterns.Add(new CryptLantern { Position = post - b * (PostSize * 0.5f + 0.05f) + Vector3.up * LanternHeight, Yaw = YawOf(-b) });
                 Vector3 otherPost = c - b * (RoomSize * 0.5f - PostSize);
                 Lanterns.Add(new CryptLantern { Position = otherPost + b * (PostSize * 0.5f + 0.05f) + Vector3.up * LanternHeight, Yaw = YawOf(b) });
+                foreach (Vector2Int side in Directions)
+                {
+                    if (!SideOpen(room, side)) continue;
+                    Vector3 n = Normal(side);
+                    Vector3 t = Tangent(side);
+                    Lanterns.Add(new CryptLantern { Position = c + n * (RoomSize * 0.5f - 0.15f) + t * (GalleryWidth * 0.5f + 0.45f) + Vector3.up * LanternHeight, Yaw = YawOf(-n) });
+                }
             }
         }
 
@@ -400,7 +460,7 @@ namespace Chopper.World.Generation
             Add(EntranceBoxes, foot - forward * (PortalDepth * 0.55f) + Vector3.up * (PortalHeight * 0.5f - 0.3f), new Vector3(PortalWidth - 0.3f, PortalHeight + 0.4f, 0.1f), CryptMaterial.Void, turn);
             // The dark adit going into the mountain.
             Add(EntranceBoxes, foot - forward * PortalDepth + Vector3.up * (PortalHeight * 0.5f - 0.3f), new Vector3(PortalWidth, PortalHeight + 0.6f, 0.1f), CryptMaterial.Void, turn);
-            Add(EntranceBoxes, foot - forward * (PortalDepth * 0.5f) + Vector3.down * 0.25f, new Vector3(PortalWidth, 0.5f, PortalDepth), CryptMaterial.Floor, turn);
+            Add(EntranceBoxes, foot - forward * (PortalDepth * 0.5f) + Vector3.down * 0.235f, new Vector3(PortalWidth, 0.5f, PortalDepth), CryptMaterial.Floor, turn);
             EntranceLanterns.Add(new CryptLantern { Position = foot + right * (PortalWidth * 0.5f + PostSize) + forward * (PostSize + 0.1f) + Vector3.up * 2.2f, Yaw = Site.Yaw });
 
             DoorSpot = foot + forward * 0.6f;

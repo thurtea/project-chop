@@ -168,6 +168,9 @@ namespace Chopper.World.Saving
         // The heaviest catch of each kind in kilograms (missing in older saves).
         public float[] FishRecords = new float[0];
         public int FishXp;
+        public int FishLanded;
+        public bool SharkRod;
+        public int Boats;
         // Mining: the finds carried (one count per MineFindKind) and the biggest of each in grams (missing in older saves).
         public int[] FindCounts = new int[0];
         public float[] FindRecords = new float[0];

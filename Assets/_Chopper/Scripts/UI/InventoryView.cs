@@ -262,7 +262,7 @@ namespace Chopper.UI
             {
                 int recipe = id;
                 if (!RecipeBook.StationAllows(recipe, _bench)) continue;
-                AddRow(page, () => RecipeBook.Get(recipe, _config).Name, () => RecipeText(recipe), () => "Craft", () => CanCraft(recipe), () => Craft(recipe));
+                AddRow(page, () => RecipeBook.Get(recipe, _config).Name, () => Locked(recipe) ? LockHint(recipe) : RecipeText(recipe), () => Locked(recipe) ? "Locked" : "Craft", () => CanCraft(recipe), () => Craft(recipe));
             }
         }
 
@@ -848,10 +848,22 @@ namespace Chopper.UI
 
         private static GameObject LocalPlayer => PlayerWood.Local != null ? PlayerWood.Local.gameObject : null;
 
+        private static int LocalFishLanded()
+        {
+            GameObject player = LocalPlayer;
+            PlayerFishing fishing = player != null ? player.GetComponent<PlayerFishing>() : null;
+            return fishing != null ? fishing.FishLanded : 0;
+        }
+
+        private bool Locked(int recipe) => !RecipeBook.Unlocked(recipe, LocalFishLanded(), _config);
+
+        private string LockHint(int recipe) => RecipeBook.LockHint(recipe, LocalFishLanded(), _config) + $" ({LocalFishLanded()}/{RecipeBook.FishToUnlock(recipe, _config)} landed)";
+
         private bool CanCraft(int recipe)
         {
             GameObject player = LocalPlayer;
             if (player == null) return false;
+            if (Locked(recipe)) return false;
             bool atBench = Workbench.AnyInReach(player.transform.position);
             if (!RecipeBook.StationAllows(recipe, atBench)) return false;
             Recipe r = RecipeBook.Get(recipe, _config);

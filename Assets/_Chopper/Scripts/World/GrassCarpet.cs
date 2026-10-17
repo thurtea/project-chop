@@ -26,6 +26,7 @@ namespace Chopper.World
         [SerializeField, Range(0.05f, 1f)] private float _farFraction = 0.55f;
         [SerializeField] private int _seed = 4242;
 
+        public static float FarThin = 0.15f;
         private const int MaxPushers = 16;
         // New cells built in one frame. Running at full speed needs about one row of cells a second, so a small budget
         // keeps up and spreads the work instead of building a burst in a single frame.
@@ -72,6 +73,7 @@ namespace Chopper.World
         private void OnEnable()
         {
             Instance = this;
+            ScatterMask.Changed += OnMaskChanged;
             if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null) return;
             RenderPipelineManager.beginCameraRendering += OnBeginCamera;
         }
@@ -79,11 +81,36 @@ namespace Chopper.World
         private void OnDisable()
         {
             RenderPipelineManager.beginCameraRendering -= OnBeginCamera;
+            ScatterMask.Changed -= OnMaskChanged;
             if (Instance == this) Instance = null;
             _cells.Clear();
             _pixels = null;
             Release(ref _farMesh);
             Release(ref _mesh);
+        }
+
+        private void OnMaskChanged(Bounds zone)
+        {
+            zone.Expand(new Vector3(ScatterMask.Margin * 2f, ScatterMask.BelowReach * 2f, ScatterMask.Margin * 2f));
+            _evict.Clear();
+            foreach (KeyValuePair<long, Cell> pair in _cells)
+            {
+                Bounds b = pair.Value.Bounds;
+                if (b.min.x <= zone.max.x && b.max.x >= zone.min.x && b.min.z <= zone.max.z && b.max.z >= zone.min.z) _evict.Add(pair.Key);
+            }
+            foreach (long key in _evict) _cells.Remove(key);
+            _evict.Clear();
+        }
+
+        public int ClumpsIn(Bounds zone)
+        {
+            int count = 0;
+            foreach (Cell cell in _cells.Values)
+            {
+                if (!cell.Bounds.Intersects(zone)) continue;
+                foreach (Matrix4x4 m in cell.Matrices) if (zone.Contains(m.GetColumn(3))) count++;
+            }
+            return count;
         }
 
         static void Release(ref Mesh mesh)
@@ -185,7 +212,7 @@ namespace Chopper.World
 
                     // Thin the carpet with distance; clumps are stored in random order, so any prefix is an even spread.
                     float t = Mathf.InverseLerp(_drawDistance * _thinStart, _drawDistance, distance);
-                    int count = Mathf.CeilToInt(cell.Matrices.Length * Mathf.Lerp(1f, _farFraction, t));
+                    int count = Mathf.CeilToInt(cell.Matrices.Length * Mathf.Lerp(1f, Mathf.Min(_farFraction, FarThin), t));
                     if (count <= 0) continue;
                     renderParams.worldBounds = cell.Bounds;
                     Mesh clump = distance > _drawDistance * FarMeshFraction && _farMesh != null ? _farMesh : _mesh;
@@ -263,6 +290,7 @@ namespace Chopper.World
                 if (roll >= map.r) continue;
 
                 float y = WorldGround.HeightAt(x, z) - 0.04f;
+                if (!ScatterMask.Allows(new Vector3(x, y, z), true)) continue;
                 // A: height, 0 is half the base height and 1 is one and a half times it.
                 float tall = size * (0.5f + map.a);
                 Quaternion rotation = Quaternion.Euler(tiltX, yaw, tiltZ);

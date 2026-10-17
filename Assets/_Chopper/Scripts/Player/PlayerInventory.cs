@@ -25,6 +25,7 @@ namespace Chopper.Player
 
         private readonly SyncVar<int> _torches = new SyncVar<int>();
         private readonly SyncVar<int> _salves = new SyncVar<int>();
+        private bool _swimHolstered;
         private readonly SyncVar<bool> _torchLit = new SyncVar<bool>();
         // Whole seconds left on the torch in use, for the HUD.
         private readonly SyncVar<int> _torchSecondsLeft = new SyncVar<int>();
@@ -164,8 +165,9 @@ namespace Chopper.Player
             if (IsServerInitialized) ServerBurnTorch();
 
             if (!IsOwner || UiState.GameplayBlocked) return;
-            if (Keybinds.WasPressed(KeyAction.Torch)) ToggleTorchServerRpc();
+            if (Keybinds.WasPressed(KeyAction.Torch) && (_torchLit.Value || SwimHolster.MayDraw(GetComponent<PlayerMotor>() is PlayerMotor torchMotor && torchMotor.StowsTools))) ToggleTorchServerRpc();
             // Putting it out keeps what is left of it for next time.
+            if (SwimHolster.Step(GetComponent<PlayerMotor>() is PlayerMotor swimMotor && swimMotor.StowsTools, _torchLit.Value, ref _swimHolstered)) ToggleTorchServerRpc();
             if (Keybinds.WasPressed(KeyAction.Unequip) && _torchLit.Value) ToggleTorchServerRpc();
             if (Keybinds.WasPressed(KeyAction.Potion)) UseSalveServerRpc();
         }
@@ -250,6 +252,8 @@ namespace Chopper.Player
         {
             if (!RecipeBook.Valid(recipe)) return false;
             if (!ignoreStation && !RecipeBook.StationAllows(recipe, Workbench.AnyInReach(transform.position))) return false;
+            PlayerFishing landedBy = GetComponent<PlayerFishing>();
+            if (!RecipeBook.Unlocked(recipe, landedBy != null ? landedBy.FishLanded : 0, _config)) return false;
             Recipe r = RecipeBook.Get(recipe, _config);
             if (!RecipeBook.CanAfford(r, kind => PlayerItems.Get(gameObject, (int)kind), PlayerItems.Get(gameObject, (int)r.Output),
                     PlayerItems.Cap(_config, (int)r.Output))) return false;

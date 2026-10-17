@@ -29,7 +29,7 @@ namespace Chopper.Editor
         const float NoticeScale = 1.3f;
 
         static readonly string[] FishGear =
-            { "prop_fish_voxel", "prop_rod_butt_voxel", "prop_rod_tip_voxel", "prop_bobber_voxel", "prop_aim_ring_voxel" };
+            { "prop_fish_voxel", "prop_rod_butt_voxel", "prop_rod_tip_voxel", "prop_bobber_voxel", "prop_aim_ring_voxel", "prop_boat_voxel" };
         static readonly string[] GroundGear =
             { "prop_ground_axe_voxel", "prop_ground_outfit_voxel", "prop_ground_shield_voxel" };
 
@@ -56,7 +56,7 @@ namespace Chopper.Editor
             { "prop_branch_0_voxel", "prop_branch_1_voxel", "prop_branch_2_voxel", "prop_branch_3_voxel" };
 
         static readonly string[] Yard =
-            { "prop_yard_pond_voxel", "prop_yard_water_voxel", "prop_floor_boards_voxel", "prop_path_stone_voxel", "prop_mountain_backdrop_voxel", "prop_mine_portal_voxel", "prop_hut_bunk_voxel", "prop_hut_notice_voxel", "prop_hut_sack_voxel", "prop_hut_stool_voxel", "prop_hut_table_voxel", "prop_hut_toolwall_voxel", "prop_hut_vise_voxel", "prop_hut_wheel_voxel" };
+            { "prop_yard_pond_voxel", "prop_yard_water_voxel", "prop_floor_boards_voxel", "prop_mountain_backdrop_voxel", "prop_mine_portal_voxel", "prop_hut_bunk_voxel", "prop_hut_notice_voxel", "prop_hut_sack_voxel", "prop_hut_stool_voxel", "prop_hut_table_voxel", "prop_hut_toolwall_voxel", "prop_hut_vise_voxel", "prop_hut_wheel_voxel" };
 
         public static void ApplyYard()
         {

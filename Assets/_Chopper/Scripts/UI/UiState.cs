@@ -308,7 +308,7 @@ namespace Chopper.UI
         {
             if (camera == null || camera.cameraType != CameraType.Game) return;
             UniversalAdditionalCameraData data = camera.GetUniversalAdditionalCameraData();
-            if (data != null) data.antialiasing = UsesSmaa[AntiAliasing] ? AntialiasingMode.SubpixelMorphologicalAntiAliasing : AntialiasingMode.None;
+            if (data != null) { data.antialiasing = UsesSmaa[AntiAliasing] ? AntialiasingMode.SubpixelMorphologicalAntiAliasing : AntialiasingMode.None; data.antialiasingQuality = AntialiasingQuality.High; }
         }
 
         public static void Apply()

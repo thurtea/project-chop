@@ -31,6 +31,7 @@ namespace Chopper.UI
         public static Sprite Rod => Get("rod");
         public static Sprite Fish => Get("fish");
         public static Sprite Hammer => Get("hammer");
+        public static Sprite Pick => Get("find-pickhead");
         public static Sprite Sword => Get("sword");
 
         // Materials.

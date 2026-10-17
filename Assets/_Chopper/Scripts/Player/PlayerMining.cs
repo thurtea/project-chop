@@ -27,6 +27,8 @@ namespace Chopper.Player
         private readonly SyncList<int> _finds = new SyncList<int>();
         private readonly SyncList<float> _records = new SyncList<float>();
         private readonly SyncVar<int> _skill = new SyncVar<int>();
+        private readonly SyncVar<bool> _pickDrawn = new SyncVar<bool>();
+        private float _pickAskedAt = -10f;
 
         private PlayerAxe _axe;
         private PlayerHealth _health;
@@ -54,7 +56,31 @@ namespace Chopper.Player
         // Raised on every client when this player swings the pickaxe (the animator plays the chop).
         public event System.Action StrikePlayed;
 
-        public bool PickOut => Engaged || Time.time - _lastStrikeAt < PickOutSeconds;
+        public bool PickOut => _pickDrawn.Value || Engaged || Time.time - _lastStrikeAt < PickOutSeconds;
+
+        public bool PickDrawn => _pickDrawn.Value;
+
+        public void RequestTogglePick()
+        {
+            if (!IsOwner || Time.time - _pickAskedAt < 0.25f) return;
+            PlayerMotor motor = GetComponent<PlayerMotor>();
+            if (!_pickDrawn.Value && !SwimHolster.MayDraw(motor != null && motor.IsSwimming)) return;
+            _pickAskedAt = Time.time;
+            TogglePickServerRpc();
+        }
+
+        [ServerRpc]
+        private void TogglePickServerRpc() => _pickDrawn.Value = !_pickDrawn.Value;
+
+        private void PickKeys()
+        {
+            if (!IsOwner) return;
+            PlayerMotor motor = GetComponent<PlayerMotor>();
+            if (_pickDrawn.Value && motor != null && motor.IsSwimming) { RequestTogglePick(); return; }
+            if (UiState.GameplayBlocked) return;
+            if (Keybinds.WasPressed(KeyAction.Pick)) RequestTogglePick();
+            else if (_pickDrawn.Value && (Keybinds.WasPressed(KeyAction.Axe) || Keybinds.WasPressed(KeyAction.Unequip) || Keybinds.WasPressed(KeyAction.Rod) || Keybinds.WasPressed(KeyAction.Build) || Keybinds.WasPressed(KeyAction.Torch))) RequestTogglePick();
+        }
 
         public bool Engaged => _engagedVein >= 0;
         public int EngagedVein => _engagedVein;
@@ -254,6 +280,7 @@ namespace Chopper.Player
 
         private void Update()
         {
+            PickKeys();
             if (!IsOwner || !Engaged) return;
             bool other = (_combat != null && (_combat.GuardRaised || _combat.IsRolling)) || Keybinds.WasPressed(KeyAction.Jump)
                          || (_health != null && _health.IsDown);

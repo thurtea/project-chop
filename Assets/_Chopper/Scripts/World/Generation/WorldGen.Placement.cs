@@ -104,7 +104,7 @@ namespace Chopper.World.Generation
         private bool OpenGround(Vector2 p, float pathMargin)
         {
             if (DistanceToShore(p.x, p.y) < 1.2f || InWater(p, 1.05f)) return false;
-            if (HeightAt(p.x, p.y) < WaterHeight + 0.3f) return false;
+            if (SurfaceAt(p.x, p.y) < WaterHeight + 0.3f) return false;
             if (MountainWeight(p.x, p.y) > 0.2f) return false;
             if (IsInsideYard(p) || OnPath(p.x, p.y, pathMargin)) return false;
             if (NearZoneGate(p, 3f) || NearCrypt(p, 3f) || NearMine(p, 4f)) return false;

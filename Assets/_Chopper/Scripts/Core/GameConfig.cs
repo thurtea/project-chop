@@ -128,6 +128,21 @@ namespace Chopper.Core
 
         [Header("Crafting (torches at a workbench, bandages anywhere; paid with carried items)")]
         [SerializeField, Min(0)] private int _torchWoodCost = 3;
+        [SerializeField, Min(0)] private int _boatWoodCost = 20;
+        [SerializeField, Min(0)] private int _boatFiberCost = 6;
+        [SerializeField, Range(0.05f, 0.9f)] private float _sharkCentreBand = 0.25f;
+        [SerializeField, Range(0.3f, 1f)] private float _sharkLoseOffset = 0.95f;
+        [SerializeField, Min(0.01f)] private float _sharkStaminaDrain = 0.12f;
+        [SerializeField, Min(0f)] private float _sharkStaminaRecover = 0.05f;
+        [SerializeField, Min(0f)] private float _sharkDriftSpeed = 0.9f;
+        [SerializeField, Min(0.1f)] private float _sharkSteerSpeed = 1.6f;
+        [SerializeField, Min(0f)] private float _sharkTowSpeed = 3f;
+        [SerializeField] private SharkRodUnlock _sharkRodUnlock = SharkRodUnlock.Craft;
+        [SerializeField, Min(0)] private int _sharkRodFishToUnlock = 10;
+        [SerializeField, Range(10f, 40f)] private float _sharkHookDistance = 25f;
+        [SerializeField, Min(0)] private int _sharkRodWoodCost = 12;
+        [SerializeField, Min(0)] private int _sharkRodFiberCost = 8;
+        [SerializeField, Min(0)] private int _sharkRodIronCost = 4;
         [Header("Healing herbs and fiber")]
         [Tooltip("Healing herbs growing in the world (leafy plants with a yellow flower). Bandages are made from them and fiber.")]
         [SerializeField, Min(0)] private int _herbCount = 240;
@@ -501,6 +516,21 @@ namespace Chopper.Core
         public float JumpStamina => _jumpStamina;
 
         public int TorchWoodCost => _torchWoodCost;
+        public int BoatWoodCost => _boatWoodCost;
+        public int BoatFiberCost => _boatFiberCost;
+        public float SharkCentreBand => _sharkCentreBand;
+        public float SharkLoseOffset => _sharkLoseOffset;
+        public float SharkStaminaDrain => _sharkStaminaDrain;
+        public float SharkStaminaRecover => _sharkStaminaRecover;
+        public float SharkDriftSpeed => _sharkDriftSpeed;
+        public float SharkSteerSpeed => _sharkSteerSpeed;
+        public float SharkTowSpeed => _sharkTowSpeed;
+        public SharkRodUnlock SharkRodUnlock => _sharkRodUnlock;
+        public int SharkRodFishToUnlock => _sharkRodFishToUnlock;
+        public float SharkHookDistance => _sharkHookDistance;
+        public int SharkRodWoodCost => _sharkRodWoodCost;
+        public int SharkRodFiberCost => _sharkRodFiberCost;
+        public int SharkRodIronCost => _sharkRodIronCost;
         public int HerbCount => _herbCount;
         public int HerbCarryCap => _herbCarryCap;
         public int FabricBushCount => _fabricBushCount;

@@ -463,44 +463,6 @@ def sun_cells():
     return out
 
 
-# ----------------------------------------------------------------------------------------------- path stones
-def path_stone_cells():
-    """A short run of separate flagstones (concept 2.0): grass gaps, chipped corners, two of them a step higher.
-    Cells are 0.25 x 0.25 x 0.125. Light tops, darker sides."""
-    out = {}
-    # xa, ya, xb, yb, height in cells. Gaps on X so the slabs do not fuse into one pad.
-    slabs = (
-        (-6, -1, -5, 1, 1),
-        (-3, -2, -2, 0, 2),
-        (0, -1, 1, 1, 1),
-        (3, 0, 4, 2, 1),
-        (6, -1, 6, 1, 2),
-    )
-    for si, (xa, ya, xb, yb, h) in enumerate(slabs):
-        for ix in range(xa, xb + 1):
-            for iy in range(ya, yb + 1):
-                if (ix in (xa, xb)) and (iy in (ya, yb)) and (ix + iy) % 2 == 0:
-                    continue
-                for iz in range(h):
-                    out[(ix, iy, iz)] = si
-    tops = (
-        (214 / 255, 210 / 255, 198 / 255),
-        (204 / 255, 200 / 255, 188 / 255),
-        (222 / 255, 218 / 255, 206 / 255),
-        (196 / 255, 192 / 255, 180 / 255),
-        (208 / 255, 204 / 255, 192 / 255),
-    )
-    side = (150 / 255, 146 / 255, 136 / 255)
-    side_dark = (118 / 255, 114 / 255, 106 / 255)
-
-    def color(ix, iy, iz, d, si):
-        if d == (0, 0, 1):
-            return tops[si] if hsh(ix, iy, si) % 4 else (188 / 255, 184 / 255, 172 / 255)
-        return side_dark if iz == 0 else side
-    return {k: (lambda ix, iy, iz, d, si=si: color(ix, iy, iz, d, si)) for k, si in out.items()}
-
-
-# ----------------------------------------------------------------------------------------------- mountains (1 m)
 def rock_face(ix, iy, iz, d, snow_from):
     """Stone with a little per-block variation, snow on exposed tops from a height on, and on the sides of the
     highest blocks."""
@@ -891,7 +853,6 @@ def lineup(cam, objs):
         "prop_grass_tuft_voxel_a": (0.6, -6.6, 0),
         "prop_grass_tuft_voxel_b": (1.5, -7.0, 0),
         "prop_grass_tuft_voxel_c": (-0.2, -7.3, 0),
-        "prop_path_stone_voxel": (-1.6, -2.4, 0),
         "terrain_blocks_voxel": (10.0, -5.0, 0),
         "prop_mountain_chunk_voxel_a": (22.0, 16.0, 0),
         "prop_mountain_chunk_voxel_b": (30.0, 16.0, 0),
@@ -972,8 +933,6 @@ def main():
         add(build("prop_cloud_voxel_" + v, cloud_cells(v), mat, size=(2.0, 2.0, 2.0), shade_bottom=CLOUD_SHADE),
             {"h": (2.0, 4.0), "w": (8.0, 16.0), "tris": 400})
     add(build("prop_sun_voxel", sun_cells(), mat, size=(1.0, 1.0, 1.0)), {"h": (9.0, 9.0), "w": (9.0, 9.0), "tris": 400})
-    add(build("prop_path_stone_voxel", path_stone_cells(), mat, size=(S, S, 0.125)),
-        {"h": (0.125, 0.25), "w": (2.5, 3.5), "tris": 600})
     for v, h in (("a", (2.0, 4.0)), ("b", (4.0, 4.0)), ("c", (6.0, 8.0))):
         add(build("prop_mountain_chunk_voxel_" + v, mountain_chunk_cells(v), mat, size=(1.0, 1.0, 1.0)),
             {"h": h, "w": (8.0, 8.0), "d": (8.0, 8.0), "tris": 2000})
@@ -1024,72 +983,5 @@ def main():
         print("no character FBX, lineup skipped")
 
 
-def export_path_stone():
-    """Build and export only the path stones. The rest of the kit (hut, bushes) stays as it is."""
-    import sys
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    mat = bpy.data.materials.new("M_World")
-    mat.diffuse_color = (0.7, 0.7, 0.7, 1.0)
-    try:
-        mat.use_nodes = True
-    except Exception:
-        pass
-    obj = build("prop_path_stone_voxel", path_stone_cells(), mat, size=(S, S, 0.125))
-    x0, x1, y0, y1, z0, z1 = bounds(obj)
-    tris = tris_of(obj)
-    width = x1 - x0
-    height = z1 - z0
-    ok = abs(z0) < 1e-6 and 2.5 - 1e-6 <= width <= 3.5 + 1e-6 and 0.125 - 1e-6 <= height <= 0.25 + 1e-6 and tris <= 600
-    # Separate slabs: more than one island of top faces.
-    tops = [p for p in obj.data.polygons if p.normal.z > 0.5]
-    islands = 0
-    seen = set()
-    for poly in tops:
-        key = (round(poly.center.x * 4), round(poly.center.y * 4))
-        if key in seen:
-            continue
-        # flood through 4-connected top cells
-        stack = [key]
-        seen.add(key)
-        islands += 1
-        while stack:
-            cx, cy = stack.pop()
-            for nx, ny in ((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1)):
-                if (nx, ny) in seen:
-                    continue
-                if any(round(p.center.x * 4) == nx and round(p.center.y * 4) == ny for p in tops):
-                    seen.add((nx, ny))
-                    stack.append((nx, ny))
-    ok = ok and islands >= 4
-    lines = [
-        "Path stone check",
-        "=" * 60,
-        "  [%s] base on Z=0 (%.4f)" % ("PASS" if abs(z0) < 1e-6 else "FAIL", z0),
-        "  [%s] width %.3f m in [2.50, 3.50]" % ("PASS" if 2.5 - 1e-6 <= width <= 3.5 + 1e-6 else "FAIL", width),
-        "  [%s] height %.3f m in [0.125, 0.250]" % ("PASS" if 0.125 - 1e-6 <= height <= 0.25 + 1e-6 else "FAIL", height),
-        "  [%s] triangles %d <= 600" % ("PASS" if tris <= 600 else "FAIL", tris),
-        "  [%s] %d separate slabs" % ("PASS" if islands >= 4 else "FAIL", islands),
-        "SUMMARY: %s" % ("ALL PASS" if ok else "FAILURES"),
-    ]
-    text = "\n".join(lines) + "\n"
-    print(text)
-    os.makedirs(RENDERS, exist_ok=True)
-    with open(os.path.join(RENDERS, "path_stone_check_report.txt"), "w", encoding="utf-8") as fh:
-        fh.write(text)
-    if not ok:
-        raise SystemExit(1)
-    cam = setup_render()
-    if bpy.context.scene.world:
-        bpy.context.scene.world.color = (0.78, 0.70, 0.56)
-    shoot(cam, "path_stone", ((x0 + x1) * 0.5, (y0 + y1) * 0.5, height * 0.5), 4.2, yaw_deg=-40, pitch_deg=28, res=(1024, 1024), dist=12)
-    export_one(obj)
-    print("exported path stone only")
-    sys.stdout.flush()
-
-
 if __name__ == "__main__":
-    import sys
-    if "--path" in sys.argv:
-        export_path_stone()
-    else:
-        main()
+    main()

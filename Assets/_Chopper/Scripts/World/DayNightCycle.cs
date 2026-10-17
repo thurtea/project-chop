@@ -69,6 +69,8 @@ namespace Chopper.World
         private ColorAdjustments _colorAdjustments;
         private Bloom _bloom;
         private ShadowsMidtonesHighlights _grade;
+        private SplitToning _split;
+        public static GradeLook LastGrade { get; private set; }
         private static readonly int ExposureId = Shader.PropertyToID("_Exposure");
         private static readonly int AtmosphereId = Shader.PropertyToID("_AtmosphereThickness");
         private static readonly int SkyTintId = Shader.PropertyToID("_SkyTint");
@@ -184,6 +186,7 @@ namespace Chopper.World
 
         private void Update()
         {
+            if (FireLights.Instance == null) new GameObject("FireLights").AddComponent<FireLights>();
             if (_clock == null) return;
 
             if (IsServerInitialized)
@@ -249,13 +252,17 @@ namespace Chopper.World
 
             if (_sun != null)
             {
-                Color sunColor = Color.Lerp(SunriseColor, NoonColor, elevation);
+                float lowSunNow = 1f - Mathf.SmoothStep(0f, 1f, elevation / LowSunSpan);
+                GradeLook sunLook = LightGrade.For(ZoneTracker.Current, dayT, lowSunNow, 0f);
+                Color sunColor = sunLook.SunColor;
                 bool forest = ZoneTracker.Current != Element.Neutral && u < 0.35f && !NearPortal();
                 if (forest) sunColor = Color.Lerp(sunColor, new Color(1f, 0.70f, 0.38f), 0.4f);
                 _sun.color = Color.Lerp(sunColor, MoonColor, d);
                 float canopy = forest ? 0.72f : 1f;
-                _sun.intensity = Mathf.Lerp(Mathf.Lerp(LowSunIntensity, NoonIntensity, elevation), MoonIntensity, d) * (1f - u) * weather.Sun * canopy;
-                _sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(sunPitch, MoonPitch, d), Mathf.Lerp(sunYaw, MoonYaw, d), 0f);
+                float nightT = _clock.Phase == DayPhase.Night ? _clock.Elapsed / Mathf.Max(0.01f, _clock.PhaseDuration(DayPhase.Night)) : 0.5f;
+                _sun.intensity = Mathf.Lerp(Mathf.Lerp(LowSunIntensity, NoonIntensity, elevation) * sunLook.SunScale, LightGrade.MoonIntensity(nightT), d) * (1f - u) * weather.Sun * canopy;
+                LastMoon = LightGrade.MoonIntensity(nightT);
+                _sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(sunPitch, LightGrade.MoonPitch(nightT), d), Mathf.Lerp(sunYaw, MoonYaw + (nightT - 0.5f) * 60f, d), 0f);
             }
 
             // How low the sun is, 1 at sunrise and sunset, 0 around midday.
@@ -272,6 +279,10 @@ namespace Chopper.World
                 equatorAmbient = Color.Lerp(equatorAmbient, new Color(0.28f, 0.36f, 0.52f), 0.7f);
                 groundAmbient = Color.Lerp(groundAmbient, new Color(0.46f, 0.30f, 0.16f), 0.45f);
             }
+            float floorWeight = d * (1f - u);
+            skyAmbient = LightGrade.AtLeast(skyAmbient, LightGrade.NightAmbientFloor, floorWeight);
+            equatorAmbient = LightGrade.AtLeast(equatorAmbient, LightGrade.NightEquatorFloor, floorWeight);
+            groundAmbient = LightGrade.AtLeast(groundAmbient, LightGrade.NightGroundFloor, floorWeight);
             RenderSettings.ambientSkyColor = skyAmbient * weather.Ambient;
             RenderSettings.ambientEquatorColor = equatorAmbient * weather.Ambient;
             RenderSettings.ambientGroundColor = groundAmbient * weather.Ambient;
@@ -311,10 +322,26 @@ namespace Chopper.World
                 _grade.shadows.value = inForest ? new Vector4(0.70f, 0.80f, 1.16f, -0.04f) : new Vector4(0.84f, 0.92f, 1.12f, -0.03f);
                 _grade.highlights.value = inForest ? new Vector4(1.28f, 0.94f, 0.55f, 0.18f) : new Vector4(1.18f, 1.02f, 0.80f, 0.08f);
             }
+            GradeLook look = LightGrade.For(ZoneTracker.Current, dayT, lowSun, d);
+            LastGrade = look;
+            if (_split != null)
+            {
+                _split.shadows.Override(look.Shadows);
+                _split.highlights.Override(look.Highlights);
+                _split.balance.Override(look.Balance);
+            }
+            if (_colorAdjustments != null)
+            {
+                _colorAdjustments.contrast.value = look.Contrast * (1f - u);
+                _colorAdjustments.saturation.value += look.Saturation - Mathf.Lerp(DaySaturation, NightSaturation, d);
+                _colorAdjustments.postExposure.value += look.Exposure * (1f - u) + LightGrade.AcesLift;
+            }
             ApplyShafts(inForest, d);
         }
 
         public static float LastShaftStrength { get; private set; }
+        public static float LastFogDensity { get; private set; }
+        public static float LastMoon { get; private set; }
 
         private static bool NearPortal()
         {
@@ -332,6 +359,9 @@ namespace Chopper.World
             return false;
         }
 
+        public static bool HazeEnabled = false;
+        public static bool ShaftsEnabled = false;
+
         private void ApplyShafts(bool inForest, float darkness)
         {
             Camera cam = Camera.main;
@@ -348,9 +378,12 @@ namespace Chopper.World
                 float above = Mathf.Clamp01(toSun.y * 4f);
                 strength = ahead * above * Mathf.Lerp(0.95f, 0f, darkness) * (inForest ? 1f : 0.9f);
             }
+            bool indoors = cam != null && Hut.Instance != null && Hut.Instance.IsIndoors(cam.transform.position);
+            float atmosphere = Mathf.Max(AtmosphereRules.Strength, ShaftsEnabled || HazeEnabled ? 1f : 0f);
+            strength = AtmosphereRules.ShaftStrength(atmosphere, strength, indoors);
             Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, strength));
-            float hazeAmount = cam != null ? (1f - UndergroundBlend) * Mathf.Lerp(0.42f, 0.12f, darkness) * (inForest ? 0.7f : 1f) : 0f;
-            if (cam != null && Hut.Instance != null && Hut.Instance.IsIndoors(cam.transform.position)) { hazeAmount *= 0.12f; strength = 0f; Shader.SetGlobalVector("_ForestSunUV", new Vector4(sunUv.x, sunUv.y, ahead, 0f)); }
+            float hazeAmount = cam != null ? AtmosphereRules.FogDensity(atmosphere, darkness, inForest, indoors, UndergroundBlend) : 0f;
+            LastFogDensity = hazeAmount;
             float hazeLight = Mathf.Lerp(1f, 0.25f, darkness);
             Shader.SetGlobalVector("_ChopperHaze", new Vector4(0.0040f, cam != null ? cam.transform.position.y - 4f : 0f, hazeAmount, hazeLight));
             LastShaftStrength = strength;
@@ -364,6 +397,9 @@ namespace Chopper.World
             volume.profile.TryGet(out _colorAdjustments);
             volume.profile.TryGet(out _bloom);
             volume.profile.TryGet(out _grade);
+            if (!volume.profile.TryGet(out _split)) _split = volume.profile.Add<SplitToning>(true);
+            if (volume.profile.TryGet(out Tonemapping tonemapping)) tonemapping.mode.Override(TonemappingMode.ACES);
+            if (_bloom != null) _bloom.threshold.Override(LightGrade.BloomThreshold);
         }
     }
 }

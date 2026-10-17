@@ -322,17 +322,17 @@ namespace Chopper.World.Generation
                     {
                         if (!Solid(grid[x, y, z]) || grid[x, y + 1, z] != Empty || grid[x, y + 2, z] != Empty) continue;
                         int h = CaveShell.Hash(x * 7, y * 11, z * 5);
-                        if ((h % 17) != 0) continue;
+                        if ((h % 23) != 0) continue;
                         Vector3 top = min + new Vector3((x + 0.5f) * Cell, (y + 1f) * Cell, (z + 0.5f) * Cell);
-                        int count = 2 + (h % 3);
+                        int count = 4 + (h % 4);
                         for (int c = 0; c < count; c++)
                         {
                             int hc = CaveShell.Hash(h + c * 31, c, 9);
                             float ox = ((hc % 5) - 2) * 0.07f;
                             float oz = (((hc / 5) % 5) - 2) * 0.07f;
-                            int tall = 1 + (hc % 3);
+                            int tall = 2 + (hc % 4);
                             for (int k = 0; k < tall; k++)
-                                AddCube(verts, normals, colors, uvs, tris, top + new Vector3(ox, 0.05f + k * 0.1f, oz), 0.1f, shine);
+                                AddCube(verts, normals, colors, uvs, tris, top + new Vector3(ox, 0.06f + k * 0.11f, oz), 0.12f - k * 0.015f, shine);
                         }
                     }
                 }

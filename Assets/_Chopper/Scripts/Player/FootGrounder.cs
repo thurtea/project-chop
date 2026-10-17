@@ -19,6 +19,7 @@ namespace Chopper.Player
 
         private Transform _hips, _thighL, _calfL, _footL, _thighR, _calfR, _footR, _toesL, _toesR;
         private CharacterController _controller;
+        private PlayerMotor _motor;
         private float _ankle = -1f;
         private float _hip;
         private int _calib;
@@ -87,6 +88,8 @@ namespace Chopper.Player
         private void LateUpdate()
         {
             if (!Ready && !Find()) { enabled = false; return; }
+            if (_motor == null) _motor = GetComponentInParent<PlayerMotor>();
+            if (_motor != null && _motor.IsClimbing) return;
             float baseY = transform.position.y;
             if (_calib < 40)
             {

@@ -29,9 +29,17 @@ namespace Chopper.Core
         // Mining finds come after the fish: FirstFind + k is find kind k (MiningRules.Kinds of them).
         public static int FirstFind => (int)ItemKind.FirstFish + FishingRules.Kinds;
 
-        public static int Count => FirstFind + MiningRules.Kinds;
+        public static int Boat => FirstFind + MiningRules.Kinds;
 
-        public static bool IsFind(int kind) => kind >= FirstFind && kind < Count;
+        public static int SharkRod => Boat + 1;
+
+        public static int Count => SharkRod + 1;
+
+        public static bool IsBoat(int kind) => kind == Boat;
+
+        public static bool IsSharkRod(int kind) => kind == SharkRod;
+
+        public static bool IsFind(int kind) => kind >= FirstFind && kind < Boat;
 
         public static int Find(MineFindKind kind) => FirstFind + (int)kind;
 

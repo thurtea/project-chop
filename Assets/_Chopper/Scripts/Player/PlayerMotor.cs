@@ -87,8 +87,12 @@ namespace Chopper.Player
         public void DebugSetCrouch(bool crouch) => _crouchToggled = crouch;
 #endif
         public bool IsSwimming => _swimming;
+        private PlayerBoat _boatSeat;
+        public bool Seated => (_boatSeat != null || (_boatSeat = GetComponent<PlayerBoat>()) != null) && _boatSeat.Seated;
+        public bool StowsTools => _swimming || Seated;
         private bool _climbing;
         public bool IsClimbing => _climbing;
+        public float ClimbPhase { get; private set; }
 
         // True while sprint is toggled on (owner only; others infer it from speed).
         public bool IsSprinting => IsOwner && _sprintToggled;
@@ -369,12 +373,17 @@ namespace Chopper.Player
                 _verticalVelocity -= _config.PlayerGravity * Time.deltaTime;
             }
 
-            bool onLadder = Ladder.At(transform.position + Vector3.up * 0.4f, out Vector3 ladderIn, out float ladderTop);
-            _climbing = !swimming && onLadder;
+            bool onLadder = Ladder.At(transform.position + Vector3.up * 0.4f, out Vector3 ladderIn, out float ladderTop, out Vector3 ladderRung);
+            bool wasClimbing = _climbing;
+            _climbing = !swimming && onLadder && Ladder.Mounts(_climbing, direction, ladderIn);
+            if (_climbing && wasClimbing && Ladder.Dismounts(_controller.isGrounded, direction, ladderIn)) _climbing = false;
+            bool topOut = false;
             if (_climbing)
             {
                 _verticalVelocity = Ladder.Climb(direction, ladderIn);
                 _airJumpsLeft = AirJumps;
+                ClimbPhase += Mathf.Abs(_verticalVelocity) * Time.deltaTime * 2.2f;
+                topOut = transform.position.y > ladderTop - 0.8f && Vector3.Dot(direction, ladderIn) > 0.3f;
             }
 
             // Weight: ramp horizontal velocity toward the target instead of setting it instantly.
@@ -405,6 +414,12 @@ namespace Chopper.Player
                 _horizontalVelocity = _rollDirection * _config.RollSpeed * Mathf.Lerp(0.35f, 1f, left);
             }
 
+            if (_climbing)
+            {
+                Vector3 snap = ladderRung - ladderIn * 0.4f - transform.position;
+                snap.y = 0f;
+                _horizontalVelocity = topOut ? ladderIn * 2.4f : Vector3.ClampMagnitude(snap * 8f, 2.5f);
+            }
             Vector3 velocity = _horizontalVelocity;
             if (downhill != Vector3.zero)
             {
@@ -414,10 +429,16 @@ namespace Chopper.Player
                 velocity += downhill * SteepSlideSpeed;
             }
             velocity.y = _verticalVelocity;
+            Vector3 before = transform.position;
             _controller.Move(velocity * Time.deltaTime);
+            if (!_climbing && !rolling) AutoClimb(before, new Vector3(velocity.x, 0f, velocity.z), direction, swimming || wading || waterDepth > 0.05f);
             TrackFall(swimming);
 
-            if (rolling)
+            if (_climbing)
+            {
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(ladderIn, Vector3.up), 720f * Time.deltaTime);
+            }
+            else if (rolling)
             {
                 transform.rotation = Quaternion.LookRotation(_rollDirection, Vector3.up);
             }
@@ -457,6 +478,32 @@ namespace Chopper.Player
         }
 
         private const float RainSoakThreshold = 0.3f;
+
+        private float _nextAutoClimb;
+        public int AutoClimbCount { get; private set; }
+
+        private void AutoClimb(Vector3 before, Vector3 wanted, Vector3 input, bool swimming)
+        {
+            if (Time.time < _nextAutoClimb || input.sqrMagnitude <= TurnInputThreshold) return;
+            Vector3 moved = transform.position - before;
+            moved.y = 0f;
+            float want = wanted.magnitude * Time.deltaTime;
+            if (want < 0.002f || moved.magnitude > want * 0.4f) return;
+            if (!swimming && !_controller.isGrounded && _verticalVelocity > 0.5f) return;
+            float maxRise = MoveRules.MaxAutoClimb(swimming);
+            Vector3 dir = input.normalized;
+            Vector3 feet = transform.position;
+            if (MoveRules.FindLedge(feet, dir, _controller.radius, _controller.height, maxRise, transform, out Vector3 top))
+            {
+                _controller.enabled = false;
+                transform.position = top;
+                _controller.enabled = true;
+                _verticalVelocity = 0f;
+                _mantleUntil = 0f;
+                _nextAutoClimb = Time.time + 0.12f;
+                AutoClimbCount++;
+            }
+        }
 
         // A bank block just ahead (past the capsule's front) that is above the feet but low enough to pull up onto.
         private bool BankAhead(Vector3 direction, float surfaceY) => LedgeAhead(direction, surfaceY, SwimClimbMaxAboveSurface);

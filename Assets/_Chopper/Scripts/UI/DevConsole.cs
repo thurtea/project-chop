@@ -25,6 +25,7 @@ namespace Chopper.UI
         private const int DefaultWood = 100;
         private const int DefaultItems = 10;
         private const int DefaultEnemies = 5;
+        private const int DefaultWave = 6;
         private const float TeleportClearance = 0.3f;
 
         private readonly GameConfig _config;
@@ -39,6 +40,7 @@ namespace Chopper.UI
             Add("pos", "pos", "Where you are: position, zone and ground height.", false, _ => Position());
             Add("seed", "seed", "The world seed.", false, _ => Print($"Seed {WorldSession.Seed}"));
             Add("explore", "explore", "Reveal the whole map.", false, _ => { if (GameUi.Map != null) GameUi.Map.RevealAll(); Print("Map revealed"); });
+            Add("atmosphere", "atmosphere [0-1]", "Fog and sun shafts strength, 0 off and 1 full (no number shows it).", false, a => { if (a.Length > 0 && float.TryParse(a[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v)) Chopper.Core.AtmosphereRules.Strength = v; Print($"Atmosphere {Chopper.Core.AtmosphereRules.Strength:0.00}"); });
             Add("fps", "fps", "Show or hide the frame rate (average, and the slowest frames) in the top right corner.", false, _ => { GameUi.ShowFps = !GameUi.ShowFps; Print("Frame rate " + (GameUi.ShowFps ? "shown" : "hidden")); });
             Add("hud", "hud", "Hide or show the HUD, for screenshots.", false, _ => { GameUi.HudHidden = !GameUi.HudHidden; Print("HUD " + (GameUi.HudHidden ? "hidden" : "shown")); });
             Add("crypts", "crypts", "Every crypt: number, zone, tier and door position.", false, _ => Crypts());
@@ -54,11 +56,16 @@ namespace Chopper.UI
             Add("iron", "iron [n]", "Crypt iron.", true, a => Send(DevCommand.GiveIron, Count(a, DefaultItems)));
             Add("shards", "shards [n]", "Rune shards.", true, a => Send(DevCommand.GiveShards, Count(a, DefaultItems)));
             Add("axe", "axe", "A whole new axe in the hand.", true, _ => Send(DevCommand.GiveAxe, 0));
+            Add("boat", "boat", "A little boat in the bag (B on the ocean deploys it, tap B by it to board or leave, hold B to pick it up).", true, _ => { if (Chopper.Player.PlayerBoat.Local != null) { Chopper.Player.PlayerBoat.Local.RequestDevBoat(); Print("Boat given"); } });
+            Add("sharkrod", "sharkrod", "The shark rod (its real unlock is undecided). Rod key in the boat at sea casts for sharks.", true, _ => { if (Chopper.Player.PlayerBoat.Local != null) { Chopper.Player.PlayerBoat.Local.RequestSharkRod(); Print("Shark rod given"); } });
             Add("day", "day", "Skip to day.", true, _ => Send(DevCommand.ToDay, 0));
             Add("night", "night", "Skip to night.", true, _ => Send(DevCommand.ToNight, 0));
             Add("next", "next", "Skip to the next part of the day.", true, _ => Send(DevCommand.NextPhase, 0));
             Add("repair", "repair", "Repair the hut.", true, _ => Send(DevCommand.RepairHut, 0));
-            Add("spawn", "spawn [n]", "Awake enemies around you (5 if no number).", true, a => Send(DevCommand.SpawnEnemies, Count(a, DefaultEnemies)));
+            Add("spawn", "spawn [earth|wind|fire|water|plain] [n]", "Awake tree enemies around you (5 random ones if nothing is given).", true, SpawnCommand);
+            Add("killall", "killall", "Remove every tree enemy in the world.", true, _ => Send(DevCommand.KillAll, 0));
+            Add("wave", "wave [n]", "A night wave rises around the hut and comes for it (6 if no number).", true, a => Send(DevCommand.Wave, Count(a, DefaultWave)));
+            Add("time", "time <0-24>", "Set the clock to an hour (6 sunrise, 12 noon, 19 dusk, 22 night).", true, TimeCommand);
             Add("boss", "boss", "A grove warden rises in front of you.", true, _ => Send(DevCommand.SpawnBoss, 0));
             Add("boon", "boon", "A random boon for everyone.", true, _ => Send(DevCommand.RandomBoon, 0));
             Add("rod", "rod <rod 0-3> [lure 0-3]", "Set your fishing rod and lure.", true, SetRod);
@@ -190,6 +197,60 @@ namespace Chopper.UI
         {
             Tools().Request(command, value);
             Print("Done.");
+        }
+
+        private void SpawnCommand(string[] args)
+        {
+            if (args.Length >= 2 && TryParseElement(args[1], out Element element))
+            {
+                int count = Count(new[] { args[0], args.Length >= 3 ? args[2] : string.Empty }, DefaultEnemies);
+                Send(DevCommand.SpawnElement, EncodeSpawn(element, count));
+                return;
+            }
+            Send(DevCommand.SpawnEnemies, Count(args, DefaultEnemies));
+        }
+
+        private void TimeCommand(string[] args)
+        {
+            if (args.Length < 2 || !TryParseHour(args[1], out float hour)) { Print("Usage: time <0-24>"); return; }
+            Send(DevCommand.SetTime, Mathf.RoundToInt(hour * 100f));
+        }
+
+        public static bool TryParseElement(string word, out Element element)
+        {
+            switch ((word ?? string.Empty).Trim().ToLowerInvariant())
+            {
+                case "earth": element = Element.Earth; return true;
+                case "wind": element = Element.Wind; return true;
+                case "fire": element = Element.Fire; return true;
+                case "water": element = Element.Water; return true;
+                case "plain": case "neutral": case "none": element = Element.Neutral; return true;
+            }
+            element = Element.Neutral;
+            return false;
+        }
+
+        public static bool TryParseHour(string text, out float hour)
+        {
+            if (!float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out hour) || hour < 0f || hour > 24f) { hour = 0f; return false; }
+            return true;
+        }
+
+        public static int EncodeSpawn(Element element, int count) => (int)element * 1000 + Mathf.Clamp(count, 1, 999);
+
+        public static void DecodeSpawn(int value, out Element element, out int count)
+        {
+            element = (Element)Mathf.Clamp(value / 1000, 0, 4);
+            count = Mathf.Clamp(value % 1000, 1, 999);
+        }
+
+        public static void HourToClock(float hour, out DayPhase phase, out float fraction)
+        {
+            hour = ((hour % 24f) + 24f) % 24f;
+            if (hour >= 6f && hour < 18f) { phase = DayPhase.Day; fraction = (hour - 6f) / 12f; }
+            else if (hour >= 18f && hour < 20f) { phase = DayPhase.Dusk; fraction = (hour - 18f) / 2f; }
+            else if (hour >= 4f && hour < 6f) { phase = DayPhase.Dawn; fraction = (hour - 4f) / 2f; }
+            else { phase = DayPhase.Night; fraction = ((hour >= 20f ? hour - 20f : hour + 4f)) / 8f; }
         }
 
         private void Help()

@@ -33,7 +33,7 @@ Shader "Hidden/Chopper/ForestShafts"
                 #endif
                 if (sky) d = 260.0;
                 float height = sky ? 30.0 : max(world.y - _ChopperHaze.y, 0.0);
-                float thick = (1.0 - exp(-max(d - 42.0, 0.0) * _ChopperHaze.x)) * exp(-height * 0.035);
+                float thick = (1.0 - exp(-max(d - 60.0, 0.0) * _ChopperHaze.x)) * exp(-height * 0.035);
                 float2 sunDelta = _ForestSunUV.xy - uv;
                 float toward = saturate(1.0 - length(sunDelta) * 0.8) * _ForestSunUV.z;
                 float3 cool = float3(0.60, 0.68, 0.78);
@@ -77,9 +77,9 @@ Shader "Hidden/Chopper/ForestShafts"
                 accum /= 24.0;
                 float radial = saturate(1.0 - dist * 0.9);
                 radial = radial * radial * (3.0 - 2.0 * radial);
-                color.rgb += float3(1.15, 0.78, 0.40) * accum * radial * strength * 2.4;
+                color.rgb += float3(1.15, 0.78, 0.40) * accum * radial * strength * 1.4;
                 float low = saturate((0.58 - uv.y) * 1.35) * strength;
-                color.rgb = lerp(color.rgb, color.rgb * float3(0.45, 0.58, 0.72), low * 0.30);
+                color.rgb = lerp(color.rgb, color.rgb * float3(0.45, 0.58, 0.72), low * 0.18);
                 return color;
             }
             ENDHLSL

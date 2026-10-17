@@ -256,6 +256,13 @@ namespace Chopper.World.Saving
                 record.FishRecords = fishing.CopyRecords();
                 record.Fish = fishing.FishPacked;
                 record.FishXp = fishing.Xp;
+            record.FishLanded = fishing.FishLanded;
+            Chopper.Player.PlayerBoat saveBoat = fishing.GetComponent<Chopper.Player.PlayerBoat>();
+            if (saveBoat != null)
+            {
+                record.SharkRod = saveBoat.HasSharkRod;
+                record.Boats = saveBoat.Boats + (saveBoat.BoatOut ? 1 : 0);
+            }
                 record.RodWear = fishing.RodWear;
                 record.FishSkill = fishing.FishSkill;
             }
@@ -379,6 +386,9 @@ namespace Chopper.World.Saving
                 fishing.ServerLoadRecords(record.FishRecords);
                 fishing.ServerLoadRodWear(record.RodWear);
                 fishing.ServerLoadSkill(record.FishSkill);
+            fishing.ServerLoadLanded(record.FishLanded);
+            Chopper.Player.PlayerBoat loadBoat = fishing.GetComponent<Chopper.Player.PlayerBoat>();
+            if (loadBoat != null) loadBoat.ServerLoad(record.Boats, record.SharkRod);
             }
             PlayerMining mining = player.GetComponent<PlayerMining>();
             if (mining != null)

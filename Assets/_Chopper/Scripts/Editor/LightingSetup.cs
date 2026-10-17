@@ -16,7 +16,7 @@ namespace Chopper.Editor
         private const string RenderPipelineAssetPath = "Assets/Settings/PC_RPAsset.asset";
         private const string ProfilePath = "Assets/_Chopper/World/Chopper_Lighting.asset";
 
-        private const float ShadowDistance = 140f;
+        private const float ShadowDistance = 120f;
         private const int ShadowResolution = 4096;
         private const int MsaaSamples = 4;
 
@@ -34,6 +34,7 @@ namespace Chopper.Editor
             }
 
             asset.shadowDistance = ShadowDistance;
+            QualitySettings.shadowDistance = ShadowDistance;
             asset.shadowCascadeCount = 4;
             asset.cascade4Split = new Vector3(0.06f, 0.18f, 0.45f);
             asset.mainLightShadowmapResolution = ShadowResolution;
@@ -45,6 +46,8 @@ namespace Chopper.Editor
             asset.supportsHDR = true;
             EditorUtility.SetDirty(asset);
             ConfigureAmbientOcclusion();
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[LightingSetup] RESULT shadow distance {asset.shadowDistance}, cascades {asset.shadowCascadeCount}");
         }
 
         // Contact shadows in creases (under trees, along walls, around rocks) give the world weight.
@@ -64,6 +67,11 @@ namespace Chopper.Editor
                     SerializedProperty radius = settings.FindPropertyRelative("Radius");
                     if (intensity != null) intensity.floatValue = 0.9f;
                     if (radius != null) radius.floatValue = 0.4f;
+                    SerializedProperty downsample = settings.FindPropertyRelative("Downsample");
+                    if (downsample != null) downsample.boolValue = true;
+                    SerializedProperty samples = settings.FindPropertyRelative("Samples");
+                    if (samples != null) samples.intValue = 1;
+                    Debug.Log($"[LightingSetup] SSAO downsample {(downsample != null ? downsample.boolValue.ToString() : "missing")}, samples {(samples != null ? samples.enumNames[samples.enumValueIndex] : "missing")}");
                 }
                 serialized.ApplyModifiedPropertiesWithoutUndo();
                 EditorUtility.SetDirty(feature);

@@ -66,6 +66,7 @@ namespace Chopper.Enemies
 
         private readonly SyncVar<int> _state = new SyncVar<int>();
         private readonly SyncVar<int> _element = new SyncVar<int>();
+        private readonly SyncVar<int> _weaponRoll = new SyncVar<int>();
         private readonly SyncVar<int> _size = new SyncVar<int>();
         private readonly SyncVar<bool> _boss = new SyncVar<bool>();
         private readonly SyncVar<float> _bornDays = new SyncVar<float>();
@@ -164,6 +165,7 @@ namespace Chopper.Enemies
 
         private void Awake()
         {
+            ElementAura.Attach(gameObject, () => Element, () => _palette != null && Element != Element.Neutral ? _palette.GetBaseColor(Element) : Color.white);
             _agent = GetComponent<NavMeshAgent>();
         }
 
@@ -188,6 +190,7 @@ namespace Chopper.Enemies
         {
             base.OnStartServer();
             _all.Add(this);
+            _weaponRoll.Value = UnityEngine.Random.Range(0, 4);
             if (_agent != null) _agent.enabled = false;
         }
 
@@ -419,12 +422,19 @@ namespace Chopper.Enemies
             if (PlayerCamera.Local != null) PlayerCamera.Local.AddShake(0.05f);
         }
 
-        private static int WeaponIndex(Element element)
+        public EnemyWeapon Weapon => EnemyWeaponRules.Pick(Element, _weaponRoll.Value);
+
+        public WeaponProfile WeaponProfile => EnemyWeaponRules.Profile(Weapon);
+
+        private int WeaponIndex(Element element) => WeaponProfile.Take;
+
+        private void OnWeaponRollChanged(int previous, int next, bool asServer)
         {
-            if (element == Element.Fire) return 1;
-            if (element == Element.Water) return 2;
-            if (element == Element.Wind) return 3;
-            return 0;
+            if (asServer == IsServerInitialized && previous != next && _model != null)
+            {
+                ShowElementCrown(_model.gameObject);
+                if (_draugr != null) _draugr.SetInteger(WeaponParam, WeaponIndex(Element));
+            }
         }
 
         [ObserversRpc]
@@ -514,7 +524,7 @@ namespace Chopper.Enemies
             {
                 if (State == TreantState.Sapling && !IsBoss) return SaplingHitRadius;
                 float height = CurrentHeight();
-                return IsBoss ? Mathf.Max(SaplingHitRadius, height * BossTrunkFraction) : _config.TreantHitRadiusBase * (1f + (int)Size * 0.5f);
+                return IsBoss ? Mathf.Max(SaplingHitRadius, height * BossTrunkFraction) : _config.TreantHitRadiusBase * (1f + (int)Size * 0.5f) * CharacterSizes.ElementalGrowth(Size);
             }
         }
 
@@ -525,6 +535,7 @@ namespace Chopper.Enemies
             base.OnStartClient();
             _state.OnChange += OnStateChanged;
             _element.OnChange += OnElementChanged;
+            _weaponRoll.OnChange += OnWeaponRollChanged;
             _guardian.OnChange += OnGuardianChanged;
             _wardenPhase.OnChange += OnWardenPhaseChanged;
             _shielded.OnChange += OnShieldChanged;
@@ -539,6 +550,7 @@ namespace Chopper.Enemies
             base.OnStopClient();
             _state.OnChange -= OnStateChanged;
             _element.OnChange -= OnElementChanged;
+            _weaponRoll.OnChange -= OnWeaponRollChanged;
             _guardian.OnChange -= OnGuardianChanged;
             _wardenPhase.OnChange -= OnWardenPhaseChanged;
             _shielded.OnChange -= OnShieldChanged;
@@ -711,7 +723,9 @@ namespace Chopper.Enemies
             foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
             {
                 string name = renderer.gameObject.name;
-                if (name.StartsWith("Leaves"))
+                if (name.StartsWith("Weapon0"))
+                    renderer.enabled = element == (int)Element.Neutral && name.StartsWith(EnemyWeaponRules.GroupName(Weapon));
+                else if (name.StartsWith("Leaves"))
                     renderer.enabled = name.StartsWith(keep);
                 else if (name.StartsWith("Bark"))
                     renderer.enabled = !fullBody;
@@ -930,12 +944,14 @@ namespace Chopper.Enemies
             }
 
             // Wind up: rear back and lean away before the swing, so the player can read it.
-            float windup = (Time.time - _windupStart) / Mathf.Max(0.1f, _config.TreantWindupSeconds);
+            WeaponProfile weapon = WeaponProfile;
+            float windup = (Time.time - _windupStart) / Mathf.Max(0.1f, _config.TreantWindupSeconds * (IsBoss ? 1f : weapon.Windup));
             if (windup >= 0f && windup < 1f)
             {
                 float ease = Mathf.Sin(windup * Mathf.PI * 0.5f);
-                local.z -= 0.5f * ease * (1f + (int)Size * 0.2f);
-                _visualRoot.localRotation = Quaternion.Euler(-16f * ease, 0f, 0f) * _visualRoot.localRotation;
+                float lean = IsBoss ? 1f : weapon.LeanBack;
+                local.z -= 0.5f * ease * lean * (1f + (int)Size * 0.2f);
+                _visualRoot.localRotation = Quaternion.Euler(-16f * ease * lean, -(IsBoss ? 0f : weapon.SideTwist) * ease, 0f) * _visualRoot.localRotation;
                 squash.y *= 1f + 0.06f * ease;
             }
             _visualRoot.localScale = squash;

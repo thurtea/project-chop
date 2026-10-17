@@ -67,13 +67,13 @@ Work in order. Finish one item's proof before starting the next. Do not stop whi
 
 3. Finish the portals vs cave-chopper-concept-3.0.jpeg: craggy arch (not a smooth dome), no pale strips, a readable timber cart, chunky crystals, rock in grey-blue daylight, moss on the crag. Fix the hsh -> h01 bug in the other Blender scripts. Then cave interiors: stepped relief, tall cliffs, uneven floors, more and smaller crystals, lit frames, warm lantern pools.
 
-4. Leftover items 3-6: soften hard block edges; ground items vs the sheets; fishing toward New World x Ocarina of Time (thicker line arc, arcs readable at distance, clear underwater view); pick and rod first-class beside the axe.
+4. Leftover items 3-6: soften hard block edges; ground items vs the sheets; fishing toward New World x Ocarina of Time (thicker line arc, arcs readable at distance, clear underwater view); pick and rod first-class beside the axe. Fishing additions (t43u): while reeling, hooked fish occasionally leap out of the water (Ocarina of Time style); when the fish runs and pulls line back out, the camera zooms in and cuts to an underwater view of the fish, then returns to the normal view. The zoom is not designed yet: build a first version for the human to judge.
 
 5. Enemy weapon-arm archetypes per zone (axe / sword / mace / spear, each its own attack: sword sweep, spear thrust, mace overhead smash). Enemies read bigger. Enemy only.
 
 6. Final tours: Feet, Concept, House, Mine, Crypt, Zones, Gear, Shafts, Fishing, Fly, Logging, MoveTest, Arrival on one fresh build; open the shots and list what is still off.
 
-7. Craftable little boat for the ocean and the shark fishing minigame (the shark tows the boat; tire it out, then reel it in). Ask the human whether the boat needs the workbench.
+7. Craftable little boat for the ocean and the shark fishing minigame (the shark tows the boat; tire it out, then reel it in). Human answers (t39u-t41u): the boat is crafted at the workbench, carried in the inventory, deployed only on ocean water, and picked back up. Mining, fishing and the shark fight all use the SAME existing arc UI above the target, with shared arc code: mining is timing/rhythm, fishing stays as it is, and the shark is a Tony Hawk-style balance phase while it tows the boat (keep the arc centred to drain the shark stamina bar; drifting too far left or right loses it), then the normal fishing minigame reels it in. Thresholds go in config. Sharks need a special shark rod obtained later like the armour; the unlock method is a config placeholder for the human to decide.
 
 8. Refresh the website gallery "In game" shots from the final tours (Website/images/shots/, 1600x900 JPG). Skip sheets, composites, failed and "You died!" shots. Landing page stays logo + banner. No deploy.
 </what_to_do>
@@ -99,3 +99,12 @@ Check that the Unity editor is closed and that no -batchmode Unity.exe is runnin
 </start>
 
 </prompt>
+
+## Item 4 fishing spec (t43u)
+- While reeling, a hooked fish now and then leaps out of the water (Ocarina of Time style): about every 3.5-7 s while it pulls or thrashes, a 0.8 s arc peaking at 1.1 m, with a splash out and in. Tunables in Core/FishShow.cs.
+- When the fish runs and pulls the line back out, the camera cuts for 1.4 s to an underwater view beside the fish (teal tint, float and arcs hidden), then returns. First version, for the user to judge.
+- Fishing arcs are small (about a third of the first size) and grow at most 1.4x with distance; the line grows at most 1.6x.
+- Swimming: nothing in the hands. Entering water puts away the axe, rod, torch and build hammer; leaving it brings back what was held; tools can't be drawn while swimming.
+
+## Governing look spec
+Chopper/Docs/art-direction.md (t50u) governs the look: chunky voxel-adjacent low-poly, bevelled silhouettes, flat hand-painted textures, subtle haze and warm/cool grade, organic water, soft clouds, restrained god-rays. Work block a-e runs after the current polish round and before item 5 content.

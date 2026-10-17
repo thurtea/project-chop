@@ -339,6 +339,7 @@ namespace Chopper.World.Generation
         {
             var root = new GameObject("Rocks");
             root.transform.SetParent(transform, false);
+            root.AddComponent<Chopper.World.ScatterCuller>().Radius = 0.6f;
             foreach (RockSpot rock in rocks)
             {
                 GameObject model = _assets.RockModels[rock.Model];
@@ -505,9 +506,10 @@ namespace Chopper.World.Generation
             }
             if (cartPrefab != null)
             {
-                Vector3 p = baseAt + forward * 2.2f + (turn * Vector3.right) * 2.4f;
+                Vector3 p = baseAt + forward * 4.2f + (turn * Vector3.right) * 3.0f;
                 p.y = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(p) + 0.12f : p.y;
-                GameObject cart = Object.Instantiate(cartPrefab, p, turn * Quaternion.Euler(0f, 4f, 0f), mine);
+                GameObject cart = Object.Instantiate(cartPrefab, p, turn * Quaternion.Euler(0f, 28f, 0f), mine);
+                cart.transform.localScale *= 1.4f;
                 cart.name = "PortalCart";
                 Bounds cb = RendererBounds(cart);
                 cart.transform.position += new Vector3(p.x - cb.center.x, p.y + 0.1f - cb.min.y, p.z - cb.center.z);
@@ -591,8 +593,8 @@ namespace Chopper.World.Generation
         }
         // Warmer and tighter than the old flat pools (was 1, 0.62, 0.3 at range 13, intensity 4.5).
         private static readonly Color LanternColor = new Color(1f, 0.62f, 0.22f);
-        private const float LanternRange = 11f;
-        private const float LanternIntensity = 4.6f;
+        private const float LanternRange = 14f;
+        private const float LanternIntensity = 5.6f;
         private static readonly Color EmberColor = new Color(1f, 0.32f, 0.06f);
 
         private void BuildCrypts(WorldGen gen, bool graphics)
@@ -650,6 +652,7 @@ namespace Chopper.World.Generation
                     {
                         var shell = new GameObject($"Cave_{group}");
                         shell.transform.SetParent(root.transform, false);
+                        if (name == "Portal") shell.transform.localPosition += Vector3.down * 0.012f;
                         shell.AddComponent<MeshFilter>().sharedMesh = cave;
                         var shellRenderer = shell.AddComponent<MeshRenderer>();
                         shellRenderer.sharedMaterial = name == "Portal" ? PortalStoneMaterial() : CaveStoneMaterial();

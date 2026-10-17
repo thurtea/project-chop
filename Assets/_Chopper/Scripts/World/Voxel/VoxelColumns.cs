@@ -68,12 +68,38 @@ namespace Chopper.World.Voxel
                 for (int x = 0; x < Resolution; x++)
                 {
                     float wx = -WorldGen.HalfSize + x + 0.5f;
-                    float height = gen.HeightAt(wx, wz);
+                    float height = TerraceAt(gen, wx, wz, gen.HeightAt(wx, wz));
                     top[row + x] = (short)Mathf.Clamp(Mathf.RoundToInt(height / Step), -400, 400);
                     type[row + x] = (byte)Classify(gen, wx, wz, height);
                 }
             });
             return new VoxelColumns(top, type, Hash(top, type), (int)watch.ElapsedMilliseconds);
+        }
+
+        public static bool Terraces = true;
+        public const float TerraceStep = 1f;
+
+        public static float TerraceShape(float h, float wobble)
+        {
+            float lo = WorldGen.WaterHeight - 1f, hi = WorldGen.WaterHeight + 3f;
+            if (h < lo || h > hi) return h;
+            float fade = Mathf.Min(Mathf.InverseLerp(lo, lo + 0.5f, h), Mathf.InverseLerp(hi, hi - 0.5f, h));
+            float u = (h - WorldGen.WaterHeight) / TerraceStep + wobble;
+            float k = Mathf.Floor(u);
+            float f = u - k;
+            float t = (k + Mathf.Pow(f, 4f) - wobble) * TerraceStep + WorldGen.WaterHeight;
+            if (h >= WorldGen.WaterHeight) t = Mathf.Max(t, WorldGen.WaterHeight + 0.25f);
+            else t = Mathf.Min(t, WorldGen.WaterHeight - 0.25f);
+            return Mathf.Lerp(h, t, fade);
+        }
+
+        public static float TerraceAt(WorldGen gen, float x, float z, float h)
+        {
+            if (!Terraces || h < WorldGen.WaterHeight - 1f || h > WorldGen.WaterHeight + 3f) return h;
+            float r = Mathf.Sqrt(x * x + z * z);
+            if (r < WorldGen.BeachStartRadius - 10f && !gen.NearShore(new Vector2(x, z), 10f)) return h;
+            float wobble = (Mathf.PerlinNoise(x * 0.09f + 31.7f, z * 0.09f - 12.3f) - 0.5f) * 0.8f;
+            return TerraceShape(h, wobble);
         }
 
         static BlockType Classify(WorldGen gen, float x, float z, float height)

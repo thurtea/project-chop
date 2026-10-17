@@ -36,7 +36,19 @@ namespace Chopper.Core
     {
         public const int Torch = 0;
         public const int Bandage = 1;
-        public const int Count = 2;
+        public const int Boat = 2;
+        public const int SharkRod = 3;
+        public const int Count = 4;
+
+        public const int DefaultSharkRodFish = 10;
+
+        public static int FishToUnlock(int id, GameConfig config) =>
+            id == SharkRod ? (config != null ? config.SharkRodFishToUnlock : DefaultSharkRodFish) : 0;
+
+        public static bool Unlocked(int id, int fishLanded, GameConfig config) => fishLanded >= FishToUnlock(id, config);
+
+        public static string LockHint(int id, int fishLanded, GameConfig config) =>
+            Unlocked(id, fishLanded, config) ? string.Empty : "Land " + FishToUnlock(id, config) + " fish";
 
         public static Recipe Get(int id, GameConfig config)
         {
@@ -47,6 +59,27 @@ namespace Chopper.Core
                     {
                         Id = Torch, Name = "Torch", Output = ItemKind.Torch, Station = CraftStation.Workbench,
                         Inputs = new[] { new Ingredient(ItemKind.Wood, config != null ? config.TorchWoodCost : 3) }
+                    };
+                case SharkRod:
+                    return new Recipe
+                    {
+                        Id = SharkRod, Name = "Shark rod", Output = (ItemKind)ItemRules.SharkRod, Station = CraftStation.Workbench,
+                        Inputs = new[]
+                        {
+                            new Ingredient(ItemKind.Wood, config != null ? config.SharkRodWoodCost : 12),
+                            new Ingredient(ItemKind.Fiber, config != null ? config.SharkRodFiberCost : 8),
+                            new Ingredient(ItemKind.Iron, config != null ? config.SharkRodIronCost : 4)
+                        }
+                    };
+                case Boat:
+                    return new Recipe
+                    {
+                        Id = Boat, Name = "Little boat", Output = (ItemKind)ItemRules.Boat, Station = CraftStation.Workbench,
+                        Inputs = new[]
+                        {
+                            new Ingredient(ItemKind.Wood, config != null ? config.BoatWoodCost : 20),
+                            new Ingredient(ItemKind.Fiber, config != null ? config.BoatFiberCost : 6)
+                        }
                     };
                 default:
                     return new Recipe

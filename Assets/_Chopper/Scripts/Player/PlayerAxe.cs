@@ -229,7 +229,7 @@ namespace Chopper.Player
         private void ApplyAxeVisual()
         {
             _stowing = false;
-            bool inHand = _hasAxe.Value && _drawn.Value && !_stowed && !_miningStowed;
+            bool inHand = _hasAxe.Value && _drawn.Value && !_stowed && !_miningStowed && !_climbStowed;
             if (_axePivot != null) _axePivot.gameObject.SetActive(inHand);
             if (_backAxe != null) _backAxe.gameObject.SetActive(false);
             foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
@@ -249,12 +249,16 @@ namespace Chopper.Player
         public void RequestToggleDrawn()
         {
             if (!IsOwner || !HasAxe) return;
+            if (!IsDrawn && !SwimHolster.MayDraw(_motor != null && _motor.StowsTools)) return;
             ToggleDrawnServerRpc();
         }
 
         [ServerRpc]
         private void ToggleDrawnServerRpc() => _drawn.Value = !_drawn.Value;
 
+        private bool _swimHolstered;
+        private bool _climbStowed;
+        public bool SwimHolstered => _swimHolstered;
         private bool _stowed;
         // The Unequip key put the axe on the back, so pressing it again with empty hands takes it out (Valheim's hide).
         private bool _hiddenByUnequip;
@@ -320,6 +324,9 @@ namespace Chopper.Player
                 _hiddenByUnequip = false;
                 RequestToggleDrawn();
             }
+            bool climbing = _motor != null && _motor.IsClimbing;
+            if (climbing != _climbStowed) { _climbStowed = climbing; ApplyAxeVisual(); }
+            if (HasAxe && SwimHolster.Step(_motor != null && _motor.StowsTools, IsDrawn, ref _swimHolstered)) RequestToggleDrawn();
             if (Keybinds.WasPressed(KeyAction.Unequip) && !UiState.GameplayBlocked) Unequip();
             PlayerInventory inventory = PlayerInventory.Local;
             _handsBusyLastFrame = (inventory != null && inventory.TorchLit) || (_fishing != null && _fishing.Busy) || PlayerBuilder.LocalBuilding;

@@ -180,6 +180,7 @@ namespace Chopper.UI
                 () => UserSettings.FrameCap = (UserSettings.FrameCap + 1) % UserSettings.FrameCapNames.Length, x, -316f);
             ToggleRow(page, "Look", () => UserSettings.PixelLook ? "Pixel (low resolution)" : "Smooth (full resolution)", () => UserSettings.PixelLook = !UserSettings.PixelLook, x, -382f);
             Hint(page, "Click an option to step to the next value. Pixel look ignores the render scale. For smooth recordings, cap the frame rate at the recording's rate (60).", -446f);
+            SliderRow(page, "Atmosphere", 0f, 1f, Chopper.Core.AtmosphereRules.Strength, v => Chopper.Core.AtmosphereRules.Strength = v, "P0", x, -500f);
         }
 
         // ---------- Keyboard and mouse ----------

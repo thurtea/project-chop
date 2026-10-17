@@ -11,7 +11,7 @@ namespace Chopper.Tests.EditMode
             foreach (TreeSize size in new[] { TreeSize.Small, TreeSize.Medium, TreeSize.Large })
             {
                 Assert.That(CharacterSizes.Draugr(size), Is.InRange(CharacterSizes.Player * 0.9f, CharacterSizes.Player * 1.15f));
-                Assert.That(CharacterSizes.Elemental(size), Is.InRange(CharacterSizes.Player * 0.9f, CharacterSizes.Player * 1.8f));
+                Assert.That(CharacterSizes.Elemental(size), Is.InRange(CharacterSizes.Player * 1.1f, CharacterSizes.Player * 2.1f));
             }
         }
 

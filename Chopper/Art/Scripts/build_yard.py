@@ -17,7 +17,7 @@ def pond_cells():
             r = ((ix + 0.5) ** 2 / 324.0 + (iy + 0.5) ** 2 / 169.0) ** 0.5
             if r > 1.0:
                 continue
-            n = kit.hsh(ix, iy)
+            n = (kit.hsh(ix, iy) % 1009) / 1009.0
             if r > 0.78:
                 top = 2 + (1 if n > 0.55 else 0)
                 for iz in range(0, top):
@@ -52,7 +52,7 @@ def board_cells():
             if seam or cut:
                 out[(ix, iy, 0)] = kit.FRAME
                 continue
-            n = kit.hsh(board, iy // 8)
+            n = (kit.hsh(board, iy // 8) % 1009) / 1009.0
             tone = kit.PLANK if n < 0.4 else (kit.LOG if n < 0.75 else kit.LOG_DARK)
             out[(ix, iy, 0)] = tone
             if (ix + iy * 3 + board) % 9 == 0:

@@ -128,6 +128,7 @@ namespace Chopper.World.Building
             foreach (KeyValuePair<int, PieceView> pair in _views) if (!_seen.Contains(pair.Key)) _gone.Add(pair.Key);
             foreach (int id in _gone)
             {
+                Chopper.World.ScatterMask.Clear(_views[id]);
                 if (_views[id] != null) Destroy(_views[id].gameObject);
                 _views.Remove(id);
             }
@@ -142,6 +143,7 @@ namespace Chopper.World.Building
             PieceView view = copy.GetComponent<PieceView>();
             if (view == null) view = copy.AddComponent<PieceView>();
             view.Bind(state.Id, state.Kind);
+            Chopper.World.ScatterMask.SetFrom(view, copy);
             return view;
         }
 

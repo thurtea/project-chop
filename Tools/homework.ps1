@@ -23,6 +23,28 @@ $Logs = Join-Path $Repo "Logs\homework"
 New-Item -ItemType Directory -Force $Logs | Out-Null
 $Stamp = Get-Date -Format "MMdd-HHmm"
 
+function Sync-Exports {
+    $export = Join-Path $Repo "Chopper\Art\Export"
+    $art = Join-Path $Repo "Assets\_Chopper\Art"
+    if (-not (Test-Path $export) -or -not (Test-Path $art)) { return }
+    $mark = Join-Path $Repo "Tools\export-sync-since.txt"
+    if (-not (Test-Path $mark)) { Set-Content $mark "2026-10-16T23:45:00Z" }
+    $since = [DateTime]::Parse((Get-Content $mark -Raw).Trim()).ToUniversalTime()
+    $placed = @{}
+    Get-ChildItem $art -Recurse -Filter *.fbx | ForEach-Object { if (-not $placed.ContainsKey($_.Name)) { $placed[$_.Name] = $_.FullName } }
+    Get-ChildItem $export -Filter *.fbx | ForEach-Object {
+        if ($placed.ContainsKey($_.Name)) {
+            $dest = Get-Item $placed[$_.Name]
+            if ($_.LastWriteTimeUtc -gt $dest.LastWriteTimeUtc -and $_.LastWriteTimeUtc -gt $since) {
+                Copy-Item $_.FullName $dest.FullName -Force
+                Write-Host "synced export $($_.Name) -> $($dest.FullName.Substring($Repo.Length + 1))"
+            }
+        }
+    }
+}
+
+if ($Task -ne "help") { Sync-Exports }
+
 function Assert-EditorClosed {
     $open = Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" |
         Where-Object { $_.CommandLine -match "project-chop" -and $_.CommandLine -notmatch "-batchmode" }

@@ -89,6 +89,7 @@ namespace Chopper.World
                     var p = new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius);
                     p.y = Chopper.World.WorldGround.HeightAt(p);
                     if (WaterSystem.DepthAt(p, out _) > 0.02f) continue;
+                    if (!Chopper.World.ScatterMask.Allows(p, false)) continue;
                     // Not on the mountains between the zones: their tops cannot be reached.
                     if (Chopper.World.Generation.WorldSession.Gen != null && Chopper.World.Generation.WorldSession.Gen.MountainWeight(p.x, p.z) > 0.2f) continue;
                     float dx = Chopper.World.WorldGround.HeightAt(p + Vector3.right * 1.5f) - Chopper.World.WorldGround.HeightAt(p - Vector3.right * 1.5f);
@@ -108,6 +109,7 @@ namespace Chopper.World
                     var p = new Vector3(spot.x, 0f, spot.y);
                     p.y = Chopper.World.WorldGround.HeightAt(p);
                     if (WaterSystem.DepthAt(p, out _) > 0.02f) continue;
+                    if (!Chopper.World.ScatterMask.Allows(p, false)) continue;
                     list.Add(p);
                 }
             }

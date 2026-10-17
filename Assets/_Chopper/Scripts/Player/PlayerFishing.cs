@@ -56,6 +56,7 @@ namespace Chopper.Player
         private readonly SyncVar<int> _lure = new SyncVar<int>();
         private readonly SyncList<int> _fish = new SyncList<int>();
         private readonly SyncVar<int> _xp = new SyncVar<int>();
+        private readonly SyncVar<int> _landed = new SyncVar<int>();
         private readonly SyncVar<int> _skill = new SyncVar<int>();
         // The heaviest catch of each kind, in kilograms (0 for none yet).
         private readonly SyncList<float> _records = new SyncList<float>();
@@ -78,6 +79,11 @@ namespace Chopper.Player
         public int Lure => _lure.Value;
         public int FishPacked => FishingRules.PackLegacy(CopyCounts());
         public int Xp => _xp.Value;
+        public int FishLanded => _landed.Value;
+
+        public void ServerLoadLanded(int landed) => _landed.Value = Mathf.Max(0, landed);
+
+        public void ServerAddLanded(int count) => _landed.Value = Mathf.Max(0, _landed.Value + count);
         public int FishSkill => _skill.Value;
         public int Level => FishingRules.Level(_xp.Value, _config.FishingLevelXp);
         public int FishCount(FishKind kind)
@@ -166,6 +172,12 @@ namespace Chopper.Player
         private float _nextReelTick;
         private float _nextWarning;
         private float _nextSplash;
+        private bool _swimHolstered;
+        private float _leapAt = -10f;
+        private float _nextLeap;
+        private FishPhase _shownPhase;
+        private Camera _runCam;
+        private float _runCutUntil;
 
         // Server state.
         private readonly System.Random _rng = new System.Random();
@@ -348,6 +360,7 @@ namespace Chopper.Player
         public bool TryToggle()
         {
             if (!IsOwner) return false;
+            if (!Busy && !SwimHolster.MayDraw(GetComponent<PlayerMotor>() is PlayerMotor rodMotor && rodMotor.IsSwimming)) return false;
             if (_toggledFrame == Time.frameCount) return true;
             if (Busy)
             {
@@ -402,7 +415,8 @@ namespace Chopper.Player
             if (!UiState.GameplayBlocked)
             {
                 if (Keybinds.WasPressed(KeyAction.Food)) EatServerRpc();
-                if (Keybinds.WasPressed(KeyAction.Rod) || (Busy && Keybinds.WasPressed(KeyAction.Unequip))) TryToggle();
+                if (SwimHolster.Step(GetComponent<PlayerMotor>() is PlayerMotor swimMotor && swimMotor.IsSwimming, Busy, ref _swimHolstered)) TryToggle();
+            if (Keybinds.WasPressed(KeyAction.Rod) || (Busy && Keybinds.WasPressed(KeyAction.Unequip))) TryToggle();
             }
             if (_stage == Stage.Off) return;
 
@@ -946,6 +960,7 @@ namespace Chopper.Player
             _phase.Value = -1;
             _bobber.Value = Vector3.zero;
             ChangeFish(_serverKind, 1);
+            _landed.Value++;
             ServerWearRod(1);
             int k = (int)_serverKind;
             if (k >= 0 && k < _records.Count && LureRules.IsRecord(_serverKg, _records[k])) _records[k] = _serverKg;
@@ -1278,9 +1293,69 @@ namespace Chopper.Player
                 Vector3 shadowAt = bobber + away * 0.6f;
                 shadowAt.y = Chopper.World.Generation.WorldGen.WaterHeight - 0.12f;
                 _fishShadow.SetPositionAndRotation(shadowAt, Quaternion.LookRotation(heading));
+                if (FishShow.LeapsIn(phase) && Time.time >= _nextLeap)
+                {
+                    _leapAt = Time.time;
+                    _nextLeap = Time.time + FishShow.LeapSeconds + FishShow.NextLeapGap(Random.value);
+                    CombatFx.Burst(shadowAt + Vector3.up * 0.1f, Water, 12, 3f, 0.1f, 0.6f, 3f);
+                    Sfx.Play(ProceduralSfx.Splash, shadowAt, 0.6f, 0.9f, 0.1f);
+                }
+                float leap = FishShow.LeapHeight(Time.time - _leapAt);
+                if (leap > 0f)
+                {
+                    float spin = (Time.time - _leapAt) / FishShow.LeapSeconds;
+                    _fishShadow.SetPositionAndRotation(shadowAt + Vector3.up * (leap + 0.12f) + heading.normalized * (spin * 0.8f), Quaternion.LookRotation(heading) * Quaternion.Euler(-60f + spin * 120f, 0f, 0f));
+                    if (spin > 0.92f && spin < 0.99f) CombatFx.Burst(shadowAt + heading.normalized * 0.8f, Water, 8, 2.4f, 0.08f, 0.5f, 2.5f);
+                }
+                if (IsOwner) UpdateRunCut(phase, shadowAt + Vector3.up * Mathf.Max(0f, leap), heading);
             }
             _bobberView.position = bobber + Vector3.up * (0.06f + bob);
+            if (!fighting && _runCam != null && _runCam.enabled) _runCam.enabled = false;
+            if (_runCam != null) _bobberView.gameObject.SetActive(_bobberView.gameObject.activeSelf && !_runCam.enabled);
+            if (Camera.main != null) _line.widthMultiplier = FishShow.LineScale(Vector3.Distance(Camera.main.transform.position, (tip + _bobberView.position) * 0.5f));
             DrawLine(tip, _bobberView.position, fighting ? Mathf.Clamp01(0.4f + tension) : 0.15f, thrashing);
+        }
+
+        public float LeapHeightNow => FishShow.LeapHeight(Time.time - _leapAt);
+        public void DebugLeapNow() { _leapAt = Time.time - FishShow.LeapSeconds * 0.45f; _nextLeap = Time.time + 30f; }
+        public void DebugRunCut() { _runCutUntil = Time.time + FishShow.RunCutSeconds; }
+
+        private void OnGUI()
+        {
+            if (!RunCutShowing) return;
+            GUI.color = new Color(0.08f, 0.38f, 0.48f, 0.42f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+        }
+
+        public bool RunCutShowing => _runCam != null && _runCam.enabled;
+
+        private void UpdateRunCut(FishPhase phase, Vector3 fish, Vector3 heading)
+        {
+            if (FishShow.StartsRunCut(_shownPhase, phase)) _runCutUntil = Time.time + FishShow.RunCutSeconds;
+            _shownPhase = phase;
+            bool show = Time.time < _runCutUntil;
+            if (show && _runCam == null)
+            {
+                _runCam = new GameObject("FishRunCamera").AddComponent<Camera>();
+                _runCam.depth = 40f;
+                _runCam.fieldOfView = 40f;
+                _runCam.nearClipPlane = 0.05f;
+                _runCam.farClipPlane = 60f;
+                _runCam.clearFlags = CameraClearFlags.SolidColor;
+                _runCam.backgroundColor = new Color(0.05f, 0.22f, 0.28f);
+            }
+            if (_runCam == null) return;
+            _runCam.enabled = show;
+            if (!show) return;
+            float k = 1f - (_runCutUntil - Time.time) / FishShow.RunCutSeconds;
+            Vector3 side = Vector3.Cross(Vector3.up, heading.normalized);
+            float under = Chopper.World.Generation.WorldGen.WaterHeight - 0.45f;
+            Vector3 eye = fish + side * Mathf.Lerp(3.2f, 2.0f, k) - heading.normalized * 0.6f;
+            eye.y = Mathf.Max(under, Chopper.World.WorldGround.HeightAt(eye) + 0.25f);
+            Vector3 look = fish;
+            look.y = Mathf.Min(fish.y, eye.y + 0.1f);
+            _runCam.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(look - eye));
         }
 
         // The line from the rod tip to the bobber: it sags when slack, runs straight when taut, and shivers when the
@@ -1318,6 +1393,7 @@ namespace Chopper.Player
             if (_bobberView != null) Destroy(_bobberView.gameObject);
             if (_fishShadow != null) Destroy(_fishShadow.gameObject);
             if (_aimRing != null) Destroy(_aimRing.gameObject);
+            if (_runCam != null) Destroy(_runCam.gameObject);
             if (_schoolView != null) _schoolView.Destroy();
             _schoolView = null;
             _butt = null;
@@ -1351,8 +1427,8 @@ namespace Chopper.Player
             _line = lineHolder.AddComponent<LineRenderer>();
             _line.useWorldSpace = true;
             _line.positionCount = LinePoints;
-            _line.startWidth = 0.02f;
-            _line.endWidth = 0.014f;
+            _line.startWidth = FishShow.LineNearWidth;
+            _line.endWidth = FishShow.LineFarWidth;
             _line.sharedMaterial = material;
             _line.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             var lineBlock = new MaterialPropertyBlock();

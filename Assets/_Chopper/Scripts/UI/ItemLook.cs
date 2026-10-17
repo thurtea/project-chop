@@ -16,6 +16,8 @@ namespace Chopper.UI
             }
             if (ItemRules.IsFind(kind)) return MiningRules.Finds[(int)ItemRules.FindOf(kind)].Name;
             if (ItemRules.IsEssence(kind)) return ItemRules.ElementOf(kind) + " essence";
+            if (ItemRules.IsBoat(kind)) return "Little boat";
+            if (ItemRules.IsSharkRod(kind)) return "Shark rod";
             switch ((ItemKind)kind)
             {
                 case ItemKind.Wood: return "Wood";

@@ -82,11 +82,16 @@ namespace Chopper.Player
         }
 
         // The piece list chose a piece.
+        private bool _swimHolstered;
+        public bool SwimHolstered => _swimHolstered;
+        public bool HammerOut => _active;
+
         public void Select(int kind)
         {
             BuildManager manager = BuildManager.Instance;
             if (manager == null || manager.Catalog == null || manager.Catalog.Get(kind) == null) return;
             _kind = kind;
+            if (!SwimHolster.MayDraw(GetComponent<PlayerMotor>() is PlayerMotor swimMotor && swimMotor.IsSwimming)) return;
             SetActive(true);
         }
 
@@ -95,7 +100,9 @@ namespace Chopper.Player
             if (!IsOwner) return;
             BuildManager manager = BuildManager.Instance;
             bool down = _health != null && _health.IsDown;
-            if (!UiState.GameplayBlocked && Keybinds.WasPressed(KeyAction.Build) && manager != null) SetActive(!_active);
+            bool swimNow = GetComponent<PlayerMotor>() is PlayerMotor swimMotor && swimMotor.IsSwimming;
+            if (SwimHolster.Step(swimNow, _active, ref _swimHolstered) && manager != null) SetActive(!_active);
+            if (!UiState.GameplayBlocked && Keybinds.WasPressed(KeyAction.Build) && manager != null && SwimHolster.MayDraw(swimNow)) SetActive(!_active);
             // Anything else in the hands puts the hammer away.
             if (_active && (down || (_fishing != null && _fishing.Busy) || Keybinds.WasPressed(KeyAction.Axe) || Keybinds.WasPressed(KeyAction.Unequip) || manager == null))
                 SetActive(false);

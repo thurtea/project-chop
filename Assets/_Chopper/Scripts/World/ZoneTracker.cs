@@ -18,8 +18,12 @@ namespace Chopper.World
 
         public static Element Current { get; private set; } = Element.Neutral;
 
+        public static bool FogEnabled = false;
+
         private void Update()
         {
+            RenderSettings.fog = FogEnabled;
+            if (!FogEnabled) return;
             PlayerWood local = PlayerWood.Local;
             if (local == null) return;
 

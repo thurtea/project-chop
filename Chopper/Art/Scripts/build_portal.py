@@ -8,14 +8,16 @@ import build_world_kit as kit
 
 # The mine portal from cave-chopper-concept-3.0: two dark round log posts and a lintel with braces, set in a
 # stepped ring of dark rock, cyan crystal clusters at its feet. 0.25 m cells; x across, y depth (front at y<0), z up.
-ROCK = kit.srgb(70, 74, 84)
-ROCK_DARK = kit.srgb(44, 47, 56)
-ROCK_LIGHT = kit.srgb(96, 100, 112)
+ROCK = kit.srgb(92, 104, 118)
+ROCK_DARK = kit.srgb(66, 76, 90)
+ROCK_LIGHT = kit.srgb(126, 138, 152)
 LOG = kit.srgb(84, 56, 34)
 LOG_DARK = kit.srgb(58, 38, 24)
 LOG_END = kit.srgb(132, 96, 60)
 CYAN = kit.srgb(70, 224, 236)
 CYAN_HOT = kit.srgb(170, 252, 255)
+MOSS = kit.srgb(84, 118, 60)
+MOSS_D = kit.srgb(60, 92, 46)
 OPEN = 6          # opening |x| < 6 cells (3 m)
 TOP = 12          # opening height 3 m
 
@@ -52,6 +54,12 @@ def portal_cells():
                 else:
                     tone = ROCK
                 out[(ix, iy, iz)] = tone
+            if iz == crown - 1 and h01(ix, 41) < 0.7:
+                out[(ix, 0, iz + 1)] = MOSS if h01(ix, 42) < 0.6 else MOSS_D
+                if h01(ix, 43) < 0.5:
+                    out[(ix, 1, iz + 1)] = MOSS_D
+            elif cx > OPEN + 3 and iz % 6 == 5 and h01(ix, iz, 44) < 0.45:
+                out[(ix, depth, iz)] = MOSS if h01(ix, iz, 45) < 0.5 else MOSS_D
     # posts: round logs, 3x3 cells with corners shaved
     for s in (-1, 1):
         x0 = OPEN if s > 0 else -OPEN - 3

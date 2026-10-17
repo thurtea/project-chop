@@ -11,6 +11,8 @@ namespace Chopper.World.Voxel
     public static class VoxelWorld
     {
         public const int ChunkSize = 32;
+        public const float Chamfer = 0.1f;
+        public static bool Bevel = true;
 
         private static Transform _root;
 
@@ -111,10 +113,26 @@ namespace Chopper.World.Voxel
                     int gz = z0 + z;
                     short height = columns.TopUnits(gx, gz);
                     BlockType type = columns.TypeAt(gx, gz);
+                    if (Bevel && IsRim(columns, gx, gz))
+                    {
+                        used[z, x] = true;
+                        float ry = height * VoxelColumns.Step;
+                        float rx = VoxelColumns.WorldX(gx);
+                        float rz = VoxelColumns.WorldZ(gz);
+                        float xa = rx + (Lower(columns, gx, gz, -1, 0) ? Chamfer : 0f);
+                        float xb = rx + 1f - (Lower(columns, gx, gz, 1, 0) ? Chamfer : 0f);
+                        float za = rz + (Lower(columns, gx, gz, 0, -1) ? Chamfer : 0f);
+                        float zb = rz + 1f - (Lower(columns, gx, gz, 0, 1) ? Chamfer : 0f);
+                        AddQuad(verts, normals, colors, uvs, ry, tris,
+                            new Vector3(xa, ry, za), new Vector3(xb, ry, za), new Vector3(xb, ry, zb), new Vector3(xa, ry, zb),
+                            Vector3.up, Tagged(BlockPalette.Of(type).Top, type));
+                        continue;
+                    }
                     int width = 1;
                     while (x + width < ChunkSize && !used[z, x + width]
                            && columns.TopUnits(gx + width, gz) == height
-                           && columns.TypeAt(gx + width, gz) == type)
+                           && columns.TypeAt(gx + width, gz) == type
+                           && !(Bevel && IsRim(columns, gx + width, gz)))
                         width++;
                     int depth = 1;
                     while (z + depth < ChunkSize && RowMatches(columns, used, x, z + depth, width, gx, gz + depth, height, type))
@@ -155,11 +173,21 @@ namespace Chopper.World.Voxel
             {
                 if (used[z, x + i]) return false;
                 if (columns.TopUnits(gx + i, gz) != height || columns.TypeAt(gx + i, gz) != type) return false;
+                if (Bevel && IsRim(columns, gx + i, gz)) return false;
             }
             return true;
         }
 
         // Chopper/Block reads the block type from the colour's alpha (type / 8 + 1 / 16).
+        static bool Lower(VoxelColumns columns, int x, int z, int dx, int dz)
+        {
+            int nx = x + dx, nz = z + dz;
+            return columns.Inside(nx, nz) && columns.TopUnits(nx, nz) < columns.TopUnits(x, z);
+        }
+
+        static bool IsRim(VoxelColumns columns, int x, int z) =>
+            Lower(columns, x, z, 1, 0) || Lower(columns, x, z, -1, 0) || Lower(columns, x, z, 0, 1) || Lower(columns, x, z, 0, -1);
+
         static Color Tagged(Color color, BlockType type)
         {
             color.a = (int)type / 8f + 1f / 16f;
@@ -194,8 +222,12 @@ namespace Chopper.World.Voxel
                     }
 
                     float y0 = neighbor * VoxelColumns.Step;
-                    float y1 = height * VoxelColumns.Step;
+                    float top = height * VoxelColumns.Step;
+                    float ch = Bevel ? Chamfer : 0f;
+                    float y1 = top - ch;
                     Color color = Tagged(BlockPalette.Of(type).Side, type);
+                    Color rim = Tagged(BlockPalette.Of(type).Top, type);
+                    float s2 = 0.70710678f;
                     // A drop faces +X/+Z (out of this column); a rise is the neighbour's wall and faces back -X/-Z.
                     // The winding flips with it so physics and lighting both see the face from the open side.
                     if (alongX)
@@ -204,8 +236,16 @@ namespace Chopper.World.Voxel
                         float wz = VoxelColumns.WorldZ(gz);
                         Vector3 a = new Vector3(faceX, y0, wz), b = new Vector3(faceX, y0, wz + run);
                         Vector3 c = new Vector3(faceX, y1, wz + run), d = new Vector3(faceX, y1, wz);
-                        if (rise) AddQuad(verts, normals, colors, uvs, y1, tris, b, a, d, c, Vector3.left, color);
-                        else AddQuad(verts, normals, colors, uvs, y1, tris, a, b, c, d, Vector3.right, color);
+                        if (rise) AddQuad(verts, normals, colors, uvs, top, tris, b, a, d, c, Vector3.left, color);
+                        else AddQuad(verts, normals, colors, uvs, top, tris, a, b, c, d, Vector3.right, color);
+                        if (ch > 0f)
+                        {
+                            float back = rise ? ch : -ch;
+                            Vector3 e = new Vector3(faceX, y1, wz), f = new Vector3(faceX, y1, wz + run);
+                            Vector3 g = new Vector3(faceX + back, top, wz + run), h = new Vector3(faceX + back, top, wz);
+                            if (rise) AddQuad(verts, normals, colors, uvs, top, tris, f, e, h, g, new Vector3(-s2, s2, 0f), rim);
+                            else AddQuad(verts, normals, colors, uvs, top, tris, e, f, g, h, new Vector3(s2, s2, 0f), rim);
+                        }
                     }
                     else
                     {
@@ -213,8 +253,16 @@ namespace Chopper.World.Voxel
                         float wx = VoxelColumns.WorldX(gx);
                         Vector3 a = new Vector3(wx, y0, faceZ), b = new Vector3(wx, y1, faceZ);
                         Vector3 c = new Vector3(wx + run, y1, faceZ), d = new Vector3(wx + run, y0, faceZ);
-                        if (rise) AddQuad(verts, normals, colors, uvs, y1, tris, d, c, b, a, Vector3.back, color);
-                        else AddQuad(verts, normals, colors, uvs, y1, tris, a, b, c, d, Vector3.forward, color);
+                        if (rise) AddQuad(verts, normals, colors, uvs, top, tris, d, c, b, a, Vector3.back, color);
+                        else AddQuad(verts, normals, colors, uvs, top, tris, a, b, c, d, Vector3.forward, color);
+                        if (ch > 0f)
+                        {
+                            float back = rise ? ch : -ch;
+                            Vector3 e = new Vector3(wx, y1, faceZ), f = new Vector3(wx, top, faceZ + back);
+                            Vector3 g = new Vector3(wx + run, top, faceZ + back), h = new Vector3(wx + run, y1, faceZ);
+                            if (rise) AddQuad(verts, normals, colors, uvs, top, tris, h, g, f, e, new Vector3(0f, s2, -s2), rim);
+                            else AddQuad(verts, normals, colors, uvs, top, tris, e, f, g, h, new Vector3(0f, s2, s2), rim);
+                        }
                     }
                 }
             }

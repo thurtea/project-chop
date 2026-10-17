@@ -92,6 +92,10 @@ Shader "Chopper/Block"
                 return o;
             }
 
+            float _ChopperDetailKeep;
+            float _ChopperHardEdges;
+            float _ChopperOldLook;
+
             half4 frag (Varyings i) : SV_Target
             {
                 float3 n0 = normalize(i.normalWS);
@@ -120,15 +124,21 @@ Shader "Chopper/Block"
                 float gy = frac(i.positionWS.y * 2.0);
                 float edge = min(min(g.x, 1.0 - g.x), min(g.z, 1.0 - g.z));
                 edge = min(edge, min(gy, 1.0 - gy));
-                half gridLine = (half)(1.0 - saturate(edge * 28.0));
+                half gridLine = (half)lerp(1.0 - smoothstep(0.0, 0.1, edge), 1.0 - saturate(edge * 28.0), _ChopperHardEdges);
                 // Fade the fine detail out where one screen pixel covers more of it than it can show: far away the
                 // 6 cm texels and the 3.5 cm grid lines aliased into shimmering (the flicker on distant ground and cliffs).
                 float3 fw3 = fwidth(i.positionWS);
                 float footprint = max(fw3.x, max(fw3.y, fw3.z));
-                half texel = (half)saturate(1.5 - footprint * 16.0) * _Jitter;
-                gridLine *= (half)saturate(1.5 - footprint * 24.0);
+                half texel = (half)saturate(2.0 - footprint * 32.0) * _Jitter;
+                gridLine *= (half)saturate(2.0 - footprint * 48.0);
+                float viewDist = distance(_WorldSpaceCameraPos, i.positionWS);
+                texel *= (half)lerp(saturate((48.0 - viewDist) / 24.0), 1.0, _ChopperDetailKeep);
+                gridLine *= (half)lerp(saturate((36.0 - viewDist) / 18.0), 1.0, _ChopperDetailKeep);
+                half broad = (half)(1.0 - _ChopperOldLook);
+                gridLine *= (half)lerp(1.0, 0.3, broad);
+                texel *= (half)lerp(1.0, 0.5, broad);
                 half3 texelShade = lerp(half3(1, 1, 1), shade * drift, texel);
-                half3 albedo = base * texelShade * (1.0 - gridLine * _Edge);
+                half3 albedo = base * texelShade * (1.0 - gridLine * _Edge * lerp(0.7, 1.0, _ChopperHardEdges));
 
                 float3 n = normalize(i.normalWS);
                 Light mainLight = GetMainLight(TransformWorldToShadowCoord(i.positionWS));

@@ -603,8 +603,9 @@ namespace Chopper.Networking
                     if (Vector2.Distance(stand, hut2) > 45f) stand = hut2 + (stand - hut2).normalized * 45f;
                     yield return LookAtHouse(stand, 3.2f, 1f, "house_concept_pond");
                 }
-                yield return LookAtHouse(new Vector2(home.x + 12f, home.z + 24f), 6f, 10f, "house_out_front");
-                yield return LookAtHouse(new Vector2(home.x - 24f, home.z - 8f), 6f, 10f, "house_out_side");
+                yield return LookAtHouse(new Vector2(home.x + 14f, home.z + 46f), 9f, -3f, "house_out_front");
+                yield return LookAtHouse(new Vector2(home.x - 46f, home.z - 6f), 9f, -3f, "house_out_side");
+                yield return LookAtHouse(new Vector2(home.x + 34f, home.z + 34f), 9f, -3f, "house_out_threequarter");
                 yield return LookAtHouse(new Vector2(home.x + 1.5f * hs, home.z + 11f * hs), 4.2f, 16f, "house_out_steps");
 
                 Gamepad walkPad = InputSystem.AddDevice<Gamepad>();
@@ -742,7 +743,38 @@ namespace Chopper.Networking
                 }
                 roomCam.enabled = false;
 
-                float ladderTopRise = 0f; bool inThird = false;
+                {
+                    var flat = new System.Collections.Generic.Dictionary<string, int>();
+                    foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude))
+                    {
+                        Bounds b = r.bounds;
+                        if ((b.center - hutT.position).sqrMagnitude > 60f * 60f) continue;
+                        if (b.size.y > 0.35f || Mathf.Max(b.size.x, b.size.z) < 0.15f || Mathf.Max(b.size.x, b.size.z) > 4f) continue;
+                        if (r.transform.IsChildOf(hutT) || r.transform.IsChildOf(wood.transform)) continue;
+                        string key = r.gameObject.name + " <" + (r.transform.parent != null ? r.transform.parent.name : "-") + "> " + (r.sharedMaterial != null ? r.sharedMaterial.name : "-");
+                        flat[key] = flat.TryGetValue(key, out int k) ? k + 1 : 1;
+                    }
+                    foreach (var kv in flat) Debug.Log($"[House] flat ground renderer {kv.Value}x {kv.Key}");
+                }                {
+                    Vector3 edgeAt = hutT.TransformPoint(new Vector3(9f, 0f, -6f));
+                    edgeAt.y = WorldGround.HeightAt(edgeAt);
+                    roomCam.transform.position = edgeAt + new Vector3(6f, 4f, 6f); roomCam.transform.LookAt(edgeAt);
+                    roomCam.enabled = true;
+                    var blockMats = new System.Collections.Generic.HashSet<Material>();
+                    foreach (Renderer br in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude)) if (br.sharedMaterial != null && br.sharedMaterial.shader != null && br.sharedMaterial.shader.name == "Chopper/Block") blockMats.Add(br.sharedMaterial);
+                    Debug.Log($"[House] block materials {blockMats.Count}");
+                    foreach (Material bm in blockMats) { bm.SetFloat("_ChopperHardEdges", 1f); bm.SetFloat("_ChopperOldLook", 1f); }
+                    Shader.SetGlobalFloat("_ChopperHardEdges", 1f); Shader.SetGlobalFloat("_ChopperOldLook", 1f);
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "edges_hard_before");
+                    foreach (Material bm in blockMats) { bm.SetFloat("_ChopperHardEdges", 0f); bm.SetFloat("_ChopperOldLook", 0f); }
+                    Shader.SetGlobalFloat("_ChopperHardEdges", 0f); Shader.SetGlobalFloat("_ChopperOldLook", 0f);
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "edges_soft_after");
+                    roomCam.enabled = false;
+                }                float ladderTopRise = 0f; bool inThird = false;
+                float climbStart = -1000f, nextShotRise = 0.3f; int seqIndex = 0;
+                int ladderWallFrames = 0; var ladderWallHits = new System.Collections.Generic.List<string>();
                 if (Hut.LadderZone.size.sqrMagnitude > 0.01f)
                 {
                     Bounds lz = Hut.LadderZone;
@@ -756,7 +788,35 @@ namespace Chopper.Networking
                     {
                         Vector3 stick = Quaternion.Euler(0f, -houseCam.Yaw, 0f) * inward;
                         InputSystem.QueueStateEvent(walkPad, new GamepadState { leftStick = new Vector2(stick.x, stick.z) });
-                        if (t > 2.5f && t < 2.6f) yield return Shot(folder, "house_ladder_climb");
+                        if (climbStart < -100f && wood.GetComponent<PlayerMotor>().IsClimbing) climbStart = Rise();
+                        if (climbStart > -100f && Rise() - climbStart >= nextShotRise && seqIndex < 12)
+                        {
+                            InputSystem.QueueStateEvent(walkPad, new GamepadState());
+                            Vector3 hutFlat = new Vector3(hutT.position.x, wood.transform.position.y, hutT.position.z);
+                            Vector3 outward = Vector3.ProjectOnPlane(wood.transform.position - hutFlat, Vector3.up);
+                            outward = Vector3.Project(outward, hutT.right).normalized;
+                            Vector3 along = Vector3.Cross(Vector3.up, outward);
+                            Vector3 side = wood.transform.position + outward * 2.6f + along * 2.2f + Vector3.up * 1.0f;
+                            roomCam.transform.position = side; roomCam.transform.LookAt(wood.transform.position + Vector3.up * 1.1f);
+                            roomCam.enabled = true;
+                            yield return Shot(folder, $"house_ladder_seq_{seqIndex:00}");
+                            roomCam.enabled = false;
+                            Transform ladderProp = Hut.Instance.transform.Find("LadderProp");
+                            if (ladderProp != null) Debug.Log($"[House] ladder lateral offset {Vector3.Dot(wood.transform.position - ladderProp.position, ladderProp.forward):F2} m, out {Vector3.Dot(wood.transform.position - ladderProp.position, ladderProp.right):F2} m");
+                            Debug.Log($"[House] ladder frame {seqIndex} climbed {Rise() - climbStart:F2} m climbing {wood.GetComponent<PlayerMotor>().IsClimbing} phase {wood.GetComponent<PlayerMotor>().ClimbPhase:F2}");
+                            seqIndex++; nextShotRise += 0.15f;
+                        }
+                        {
+                            CharacterController wcc = wood.GetComponent<CharacterController>();
+                            Vector3 wp = wood.transform.position + wcc.center;
+                            float half = Mathf.Max(0f, wcc.height * 0.5f - wcc.radius);
+                            foreach (Collider hit in Physics.OverlapCapsule(wp - Vector3.up * half, wp + Vector3.up * half, wcc.radius * 0.85f, ~0, QueryTriggerInteraction.Ignore))
+                                if (!hit.transform.IsChildOf(wood.transform))
+                                {
+                                    ladderWallFrames++;
+                                    if (ladderWallHits.Count < 8 && !ladderWallHits.Contains(hit.name)) ladderWallHits.Add(hit.name);
+                                }
+                        }
                         if (Rise() - basement > 3f * storey - 0.2f && Hut.Instance.IsIndoors(wood.transform.position)) { inThird = true; break; }
                         ladderTopRise = Mathf.Max(ladderTopRise, Rise() - basement);
                         yield return null;
@@ -765,6 +825,39 @@ namespace Chopper.Networking
                     yield return new WaitForSeconds(0.5f);
                     ladderTopRise = Mathf.Max(ladderTopRise, Rise() - basement);
                     yield return Shot(folder, "house_ladder_top");
+                    Debug.Log($"[House] ladder path RESULT {(ladderWallFrames == 0 && inThird ? "PASS" : "FAIL")} reached third floor {inThird}, frames overlapping colliders {ladderWallFrames} {string.Join(",", ladderWallHits)}");
+                }
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.5f);
+                yield return new WaitForSeconds(1f);
+                yield return LookAtHouse(new Vector2(home.x + 20f, home.z + 26f), 6f, 6f, "house_noon_out");
+                yield return LookAtHouse(new Vector2(home.x - 26f, home.z + 14f), 6f, 6f, "house_noon_out2");
+                yield return TeleportExact(home + new Vector3(-2f, 2f, 0f) * hs + Vector3.down * Chopper.World.Generation.WorldGen.HutSink + Vector3.up * 0.3f, 0f);
+                houseCam.DebugSetDistance(3f); houseCam.SnapYaw(0f); houseCam.DebugSetPitch(10f);
+                yield return new WaitForSeconds(1.2f);
+                yield return Shot(folder, "house_noon_in");
+                yield return TeleportExact(home + new Vector3(5f, 2.4f, 0f) * hs + Vector3.down * Chopper.World.Generation.WorldGen.HutSink + Vector3.up * 0.3f, 180f);
+                houseCam.DebugSetDistance(3.5f); houseCam.SnapYaw(90f); houseCam.DebugSetPitch(12f);
+                yield return new WaitForSeconds(1.2f);
+                Vector3 camAt = Camera.main.transform.position - home;
+                Debug.Log($"[House] stairs camera at {camAt.x / hs:F2},{camAt.y / hs:F2},{camAt.z / hs:F2} piece-m, inside solid {Physics.CheckSphere(Camera.main.transform.position, 0.05f, ~0, QueryTriggerInteraction.Ignore)}");
+                yield return Shot(folder, "house_stairs_cam");
+                {
+                    Collider tree = null;
+                    foreach (Collider c in Physics.OverlapSphere(home, 45f, ~0, QueryTriggerInteraction.Ignore))
+                        if (Chopper.Player.CameraOcclusion.Fades(c, wood.transform, hutT) && Hut.Instance.DistanceToWalls(c.bounds.center) > 6f && c.bounds.size.y > 4f) { tree = c; break; }
+                    if (tree != null)
+                    {
+                        Vector3 tp = tree.bounds.center; tp.y = 0f;
+                        Vector3 f = (new Vector3(home.x, 0f, home.z) - tp).normalized;
+                        Vector3 stand = tp + f * 2.8f;
+                        float yaw = Mathf.Atan2(f.x, f.z) * Mathf.Rad2Deg;
+                        yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), yaw);
+                        houseCam.DebugSetDistance(7f); houseCam.SnapYaw(yaw); houseCam.DebugSetPitch(8f);
+                        yield return new WaitForSeconds(1.2f);
+                        Debug.Log($"[House] tree fade: {tree.name}, hidden renderers {Chopper.Player.CameraOcclusion.HiddenCount}");
+                        yield return Shot(folder, "house_tree_fade");
+                    }
+                    else Debug.Log("[House] tree fade: no tree found");
                 }
                 Debug.Log($"[House] ladder: zones {Chopper.World.Ladder.Count}, climbed to {ladderTopRise:F2} m over the basement, inside the workshop {inThird}");
                 InputSystem.RemoveDevice(walkPad);
@@ -1064,6 +1157,13 @@ namespace Chopper.Networking
             // Flicker in motion (-chopperFlicker): the camera orbits the standing player slowly at a fixed frame step
             // and every frame is saved, once per setting (as is, sun shadows off, anti-aliasing off, character atlas
             // mip bias +1, ground block detail off). Tools/flicker_measure.py scores the shimmer between frames.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperShimmer") >= 0)
+            {
+                yield return ShimmerTour(folder, wood, ui);
+                Debug.Log("[Shimmer] done");
+                Application.Quit(0);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFlicker") >= 0)
             {
                 yield return FlickerTour(folder, wood, ui);
@@ -1697,6 +1797,80 @@ namespace Chopper.Networking
             // slope, the hut steps, inside the hut against a wall and in a mine chamber, plus an enemy on the slope. Each
             // stop measures every FootGrounder sole against the ground under it and probes the chest, head and hands for
             // being inside solid geometry. Logs "[Feet] RESULT PASS" when no sole is more than 4 cm in and no bone is buried.
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperConsole") >= 0)
+            {
+                var dev = new Chopper.UI.DevConsole(null);
+                bool ok = true;
+                int Enemies() { int n = 0; foreach (Treant t in Treant.All) if (t != null && t.IsSpawned) n++; return n; }
+                yield return TeleportLocalPlayer(new Vector2(0f, 30f), 0f);
+                yield return new WaitForSeconds(2f);
+                dev.Run("killall"); yield return new WaitForSeconds(1f);
+                int start = Enemies();
+                dev.Run("time 22"); yield return new WaitForSeconds(1f);
+                bool night = DayNightCycle.Instance.IsNight;
+                dev.Run("time 12"); yield return new WaitForSeconds(1f);
+                bool day = DayNightCycle.Instance.Phase == DayPhase.Day;
+                dev.Run("night"); yield return new WaitForSeconds(1f);
+                bool night2 = DayNightCycle.Instance.IsNight;
+                dev.Run("day"); yield return new WaitForSeconds(1f);
+                bool day2 = DayNightCycle.Instance.Phase == DayPhase.Day;
+                dev.Run("spawn earth 2"); yield return new WaitForSeconds(1.5f);
+                int afterEarth = Enemies();
+                int earth = 0; foreach (Treant t in Treant.All) if (t != null && t.Element == Element.Earth) earth++;
+                dev.Run("spawn plain 1"); yield return new WaitForSeconds(1.5f);
+                int afterPlain = Enemies();
+                ui.DebugShow(0); yield return Shot(folder, "console_spawn");
+                dev.Run("wave 4"); yield return new WaitForSeconds(2f);
+                int afterWave = Enemies();
+                yield return Shot(folder, "console_wave");
+                {
+                    var auraCam = new GameObject("AuraCam").AddComponent<Camera>();
+                    auraCam.depth = 50f; auraCam.fieldOfView = 45f;
+                    foreach (string el in new[] { "fire", "water", "wind", "earth" })
+                    {
+                        dev.Run($"spawn {el} 1"); yield return new WaitForSeconds(1.5f);
+                        Element want = el == "fire" ? Element.Fire : el == "water" ? Element.Water : el == "wind" ? Element.Wind : Element.Earth;
+                        Treant pick = null; float best = float.MaxValue;
+                        foreach (Treant t in Treant.All) if (t != null && t.Element == want) { float d = (t.transform.position - wood.transform.position).sqrMagnitude; if (d < best) { best = d; pick = t; } }
+                        if (pick == null) { Debug.Log($"[Console] aura {el} no enemy"); continue; }
+                        var aura = pick.GetComponent<Chopper.World.ElementAura>();
+                        Transform at = pick.transform.Find("ElementAura");
+                        foreach (Transform tr in pick.GetComponentsInChildren<Transform>(true)) if (tr.name == "ElementAura") at = tr;
+                        for (float aim = 0f; aim < 1.2f; aim += Time.deltaTime)
+                        {
+                            Vector3 focus = at != null ? at.position : pick.transform.position + Vector3.up * 1.3f;
+                            Vector3 frame = Vector3.Lerp(focus, pick.transform.position + Vector3.up * 1.2f, 0.4f);
+                            auraCam.transform.position = frame + pick.transform.forward * 3.6f + pick.transform.right * 1.3f + Vector3.up * 0.5f;
+                            auraCam.transform.LookAt(frame);
+                            yield return null;
+                        }
+                        Debug.Log($"[Console] aura {el} showing {(aura != null && aura.Showing)} anchor {(at != null && at.parent != null ? at.parent.name : "none")}");
+                        yield return Shot(folder, $"console_aura_{el}");
+                        var weaponAi = pick.GetComponent<TreantAI>();
+                        Debug.Log($"[Console] weapon {el} {(weaponAi != null ? weaponAi.WeaponName : "none")} enchanted {EnemyWeaponRules.Enchanted(pick.Element)} profile windup {pick.WeaponProfile.Windup:0.00} reach {pick.WeaponProfile.Reach:0.00} arc {pick.WeaponProfile.Arc:0}");
+                        pick.ServerPlayWindup();
+                        float telegraph = 0f;
+                        while (telegraph < 0.55f * pick.WeaponProfile.Windup) { telegraph += Time.deltaTime; Vector3 f2 = pick.transform.position + Vector3.up * 1.2f; auraCam.transform.position = f2 + pick.transform.right * 3.8f + pick.transform.forward * 1.2f + Vector3.up * 0.4f; auraCam.transform.LookAt(f2); yield return null; }
+                        yield return Shot(folder, $"console_windup_{el}");
+                    }
+                    UnityEngine.Object.Destroy(auraCam.gameObject);
+                }
+                var combat = wood.GetComponent<PlayerCombat>();
+                dev.Run("god"); yield return new WaitForSeconds(0.5f);
+                bool godOn = combat.God;
+                dev.Run("god"); yield return new WaitForSeconds(0.5f);
+                bool godOff = !combat.God;
+                dev.Run("heal"); yield return new WaitForSeconds(0.5f);
+                dev.Run("killall"); yield return new WaitForSeconds(1.5f);
+                int afterKill = Enemies();
+                dev.Run("help");
+                ok = night && day && night2 && day2 && afterEarth - start == 2 && earth >= 2 && afterPlain - afterEarth == 1 && afterWave - afterPlain == 4 && godOn && godOff && afterKill == 0;
+                foreach (string line in dev.Output) if (line.StartsWith(">") || line.Contains("Unknown") || line.Contains("Only")) Debug.Log("[Console] " + line);
+                Debug.Log($"[Console] time22 night {night}, time12 day {day}, night {night2}, day {day2}; enemies start {start}, +earth {afterEarth - start} (earth {earth}), +plain {afterPlain - afterEarth}, +wave {afterWave - afterPlain}; god on {godOn} off {godOff}; after killall {afterKill}");
+                Debug.Log($"[Console] RESULT {(ok ? "PASS" : "FAIL")}");
+                Application.Quit(ok ? 0 : 1);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFeet") >= 0)
             {
                 yield return FeetTour(folder, wood, ui);
@@ -2812,6 +2986,24 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(1.5f);
                 ui.DebugShow(0);
                 yield return Shot(folder, "fish_1_bank");
+                {
+                    var waterMats = new System.Collections.Generic.HashSet<Material>();
+                    foreach (Renderer wr in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude)) if (wr.sharedMaterial != null && wr.sharedMaterial.shader != null && wr.sharedMaterial.shader.name == "Chopper/Water") waterMats.Add(wr.sharedMaterial);
+                    Debug.Log($"[Water] materials {waterMats.Count}");
+                    Camera waterCam = new GameObject("WaterShotCam").AddComponent<Camera>();
+                    waterCam.depth = 50f;
+                    Vector3 shoreAt = new Vector3(bank.x, WorldGround.HeightAt(new Vector3(bank.x, 0f, bank.y)), bank.y);
+                    Vector3 pondMid = new Vector3(gen.PondCenter.x, Chopper.World.Generation.WorldGen.WaterHeight, gen.PondCenter.y); waterCam.transform.position = pondMid + new Vector3(Chopper.World.Generation.WorldGen.PondOuterRadius * 0.55f, 11f, -Chopper.World.Generation.WorldGen.PondOuterRadius * 0.35f);
+                    waterCam.transform.LookAt(pondMid + new Vector3(-4f, 0f, 2f));
+                    waterCam.fieldOfView = 60f;
+                    foreach (Material wm in waterMats) { wm.SetFloat("_BandMix", 0f); wm.SetFloat("_FoamRings", 0f); }
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "water_plain");
+                    foreach (Material wm in waterMats) { wm.SetFloat("_BandMix", 0.6f); wm.SetFloat("_FoamRings", 2f); }
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "water_styled");
+                    UnityEngine.Object.Destroy(waterCam.gameObject);
+                }
                 // Chopper's hair and beard from the front and the side.
                 PlayerCamera cam = wood.GetComponent<PlayerCamera>();
                 cam.DebugSetDistance(2.2f);
@@ -2944,6 +3136,18 @@ namespace Chopper.Networking
                 fishing.DebugSetTension(0.4f, pike.CalmSeconds + pike.PullSeconds + 0.2f);
                 yield return new WaitForSeconds(0.25f);
                 yield return Shot(folder, "fish_6_thrashing");
+                Vector3 leapCam = lure + fightSide * 2.6f + Vector3.up * 1.0f - (lure - fightFrom).normalized * 0.8f;
+                cam.DebugHold(leapCam, Quaternion.LookRotation((lure + Vector3.up * 0.8f) - leapCam));
+                fishing.DebugLeapNow();
+                yield return new WaitForSeconds(0.05f);
+                Debug.Log($"[Fishing] leap height {fishing.LeapHeightNow:0.00}");
+                yield return Shot(folder, "fish_6b_leap");
+                fishing.DebugRunCut();
+                yield return new WaitForSeconds(0.5f);
+                Debug.Log($"[Fishing] run cut showing {fishing.RunCutShowing}");
+                yield return Shot(folder, "fish_6c_run_under");
+                yield return new WaitForSeconds(1.2f);
+                Debug.Log($"[Fishing] run cut after {fishing.RunCutShowing}");
                 cam.DebugRelease();
                 fishing.DebugSnap();
                 yield return new WaitForSeconds(0.3f);
@@ -3730,6 +3934,7 @@ namespace Chopper.Networking
             // forest with the sun down, where they must be gone. Logs "[Shafts] RESULT".
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperShafts") >= 0)
             {
+                AtmosphereRules.CaptureOverride = AtmosphereRules.DefaultStrength;
                 GameConfig shaftConfig = TreeManager.Instance.Config;
                 float shaftHub = shaftConfig.HubRadius;
                 WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
@@ -3756,6 +3961,325 @@ namespace Chopper.Networking
                 Debug.Log("[Shafts] RESULT " + (shaftsOk ? "PASS" : "FAIL"));
                 Debug.Log("[Shot] done");
                 Application.Quit(shaftsOk ? 0 : 1);
+                yield break;
+            }
+
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperLightBase") >= 0 || Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperLightAtmo") >= 0)
+            {
+                AtmosphereRules.CaptureOverride = 0f;
+                QualitySettings.vSyncCount = 0;
+                Application.targetFrameRate = -1;
+                GameConfig lightConfig = TreeManager.Instance.Config;
+                float lightHub = lightConfig.HubRadius;
+                WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+                var totals = new System.Collections.Generic.List<string>();
+                System.Collections.IEnumerator Measure(string label)
+                {
+                    yield return new WaitForSeconds(1.5f);
+                    yield return Shot(folder, "light_" + label);
+                    var samples = new System.Collections.Generic.List<float>();
+                    for (int f = 0; f < 120; f++) { yield return null; samples.Add(Time.unscaledDeltaTime * 1000f); }
+                    samples.Sort();
+                    float avg = 0f; foreach (float v in samples) avg += v; avg /= samples.Count;
+                    float p95 = samples[(int)(samples.Count * 0.95f)];
+                    Debug.Log($"[Light] {label} frame avg {avg:0.00} ms p95 {p95:0.00} ms, sun {(RenderSettings.sun != null ? RenderSettings.sun.intensity : 0f):0.00}, ambient {RenderSettings.ambientSkyColor}, fog {RenderSettings.fog}");
+                    totals.Add($"{label} {avg:0.00}");
+                }
+                var times = new (string name, DayPhase phase, float t)[] { ("dawn", DayPhase.Dawn, 0.5f), ("noon", DayPhase.Day, 0.5f), ("dusk", DayPhase.Dusk, 0.5f), ("night", DayPhase.Night, 0.5f) };
+                foreach (var tm in times)
+                {
+                    DayNightCycle.Instance.ServerDebugSetClock(tm.phase, tm.t);
+                    yield return TeleportLocalPlayer(new Vector2(40f, 40f), 210f);
+                    PlayerCamera.Local.DebugSetPitch(8f);
+                    yield return Measure(tm.name);
+                }
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.5f);
+                yield return TeleportLocalPlayer(new Vector2(lightHub + 60f, 0f), 90f);
+                PlayerCamera.Local.DebugSetPitch(4f);
+                yield return Measure("forest");
+                Vector3 hutAt = Hut.Instance.transform.position;
+                yield return TeleportLocalPlayer(new Vector2(hutAt.x, hutAt.z), Hut.Instance.transform.eulerAngles.y);
+                PlayerCamera.Local.DebugSetPitch(0f);
+                yield return Measure("hut");
+                yield return TeleportLocalPlayer(new Vector2(0f, Chopper.World.Generation.WorldGen.BeachEndRadius + 4f), 0f);
+                PlayerCamera.Local.DebugSetPitch(4f);
+                yield return Measure("sea");
+                var lightMines = Chopper.World.Generation.MineWorld.Plans;
+                if (lightMines.Count > 0)
+                {
+                    var lm = lightMines[0];
+                    yield return TeleportLocalPlayer(new Vector2(lm.DoorSpot.x, lm.DoorSpot.z), lm.Site.Yaw + 180f);
+                    yield return new WaitForSeconds(0.6f);
+                    wood.GetComponent<PlayerMining>().TryInteract();
+                    yield return new WaitForSeconds(2f);
+                    yield return Measure("cave");
+                }
+                foreach (float nt in new[] { 0.05f, 0.5f })
+                {
+                    DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, nt);
+                    Vector3 yardAt = Hut.Instance.transform.position + Quaternion.Euler(0f, Hut.Instance.transform.eulerAngles.y, 0f) * Vector3.forward * 16f;
+                    yield return TeleportLocalPlayer(new Vector2(yardAt.x, yardAt.z), Hut.Instance.transform.eulerAngles.y + 180f);
+                    PlayerCamera.Local.DebugSetPitch(6f);
+                    yield return Measure(nt < 0.2f ? "night_early_yard" : "night_mid_yard");
+                    Debug.Log($"[Light] night {nt:0.00} moon {DayNightCycle.LastMoon:0.00}, fires {FireLights.Count}, glows {FireLights.GlowCount}, ambient {RenderSettings.ambientSkyColor}");
+                }
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperLightAtmo") >= 0)
+                {
+                    AtmosphereRules.CaptureOverride = 0.6f;
+                    var with = new System.Collections.Generic.List<string>(totals);
+                    totals.Clear();
+                    foreach (var tm in times)
+                    {
+                        DayNightCycle.Instance.ServerDebugSetClock(tm.phase, tm.t);
+                        yield return TeleportLocalPlayer(new Vector2(40f, 40f), 210f);
+                        PlayerCamera.Local.DebugSetPitch(8f);
+                        yield return Measure("atmo_" + tm.name);
+                        Debug.Log($"[Light] atmo_{tm.name} fog density {DayNightCycle.LastFogDensity:0.000}, shafts {DayNightCycle.LastShaftStrength:0.00}");
+                    }
+                    DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.5f);
+                    yield return TeleportLocalPlayer(new Vector2(lightHub + 60f, 0f), 90f);
+                    yield return Measure("atmo_forest");
+                    Vector3 hutIn = Hut.Instance.transform.position;
+                    yield return TeleportLocalPlayer(new Vector2(hutIn.x, hutIn.z), Hut.Instance.transform.eulerAngles.y);
+                    yield return Measure("atmo_hut");
+                    Debug.Log($"[Light] atmo_hut fog density {DayNightCycle.LastFogDensity:0.000} (indoors must be 0)");
+                    AtmosphereRules.CaptureOverride = 0f;
+                    totals.InsertRange(0, with);
+                }
+                AtmosphereRules.CaptureOverride = -1f;
+                Debug.Log($"[Light] RESULT baseline {string.Join(", ", totals)} ms, shadow distance {QualitySettings.shadowDistance:0} m, cascades {QualitySettings.shadowCascades}, vsync off for capture");
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
+
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperBoat") >= 0)
+            {
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.45f);
+                ui.DebugConsole("god");
+                ui.DebugShow(0);
+                PlayerBoat boat = wood.GetComponent<PlayerBoat>();
+                PlayerInventory bInv = wood.GetComponent<PlayerInventory>();
+                PlayerCamera bCam = wood.GetComponent<PlayerCamera>();
+                PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Wood, 40);
+                PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Fiber, 10);
+                bool crafted = false;
+                if (Workbench.All.Count > 0)
+                {
+                    Transform bench = Workbench.All[0].transform;
+                    foreach (Workbench wb in Workbench.All)
+                        if (Mathf.Abs(wb.transform.position.y - WorldGround.HeightAt(wb.transform.position)) < Mathf.Abs(bench.position.y - WorldGround.HeightAt(bench.position))) bench = wb.transform;
+                    for (int k = 0; k < 8 && !crafted; k++)
+                    {
+                        Vector3 stand = bench.position + Quaternion.Euler(0f, k * 45f, 0f) * bench.forward * 1.2f;
+                        yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), bench.eulerAngles.y + 180f + k * 45f);
+                        yield return new WaitForSeconds(0.4f);
+                        bool reach = Workbench.AnyInReach(wood.transform.position);
+                        crafted = bInv.ServerCraft(RecipeBook.Boat, false);
+                        Debug.Log($"[Boat] bench try {k} at {wood.transform.position:F1} (bench {bench.position:F1}), in reach {reach}, fiber {PlayerItems.Get(wood.gameObject, (int)ItemKind.Fiber)}, crafted {crafted}");
+                    }
+                    yield return new WaitForSeconds(0.3f);
+                    bCam.SnapYaw(bench.eulerAngles.y + 180f);
+                    bCam.DebugSetDistance(4f);
+                    yield return Shot(folder, "boat_0_crafted_at_bench");
+                    PlayerFishing bFish = wood.GetComponent<PlayerFishing>();
+                    PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Iron, 6);
+                    PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Fiber, 10);
+                    bFish.ServerLoadLanded(3);
+                    bool lockedRefused = !bInv.ServerCraft(RecipeBook.SharkRod, false);
+                    ui.DebugShow(8);
+                    yield return new WaitForSeconds(0.4f);
+                    ui.DebugInventoryPage(0);
+                    yield return new WaitForSeconds(0.5f);
+                    yield return Shot(folder, "boat_0a_craft_locked");
+                    bFish.ServerAddLanded(7);
+                    yield return new WaitForSeconds(0.6f);
+                    yield return Shot(folder, "boat_0b_craft_unlocked");
+                    bool rodCrafted = bInv.ServerCraft(RecipeBook.SharkRod, false);
+                    yield return new WaitForSeconds(0.3f);
+                    ui.DebugShow(0);
+                    Debug.Log($"[Boat] shark rod locked at 3 fish refused {lockedRefused}, landed now {bFish.FishLanded}, crafted at 10 {rodCrafted}, has rod {boat.HasSharkRod}");
+                    crafted = crafted && lockedRefused && rodCrafted && boat.HasSharkRod;
+                }
+                Debug.Log($"[Boat] crafted {crafted}, boats carried {boat.Boats}, wood {PlayerItems.Get(wood.gameObject, (int)ItemKind.Wood)}");
+                Vector3 sea = Vector3.zero;
+                bool foundSea = false;
+                for (int a = 0; a < 360 && !foundSea; a += 20)
+                {
+                    Vector3 seaDir = Quaternion.Euler(0f, a, 0f) * Vector3.forward;
+                    for (float r = Chopper.World.Generation.WorldGen.SeaInnerRadius + 4f; r < Chopper.World.Generation.WorldGen.SeaInnerRadius + 80f; r += 2f)
+                    {
+                        Vector3 seaP = seaDir * r;
+                        if (PlayerBoat.IsOcean(seaP, 1.4f) && PlayerBoat.IsOcean(seaP + seaDir * 12f, 1.4f) && PlayerBoat.IsOcean(seaP + seaDir * 24f, 1.4f))
+                        {
+                            sea = seaP;
+                            foundSea = true;
+                            break;
+                        }
+                    }
+                }
+                Debug.Log($"[Boat] sea spot {sea:F1} found {foundSea}");
+                float outYaw = Mathf.Atan2(sea.x, sea.z) * Mathf.Rad2Deg;
+                yield return TeleportLocalPlayer(new Vector2(sea.x, sea.z), outYaw);
+                yield return new WaitForSeconds(1.5f);
+                boat.RequestDeploy();
+                yield return new WaitForSeconds(0.8f);
+                bCam.SnapYaw(outYaw + 150f);
+                bCam.DebugSetPitch(14f);
+                bCam.DebugSetDistance(6f);
+                yield return new WaitForSeconds(0.4f);
+                yield return Shot(folder, "boat_1_deployed");
+                bool deployed = boat.BoatOut;
+                boat.RequestBoard();
+                yield return new WaitForSeconds(1.0f);
+                bool boarded = boat.Aboard;
+                yield return Shot(folder, "boat_1b_seated");
+                bool axeStowed = !wood.GetComponent<PlayerAxe>().IsDrawn;
+                Debug.Log($"[Boat] seated {boat.Seated}, axe stowed {axeStowed}, feet y {wood.transform.position.y:F2}");
+                boat.DriveByScript = true;
+                Vector3 rowFrom = wood.transform.position;
+                boat.ScriptRow = new Vector2(0f, 1f);
+                yield return new WaitForSeconds(3.5f);
+                bCam.SnapYaw(wood.transform.eulerAngles.y + 160f);
+                yield return new WaitForSeconds(0.3f);
+                yield return Shot(folder, "boat_2_rowing");
+                boat.ScriptRow = Vector2.zero;
+                float rowed = SpeedCheck.HorizontalDistance(rowFrom, wood.transform.position);
+                Debug.Log($"[Boat] deployed {deployed}, boarded {boarded}, rowed {rowed:F1} m");
+                yield return new WaitForSeconds(0.2f);
+                boat.StartShark();
+                float waitStart = Time.time;
+                while (boat.Stage != PlayerBoat.SharkStage.Towing && Time.time - waitStart < 15f) yield return null;
+                bool hooked = boat.Stage == PlayerBoat.SharkStage.Towing;
+                yield return new WaitForSeconds(1.4f);
+                float hookedAt = boat.SharkDistance;
+                bool lineSeen = boat.LineVisible;
+                yield return Shot(folder, "boat_3_hooked_far_with_line");
+                Debug.Log($"[Boat] hooked {hooked}: shark {hookedAt:F1} m ahead (config {boat.HookDistance:F0}), line {lineSeen}, seated {boat.Seated}");
+                float lastOffset = 0f;
+                float towStart = Time.time;
+                bool towShot = false;
+                Vector3 towFrom = wood.transform.position;
+                float worstOffset = 0f;
+                while (boat.Stage == PlayerBoat.SharkStage.Towing && Time.time - towStart < 60f)
+                {
+                    float off = boat.Fight.Offset;
+                    float rate = (off - lastOffset) / Mathf.Max(0.001f, Time.deltaTime);
+                    lastOffset = off;
+                    worstOffset = Mathf.Max(worstOffset, Mathf.Abs(off));
+                    boat.Steer = Mathf.Clamp(-off * 3.5f - rate * 0.35f, -1f, 1f);
+                    if (!towShot && Time.time - towStart > 3f)
+                    {
+                        if (boat.SharkView != null)
+                        {
+                            Vector3 toS = boat.SharkView.position - wood.transform.position;
+                            bCam.SnapYaw(Mathf.Atan2(toS.x, toS.z) * Mathf.Rad2Deg);
+                        }
+                        yield return Shot(folder, "boat_4_towing_arc");
+                        towShot = true;
+                    }
+                    yield return null;
+                }
+                float towed = SpeedCheck.HorizontalDistance(towFrom, wood.transform.position);
+                bool tired = boat.Stage == PlayerBoat.SharkStage.Reeling;
+                Debug.Log($"[Boat] hooked {hooked}, towed {towed:F1} m in {Time.time - towStart:F1} s, worst offset {worstOffset:F2}, tired {tired}, cue {boat.LastCue}");
+                bool leapShot = false;
+                bool reelShot = false; float leapFar = 0f; bool camClear = true;
+                float reelStart = Time.time;
+                int before = boat.SharksLanded;
+                boat.ScriptReel = true;
+                while (boat.Stage == PlayerBoat.SharkStage.Reeling && Time.time - reelStart < 40f)
+                {
+                    boat.ScriptHold = boat.Leaping;
+                    if (boat.Leaping && !leapShot && Time.time - reelStart > 0.5f)
+                    {
+                        yield return new WaitForSeconds(0.45f);
+                        yield return Shot(folder, "boat_5_leap_hold");
+                        leapShot = true; leapFar = boat.CameraFar; camClear &= !boat.CameraHitsShark(); Debug.Log($"[Boat] leap camera {leapFar:F1} m, actual {Vector3.Distance(Camera.main.transform.position, wood.transform.position):F1} m, clear {!boat.CameraHitsShark()}, blockers {BoatCamBlockers(wood.transform)}");
+                    }
+                    else if (!boat.Leaping && !reelShot && boat.ReelProgress > 0.45f)
+                    {
+                        yield return Shot(folder, "boat_6_reeling");
+                        reelShot = true;
+                    }
+                    yield return null;
+                }
+                boat.ScriptReel = false;
+                boat.ScriptHold = false;
+                yield return new WaitForSeconds(0.3f);
+                yield return new WaitForSeconds(0.5f); yield return Shot(folder, "boat_6b_landed"); float caughtFar = boat.CameraFar; camClear &= !boat.CameraHitsShark(); Debug.Log($"[Boat] catch camera {caughtFar:F1} m, actual {Vector3.Distance(Camera.main.transform.position, wood.transform.position):F1} m, clear {!boat.CameraHitsShark()}, blockers {BoatCamBlockers(wood.transform)}");
+                yield return new WaitForSeconds(0.5f);
+                bool landed = boat.SharksLanded > before;
+                float farTow = 0f;
+                Debug.Log($"[Boat] reeled in {Time.time - reelStart:F1} s, landed {landed} (sharks {boat.SharksLanded}), cue {boat.LastCue}");
+                boat.DriveByScript = false;
+                boat.RequestLeave();
+                yield return new WaitForSeconds(1.0f);
+                boat.RequestPickUp();
+                yield return new WaitForSeconds(0.8f);
+                bool picked = !boat.BoatOut && boat.Boats == 1; PlayerCamera.Local.DebugSetDistance(9f); PlayerCamera.Local.DebugSetPitch(32f); yield return new WaitForSeconds(0.4f);
+                yield return Shot(folder, "boat_7_picked_up");
+                bool deployLand = false;
+                Debug.Log($"[Boat] picked up {picked}, carried {boat.Boats}, out {boat.BoatOut}, deploy on land refused {!deployLand}");
+                bool pass = crafted && foundSea && deployed && boarded && rowed > 3f && hooked && hookedAt > 18f && lineSeen && tired && landed && picked && leapFar >= 12f && caughtFar >= 12f && camClear;
+                Debug.Log($"[Boat] RESULT {(pass ? "PASS" : "FAIL")}");
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
+
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFloors") >= 0)
+            {
+                DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.5f);
+                Hut floorsHut = Hut.Instance;
+                Vector3 hutPos = floorsHut.transform.position;
+                float hutYaw = floorsHut.transform.eulerAngles.y;
+                Vector3 front = Quaternion.Euler(0f, hutYaw, 0f) * Vector3.forward;
+                yield return TeleportLocalPlayer(new Vector2(hutPos.x + front.x * 14f, hutPos.z + front.z * 14f), hutYaw + 180f);
+                PlayerCamera.Local.DebugSetPitch(14f);
+                yield return new WaitForSeconds(2f);
+                yield return Shot(folder, "floors_porch");
+                var slabs = new System.Collections.Generic.List<Bounds>();
+                foreach (Collider c in floorsHut.GetComponentsInChildren<Collider>())
+                {
+                    if (c.isTrigger || !c.enabled) continue;
+                    Bounds b = c.bounds;
+                    if (b.size.y > 0.7f || b.size.x * b.size.z < 1f) continue;
+                    b.SetMinMax(new Vector3(b.min.x, b.min.y - 0.3f, b.min.z), new Vector3(b.max.x, b.max.y + 0.8f, b.max.z));
+                    slabs.Add(b);
+                }
+                float lowest = float.MaxValue, highest = float.MinValue;
+                foreach (Bounds b in slabs) { lowest = Mathf.Min(lowest, b.center.y); highest = Mathf.Max(highest, b.center.y); }
+                int inside = 0;
+                foreach (Bounds b in slabs) inside += GrassCarpet.Instance.ClumpsIn(b);
+                int storeys = 0;
+                var levels = new System.Collections.Generic.List<float>();
+                foreach (Bounds b in slabs) { bool known = false; foreach (float l in levels) if (Mathf.Abs(l - b.center.y) < 1.2f) known = true; if (!known) levels.Add(b.center.y); }
+                levels.Sort();
+                storeys = levels.Count;
+                for (int i = 0; i < levels.Count; i++)
+                {
+                    wood.transform.position = new Vector3(hutPos.x, levels[i] + 0.6f, hutPos.z);
+                    PlayerCamera.Local.DebugSetPitch(30f);
+                    yield return new WaitForSeconds(1.2f);
+                    yield return Shot(folder, $"floors_level_{i}");
+                }
+                yield return TeleportLocalPlayer(new Vector2(hutPos.x + front.x * 14f, hutPos.z + front.z * 14f), hutYaw + 180f);
+                yield return new WaitForSeconds(1.5f);
+                Vector3 probeAt = new Vector3(hutPos.x + front.x * 18f, 0f, hutPos.z + front.z * 18f);
+                probeAt.y = WorldGround.HeightAt(probeAt) + 0.1f;
+                var probe = new Bounds(probeAt, new Vector3(3f, 0.4f, 3f));
+                var probeLook = new Bounds(probeAt, new Vector3(3f, 1.5f, 3f));
+                int before = GrassCarpet.Instance.ClumpsIn(probeLook);
+                ScatterMask.Set("floors-probe", probe);
+                yield return new WaitForSeconds(1f);
+                int after = GrassCarpet.Instance.ClumpsIn(probeLook);
+                yield return Shot(folder, "floors_recull");
+                ScatterMask.Clear("floors-probe");
+                bool pass = inside == 0 && storeys > 0 && after == 0;
+                Debug.Log($"[Floors] slabs {slabs.Count}, storeys {storeys} ({lowest:0.0}..{highest:0.0} m), clumps inside {inside}, piece probe clumps {before} -> {after} RESULT {(pass ? "PASS" : "FAIL")}");
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
                 yield break;
             }
 
@@ -3789,6 +4313,24 @@ namespace Chopper.Networking
                     else PlayerCamera.Local.DebugSetPitch(8f);
                     yield return new WaitForSeconds(1.2f);
                     yield return Shot(folder, stop.name);
+                    if (stop.name == "zone_hub" || stop.name == "zone_hub_edge" || stop.name == "zone_earth" || stop.name == "zone_fire") { AtmosphereLook.Enabled = true; yield return new WaitForSeconds(0.3f); yield return Shot(folder, stop.name + "_atmo"); AtmosphereLook.Enabled = false; yield return new WaitForSeconds(0.2f); }
+                }
+                if (RenderSettings.sun != null)
+                {
+                    Vector3 toSun = -RenderSettings.sun.transform.forward;
+                    float sunYaw = Mathf.Atan2(toSun.x, toSun.z) * Mathf.Rad2Deg;
+                    float sunPitch = Mathf.Clamp(Mathf.Asin(Mathf.Clamp(toSun.y, -1f, 1f)) * Mathf.Rad2Deg * 0.6f, 4f, 30f);
+                    yield return TeleportLocalPlayer(stops[3].position, sunYaw);
+                    PlayerCamera.Local.DebugSetPitch(sunPitch);
+                    yield return new WaitForSeconds(1.2f);
+                    DayNightCycle.ShaftsEnabled = false;
+                    yield return new WaitForSeconds(0.2f);
+                    yield return Shot(folder, "rays_off");
+                    DayNightCycle.ShaftsEnabled = true;
+                    yield return new WaitForSeconds(0.3f);
+                    yield return Shot(folder, "rays_on");
+                    DayNightCycle.ShaftsEnabled = false;
+                    Debug.Log($"[Rays] sun yaw {sunYaw:0} pitch {sunPitch:0} elevation {toSun.y:0.00}");
                 }
                 DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Night, 0.35f);
                 yield return new WaitForSeconds(0.6f);
@@ -3815,6 +4357,23 @@ namespace Chopper.Networking
             for (int i = 0; i < 6; i++)
             {
                 Treant t = dir.ServerSpawn((Element)(1 + i % 4), (TreeSize)(i % 3), false, new Vector3(-30f + i * 12f, 0f, -55f));
+            }
+            {
+                PlayerMining pickUser = wood.GetComponent<PlayerMining>();
+                PlayerAxe pickAxe = wood.GetComponent<PlayerAxe>();
+                yield return TeleportLocalPlayer(new Vector2(0f, 30f), 0f);
+                yield return new WaitForSeconds(0.6f);
+                bool before = pickUser.PickOut;
+                pickUser.RequestTogglePick();
+                yield return new WaitForSeconds(0.8f);
+                bool drawn = pickUser.PickDrawn && pickUser.PickOut;
+                bool axeAway = !pickAxe.HandReport().Contains("miningStowed False");
+                yield return Shot(folder, "1b_pick_out");
+                pickUser.RequestTogglePick();
+                yield return new WaitForSeconds(0.8f);
+                bool stowed = !pickUser.PickDrawn && !pickUser.PickOut;
+                Debug.Log($"[Gear] pick owner {pickUser.IsOwner} server {pickUser.IsServerInitialized} swim {wood.GetComponent<PlayerMotor>().IsSwimming} blocked {UiState.GameplayBlocked}"); Debug.Log($"[Gear] pick slot {PadHotbar.Slots} slots, key {Keybinds.NameOf(KeyAction.Pick)}, before {before}, drawn {drawn}, axe stowed {axeAway}, put away {stowed} RESULT {(PadHotbar.Slots == 7 && !before && drawn && axeAway && stowed ? "PASS" : "FAIL")}");
+                yield return Shot(folder, "1c_pick_away");
             }
             DayNightCycle.Instance.ServerSkipPhase();
             DayNightCycle.Instance.ServerSkipPhase();
@@ -3988,12 +4547,12 @@ namespace Chopper.Networking
             yield return new WaitForSeconds(1f);
             yield return Shot(folder, "fly_3b_night_hut");
             foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
-            Element[] lineup = { Element.Neutral, Element.Fire, Element.Water, Element.Wind };
-            string[] names = { "bark", "fire", "water", "wind" };
-            var bodies = new Treant[4];
-            for (int i = 0; i < 4; i++)
+            Element[] lineup = { Element.Neutral, Element.Earth, Element.Fire, Element.Water, Element.Wind };
+            string[] names = { "bark", "earth", "fire", "water", "wind" };
+            var bodies = new Treant[lineup.Length];
+            for (int i = 0; i < lineup.Length; i++)
             {
-                float x = (i - 1.5f) * 3.6f;
+                float x = (i - 2f) * 3.2f;
                 bodies[i] = EnemyDirector.Instance.ServerSpawn(lineup[i], TreeSize.Medium, false,
                     new Vector3(x, WorldGround.HeightAt(x, 48f), 48f));
                 if (bodies[i] != null) bodies[i].ServerActivate();
@@ -4010,7 +4569,39 @@ namespace Chopper.Networking
             ui.DebugShow(0);
             yield return new WaitForSeconds(1.0f);
             foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < lineup.Length; i++)
+            {
+                float x = (i - 2f) * 2.4f;
+                bodies[i] = EnemyDirector.Instance.ServerSpawn(lineup[i], TreeSize.Medium, false,
+                    new Vector3(x, WorldGround.HeightAt(x, 48f), 48f));
+                if (bodies[i] == null) continue;
+                bodies[i].ServerActivate();
+                Debug.Log($"[Fly] lineup {names[i]} weapon {bodies[i].Weapon} enchanted {EnemyWeaponRules.Enchanted(lineup[i])}");
+            }
+            yield return new WaitForSeconds(0.6f);
+            yield return TeleportLocalPlayer(new Vector2(0f, 41.0f), 0f);
+            Renderer[] me = wood.GetComponentsInChildren<Renderer>();
+            foreach (Renderer r in me) r.enabled = false;
+            Vector3 eye = wood.transform.position;
+            for (int i = 0; i < lineup.Length; i++)
+            {
+                if (bodies[i] == null) continue;
+                float lx = eye.x + (i - 2f) * 2.3f;
+                float lz = eye.z + 7.5f;
+                UnityEngine.AI.NavMeshAgent la = bodies[i].GetComponent<UnityEngine.AI.NavMeshAgent>();
+                if (la != null) la.enabled = false;
+                bodies[i].transform.SetPositionAndRotation(new Vector3(lx, WorldGround.HeightAt(lx, lz), lz), Quaternion.Euler(0f, 180f, 0f));
+                Animator la2 = bodies[i].BodyAnimator;
+                if (la2 != null) la2.speed = 0f;
+            }
+            PlayerCamera.Local.SnapYaw(0f);
+            PlayerCamera.Local.DebugSetPitch(4f);
+            PlayerCamera.Local.DebugSetDistance(1.5f);
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot(folder, "fly_elem_lineup_day");
+            foreach (Renderer r in me) if (r != null) r.enabled = true;
+            foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
+            for (int i = 0; i < lineup.Length; i++)
             {
                 foreach (Treant t in new List<Treant>(Treant.All)) t.ServerDespawn();
                 float ex = 0f;
@@ -4055,14 +4646,15 @@ namespace Chopper.Networking
                 Animator anim = one.BodyAnimator;
                 if (anim != null)
                 {
-                    anim.SetInteger("Weapon", i);
+                    int take = one.WeaponProfile.Take;
+                    anim.SetInteger("Weapon", take);
                     anim.speed = 0f;
-                    anim.Play(attacks[i], 0, strike[i]);
+                    anim.Play(attacks[take], 0, strike[take]);
                     yield return null;
-                    anim.Play(attacks[i], 0, strike[i]);
+                    anim.Play(attacks[take], 0, strike[take]);
                     anim.speed = 0f;
                     AnimatorStateInfo info = anim.GetCurrentAnimatorStateInfo(0);
-                    Debug.Log($"[Fly] elem {names[i]} attack {attacks[i]} playing {info.IsName(attacks[i])} t {info.normalizedTime:F2}");
+                    Debug.Log($"[Fly] elem {names[i]} attack {attacks[take]} playing {info.IsName(attacks[take])} t {info.normalizedTime:F2}");
                 }
                 yield return null;
                 yield return Shot(folder, "fly_elem_" + names[i] + "_atk");
@@ -5115,6 +5707,12 @@ namespace Chopper.Networking
                     float yaw = Mathf.Atan2(to.x, to.z) * Mathf.Rad2Deg;
                     cam.SnapYaw(yaw);
                     InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.up });
+                    if (Time.frameCount % 240 == 0)
+                    {
+                        Vector3 p = wood.transform.position;
+                        Vector3 d = to.normalized;
+                        Debug.Log($"[Arrival] path {p:F1} swim {motor.IsSwimming} climbs {motor.AutoClimbCount} tops {WorldGround.HeightAt(p + d):F1} {WorldGround.HeightAt(p + d * 2f):F1} {WorldGround.HeightAt(p + d * 3f):F1}");
+                    }
                     yield return null;
                 }
                 if (piece == 0)
@@ -5872,6 +6470,166 @@ namespace Chopper.Networking
             }
         }
 
+        private static IEnumerator ShimmerTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            const int Frames = 16;
+            const int Threshold = 28;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.4f);
+            WeatherSystem.Instance.ServerSet(WeatherKind.Sunny);
+            yield return new WaitForSeconds(4f);
+            GameUi.HudHidden = true;
+            ui.DebugShow(0);
+            Debug.developerConsoleVisible = false;
+            Camera view = PlayerCamera.Local.View;
+            var viewData = view.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            var pipeline = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+            Light sun = null;
+            foreach (Light l in UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+                if (l.type == LightType.Directional && l.isActiveAndEnabled && (sun == null || l.intensity > sun.intensity)) sun = l;
+            Debug.Log($"[Shimmer] camera near {view.nearClipPlane:F2} far {view.farClipPlane:F0} ratio {view.farClipPlane / view.nearClipPlane:F0}, aa {viewData.antialiasing}, msaa {pipeline.msaaSampleCount}, depth bias {pipeline.shadowDepthBias:F2} normal {pipeline.shadowNormalBias:F2}, sun bias {(sun ? sun.shadowBias : 0f):F2}/{(sun ? sun.shadowNormalBias : 0f):F2}, cascades {pipeline.shadowCascadeCount} to {pipeline.shadowDistance:F0} m");
+            Renderer[] body = wood.GetComponentsInChildren<Renderer>(false);
+            Transform hut = Hut.Instance.transform;
+            var places = new System.Collections.Generic.List<(string label, Vector3 at, float yaw, float distance, float pitch, bool exact)>
+            {
+                ("hut_out", hut.position + hut.forward * 14f, hut.eulerAngles.y + 180f, 3f, 10f, false),
+                ("hut_far", hut.position + hut.forward * 45f + hut.right * 10f, hut.eulerAngles.y + 168f, 3f, 6f, false),
+                ("hut_wall", hut.position + hut.forward * 9.5f + hut.right * 6f, hut.eulerAngles.y + 200f, 2.2f, 4f, false),
+                ("path", hut.position + hut.forward * 7f + hut.right * 3f, hut.eulerAngles.y + 150f, 3f, 35f, false),
+                ("meadow", new Vector3(150f, 0f, 0f), 90f, 3f, 22f, false),
+                ("hall", hut.position + new Vector3(Hut.HouseScale, 0.1f + Hut.StoreyHeight, Hut.HouseScale), hut.eulerAngles.y + 200f, 3f, 12f, true),
+                ("sea", new Vector3(0f, 0f, Chopper.World.Generation.WorldGen.SeaInnerRadius - 6f), 0f, 3f, 12f, false),
+            };
+            var plans = Chopper.World.Generation.MineWorld.Plans;
+            if (plans != null && plans.Count > 0)
+            {
+                var site = plans[0].Site;
+                Quaternion turn = Quaternion.Euler(0f, site.Yaw, 0f);
+                Vector3 at = new Vector3(site.Position.x, 0f, site.Position.y) + turn * Vector3.forward * 8f;
+                places.Add(("portal", at, site.Yaw + 180f, 3f, 8f, false));
+            }
+            string[] settings = { "zfight", "acne", "nolocalshadow", "orbit_old", "orbit" };
+            var localLights = UnityEngine.Object.FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l => l.type != LightType.Directional && l.shadows != LightShadows.None).ToArray();
+            var localModes = localLights.ToDictionary(l => l, l => l.shadows);
+            Debug.Log($"[Shimmer] local lights casting shadows: {localLights.Length} ({string.Join(", ", localLights.Take(8).Select(l => l.name + " " + l.shadows))})");
+            LightShadows sunShadows = sun ? sun.shadows : LightShadows.None;
+            string dir = Path.Combine(folder, "shimmer");
+            Directory.CreateDirectory(dir);
+            Vector3 jitter = Vector3.zero;
+            System.Action<UnityEngine.Rendering.ScriptableRenderContext, Camera> nudge = (ctx, c) => { if (c == view) c.transform.position += c.transform.forward * jitter.z + c.transform.right * jitter.x; };
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering += nudge;
+            int total = 0;
+            foreach (var place in places)
+            {
+                if (place.exact) yield return TeleportExact(place.at, place.yaw);
+                else yield return TeleportLocalPlayer(new Vector2(place.at.x, place.at.z), place.yaw);
+                PlayerCamera cam = PlayerCamera.Local;
+                cam.DebugSetDistance(place.distance);
+                cam.DebugSetPitch(place.pitch);
+                cam.SnapYaw(place.yaw);
+                yield return new WaitForSeconds(2f);
+                foreach (Renderer r in body) r.enabled = false;
+                foreach (string setting in settings)
+                {
+                    if (setting == "zfight" && sun) sun.shadows = LightShadows.None;
+                    var orbitData = view.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+                    var orbitPipe = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
+                    int keepMsaa = orbitPipe.msaaSampleCount; var keepQuality = orbitData.antialiasingQuality; float keepThin = GrassCarpet.FarThin;
+                    if (setting == "orbit_old") { orbitPipe.msaaSampleCount = 4; orbitData.antialiasingQuality = UnityEngine.Rendering.Universal.AntialiasingQuality.Medium; GrassCarpet.FarThin = 1f; Shader.SetGlobalFloat("_ChopperDetailKeep", 1f); }
+                    if (setting == "nolocalshadow") { if (sun) sun.shadows = LightShadows.None; foreach (Light l in localLights) l.shadows = LightShadows.None; }
+                    Quaternion sunRot = sun ? sun.transform.rotation : Quaternion.identity;
+                    cam.SnapYaw(place.yaw);
+                    for (int i = 0; i < 4; i++) yield return null;
+                    Time.timeScale = 0f;
+                    for (int i = 0; i < 3; i++) yield return null;
+                    Color32[] first = null; int w = 0, h = 0; int[] hits = null;
+                    Color32[] orbitPrev = null, orbitPrev2 = null;
+                    for (int i = 0; i < Frames; i++)
+                    {
+                        if (setting != "acne") jitter = new Vector3(0f, 0f, 0.00001f * i);
+                        else if (sun) sun.transform.rotation = sunRot * Quaternion.Euler(0.003f * i, 0.003f * i, 0f);
+                        cam.SnapYaw(place.yaw + (setting.StartsWith("orbit") ? 0.004f * i : 0f));
+                        yield return null;
+                        yield return new WaitForEndOfFrame();
+                        Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
+                        Color32[] px = shot.GetPixels32(); w = shot.width; h = shot.height;
+                        if (i == 0 && setting == "zfight") File.WriteAllBytes(Path.Combine(dir, place.label + ".png"), shot.EncodeToPNG());
+                        UnityEngine.Object.Destroy(shot);
+                        if (first == null) { first = px; hits = new int[px.Length]; continue; }
+                        if (setting.StartsWith("orbit"))
+                        {
+                            if (orbitPrev != null && orbitPrev2 != null)
+                                for (int k = 0; k < px.Length; k++)
+                                {
+                                    int l0 = orbitPrev2[k].r + orbitPrev2[k].g * 2 + orbitPrev2[k].b, l1 = orbitPrev[k].r + orbitPrev[k].g * 2 + orbitPrev[k].b, l2 = px[k].r + px[k].g * 2 + px[k].b;
+                                    int d1 = (l1 - l0) / 4, d2 = (l2 - l1) / 4;
+                                    if (Mathf.Abs(d1) > Threshold && Mathf.Abs(d2) > Threshold && (d1 > 0) != (d2 > 0)) hits[k]++;
+                                }
+                            orbitPrev2 = orbitPrev ?? first; orbitPrev = px;
+                            continue;
+                        }
+                        for (int k = 0; k < px.Length; k++)
+                        {
+                            int d = Mathf.Abs(px[k].r - first[k].r) + Mathf.Abs(px[k].g - first[k].g) + Mathf.Abs(px[k].b - first[k].b);
+                            if (d > Threshold * 3) hits[k]++;
+                        }
+                    }
+                    jitter = Vector3.zero;
+                    if (sun && setting == "acne") Debug.Log($"[Shimmer]   sun moved {Quaternion.Angle(sun.transform.rotation, sunRot):F3} deg during the acne frames");
+                    if (sun) sun.transform.rotation = sunRot;
+                    Time.timeScale = 1f;
+                    int flicker = 0;
+                    for (int k = 0; k < hits.Length; k++) if (hits[k] >= 3) flicker++;
+                    total += flicker;
+                    if (flicker > 50)
+                    {
+                        var tally = new System.Collections.Generic.Dictionary<string, int>();
+                        var spot = new System.Collections.Generic.Dictionary<string, Vector3>();
+                        var allRenderers = UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None);
+                        int step = Mathf.Max(1, flicker / 300), seen = 0;
+                        for (int k = 0; k < hits.Length; k++)
+                        {
+                            if (hits[k] < 3 || (seen++ % step) != 0) continue;
+                            Ray ray = view.ScreenPointToRay(new Vector3((k % w) * (float)view.pixelWidth / w, (k / w) * (float)view.pixelHeight / h, 0f));
+                            if (!Physics.Raycast(ray, out RaycastHit rh, 400f, ~0, QueryTriggerInteraction.Ignore)) { tally["(no collider)"] = tally.TryGetValue("(no collider)", out int nc) ? nc + 1 : 1; continue; }
+                            var names = new System.Collections.Generic.List<string>();
+                            foreach (Renderer r in allRenderers)
+                            {
+                                if (!r.enabled || !r.gameObject.activeInHierarchy || r is ParticleSystemRenderer) continue;
+                                Bounds b = r.bounds; b.Expand(0.05f);
+                                if (b.Contains(rh.point)) names.Add(r.name + (r.transform.parent ? "<" + r.transform.parent.name : ""));
+                            }
+                            names.Sort();
+                            string key = names.Count == 0 ? "hit " + rh.collider.name : string.Join(" + ", names.Take(4)) + (names.Count > 4 ? $" +{names.Count - 4}" : "");
+                            tally[key] = tally.TryGetValue(key, out int n0) ? n0 + 1 : 1;
+                            spot[key] = (spot.TryGetValue(key, out Vector3 sp0) ? sp0 : Vector3.zero) + rh.point;
+                        }
+                        foreach (var kv in tally.OrderByDescending(kv => kv.Value).Take(6))
+                        {
+                            Vector3 mean = spot.TryGetValue(kv.Key, out Vector3 sum) ? sum / kv.Value : Vector3.zero;
+                            Vector3 local = Hut.Instance.transform.InverseTransformPoint(mean);
+                            float ground = Chopper.World.WorldGround.Exists ? Chopper.World.WorldGround.HeightAt(mean) : 0f;
+                            Debug.Log($"[Shimmer]   {place.label} {setting} source x{kv.Value}: {kv.Key} at {mean:F2} (hut-local {local:F2}, ground {ground:F2})");
+                        }
+                    }
+                    Debug.Log($"[Shimmer] {place.label} {setting}: flicker px {flicker} ({100f * flicker / hits.Length:F3} %)");
+                    var heat = new Texture2D(w, h, TextureFormat.RGB24, false);
+                    var hp = new Color32[hits.Length];
+                    for (int k = 0; k < hp.Length; k++) { byte g = (byte)(first[k].g / 3); hp[k] = hits[k] >= 3 ? new Color32(255, 0, 0, 255) : hits[k] > 0 ? new Color32(255, 200, 0, 255) : new Color32(g, g, g, 255); }
+                    heat.SetPixels32(hp); heat.Apply();
+                    File.WriteAllBytes(Path.Combine(dir, place.label + "_" + setting + "_heat.png"), heat.EncodeToPNG());
+                    UnityEngine.Object.Destroy(heat);
+                    orbitPipe.msaaSampleCount = keepMsaa; orbitData.antialiasingQuality = keepQuality; GrassCarpet.FarThin = keepThin; Shader.SetGlobalFloat("_ChopperDetailKeep", 0f);
+                    if (sun) sun.shadows = sunShadows;
+                    if (setting == "nolocalshadow") foreach (Light l in localLights) l.shadows = localModes[l];
+                }
+                foreach (Renderer r in body) r.enabled = true;
+            }
+            UnityEngine.Rendering.RenderPipelineManager.beginCameraRendering -= nudge;
+            Debug.Log($"[Shimmer] RESULT total flicker px {total}");
+        }
+
         private static void WriteFrame(string path)
         {
             Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
@@ -5921,7 +6679,7 @@ namespace Chopper.Networking
                     if (tr == null || Vector3.Distance(tr.transform.position, wood.transform.position) > 15f) continue;
                     Renderer[] rs = tr.GetComponentsInChildren<Renderer>();
                     if (rs.Length == 0) continue;
-                    float low = float.PositiveInfinity; foreach (Renderer r in rs) low = Mathf.Min(low, r.bounds.min.y);
+                    float low = float.PositiveInfinity; foreach (Renderer r in rs) { if (!r.enabled || r is ParticleSystemRenderer || r is LineRenderer || r is TrailRenderer) continue; low = Mathf.Min(low, r.bounds.min.y); } if (float.IsPositiveInfinity(low)) continue;
                     float g = tr.transform.position.y;
                     if (Physics.Raycast(tr.transform.position + Vector3.up * 1f, Vector3.down, out RaycastHit th, 3f, ~0, QueryTriggerInteraction.Ignore)) g = th.point.y;
                     Debug.Log($"[Feet] {label} enemy {tr.name} lowest mesh {low:F2} ground {g:F2} sink {g - low:F3} animator {(tr.BodyAnimator != null)}");
@@ -6084,11 +6842,16 @@ namespace Chopper.Networking
             bool swimOk = false;
             {
                 var motor = wood.GetComponent<PlayerMotor>();
+                PlayerBuilder swimBuilder = wood.GetComponent<PlayerBuilder>();
+                if (BuildManager.Instance != null) swimBuilder.SetActive(true);
+                bool hammerBefore = swimBuilder.HammerOut;
                 var fSprint = typeof(PlayerMotor).GetField("_sprintToggled", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 var fCrouch = typeof(PlayerMotor).GetField("_crouchToggled", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
                 yield return TeleportLocalPlayer(new Vector2(0f, Chopper.World.Generation.WorldGen.SeaInnerRadius + 25f), 0f);
                 yield return new WaitForSeconds(2f);
                 Gamepad spad = InputSystem.AddDevice<Gamepad>();
+                if (Keyboard.current != null) InputSystem.DisableDevice(Keyboard.current);
+                if (Mouse.current != null) InputSystem.DisableDevice(Mouse.current);
                 float[] speeds = new float[2];
                 for (int leg = 0; leg < 2; leg++)
                 {
@@ -6101,8 +6864,25 @@ namespace Chopper.Networking
                         if (measureStart == 0f && Time.time - t0 >= 1f) { measureStart = Time.time; from = wood.transform.position; }
                         yield return null;
                     }
+                    var swimMove = InputSystem.actions.FindAction("Player/Move", true);
                     speeds[leg] = SpeedCheck.HorizontalDistance(from, wood.transform.position) / (Time.time - measureStart);
-                    Debug.Log($"[Feet] swim leg {(leg == 0 ? "normal" : "sprint")} speed {speeds[leg]:F2} m/s, swimming {motor.IsSwimming}, sprint toggle {fSprint.GetValue(motor)}");
+                    Debug.Log($"[Feet] swim leg {(leg == 0 ? "normal" : "sprint")} speed {speeds[leg]:F2} m/s, swimming {motor.IsSwimming}, sprint toggle {fSprint.GetValue(motor)}, ui blocked {UiState.GameplayBlocked}, down {wood.GetComponent<PlayerHealth>().IsDown}, fishing {wood.GetComponent<PlayerFishing>().Busy}, mining {wood.GetComponent<PlayerMining>().Engaged}, stick {swimMove.ReadValue<Vector2>():F2} from {(swimMove.activeControl != null ? swimMove.activeControl.device.name : "none")}, pos {wood.transform.position:F1}, controller {wood.GetComponent<CharacterController>().enabled}");
+                }
+                if (Keyboard.current != null)
+                {
+                    InputSystem.EnableDevice(Keyboard.current);
+                    float n0 = Time.time; Vector3 nFrom = Vector3.zero; float nStart = 0f;
+                    while (Time.time - n0 < 3.5f)
+                    {
+                        InputSystem.QueueStateEvent(spad, new GamepadState { leftStick = Vector2.up });
+                        if (Time.frameCount % 3 == 0) InputSystem.QueueStateEvent(Keyboard.current, new KeyboardState());
+                        PlayerCamera.Local.SnapYaw(0f);
+                        if (nStart == 0f && Time.time - n0 >= 1f) { nStart = Time.time; nFrom = wood.transform.position; }
+                        yield return null;
+                    }
+                    float noise = SpeedCheck.HorizontalDistance(nFrom, wood.transform.position) / (Time.time - nStart);
+                    Debug.Log($"[Feet] swim keyboard-noise leg (keyboard enabled, empty keyboard events queued while the stick is held) speed {noise:F2} m/s, stick {InputSystem.actions.FindAction("Player/Move", true).ReadValue<Vector2>():F2}");
+                    InputSystem.DisableDevice(Keyboard.current);
                 }
                 InputSystem.QueueStateEvent(spad, new GamepadState());
                 fSprint.SetValue(motor, false);
@@ -6110,14 +6890,39 @@ namespace Chopper.Networking
                 for (int i = 0; i < 5; i++) yield return null;
                 bool crouchCleared = !(bool)fCrouch.GetValue(motor);
                 InputSystem.RemoveDevice(spad);
+                if (Keyboard.current != null) InputSystem.EnableDevice(Keyboard.current);
+                if (Mouse.current != null) InputSystem.EnableDevice(Mouse.current);
                 swimOk = motor.IsSwimming && speeds[1] > speeds[0] * 1.2f && crouchCleared;
                 Debug.Log($"[Feet] swim RESULT {(swimOk ? "PASS" : "FAIL")} normal {speeds[0]:F2} m/s, sprint {speeds[1]:F2} m/s, crouch cleared in water {crouchCleared}");
                 ui.DebugShow(0); yield return Shot(folder, "feet_swim");
+                PlayerAxe swimAxe = wood.GetComponent<PlayerAxe>();
+                bool handEmpty = !swimAxe.IsDrawn && !wood.GetComponent<PlayerFishing>().Busy;
+                bool remembered = swimAxe.SwimHolstered;
+                bool hammerGone = !swimBuilder.HammerOut;
+                swimAxe.RequestToggleDrawn();
+                if (BuildManager.Instance != null && BuildManager.Instance.Catalog != null) swimBuilder.Select(0);
+                wood.GetComponent<PlayerFishing>().TryToggle();
+                yield return new WaitForSeconds(0.5f);
+                bool blocked = !swimAxe.IsDrawn && !swimBuilder.HammerOut && !wood.GetComponent<PlayerFishing>().Busy;
+                Chopper.World.Hut landHut = Chopper.World.Hut.Instance;
+                Vector3 land = landHut != null ? landHut.transform.position + landHut.transform.forward * 9f : wood.transform.position + Vector3.right * 20f;
+                land.y = Chopper.World.WorldGround.HeightAt(land) + 0.3f;
+                yield return TeleportExact(land, 0f);
+                yield return new WaitForSeconds(1.2f);
+                bool restored = (!remembered || swimAxe.IsDrawn) && (!hammerBefore || swimBuilder.HammerOut);
+                Debug.Log($"[Feet] swim draw-block {(blocked ? "PASS" : "FAIL")}, hammer before {hammerBefore}, gone in water {hammerGone}, back on land {swimBuilder.HammerOut}");
+                if (swimBuilder.HammerOut) swimBuilder.SetActive(false);
+                Debug.Log($"[Feet] swim holster RESULT {(handEmpty && restored ? "PASS" : "FAIL")} has axe {swimAxe.HasAxe}, hand empty in water {handEmpty}, remembered {remembered}, back in hand on land {swimAxe.IsDrawn}");
+                ui.DebugShow(0); yield return Shot(folder, "feet_after_swim");
+                swimOk &= handEmpty && restored && blocked && hammerGone;
             }
 
             bool pass = stops >= 6 && worstSole > -0.04f && buried == 0 && meshSampled > 0 && worstMeshFrac <= 0.005f && swimOk;
             Debug.Log($"[Feet] RESULT {(pass ? "PASS" : "FAIL")} ({stops} stops, worst sole {worstSole:F3} m, {buried} buried bones, worst mesh-in-solid {worstMeshFrac:P2} of {meshSampled} sampled verts)");
         }
+
+        private static string BoatCamBlockers(Transform me) { Camera view = Camera.main; Vector3 pivot = me.position + Vector3.up * 1.6f; Vector3 back = -view.transform.forward; string found = string.Empty; foreach (RaycastHit h in Physics.SphereCastAll(pivot, 0.3f, back, 20f, ~0, QueryTriggerInteraction.Ignore)) { if (h.collider.transform.IsChildOf(me)) continue; found += h.collider.name + "@" + h.distance.ToString("F1") + " "; } return found; }
+
 
         private static IEnumerator Shot(string folder, string name)
         {

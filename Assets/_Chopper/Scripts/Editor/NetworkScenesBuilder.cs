@@ -183,6 +183,8 @@ namespace Chopper.Editor
                 SetSerialized(appearance, "_outfitter", p => p.objectReferenceValue = character.Outfitter);
             }
             PlayerFishing fishing = root.AddComponent<PlayerFishing>();
+            PlayerBoat boat = root.AddComponent<PlayerBoat>();
+            SetSerialized(boat, "_config", p => p.objectReferenceValue = config);
             SetSerialized(fishing, "_config", p => p.objectReferenceValue = config);
             // The bed (sleeping through the night) and the hammer (building pieces).
             root.AddComponent<PlayerRest>();

@@ -47,9 +47,9 @@ namespace Chopper.Tests.EditMode
         }
 
         [Test]
-        public void TheSixHotbarItemsUseThePadHotbarAndTheNumberKeys()
+        public void TheSevenHotbarItemsUseThePadHotbarAndTheNumberKeys()
         {
-            KeyAction[] order = { KeyAction.Axe, KeyAction.Torch, KeyAction.Potion, KeyAction.Rod, KeyAction.Food, KeyAction.Build };
+            KeyAction[] order = { KeyAction.Axe, KeyAction.Torch, KeyAction.Potion, KeyAction.Rod, KeyAction.Food, KeyAction.Build, KeyAction.Pick };
             Assert.AreEqual(order.Length, PadHotbar.Slots);
             for (int slot = 0; slot < order.Length; slot++)
             {

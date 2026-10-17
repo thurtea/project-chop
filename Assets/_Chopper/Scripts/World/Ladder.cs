@@ -14,16 +14,29 @@ namespace Chopper.World
 
         public static int Count => Zones.Count;
 
-        public static bool At(Vector3 point, out Vector3 inward, out float top)
+        public static bool At(Vector3 point, out Vector3 inward, out float top) => At(point, out inward, out top, out _);
+
+        public static bool At(Vector3 point, out Vector3 inward, out float top, out Vector3 rung)
         {
             foreach (var z in Zones)
             {
-                if (z.zone.Contains(point)) { inward = z.inward; top = z.zone.max.y; return true; }
+                if (z.zone.Contains(point))
+                {
+                    inward = z.inward;
+                    top = z.zone.max.y;
+                    rung = z.zone.center;
+                    return true;
+                }
             }
             inward = Vector3.zero;
             top = 0f;
+            rung = Vector3.zero;
             return false;
         }
+
+        public static bool Mounts(bool climbing, Vector3 input, Vector3 inward) => climbing || (input.sqrMagnitude > 0.01f && Vector3.Dot(input.normalized, inward) > 0.3f);
+
+        public static bool Dismounts(bool grounded, Vector3 input, Vector3 inward) => grounded && input.sqrMagnitude > 0.01f && Vector3.Dot(input.normalized, inward) < -0.3f;
 
         public static float Climb(Vector3 input, Vector3 inward)
         {

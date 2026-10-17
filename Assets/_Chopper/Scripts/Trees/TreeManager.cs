@@ -446,6 +446,7 @@ namespace Chopper.Trees
                 _remains.Clear();
                 _logReadyAt.Clear();
             }
+            regrow.RemoveAll(id => Chopper.World.ScatterMask.PieceNear(_database.Get(id).Position + Vector3.up * 0.1f, _config.GetTrunkRadius(_database.Get(id).Size)));
             foreach (int id in regrow) _logReadyAt.Remove(id);
             if (regrow.Count == 0) return;
             foreach (int id in regrow) _tracker.Regrow(id);
