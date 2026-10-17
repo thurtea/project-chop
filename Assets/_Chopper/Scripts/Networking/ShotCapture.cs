@@ -1948,6 +1948,13 @@ namespace Chopper.Networking
                 Application.Quit(ok ? 0 : 1);
                 yield break;
             }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperStone") >= 0)
+            {
+                yield return StoneTour(folder, wood, ui);
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperHomeRaid") >= 0)
             {
                 yield return HomeRaidTour(folder, wood, ui);
@@ -6539,6 +6546,70 @@ namespace Chopper.Networking
                 yield return null;
             }
             Debug.Log($"[ChopTrace] {label}: {string.Join(" | ", lines)}");
+        }
+
+        private static IEnumerator StoneTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            yield return new WaitForSeconds(4f);
+            PlayerMining mining = wood.GetComponent<PlayerMining>();
+            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
+            PlayerInventory inventory = wood.GetComponent<PlayerInventory>();
+            PlayerCamera cam = wood.GetComponent<PlayerCamera>();
+            axe.ServerSetHasAxe(true);
+            int best = -1;
+            float bestSqr = float.MaxValue;
+            for (int i = 0; i < Chopper.World.RockField.Count; i++)
+            {
+                Vector3 r = Chopper.World.RockField.PositionOf(i);
+                float size = Chopper.World.RockField.SizeOf(i);
+                if (size < 1.2f || size > 3.5f || r.y < Chopper.World.Generation.WorldGen.WaterHeight + 0.5f) continue;
+                float d = new Vector2(r.x, r.z).sqrMagnitude;
+                if (d < bestSqr) { bestSqr = d; best = i; }
+            }
+            bool found = best >= 0;
+            int gained = 0, swings = 0, before = 0;
+            bool wornOut = false, refills = false;
+            float rockSize = found ? Chopper.World.RockField.SizeOf(best) : 0f;
+            if (found)
+            {
+                Vector3 rock = Chopper.World.RockField.PositionOf(best);
+                Vector3 stand = rock + new Vector3(0f, 0f, -(rockSize * 0.5f + 0.9f));
+                yield return TeleportLocalPlayer(new Vector2(stand.x, stand.z), 0f);
+                cam.SnapYaw(0f);
+                yield return new WaitForSeconds(1f);
+                mining.RequestTogglePick();
+                yield return new WaitForSeconds(1f);
+                before = inventory.Stone;
+                Vector3 look = rock + Vector3.up * 0.8f;
+                Vector3 eye = look + new Vector3(3.2f, 1.6f, -3.6f);
+                cam.DebugHold(eye, Quaternion.LookRotation(look - eye, Vector3.up));
+                for (int k = 0; k < 14; k++)
+                {
+                    cam.SnapYaw(0f);
+                    if (axe.TrySwing()) swings++;
+                    yield return new WaitForSeconds(0.7f);
+                    if (k == 1) yield return Shot(folder, "stone_0_strike");
+                }
+                yield return new WaitForSeconds(0.5f);
+                gained = inventory.Stone - before;
+                int struck = mining.LastRock;
+                float struckSize = struck >= 0 ? Chopper.World.RockField.SizeOf(struck) : rockSize;
+                wornOut = struck >= 0 && gained == StoneRules.DailyYield(struckSize) && Chopper.World.RockField.ServerTake(struck) == 0;
+                Chopper.World.RockField.ServerNewDay();
+                refills = struck >= 0 && Chopper.World.RockField.ServerTake(struck) > 0;
+                best = struck;
+                rockSize = struckSize;
+                ui.DebugShow(2);
+                yield return new WaitForSeconds(0.4f);
+                ui.DebugInventoryPage(1);
+                yield return new WaitForSeconds(0.6f);
+                yield return Shot(folder, "stone_1_bag");
+                ui.DebugShow(0);
+                cam.DebugRelease();
+            }
+            bool pass = found && swings >= 3 && gained > 0 && wornOut && refills;
+            Debug.Log($"[Stone] rocks {Chopper.World.RockField.Count}, nearest usable rock {best} size {rockSize:F1}; pick swings {swings}, stone {before} -> {inventory.Stone} (+{gained}, daily yield {StoneRules.DailyYield(rockSize)}), worn out for the day {wornOut}, refills at dawn {refills}; RESULT {(pass ? "PASS" : "FAIL")}");
         }
 
         private static IEnumerator HomeRaidTour(string folder, PlayerWood wood, GameUi ui)

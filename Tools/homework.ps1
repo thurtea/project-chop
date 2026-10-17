@@ -8,6 +8,7 @@
 #   unity <Class.Method>  an editor batch check, e.g. unity VoxelChecks.ZoneSeal -> its RESULT line
 #   blender               check_assets.py and check_rig.py                 -> both SUMMARY lines
 #   player                rebuild Player.prefab (UseChopperPlayer)         -> "Exiting batchmode successfully"
+#   prune                 trim Logs\homework now (also runs before every task) -> how many runs were removed
 # Logs land in Logs\homework\. Close the Unity editor first: batch jobs need the project to themselves.
 param(
     [Parameter(Position = 0)] [string] $Task = "help",
@@ -43,7 +44,28 @@ function Sync-Exports {
     }
 }
 
-if ($Task -ne "help") { Sync-Exports }
+function Prune-Logs([double] $KeepHours = 24) {
+    $cut = (Get-Date).AddHours(-$KeepHours)
+    $newest = @{}
+    $entries = Get-ChildItem $Logs -Force | Sort-Object LastWriteTime -Descending
+    $removed = 0
+    $freed = 0
+    foreach ($e in $entries) {
+        $type = if ($e.PSIsContainer) { "dir" } else { $e.Extension }
+        if ($e.Name -eq "pruned.txt") { continue }
+        $kind = ((($e.Name -replace '\.(log|xml|txt)$', '') -replace '-\d{4}-\d{4}$', '') + "|" + $type)
+        $keep = $e.LastWriteTime -ge $cut -or -not $newest.ContainsKey($kind)
+        if (-not $newest.ContainsKey($kind)) { $newest[$kind] = $true }
+        if ($keep) { continue }
+        $freed += (Get-ChildItem $e.FullName -Recurse -File -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum
+        Remove-Item $e.FullName -Recurse -Force
+        Add-Content (Join-Path $Logs "pruned.txt") ("{0} {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm"), $e.Name)
+        $removed++
+    }
+    if ($removed -gt 0) { Write-Host ("pruned {0} old log entries ({1:N0} MB) from Logs\homework" -f $removed, ($freed / 1MB)) }
+}
+
+if ($Task -ne "help") { Prune-Logs; Sync-Exports }
 
 function Assert-EditorClosed {
     $open = Get-CimInstance Win32_Process -Filter "Name='Unity.exe'" |
@@ -102,6 +124,9 @@ switch ($Task.ToLower()) {
         Write-Host "log: $log"
         Write-Host "shots: $shots"
         Select-String -Path $log -Pattern 'RESULT|Exception' | Select-Object -First 15 | ForEach-Object { $_.Line }
+    }
+    "prune" {
+        Write-Host "Logs\homework keeps the last 24 hours and the newest run of every kind."
     }
     "blender" {
         Push-Location (Join-Path $Repo "Chopper\Art\Scripts")

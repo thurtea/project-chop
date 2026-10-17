@@ -243,7 +243,7 @@ namespace Chopper.Player
             if (!Engaged)
             {
                 int near = MineWorld.VeinInReach(transform.position, aim);
-                if (near < 0) return false;
+                if (near < 0) return TryStrikeRock(aim);
                 if (!MineWorld.SpentHere(near)) Engage(near);
                 return true;
             }
@@ -265,6 +265,77 @@ namespace Chopper.Player
         }
 
         public const float PickSwingSeconds = 0.5f;
+
+        public int LastRockStone { get; private set; } = -1;
+        public int LastRock { get; private set; } = -1;
+
+        private bool TryStrikeRock(Vector3 aim)
+        {
+            if (!_pickDrawn.Value) return false;
+            int rock = Chopper.World.RockField.InReach(transform.position, aim);
+            if (rock < 0) return false;
+            if (Time.time < _nextStrikeAt) return true;
+            _nextStrikeAt = Time.time + PickSwingSeconds;
+            _lastStrikeAt = Time.time;
+            StrikePlayed?.Invoke();
+            StartCoroutine(RockOnContact(rock, aim));
+            return true;
+        }
+
+        private System.Collections.IEnumerator RockOnContact(int rock, Vector3 aim)
+        {
+            ToolPose pose = GetComponent<ToolPose>();
+            if (pose == null) pose = gameObject.AddComponent<ToolPose>();
+            pose.Play(SwingTool.Pick, 0, PickSwingSeconds);
+            yield return new WaitForSeconds(PickSwingSeconds * ToolMotion.Contact(SwingTool.Pick));
+            Vector3 at = transform.position + transform.forward * 0.9f + Vector3.up * 0.8f;
+            if (PlayerCamera.Local != null) PlayerCamera.Local.AddShake(0.05f);
+            RockServerRpc(rock, aim);
+        }
+
+        [ServerRpc]
+        private void RockServerRpc(int rock, Vector3 aim)
+        {
+            ServerStrikeRock(rock, aim);
+        }
+
+        public int ServerStrikeRock(int rock, Vector3 aim)
+        {
+            if (rock < 0 || rock >= Chopper.World.RockField.Count) return 0;
+            if (!StoneRules.InReach(transform.position, aim, Chopper.World.RockField.PositionOf(rock), Chopper.World.RockField.SizeOf(rock) + 1f)) return 0;
+            LastRock = rock;
+            int amount = Chopper.World.RockField.ServerTake(rock);
+            int gained = amount > 0 ? PlayerItems.ServerChange(gameObject, ItemRules.Stone, amount) : 0;
+            LastRockStone = gained;
+            RockFxObserversRpc(rock, gained > 0 ? 0 : amount <= 0 ? 1 : 2);
+            return gained;
+        }
+
+        [ObserversRpc]
+        private void RockFxObserversRpc(int rock, int outcome)
+        {
+            if (rock < 0 || rock >= Chopper.World.RockField.Count) return;
+            Vector3 face = Chopper.World.RockField.PositionOf(rock);
+            Vector3 toPlayer = transform.position - face;
+            toPlayer.y = 0f;
+            Vector3 at = face + (toPlayer.sqrMagnitude > 0.01f ? toPlayer.normalized : Vector3.forward) * (Chopper.World.RockField.SizeOf(rock) * 0.45f) + Vector3.up * 0.8f;
+            if (outcome == 0)
+            {
+                CombatFx.Chips(at, new Color(0.62f, 0.60f, 0.56f));
+                CombatFx.Dust(at, new Color(0.70f, 0.68f, 0.64f), 4);
+                Sfx.Play(ProceduralSfx.Chop, at, 0.8f, 0.72f, 0.08f);
+            }
+            else if (outcome == 1)
+            {
+                CombatFx.Dust(at, new Color(0.58f, 0.56f, 0.52f), 10);
+                Sfx.Play(ProceduralSfx.Block, at, 0.7f, 0.5f, 0.05f);
+            }
+            else
+            {
+                CombatFx.Chips(at, new Color(0.62f, 0.60f, 0.56f));
+                Sfx.Play(ProceduralSfx.UiClick, at, 0.5f, 0.55f, 0.05f);
+            }
+        }
 
         private System.Collections.IEnumerator StrikeOnContact(int vein, StrikeQuality quality, bool bar)
         {

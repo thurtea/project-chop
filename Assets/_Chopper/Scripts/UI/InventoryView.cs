@@ -521,6 +521,9 @@ namespace Chopper.UI
             Add("Fiber", PickupFeed.Kind.Fabric, inventory.Fabric, "From ferns. Bandages are made with it, and rods are mended with it.", "Make bandage", () => Craft(RecipeBook.Bandage));
             Add("Crypt iron", PickupFeed.Kind.Iron, inventory.Iron, "From crypt chests and arena bosses. Forges Sturdy gear.", null, null);
             Add("Rune shard", PickupFeed.Kind.Shard, inventory.Shards, "Carves the Rune axe and sets element stones.", null, null);
+            if (inventory.Stone > 0)
+                _items.Add(new Item { Name = "Stone", Icon = HotbarIcons.Get("find-ore"), Tint = new Color(0.78f, 0.76f, 0.72f), Count = inventory.Stone.ToString(),
+                    Description = "Broken from the rocks with the pickaxe. Builds the foundations and hearths of a home." });
             if (upgrades != null && upgrades.ArmourKits > 0)
                 _items.Add(new Item { Name = "Armour kit", Icon = HotbarIcons.Get("upgrade"), Tint = Color.white, Count = upgrades.ArmourKits.ToString(),
                     Description = upgrades.Armoured ? "You already wear the armour."

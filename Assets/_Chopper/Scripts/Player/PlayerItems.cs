@@ -42,6 +42,7 @@ namespace Chopper.Player
             }
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();
             if (inventory == null) return 0;
+            if (ItemRules.IsStone(kind)) return inventory.Stone;
             switch ((ItemKind)kind)
             {
                 case ItemKind.Herb: return inventory.Herbs;
@@ -64,6 +65,7 @@ namespace Chopper.Player
             if (ItemRules.IsFish(kind)) return FishingRules.MaxStack;
             if (ItemRules.IsFind(kind)) return MiningFindCap;
             if (ItemRules.IsBoat(kind) || ItemRules.IsSharkRod(kind) || ItemRules.IsWeapon(kind)) return 1;
+            if (ItemRules.IsStone(kind)) return StoneRules.CarryCap;
             switch ((ItemKind)kind)
             {
                 case ItemKind.Herb: return config.HerbCarryCap;
@@ -111,6 +113,7 @@ namespace Chopper.Player
                 return rodBoat != null ? rodBoat.ServerChangeSharkRod(delta) : 0;
             }
             PlayerInventory inventory = player.GetComponent<PlayerInventory>();
+            if (inventory != null && ItemRules.IsStone(kind)) return inventory.ServerChangeStone(delta);
             return inventory != null ? inventory.ServerChange((ItemKind)kind, delta) : 0;
         }
     }

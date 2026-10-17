@@ -153,6 +153,7 @@ namespace Chopper.World.Saving
         public int Fabric;
         public int Iron;
         public int Shards;
+        public int Stone;
         public int AxeLevel;
         public int ArmorLevel;
         public int SturdyLevel;

@@ -475,6 +475,7 @@ namespace Chopper.Enemies
             foreach (PlayerBuffs buffs in PlayerBuffs.All) buffs.ServerReset();
             foreach (PlayerHealth health in PlayerHealth.All) health.ServerHealFull();
             if (TreeManager.Instance != null) TreeManager.Instance.ServerRegrowAll();
+            Chopper.World.RockField.ServerNewDay();
             ServerAnnounce("Dawn. The night's enemies wither and the trees regrow.");
         }
 
@@ -604,6 +605,7 @@ namespace Chopper.Enemies
             if (MineManager.Instance != null) MineManager.Instance.ServerRefill();
             if (ArenaManager.Instance != null) ArenaManager.Instance.ServerReset();
             if (TreeManager.Instance != null) TreeManager.Instance.ServerRegrowAll();
+            Chopper.World.RockField.ServerNewDay();
             if (DayNightCycle.Instance != null) DayNightCycle.Instance.ServerRestart();
             ServerAnnounce("The hut has fallen! The run restarts at day one.");
             _gameOverRunning = false;

@@ -231,6 +231,7 @@ namespace Chopper.World.Saving
                 record.Fabric = inventory.Fabric;
                 record.Iron = inventory.Iron;
                 record.Shards = inventory.Shards;
+                record.Stone = inventory.Stone;
                 record.Essence = inventory.EssencePacked;
             }
             PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();
@@ -378,6 +379,7 @@ namespace Chopper.World.Saving
             if (inventory != null)
             {
                 inventory.ServerLoad(record.Torches, record.Salves, record.Herbs, record.Fabric, record.Iron, record.Shards);
+                inventory.ServerLoadStone(record.Stone);
                 inventory.ServerLoadEssence(record.Essence);
             }
             PlayerUpgrades upgrades = player.GetComponent<PlayerUpgrades>();

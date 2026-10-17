@@ -339,6 +339,7 @@ namespace Chopper.World.Generation
         {
             var root = new GameObject("Rocks");
             root.transform.SetParent(transform, false);
+            Chopper.World.RockField.Clear();
             root.AddComponent<Chopper.World.ScatterCuller>().Radius = 0.6f;
             foreach (RockSpot rock in rocks)
             {
@@ -348,6 +349,7 @@ namespace Chopper.World.Generation
                 // Rocks sit a little in the ground so they look settled.
                 GameObject placed = PlaceModel(model, root.transform, position, rock.Yaw, rock.Size, rock.Size * 0.12f);
                 AddRockCollider(placed);
+                Chopper.World.RockField.Add(position, rock.Size);
             }
         }
 

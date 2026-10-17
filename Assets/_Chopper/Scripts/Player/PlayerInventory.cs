@@ -46,6 +46,23 @@ namespace Chopper.Player
         private readonly SyncVar<int> _fabric = new SyncVar<int>();
         // Rare materials from crypt chests: iron for Sturdy gear, rune shards for the Rune axe. Kept on death.
         private readonly SyncVar<int> _iron = new SyncVar<int>();
+        private readonly SyncVar<int> _stone = new SyncVar<int>();
+        public int Stone => _stone.Value;
+
+        public int ServerChangeStone(int delta)
+        {
+            int before = _stone.Value;
+            _stone.Value = Mathf.Clamp(before + delta, 0, StoneRules.CarryCap);
+            return _stone.Value - before;
+        }
+
+        public void ServerLoadStone(int stone) => _stone.Value = Mathf.Clamp(stone, 0, StoneRules.CarryCap);
+
+        private void OnStoneChanged(int previous, int next, bool asServer)
+        {
+            if (!OwnChange(asServer) || next <= previous) return;
+            Chopper.UI.PickupFeed.Add(Chopper.UI.PickupFeed.Kind.Find, "Stone", next - previous, next, "find-ore");
+        }
         private readonly SyncVar<int> _shards = new SyncVar<int>();
         // Elemental essence from crypt arena bosses: one byte per element (Water, Fire, Earth, Wind).
         private readonly SyncVar<int> _essence = new SyncVar<int>();
@@ -80,6 +97,7 @@ namespace Chopper.Player
             _salves.OnChange += OnSalvesChanged;
             _iron.OnChange += OnIronChanged;
             _shards.OnChange += OnShardsChanged;
+            _stone.OnChange += OnStoneChanged;
             _essence.OnChange += OnEssenceChanged;
             ApplyTorchVisual();
         }
@@ -94,6 +112,7 @@ namespace Chopper.Player
             _salves.OnChange -= OnSalvesChanged;
             _iron.OnChange -= OnIronChanged;
             _shards.OnChange -= OnShardsChanged;
+            _stone.OnChange -= OnStoneChanged;
             _essence.OnChange -= OnEssenceChanged;
             if (Local == this) Local = null;
         }
@@ -381,6 +400,7 @@ namespace Chopper.Player
             _iron.Value = 0;
             _shards.Value = 0;
             _essence.Value = 0;
+            _stone.Value = 0;
         }
 
         public override void OnStartServer()
