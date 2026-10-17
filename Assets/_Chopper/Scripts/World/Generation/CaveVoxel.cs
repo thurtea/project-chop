@@ -31,9 +31,13 @@ namespace Chopper.World.Generation
             Vector3 min = bounds.min;
             float floorTop = MainFloorTop(boxes);
             if (floorTop > float.MinValue) min.y = floorTop - Cell * Mathf.Ceil((floorTop - min.y) / Cell);
-            int nx = Mathf.Max(1, Mathf.CeilToInt(bounds.size.x / Cell));
+            Vector2 anchor = GridAnchor(boxes, floorTop);
+            min.x = anchor.x - Cell * Mathf.Ceil((anchor.x - min.x) / Cell);
+            min.z = anchor.y - Cell * Mathf.Ceil((anchor.y - min.z) / Cell);
+            int floorLayer = floorTop > float.MinValue ? Mathf.RoundToInt((floorTop - min.y) / Cell) - 1 : -1;
+            int nx = Mathf.Max(1, Mathf.CeilToInt((bounds.max.x - min.x) / Cell));
             int ny = Mathf.Max(1, Mathf.CeilToInt((bounds.max.y - min.y) / Cell) + 1);
-            int nz = Mathf.Max(1, Mathf.CeilToInt(bounds.size.z / Cell));
+            int nz = Mathf.Max(1, Mathf.CeilToInt((bounds.max.z - min.z) / Cell));
             var grid = new byte[nx, ny, nz];
             foreach (CryptBox box in boxes)
             {
@@ -59,7 +63,7 @@ namespace Chopper.World.Generation
             Roughen(grid, nx, ny, nz, min);
             Roughen(grid, nx, ny, nz, min);
             Roughen(grid, nx, ny, nz, min);
-            crystals = Crystals(grid, nx, ny, nz, min);
+            crystals = Crystals(grid, nx, ny, nz, min, floorLayer);
             return MeshGrid(grid, nx, ny, nz, min);
         }
 
@@ -124,6 +128,19 @@ namespace Chopper.World.Generation
             foreach (var pair in area)
                 if (pair.Value > most || (Mathf.Approximately(pair.Value, most) && pair.Key < best)) { most = pair.Value; best = pair.Key; }
             return most < 0f ? float.MinValue : best / 100f;
+        }
+
+        public static Vector2 GridAnchor(List<CryptBox> boxes, float floorTop)
+        {
+            CryptBox best = boxes[0];
+            float most = -1f;
+            foreach (CryptBox box in boxes)
+            {
+                if (box.Material != CryptMaterial.Floor || Mathf.Abs(box.Center.y + box.Size.y * 0.5f - floorTop) > 0.01f) continue;
+                float area = box.Size.x * box.Size.z;
+                if (area > most) { most = area; best = box; }
+            }
+            return new Vector2(best.Center.x, best.Center.z);
         }
 
         private static Bounds BoundsOf(List<CryptBox> boxes)
@@ -320,7 +337,7 @@ namespace Chopper.World.Generation
             return rgb;
         }
 
-        private static Mesh Crystals(byte[,,] grid, int nx, int ny, int nz, Vector3 min)
+        private static Mesh Crystals(byte[,,] grid, int nx, int ny, int nz, Vector3 min, int floorLayer)
         {
             var verts = new List<Vector3>(1024);
             var normals = new List<Vector3>(1024);
@@ -335,7 +352,7 @@ namespace Chopper.World.Generation
                 {
                     for (int z = 1; z < nz - 1; z++)
                     {
-                        if (!Solid(grid[x, y, z]) || grid[x, y + 1, z] != Empty || grid[x, y + 2, z] != Empty) continue;
+                        if (y <= floorLayer || !Solid(grid[x, y, z]) || grid[x, y + 1, z] != Empty || grid[x, y + 2, z] != Empty) continue;
                         int h = CaveShell.Hash(x * 7, y * 11, z * 5);
                         if ((h % 23) != 0) continue;
                         Vector3 top = min + new Vector3((x + 0.5f) * Cell, (y + 1f) * Cell, (z + 0.5f) * Cell);

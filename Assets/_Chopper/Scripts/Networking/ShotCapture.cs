@@ -7202,6 +7202,17 @@ namespace Chopper.Networking
                     yield return Stop("cave2", false);
                     yield return Stop("cave2_walk", true);
                 }
+                Vector3 room = plans[0].RoomCenter(1) + Vector3.up * 1f;
+                for (int k = 0; k < 16; k++)
+                {
+                    Vector3 dir = Quaternion.Euler(0f, k * 22.5f + 11f, 0f) * Vector3.forward;
+                    if (!Physics.Raycast(room, dir, out RaycastHit wallHit, 9f, ~0, QueryTriggerInteraction.Ignore) || wallHit.distance < 4f) continue;
+                    if (Physics.Raycast(room + dir * (wallHit.distance - 0.9f), Vector3.down, out RaycastHit floorHit, 3f, ~0, QueryTriggerInteraction.Ignore) && floorHit.point.y > Chopper.World.Generation.MinePlan.FloorY + 0.05f) continue;
+                    yield return TeleportExact(new Vector3(room.x, Chopper.World.Generation.MinePlan.FloorY + 0.1f, room.z) + dir * (wallHit.distance - 1.4f), Mathf.Atan2(dir.x, dir.z) * Mathf.Rad2Deg);
+                    Debug.Log($"[Feet] cave_wall toward {dir:F2}, wall {wallHit.distance:F2} m from the room centre");
+                    yield return Stop("cave_wall", true);
+                    break;
+                }
                 var relief = plans[0].Boxes.Find(b => b.Material == Chopper.World.Generation.CryptMaterial.Floor && b.Center.y + b.Size.y * 0.5f > Chopper.World.Generation.MinePlan.FloorY + 0.1f && b.Center.y + b.Size.y * 0.5f < Chopper.World.Generation.MinePlan.FloorY + 0.7f && b.Size.x >= 0.9f && b.Size.z >= 0.9f);
                 if (relief.Size.x > 0f)
                 {

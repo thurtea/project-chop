@@ -278,9 +278,9 @@ namespace Chopper.World.Generation
                 int hc = CaveShell.Hash(Index * 53 + room, 7, 77);
                 float cx = (hc % 2) == 0 ? 1f : -1f;
                 float cz = ((hc / 2) % 2) == 0 ? 1f : -1f;
-                Vector3 top = c + new Vector3(cx * 4.6f, 0f, cz * 4.6f);
-                Add(top + Vector3.up * 0.9f, new Vector3(4f, 1.8f, 4f), CryptMaterial.Wall);
-                Add(top + new Vector3(-cx * 0.4f, 2.1f, -cz * 0.4f), new Vector3(3f, 0.6f, 3f), CryptMaterial.Wall);
+                Vector3 top = c + new Vector3(cx * 4.5f, 0f, cz * 4.5f);
+                Add(top + Vector3.up * 1.0f, new Vector3(4f, 2f, 4f), CryptMaterial.Wall);
+                Add(top + new Vector3(-cx * 0.5f, 2.25f, -cz * 0.5f), new Vector3(3f, 0.5f, 3f), CryptMaterial.Wall);
             }
             for (int q = 0; q < 4; q++)
             {
