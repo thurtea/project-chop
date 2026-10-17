@@ -155,8 +155,12 @@ Numbers are defaults from `Assets/_Chopper/Config/SO_GameConfig.asset` (`Core/Ga
 - **Boss trees**: rooted boss saplings that grow; a grown one can be chopped down. Each felled boss tree gives every player an armour kit.
 - **Crypt guardians and crypt bosses**: in the arena under each crypt's vault.
 
-**Open question (owner):** keep the per-size sapling count, or switch to a flat 2-3 per felled tree, and whether night fells should plant too.
-ANSWER: This should have an element of RNG to it and factor in things like how long the player has played, if they're heavily geared, etc. This way we can try to give them more challenging nights occasionally. Where the elementals spawn at roughly the same rate, and you have the elemental buff for less time. I kind of backed myself into a corner by putting all the one element in one area, then that buff going onto the weapon. We might have to rethink how that is done in order to make it still fun and engaging. Make all the elemental enemies spawn in a zone but have it favor the zones element. So you could have a bvunch of other elementals that spawn when you have the fire buff. You would be able to dispatch of them quickly. And it isnt like the fire buffed weapon doesnt do damage to the fire elemental it does it just doesnt have the elemental bonus damage. 
+**Approved, not built (t71u, owner answer 2026-10-17): night difficulty and element mix.**
+- Sapling counts keep a random roll, scaled by a night difficulty that grows with days played and with how geared the players are (axe, armour, weapons, stones), so some nights are harder.
+- Every zone spawns all four elements, favouring its own (most enemies are the zone's element, the rest are the other three in roughly equal shares).
+- Element charges last fewer hits than today. A charged weapon still damages every enemy; it only gets the bonus against the element it beats. With a mixed spawn the charge from one kill helps against the next kind of enemy.
+
+Owner's words: This should have an element of RNG to it and factor in things like how long the player has played, if they're heavily geared, etc. This way we can try to give them more challenging nights occasionally. Where the elementals spawn at roughly the same rate, and you have the elemental buff for less time. I kind of backed myself into a corner by putting all the one element in one area, then that buff going onto the weapon. We might have to rethink how that is done in order to make it still fun and engaging. Make all the elemental enemies spawn in a zone but have it favor the zones element. So you could have a bvunch of other elementals that spawn when you have the fire buff. You would be able to dispatch of them quickly. And it isnt like the fire buffed weapon doesnt do damage to the fire elemental it does it just doesnt have the elemental bonus damage. 
 ## 9. The hut and building
 
 **Built**

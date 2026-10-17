@@ -29,6 +29,13 @@ namespace Chopper.World.Building
         public Vector3 Position;
     }
 
+    public struct HomeState
+    {
+        public Vector3 Position;
+        public int Zone;
+        public float Health;
+    }
+
     // Every building piece in the world, server owned (one entry per piece in a SyncList, so a piece costs a few bytes
     // and no network object). Every peer, the server included, keeps a copy of each piece's model in the scene from
     // that list, so players walk on floors, enemies path round walls and the hammer can aim at them. The server checks
@@ -47,6 +54,8 @@ namespace Chopper.World.Building
 
         private readonly SyncList<PieceState> _pieces = new SyncList<PieceState>();
         private readonly SyncList<DomeState> _domes = new SyncList<DomeState>();
+        private readonly SyncList<HomeState> _homes = new SyncList<HomeState>();
+        private readonly List<GameObject> _homeViews = new List<GameObject>();
         private readonly List<GameObject> _domeViews = new List<GameObject>();
         private static Mesh _domeMesh;
         private readonly Dictionary<int, PieceView> _views = new Dictionary<int, PieceView>();
@@ -78,6 +87,7 @@ namespace Chopper.World.Building
             base.OnStartNetwork();
             _pieces.OnChange += OnPiecesChanged;
             _domes.OnChange += OnDomesChanged;
+            _homes.OnChange += OnHomesChanged;
             _dirty = true;
         }
 
@@ -86,6 +96,107 @@ namespace Chopper.World.Building
             base.OnStopNetwork();
             _pieces.OnChange -= OnPiecesChanged;
             _domes.OnChange -= OnDomesChanged;
+            _homes.OnChange -= OnHomesChanged;
+        }
+
+        private void OnHomesChanged(SyncListOperation op, int index, HomeState previous, HomeState next, bool asServer)
+        {
+            _dirty = true;
+            if (op == SyncListOperation.RemoveAt && asServer == IsServerInitialized)
+                CombatFx.Burst(previous.Position + Vector3.up, new Color(1f, 0.6f, 0.25f, 0.9f), 28, 3f, 0.22f, 1.2f, 0.5f);
+        }
+
+        public int HomeCount => _homes.Count;
+
+        public bool HomeIn(Element zone, out Vector3 position, out float health)
+        {
+            for (int i = 0; i < _homes.Count; i++)
+            {
+                if (_homes[i].Zone != (int)zone) continue;
+                position = _homes[i].Position;
+                health = _homes[i].Health;
+                return true;
+            }
+            position = Vector3.zero;
+            health = 0f;
+            return false;
+        }
+
+        public bool ServerRaiseHome(Vector3 position, Element zone)
+        {
+            if (!ZoneGoalRules.IsZone(zone) || HomeIn(zone, out _, out _)) return false;
+            _homes.Add(new HomeState { Position = position, Zone = (int)zone, Health = _config != null ? _config.HomeHealth : 600f });
+            return true;
+        }
+
+        public bool ServerDamageHome(Element zone, float damage)
+        {
+            for (int i = 0; i < _homes.Count; i++)
+            {
+                if (_homes[i].Zone != (int)zone) continue;
+                HomeState home = _homes[i];
+                home.Health = HomeRules.AfterDamage(home.Health, damage);
+                if (HomeRules.Destroyed(home.Health))
+                {
+                    _homes.RemoveAt(i);
+                    if (Chopper.Enemies.EnemyDirector.Instance != null)
+                        Chopper.Enemies.EnemyDirector.Instance.ServerAnnounce($"The home in the {ZoneGoalRules.ZoneName(zone)} has fallen. Its heart can be raised again.");
+                    return true;
+                }
+                _homes[i] = home;
+                return false;
+            }
+            return false;
+        }
+
+        public List<HomeState> ServerHomes()
+        {
+            var list = new List<HomeState>(_homes.Count);
+            for (int i = 0; i < _homes.Count; i++) list.Add(_homes[i]);
+            return list;
+        }
+
+        public void ServerLoadHomes(List<HomeState> homes)
+        {
+            _homes.Clear();
+            if (homes == null) return;
+            foreach (HomeState home in homes)
+                if (ZoneGoalRules.IsZone((Element)home.Zone) && !HomeIn((Element)home.Zone, out _, out _)) _homes.Add(home);
+        }
+
+        private void ShowHomes()
+        {
+            while (_homeViews.Count < _homes.Count) _homeViews.Add(MakeHomeView());
+            while (_homeViews.Count > _homes.Count)
+            {
+                int last = _homeViews.Count - 1;
+                if (_homeViews[last] != null) Destroy(_homeViews[last]);
+                _homeViews.RemoveAt(last);
+            }
+            for (int i = 0; i < _homes.Count; i++)
+                if (_homeViews[i] != null) _homeViews[i].transform.position = _homes[i].Position;
+        }
+
+        private GameObject MakeHomeView()
+        {
+            var root = new GameObject("HomeHeart");
+            root.transform.SetParent(_root != null ? _root : transform, false);
+            GameObject prop = Resources.Load<GameObject>("Props/prop_crypt_urn_voxel");
+            if (prop != null)
+            {
+                GameObject urn = Instantiate(prop, root.transform, false);
+                urn.transform.localScale = Vector3.one * 1.6f;
+                foreach (Collider c in urn.GetComponentsInChildren<Collider>()) c.enabled = false;
+            }
+            var glow = new GameObject("Glow");
+            glow.transform.SetParent(root.transform, false);
+            glow.transform.localPosition = Vector3.up * 1.6f;
+            Light light = glow.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = new Color(1f, 0.62f, 0.3f);
+            light.range = 9f;
+            light.intensity = 2.2f;
+            return root;
         }
 
         private void OnDomesChanged(SyncListOperation op, int index, DomeState previous, DomeState next, bool asServer) => _dirty = true;
@@ -105,6 +216,7 @@ namespace Chopper.World.Building
             _dirty = false;
             Reconcile();
             ShowDomes();
+            ShowHomes();
         }
 
         private void Reconcile()

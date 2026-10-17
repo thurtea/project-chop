@@ -6574,6 +6574,84 @@ namespace Chopper.Networking
             ui.DebugShow(0);
             bool pass = before == 0 && wardenUp && wardenGoal && notYet && fireHome && waterPart;
             Debug.Log($"[ZoneGoals] start mask {before}, warden rose {wardenUp}, beating it marked the Fire warden goal {wardenGoal}, home locked until all three {notYet}, Fire home unlocked {fireHome}, Water 1/3 {waterPart}, mask {director.ZoneGoals}; RESULT {(pass ? "PASS" : "FAIL")}");
+
+            PlayerUpgrades up = wood.GetComponent<PlayerUpgrades>();
+            Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
+            float hub = TreeManager.Instance.Config.HubRadius;
+            HomeRaiseResult inHub = up.ServerRaiseHome();
+            Vector2 fireSpot = Vector2.zero, waterSpot = Vector2.zero;
+            bool foundFire = false, foundWater = false;
+            for (float r = hub + 30f; r < hub + 160f && !(foundFire && foundWater); r += 10f)
+                for (int k = 0; k < 36 && !(foundFire && foundWater); k++)
+                {
+                    float ang = k * 10f * Mathf.Deg2Rad;
+                    Vector3 p = new Vector3(Mathf.Sin(ang) * r, 0f, Mathf.Cos(ang) * r);
+                    if (Chopper.World.WorldGround.HeightAt(p) < Chopper.World.Generation.WorldGen.WaterHeight + 0.5f) continue;
+                    Element z = ZoneMap.ElementAt(p, hub);
+                    if (z == Element.Fire && !foundFire) { fireSpot = new Vector2(p.x, p.z); foundFire = true; }
+                    if (z == Element.Water && !foundWater) { waterSpot = new Vector2(p.x, p.z); foundWater = true; }
+                }
+            yield return TeleportLocalPlayer(waterSpot, 0f);
+            yield return new WaitForSeconds(1f);
+            HomeRaiseResult locked = up.ServerRaiseHome();
+            yield return TeleportLocalPlayer(fireSpot, 0f);
+            yield return new WaitForSeconds(1.5f);
+            PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Wood, -PlayerItems.Get(wood.gameObject, (int)ItemKind.Wood));
+            HomeRaiseResult poor = up.ServerRaiseHome();
+            PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Wood, 40);
+            PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Iron, 8);
+            int woodBefore = PlayerItems.Get(wood.gameObject, (int)ItemKind.Wood);
+            int ironBefore = PlayerItems.Get(wood.gameObject, (int)ItemKind.Iron);
+            ui.DebugShow(2);
+            yield return new WaitForSeconds(0.4f);
+            ui.DebugInventoryPage(1);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "zones_3_bag_raise");
+            ui.DebugShow(0);
+            HomeRaiseResult raised = up.ServerRaiseHome();
+            yield return new WaitForSeconds(1f);
+            bool paid = PlayerItems.Get(wood.gameObject, (int)ItemKind.Wood) == woodBefore - 30 && PlayerItems.Get(wood.gameObject, (int)ItemKind.Iron) == ironBefore - 5;
+            HomeRaiseResult twice = up.ServerRaiseHome();
+            bool hasHome = build.HomeIn(Element.Fire, out Vector3 homeAt, out float homeHealth);
+            PlayerCamera cam = wood.GetComponent<PlayerCamera>();
+            Vector3 look = homeAt + Vector3.up * 1f;
+            Vector3 eye = look + new Vector3(4f, 2.2f, -4f);
+            cam.DebugHold(eye, Quaternion.LookRotation(look - eye, Vector3.up));
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "zones_4_home_heart");
+            cam.DebugRelease();
+            ui.DebugShow(2);
+            yield return new WaitForSeconds(0.4f);
+            ui.DebugInventoryPage(5);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "zones_5_page_home");
+            ui.DebugShow(0);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(false);
+            PlayerHealth health = wood.GetComponent<PlayerHealth>();
+            Vector3 walkAway = new Vector3(fireSpot.x, 0f, fireSpot.y);
+            foreach (Vector3 offset in new[] { new Vector3(12f, 0f, 0f), new Vector3(-12f, 0f, 0f), new Vector3(0f, 0f, 12f), new Vector3(0f, 0f, -12f), new Vector3(8f, 0f, 8f) })
+            {
+                Vector3 tryAt = new Vector3(fireSpot.x, 0f, fireSpot.y) + offset;
+                if (ZoneMap.ElementAt(tryAt, hub) != Element.Fire || Chopper.World.WorldGround.HeightAt(tryAt) < Chopper.World.Generation.WorldGen.WaterHeight + 0.5f) continue;
+                walkAway = tryAt;
+                break;
+            }
+            yield return TeleportLocalPlayer(new Vector2(walkAway.x, walkAway.z), 0f);
+            yield return new WaitForSeconds(1f);
+            bool stillFire = ZoneMap.ElementAt(wood.transform.position, hub) == Element.Fire;
+            health.ServerCrush();
+            yield return new WaitForSeconds(0.5f);
+            bool down = health.IsDown;
+            float waitStart = Time.time;
+            while (health.IsDown && Time.time - waitStart < 10f) yield return null;
+            yield return new WaitForSeconds(1.5f);
+            Vector3 back = wood.transform.position - homeAt;
+            back.y = 0f;
+            bool respawnHome = down && !health.IsDown && back.magnitude < 6f;
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            bool homePass = inHub == HomeRaiseResult.InHub && locked == HomeRaiseResult.Locked && poor == HomeRaiseResult.CannotAfford && raised == HomeRaiseResult.Ok
+                            && paid && twice == HomeRaiseResult.AlreadyHome && hasHome && build.HomeCount == 1 && respawnHome;
+            Debug.Log($"[ZoneGoals] home: hub {inHub}, locked Water {locked}, no wood {poor}, Fire {raised} paid 30 wood 5 iron {paid}, second {twice}, homes {build.HomeCount}, heart at {homeAt:F1} health {homeHealth:F0}; went down in the Fire forest {down} (still Fire {stillFire}), respawned {back.magnitude:F1} m from the heart {respawnHome}; RESULT {(homePass ? "PASS" : "FAIL")}");
         }
 
         private static IEnumerator WeaponsTour(string folder, PlayerWood wood, GameUi ui)

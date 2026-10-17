@@ -211,6 +211,12 @@ namespace Chopper.Core
         [Range(0f, 1f), SerializeField] private float _shieldBlockReduction = 0.9f;
         [Tooltip("Stamina a blocked hit costs with the shield in hand, as a share of BlockStaminaPerHit.")]
         [Range(0f, 1f), SerializeField] private float _shieldBlockStaminaScale = 0.6f;
+        [Tooltip("Carried wood a zone home heart costs.")]
+        [SerializeField, Min(0)] private int _homeWoodCost = 30;
+        [Tooltip("Crypt iron a zone home heart costs.")]
+        [SerializeField, Min(0)] private int _homeIronCost = 5;
+        [Tooltip("Hit points of a zone home heart.")]
+        [SerializeField, Min(1f)] private float _homeHealth = 600f;
         [SerializeField, Min(0f)] private float _blockStaminaPerSecond = 2f;
         [SerializeField, Range(0.1f, 1f)] private float _blockMoveMultiplier = 0.5f;
         [SerializeField, Min(0f)] private float _rollStamina = 18f;
@@ -502,6 +508,9 @@ namespace Chopper.Core
         public float StaggerDamageMultiplier => _staggerDamageMultiplier;
         public float ShieldBlockReduction => _shieldBlockReduction;
         public float ShieldBlockStaminaScale => _shieldBlockStaminaScale;
+        public int HomeWoodCost => _homeWoodCost;
+        public int HomeIronCost => _homeIronCost;
+        public float HomeHealth => _homeHealth;
         public float BlockStaminaPerSecond => _blockStaminaPerSecond;
         public float BlockMoveMultiplier => _blockMoveMultiplier;
         public float RollStamina => _rollStamina;

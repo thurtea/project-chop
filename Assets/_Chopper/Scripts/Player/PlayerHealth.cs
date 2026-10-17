@@ -248,6 +248,12 @@ namespace Chopper.Player
             {
                 // W9-01: back the way everyone arrives, falling into the hub pond.
                 position = Chopper.World.WorldStart.DropPoint((int)(ObjectId % 4));
+                Element downZone = Chopper.World.ZoneMap.ElementAt(transform.position, _config.HubRadius);
+                if (Chopper.World.Building.BuildManager.Instance != null && Chopper.World.Building.BuildManager.Instance.HomeIn(downZone, out Vector3 home, out _))
+                {
+                    position = home + new Vector3(HomeRules.RespawnOffset, 0f, 0f);
+                    if (Chopper.World.WorldGround.Exists) position.y = Chopper.World.WorldGround.HeightAt(position) + 0.1f;
+                }
             }
             else
             {

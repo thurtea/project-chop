@@ -47,6 +47,7 @@ namespace Chopper.World.Saving
         public List<GearRecord> Gear = new List<GearRecord>();
         // Dome centres in the forests (W9-04). Missing in a save that has none.
         public List<Vector3> Domes = new List<Vector3>();
+        public List<HomeRecord> Homes = new List<HomeRecord>();
 
         public List<int> AwakeCrypts = new List<int>();
         public List<GuardianRecord> Guardians = new List<GuardianRecord>();
@@ -66,6 +67,14 @@ namespace Chopper.World.Saving
         public int Level;
         public int Health;
         public int WoodStore;
+    }
+
+    [Serializable]
+    public class HomeRecord
+    {
+        public Vector3 Position;
+        public int Zone;
+        public float Health;
     }
 
     // One building piece: which kind (its index in the piece catalog), where, which way it faces and its health.

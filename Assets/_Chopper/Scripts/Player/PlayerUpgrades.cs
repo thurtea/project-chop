@@ -180,6 +180,42 @@ namespace Chopper.Player
             _domeStones.Value--;
         }
 
+        public void RequestRaiseHome()
+        {
+            if (IsOwner) RaiseHomeServerRpc();
+        }
+
+        [ServerRpc]
+        private void RaiseHomeServerRpc() => ServerRaiseHome();
+
+        public HomeRaiseResult ServerRaiseHome()
+        {
+            Element zone = Chopper.World.ZoneMap.ElementAt(transform.position, _config.HubRadius);
+            int goals = Chopper.Enemies.EnemyDirector.Instance != null ? Chopper.Enemies.EnemyDirector.Instance.ZoneGoals : 0;
+            BuildManager build = BuildManager.Instance;
+            bool hasHome = build != null && build.HomeIn(zone, out _, out _);
+            bool underground = Chopper.World.Generation.CryptWorld.IsUnderground(transform.position);
+            int wood = PlayerItems.Get(gameObject, (int)ItemKind.Wood);
+            int iron = PlayerItems.Get(gameObject, (int)ItemKind.Iron);
+            HomeRaiseResult result = HomeRules.CanRaise(goals, zone, hasHome, underground, wood, iron, _config.HomeWoodCost, _config.HomeIronCost);
+            if (result == HomeRaiseResult.Ok && (build == null || !build.ServerRaiseHome(transform.position + transform.forward * 1.5f, zone))) result = HomeRaiseResult.AlreadyHome;
+            if (result == HomeRaiseResult.Ok)
+            {
+                PlayerItems.ServerChange(gameObject, (int)ItemKind.Wood, -_config.HomeWoodCost);
+                PlayerItems.ServerChange(gameObject, (int)ItemKind.Iron, -_config.HomeIronCost);
+                if (Chopper.Enemies.EnemyDirector.Instance != null)
+                    Chopper.Enemies.EnemyDirector.Instance.ServerAnnounce($"A home rises in the {ZoneGoalRules.ZoneName(zone)}. The dead of its crypt will come for it at night.");
+            }
+            else if (Owner.IsValid) HomeToastTargetRpc(Owner, HomeRules.Explain(result, zone, goals, _config.HomeWoodCost, _config.HomeIronCost));
+            LastHomeResult = result;
+            return result;
+        }
+
+        public HomeRaiseResult LastHomeResult { get; private set; }
+
+        [TargetRpc]
+        private void HomeToastTargetRpc(FishNet.Connection.NetworkConnection connection, string text) => Chopper.UI.Toasts.Show(text, new Color(0.95f, 0.55f, 0.45f));
+
         // Called from the bag: put the armour on. Anywhere, once.
         public void RequestUseArmourKit()
         {

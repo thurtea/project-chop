@@ -526,6 +526,24 @@ namespace Chopper.UI
                     Description = upgrades.Armoured ? "You already wear the armour."
                         : $"From a felled boss tree. Puts on the horned helmet and the shield for good: {Mathf.RoundToInt(PlayerUpgrades.ArmouredReduction * 100f)}% less damage.",
                     Action = upgrades.Armoured ? null : "Put on", Use = upgrades.Armoured ? null : upgrades.RequestUseArmourKit });
+            if (upgrades != null && PlayerWood.Local != null)
+            {
+                Vector3 here = PlayerWood.Local.transform.position;
+                Element zone = ZoneMap.ElementAt(here, _config.HubRadius);
+                Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
+                bool hasHome = build != null && build.HomeIn(zone, out _, out _);
+                if (ZoneGoalRules.IsZone(zone) && !hasHome)
+                {
+                    int goals = Chopper.Enemies.EnemyDirector.Instance != null ? Chopper.Enemies.EnemyDirector.Instance.ZoneGoals : 0;
+                    HomeRaiseResult can = HomeRules.CanRaise(goals, zone, false, Chopper.World.Generation.CryptWorld.IsUnderground(here),
+                        PlayerItems.Get(PlayerWood.Local.gameObject, (int)ItemKind.Wood), PlayerItems.Get(PlayerWood.Local.gameObject, (int)ItemKind.Iron), _config.HomeWoodCost, _config.HomeIronCost);
+                    string about = can == HomeRaiseResult.Ok
+                        ? $"Raise this forest's home here for {_config.HomeWoodCost} wood and {_config.HomeIronCost} crypt iron. You come back here when you fall in this forest, and the crypt's dead raid it at night."
+                        : HomeRules.Explain(can, zone, goals, _config.HomeWoodCost, _config.HomeIronCost);
+                    _items.Add(new Item { Name = "Home heart", Icon = HotbarIcons.Get("piece-campfire"), Tint = new Color(1f, 0.7f, 0.4f), Count = string.Empty,
+                        Description = about, Action = can == HomeRaiseResult.Ok ? "Raise here" : null, Use = can == HomeRaiseResult.Ok ? upgrades.RequestRaiseHome : (System.Action)null });
+                }
+            }
             if (upgrades != null && upgrades.DomeStones > 0)
                 _items.Add(new Item { Name = "Dome stone", Icon = HotbarIcons.Get("upgrade"), Tint = new Color(0.55f, 0.75f, 0.95f), Count = upgrades.DomeStones.ToString(),
                     Description = "From a crypt chest. Place it in a forest: enemies cannot break what you built inside the dome. The hub refuses it.",
@@ -671,6 +689,11 @@ namespace Chopper.UI
                 list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Fish), $"Catch {Article(FishingRules.Species(_zoneFish, ZoneGoalRules.RareFish(zone)).Name)} (it bites in the rain)"));
                 list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Gem), $"Mine {Article(MiningRules.Finds[(int)ZoneGoalRules.Gem(zone)].Name)} in the {zone} forest's mine"));
                 list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Warden), "Beat the grove warden"));
+                Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
+                if (build != null && build.HomeIn(zone, out _, out float homeHealth))
+                    list.AppendLine($"  <color=#FFB866>Home raised</color>  <color=#9A968C>heart {Mathf.CeilToInt(homeHealth)}/{Mathf.CeilToInt(_config.HomeHealth)}</color>");
+                else if (home)
+                    list.AppendLine($"  <color=#9A968C>Stand in the forest and raise its home from the Bag ({_config.HomeWoodCost} wood, {_config.HomeIronCost} crypt iron)</color>");
                 list.AppendLine();
             }
             _zoneList.text = list.ToString();
