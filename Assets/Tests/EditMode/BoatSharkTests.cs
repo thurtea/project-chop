@@ -12,7 +12,7 @@ namespace Chopper.Tests.EditMode
             Recipe r = RecipeBook.Get(RecipeBook.Boat, null);
             Assert.AreEqual(CraftStation.Workbench, r.Station);
             Assert.AreEqual(ItemRules.Boat, (int)r.Output);
-            Assert.AreEqual(ItemRules.Count - 2, ItemRules.Boat);
+            Assert.AreEqual(ItemRules.Sword - 2, ItemRules.Boat);
             Assert.IsFalse(ItemRules.IsFind(ItemRules.Boat));
             Assert.IsTrue(ItemRules.IsBoat(ItemRules.Boat));
             Assert.IsFalse(RecipeBook.StationAllows(RecipeBook.Boat, false));
@@ -75,7 +75,7 @@ namespace Chopper.Tests.EditMode
             Recipe r = RecipeBook.Get(RecipeBook.SharkRod, null);
             Assert.AreEqual(ItemRules.SharkRod, (int)r.Output);
             Assert.AreEqual(CraftStation.Workbench, r.Station);
-            Assert.AreEqual(ItemRules.Count - 1, ItemRules.SharkRod);
+            Assert.AreEqual(ItemRules.Sword - 1, ItemRules.SharkRod);
             Assert.IsFalse(ItemRules.IsFind(ItemRules.SharkRod));
         }
 

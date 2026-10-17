@@ -18,6 +18,7 @@ namespace Chopper.UI
             if (ItemRules.IsEssence(kind)) return ItemRules.ElementOf(kind) + " essence";
             if (ItemRules.IsBoat(kind)) return "Little boat";
             if (ItemRules.IsSharkRod(kind)) return "Shark rod";
+            if (ItemRules.IsWeapon(kind)) return WeaponRules.Name(WeaponRules.FromItem(kind));
             switch ((ItemKind)kind)
             {
                 case ItemKind.Wood: return "Wood";

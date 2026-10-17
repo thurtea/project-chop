@@ -171,6 +171,8 @@ namespace Chopper.World.Saving
         public int FishLanded;
         public bool SharkRod;
         public int Boats;
+        public int Weapons;
+        public int Weapon;
         // Mining: the finds carried (one count per MineFindKind) and the biggest of each in grams (missing in older saves).
         public int[] FindCounts = new int[0];
         public float[] FindRecords = new float[0];

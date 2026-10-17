@@ -143,6 +143,12 @@ namespace Chopper.Core
         [SerializeField, Min(0)] private int _sharkRodWoodCost = 12;
         [SerializeField, Min(0)] private int _sharkRodFiberCost = 8;
         [SerializeField, Min(0)] private int _sharkRodIronCost = 4;
+        [SerializeField, Min(0)] private int _swordWoodCost = 6;
+        [SerializeField, Min(0)] private int _swordIronCost = 6;
+        [SerializeField, Min(0)] private int _maceWoodCost = 8;
+        [SerializeField, Min(0)] private int _maceIronCost = 8;
+        [SerializeField, Min(0)] private int _spearWoodCost = 10;
+        [SerializeField, Min(0)] private int _spearIronCost = 4;
         [Header("Healing herbs and fiber")]
         [Tooltip("Healing herbs growing in the world (leafy plants with a yellow flower). Bandages are made from them and fiber.")]
         [SerializeField, Min(0)] private int _herbCount = 240;
@@ -531,6 +537,12 @@ namespace Chopper.Core
         public int SharkRodWoodCost => _sharkRodWoodCost;
         public int SharkRodFiberCost => _sharkRodFiberCost;
         public int SharkRodIronCost => _sharkRodIronCost;
+        public int SwordWoodCost => _swordWoodCost;
+        public int SwordIronCost => _swordIronCost;
+        public int MaceWoodCost => _maceWoodCost;
+        public int MaceIronCost => _maceIronCost;
+        public int SpearWoodCost => _spearWoodCost;
+        public int SpearIronCost => _spearIronCost;
         public int HerbCount => _herbCount;
         public int HerbCarryCap => _herbCarryCap;
         public int FabricBushCount => _fabricBushCount;

@@ -262,6 +262,12 @@ namespace Chopper.World.Saving
             {
                 record.SharkRod = saveBoat.HasSharkRod;
                 record.Boats = saveBoat.Boats + (saveBoat.BoatOut ? 1 : 0);
+                Chopper.Player.PlayerWeapons saveWeapons = saveBoat.GetComponent<Chopper.Player.PlayerWeapons>();
+                if (saveWeapons != null)
+                {
+                    record.Weapons = saveWeapons.OwnedMask;
+                    record.Weapon = (int)saveWeapons.Selected;
+                }
             }
                 record.RodWear = fishing.RodWear;
                 record.FishSkill = fishing.FishSkill;
@@ -389,6 +395,8 @@ namespace Chopper.World.Saving
             fishing.ServerLoadLanded(record.FishLanded);
             Chopper.Player.PlayerBoat loadBoat = fishing.GetComponent<Chopper.Player.PlayerBoat>();
             if (loadBoat != null) loadBoat.ServerLoad(record.Boats, record.SharkRod);
+            Chopper.Player.PlayerWeapons loadWeapons = fishing.GetComponent<Chopper.Player.PlayerWeapons>();
+            if (loadWeapons != null) loadWeapons.ServerLoad(record.Weapons, record.Weapon);
             }
             PlayerMining mining = player.GetComponent<PlayerMining>();
             if (mining != null)

@@ -132,9 +132,21 @@ namespace Chopper.Player
             Aim(manager, out Vector3 position);
             if (!UiState.GameplayBlocked && Keybinds.WasPressed(KeyAction.Attack))
             {
-                if (AimValid) manager.RequestPlace(_kind, position, _yaw);
+                if (AimValid) StartCoroutine(PlaceOnContact(manager, _kind, position, _yaw));
                 else Sfx.Play(ProceduralSfx.UiClick, transform.position + Vector3.up, 0.5f, 0.6f);
             }
+        }
+
+        public const float HammerTapSeconds = 0.45f;
+
+        private System.Collections.IEnumerator PlaceOnContact(BuildManager manager, int kind, Vector3 position, float yaw)
+        {
+            ToolPose pose = GetComponent<ToolPose>();
+            if (pose == null) pose = gameObject.AddComponent<ToolPose>();
+            pose.Play(SwingTool.Hammer, 0, HammerTapSeconds);
+            yield return new WaitForSeconds(HammerTapSeconds * ToolMotion.Contact(SwingTool.Hammer));
+            Sfx.Play(ProceduralSfx.Chop, position, 0.5f, 1.3f, 0.05f);
+            if (manager != null) manager.RequestPlace(kind, position, yaw);
         }
 
         // Interact while the hammer is out and a piece is under the crosshair: take it down. True when it did.

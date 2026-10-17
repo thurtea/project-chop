@@ -157,7 +157,7 @@ namespace Chopper.Player
         {
             direction.y = 0f;
             if (direction.sqrMagnitude < 0.01f) return;
-            _horizontalVelocity += direction.normalized * speed;
+            _impulse += direction.normalized * speed;
         }
 
         public void BeginRoll(Vector3 direction, float seconds)
@@ -403,9 +403,11 @@ namespace Chopper.Player
             if (committed && !swimming) topSpeed *= _config.SwingMoveMultiplier;
             if (recovering && !swimming) topSpeed *= _config.LandingRecoverySpeedMultiplier;
             Vector3 targetVelocity = direction * topSpeed;
-            float rate = direction.sqrMagnitude > TurnInputThreshold ? _config.PlayerAcceleration : _config.PlayerDeceleration * GripRules.StopGrip(OnSlipperyGround(swimming || wading));
-            if (swimming) rate *= Time.time < _mantleUntil ? 1.1f : 0.85f;
-            _horizontalVelocity = Vector3.MoveTowards(_horizontalVelocity, targetVelocity, rate * Time.deltaTime);
+            if (direction.sqrMagnitude <= TurnInputThreshold) targetVelocity = Vector3.zero;
+            _horizontalVelocity = swimming
+                ? SteerRules.Step(_horizontalVelocity, targetVelocity, SteerRules.SwimAcceleration * (Time.time < _mantleUntil ? 1.3f : 1f), SteerRules.SwimDeceleration, Time.deltaTime)
+                : SteerRules.Step(_horizontalVelocity, targetVelocity, SteerRules.Acceleration, SteerRules.Deceleration, Time.deltaTime);
+            _impulse = Vector3.MoveTowards(_impulse, Vector3.zero, SteerRules.ImpulseDecay * Time.deltaTime);
             if (recovering && !swimming) _horizontalVelocity = Vector3.ClampMagnitude(_horizontalVelocity, Mathf.Max(topSpeed, _config.PlayerMoveSpeed * _config.LandingRecoverySpeedMultiplier));
             // A roll overrides everything for its short duration: a fast dash that eases out at the end.
             if (rolling)
@@ -420,7 +422,13 @@ namespace Chopper.Player
                 snap.y = 0f;
                 _horizontalVelocity = topOut ? ladderIn * 2.4f : Vector3.ClampMagnitude(snap * 8f, 2.5f);
             }
-            Vector3 velocity = _horizontalVelocity;
+            Vector3 velocity = _horizontalVelocity + (rolling || _climbing ? Vector3.zero : _impulse);
+            if (Time.time < _snapUntil && !rolling && !_climbing && !swimming)
+            {
+                Vector3 toSpot = _snapSpot - transform.position;
+                toSpot.y = 0f;
+                velocity += Vector3.ClampMagnitude(toSpot / 0.1f, 5f);
+            }
             if (downhill != Vector3.zero)
             {
                 // No walking up it, only across or down, plus the slide.
@@ -451,10 +459,20 @@ namespace Chopper.Player
             else if (direction.sqrMagnitude > TurnInputThreshold)
             {
                 Quaternion target = Quaternion.LookRotation(direction, Vector3.up);
-                float turn = _config.PlayerTurnSpeed * (swimming ? 0.42f : 0.62f);
+                float turn = swimming ? SteerRules.SwimFacingTurnRate : SteerRules.FacingTurnRate;
                 if (committed) turn *= _config.SwingTurnMultiplier;
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, target, turn * Time.deltaTime);
             }
+        }
+
+        private Vector3 _impulse;
+        private Vector3 _snapSpot;
+        private float _snapUntil;
+
+        public void SnapTo(Vector3 spot, float seconds)
+        {
+            _snapSpot = spot;
+            _snapUntil = Time.time + seconds;
         }
 
         private PlayerAxe _axe;

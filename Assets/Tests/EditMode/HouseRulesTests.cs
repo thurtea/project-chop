@@ -72,7 +72,7 @@ namespace Chopper.Tests.EditMode
         public void TheChestHoldsEveryCarriedKind()
         {
             Assert.AreEqual(ItemRules.FirstFind, (int)ItemKind.FirstFish + FishingRules.Kinds);
-            Assert.AreEqual(ItemRules.FirstFind + MiningRules.Kinds + 2, ItemRules.Count);
+            Assert.AreEqual(ItemRules.FirstFind + MiningRules.Kinds + 2 + WeaponRules.Count - 1, ItemRules.Count);
             Assert.IsTrue(ItemRules.IsFish(ItemRules.Fish(FishKind.Pike)));
             Assert.AreEqual(FishKind.Pike, ItemRules.FishOf(ItemRules.Fish(FishKind.Pike)));
             Assert.IsTrue(ItemRules.IsFind(ItemRules.Find(MineFindKind.IronOre)));

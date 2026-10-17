@@ -43,3 +43,8 @@ Chopper/Art/Concepts/chopper-hut-outside.jpg is the reference for the hub hut ex
 - Water: Art/Concepts/water elemental tree.jpg - blue water body, swirl hair, coral base; spear.
 - Wind: Art/Concepts/wind elemental tree.jpg - pale cloud body; axe.
 
+
+## Player weapons (user rule 2026-10-16, t58u)
+- Players carry the axe (logging tool and weapon), sword, mace and spear, each with its own skill. No ranged weapons.
+- Player weapons read as Chopper's own custom Blender voxel gear (no store models), in the same blocky style as the axe; the move sets mirror the enemy archetypes: axe fast chop, sword wide sweep, mace two-handed overhead smash, spear two-handed thrust.
+- The tree-felling chop (two-handed overhead or diagonal into the trunk) is its own animation and stays separate from axe combat.

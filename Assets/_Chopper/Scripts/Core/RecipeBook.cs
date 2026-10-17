@@ -38,7 +38,16 @@ namespace Chopper.Core
         public const int Bandage = 1;
         public const int Boat = 2;
         public const int SharkRod = 3;
-        public const int Count = 4;
+        public const int Sword = 4;
+        public const int Mace = 5;
+        public const int Spear = 6;
+        public const int Count = 7;
+
+        public static Recipe Weapon(int id, string name, int item, int wood, int iron) => new Recipe
+        {
+            Id = id, Name = name, Output = (ItemKind)item, Station = CraftStation.Workbench,
+            Inputs = new[] { new Ingredient(ItemKind.Wood, wood), new Ingredient(ItemKind.Iron, iron) }
+        };
 
         public const int DefaultSharkRodFish = 10;
 
@@ -71,6 +80,12 @@ namespace Chopper.Core
                             new Ingredient(ItemKind.Iron, config != null ? config.SharkRodIronCost : 4)
                         }
                     };
+                case Sword:
+                    return Weapon(Sword, "Sword", ItemRules.Sword, config != null ? config.SwordWoodCost : 6, config != null ? config.SwordIronCost : 6);
+                case Mace:
+                    return Weapon(Mace, "Mace", ItemRules.Mace, config != null ? config.MaceWoodCost : 8, config != null ? config.MaceIronCost : 8);
+                case Spear:
+                    return Weapon(Spear, "Spear", ItemRules.Spear, config != null ? config.SpearWoodCost : 10, config != null ? config.SpearIronCost : 4);
                 case Boat:
                     return new Recipe
                     {

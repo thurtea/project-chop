@@ -30,6 +30,11 @@ namespace Chopper.Player
                 PlayerBoat boat = player.GetComponent<PlayerBoat>();
                 return boat != null ? boat.Boats : 0;
             }
+            if (ItemRules.IsWeapon(kind))
+            {
+                PlayerWeapons owned = player.GetComponent<PlayerWeapons>();
+                return owned != null && owned.Owns(WeaponRules.FromItem(kind)) ? 1 : 0;
+            }
             if (ItemRules.IsSharkRod(kind))
             {
                 PlayerBoat rodBoat = player.GetComponent<PlayerBoat>();
@@ -58,7 +63,7 @@ namespace Chopper.Player
             if (kind == (int)ItemKind.Wood) return config.WoodCarryCap;
             if (ItemRules.IsFish(kind)) return FishingRules.MaxStack;
             if (ItemRules.IsFind(kind)) return MiningFindCap;
-            if (ItemRules.IsBoat(kind) || ItemRules.IsSharkRod(kind)) return 1;
+            if (ItemRules.IsBoat(kind) || ItemRules.IsSharkRod(kind) || ItemRules.IsWeapon(kind)) return 1;
             switch ((ItemKind)kind)
             {
                 case ItemKind.Herb: return config.HerbCarryCap;
@@ -94,6 +99,11 @@ namespace Chopper.Player
             {
                 PlayerBoat boat = player.GetComponent<PlayerBoat>();
                 return boat != null ? boat.ServerChangeBoats(delta) : 0;
+            }
+            if (ItemRules.IsWeapon(kind))
+            {
+                PlayerWeapons forged = player.GetComponent<PlayerWeapons>();
+                return forged != null ? forged.ServerChange(WeaponRules.FromItem(kind), delta) : 0;
             }
             if (ItemRules.IsSharkRod(kind))
             {

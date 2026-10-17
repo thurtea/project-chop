@@ -1609,6 +1609,7 @@ namespace Chopper.Networking
                     ("north up the path", 0f, 6f), ("northeast into the ridge", 45f, 7f), ("east along the foot", 100f, 6f),
                     ("south across the hub", 190f, 7f), ("west into the hills", 275f, 7f), ("to the pond", Mathf.Atan2(toPond.x, toPond.y) * Mathf.Rad2Deg, 8f),
                 };
+                if (hosting) yield return SlideCheck(pad, wood, moveCamera);
                 int teleports = 0, freezes = 0;
                 float worstStep = 0f;
                 foreach (var leg in legs)
@@ -1871,6 +1872,14 @@ namespace Chopper.Networking
                 Application.Quit(ok ? 0 : 1);
                 yield break;
             }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperWeapons") >= 0)
+            {
+                yield return WeaponsTour(folder, wood, ui);
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
+
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperFeet") >= 0)
             {
                 yield return FeetTour(folder, wood, ui);
@@ -5180,6 +5189,47 @@ namespace Chopper.Networking
         private static int _lastChopSwings;
         private static bool _lastChopFelled;
 
+        private static IEnumerator ChopFrames(PlayerAxe axe, PlayerWood wood, GameUi ui, string folder, int treeId, Vector2 stand, float yaw)
+        {
+            yield return TeleportLocalPlayer(stand + new Vector2(Mathf.Sin(yaw * Mathf.Deg2Rad), Mathf.Cos(yaw * Mathf.Deg2Rad)) * -0.6f, yaw);
+            PlayerCamera cam = wood.GetComponent<PlayerCamera>();
+            cam.SnapYaw(yaw);
+            yield return new WaitForSeconds(1.2f);
+            ui.DebugShow(0);
+            ToolPose pose = wood.GetComponent<ToolPose>();
+            for (int round = 0; round < 2; round++)
+            {
+                cam.SnapYaw(yaw);
+                yield return new WaitForSeconds(0.9f);
+                int sentBefore = axe.ContactsSent;
+                float press = Time.time;
+                Vector3 before = wood.transform.position;
+                bool swung = axe.TrySwing();
+                if (pose == null) pose = wood.GetComponent<ToolPose>();
+                Time.timeScale = 0.12f;
+                Vector3 side = Quaternion.Euler(0f, yaw + 90f, 0f) * Vector3.forward;
+                Vector3 fwd = Quaternion.Euler(0f, yaw, 0f) * Vector3.forward;
+                Vector3 look = wood.transform.position + fwd * 0.6f + Vector3.up * 1.1f;
+                Vector3 eye = look + side * 4.2f + Vector3.up * 0.3f;
+                cam.DebugHold(eye, Quaternion.LookRotation(look - eye, Vector3.up));
+                string[] names = { "windup", "contact", "recovery" };
+                float[] at = { 0.36f, ToolMotion.Contact(SwingTool.Axe) + 0.01f, 0.8f };
+                for (int k = 0; k < 3 && pose != null; k++)
+                {
+                    while (pose.Phase < at[k] && Time.time - press < 3f) yield return null;
+                    yield return Shot(folder, $"chop_{round}_{k}_{names[k]}");
+                }
+                Time.timeScale = 1f;
+                cam.DebugRelease();
+                yield return new WaitForSeconds(0.5f);
+                Vector3 trunk = axe.LastTrunk;
+                Vector2 flat = new Vector2(wood.transform.position.x - trunk.x, wood.transform.position.z - trunk.z);
+                float faceErr = Vector3.Angle(wood.transform.forward, new Vector3(-flat.x, 0f, -flat.y));
+                Debug.Log($"[Chop] round {round}: swung {swung}, variant {(pose != null ? pose.Variant : -1)}, contact sent {axe.ContactsSent - sentBefore} at +{axe.LastContactTime - press:F2} s after the press (scaled), trunk distance {flat.magnitude:F2} m (reach {ToolMotion.ChopReach}), facing error {faceErr:F0} deg, moved {Vector3.Distance(before, wood.transform.position):F2} m");
+            }
+            cam.DebugSetPitch(15f);
+        }
+
         private static IEnumerator LoggingTour(string folder, PlayerWood wood, GameUi ui)
         {
             Application.runInBackground = true;
@@ -5234,6 +5284,8 @@ namespace Chopper.Networking
             yield return ChopUntilFelled(axe, wood, ui, folder, "log_skill0", id0, stand0, yaw0);
             int swings0 = _lastChopSwings;
             bool felled0 = _lastChopFelled;
+            if (TryFindChopStand(trees, TreeSize.Large, out int idF, out Vector2 standF, out float yawF))
+                yield return ChopFrames(axe, wood, ui, folder, idF, standF, yawF);
 
             bool mineStruck = false;
             var mines = Chopper.World.Generation.MineWorld.Plans;
@@ -6266,6 +6318,73 @@ namespace Chopper.Networking
             return solid;
         }
 
+        public static float SlideStop;
+        public static float SlideDrift;
+        public static float SlideTurnLag;
+
+        private static IEnumerator SlideCheck(Gamepad pad, PlayerWood wood, PlayerCamera cam)
+        {
+            float worstStop = 0f, worstDrift = 0f, worstLag = 0f;
+            for (int run = 0; run < 2; run++)
+            {
+                bool sprint = run == 1;
+                yield return TeleportLocalPlayer(new Vector2(8f, 26f), 0f);
+                yield return new WaitForSeconds(1.5f);
+                float start = Time.time;
+                while (Time.time - start < 1.6f)
+                {
+                    GamepadState held = new GamepadState { leftStick = Vector2.up };
+                    if (sprint && Time.time - start < 0.1f) held = held.WithButton(GamepadButton.LeftStick);
+                    InputSystem.QueueStateEvent(pad, held);
+                    cam.SnapYaw(0f);
+                    yield return null;
+                }
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                Vector3 from = wood.transform.position;
+                float t0 = Time.time;
+                while (Time.time - t0 < 1.5f) yield return null;
+                Vector3 slide = wood.transform.position - from;
+                slide.y = 0f;
+                worstStop = Mathf.Max(worstStop, slide.magnitude);
+                Debug.Log($"[Slide] {(sprint ? "sprint" : "run")} release: travelled {slide.magnitude:F2} m after letting go");
+                if (sprint) { InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick)); yield return null; InputSystem.QueueStateEvent(pad, new GamepadState()); yield return null; }
+
+                yield return TeleportLocalPlayer(new Vector2(8f, 26f), 0f);
+                yield return new WaitForSeconds(1.5f);
+                start = Time.time;
+                while (Time.time - start < 1.6f)
+                {
+                    GamepadState held = new GamepadState { leftStick = Vector2.up };
+                    if (sprint && Time.time - start < 0.1f) held = held.WithButton(GamepadButton.LeftStick);
+                    InputSystem.QueueStateEvent(pad, held);
+                    cam.SnapYaw(0f);
+                    yield return null;
+                }
+                Vector3 turnFrom = wood.transform.position;
+                float turnAt = Time.time;
+                float lag = -1f;
+                while (Time.time - turnAt < 0.8f)
+                {
+                    InputSystem.QueueStateEvent(pad, new GamepadState { leftStick = Vector2.right });
+                    cam.SnapYaw(0f);
+                    yield return null;
+                    if (lag < 0f && Vector3.Angle(wood.transform.forward, Vector3.right) < 10f) lag = Time.time - turnAt;
+                }
+                InputSystem.QueueStateEvent(pad, new GamepadState());
+                float drift = wood.transform.position.z - turnFrom.z;
+                worstDrift = Mathf.Max(worstDrift, Mathf.Abs(drift));
+                worstLag = Mathf.Max(worstLag, lag < 0f ? 0.8f : lag);
+                Debug.Log($"[Slide] {(sprint ? "sprint" : "run")} 90 degree turn: drift along the old heading {drift:F2} m, facing caught up in {(lag < 0f ? "over 0.8" : lag.ToString("F2"))} s");
+                if (sprint) { InputSystem.QueueStateEvent(pad, new GamepadState().WithButton(GamepadButton.LeftStick)); yield return null; InputSystem.QueueStateEvent(pad, new GamepadState()); yield return null; }
+                yield return new WaitForSeconds(0.5f);
+            }
+            SlideStop = worstStop;
+            SlideDrift = worstDrift;
+            SlideTurnLag = worstLag;
+            bool ok = worstStop <= 0.35f && worstDrift <= 0.3f && worstLag <= 0.2f;
+            Debug.Log($"[Slide] RESULT {(ok ? "PASS" : "FAIL")}: worst stop slide {worstStop:F2} m (max 0.35), worst turn drift {worstDrift:F2} m (max 0.30), worst facing lag {worstLag:F2} s (max 0.20)");
+        }
+
         private static IEnumerator GripStop(Gamepad pad, PlayerWood wood, string label, string folder)
         {
             InputSystem.QueueStateEvent(pad, new GamepadState());
@@ -6290,6 +6409,87 @@ namespace Chopper.Networking
             slide.y = 0f;
             Debug.Log($"[Grip] {label}: anim speed after {wood.GetComponentInChildren<Animator>().GetFloat("Speed"):F2}, slippery {slippery}, slide {slide.magnitude:F2} m, stopped in {(stoppedAt < 0f ? "over 2.5" : stoppedAt.ToString("F2"))} s");
         }
+        private static IEnumerator WeaponsTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            Hut.Instance.ServerSetRepaired(true);
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            PlayerAxe axe = wood.GetComponent<PlayerAxe>();
+            PlayerWeapons weapons = wood.GetComponent<PlayerWeapons>();
+            PlayerBuffs buffs = wood.GetComponent<PlayerBuffs>();
+            axe.ServerSetHasAxe(true);
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Day, 0.45f);
+            yield return new WaitForSeconds(4f);
+            ui.DebugShow(0);
+            if (weapons == null) { Debug.Log("[Weapons] RESULT FAIL no PlayerWeapons on the player"); yield break; }
+            weapons.ServerGrantAll();
+            if (!axe.IsDrawn) { axe.RequestToggleDrawn(); yield return new WaitForSeconds(1.1f); }
+            PlayerCamera cam = wood.GetComponent<PlayerCamera>();
+            ToolPose pose = wood.GetComponent<ToolPose>();
+            PlayerWeapon[] order = { PlayerWeapon.Axe, PlayerWeapon.Sword, PlayerWeapon.Mace, PlayerWeapon.Spear };
+            int[] targets = new int[4];
+            float[] units = new float[4];
+            bool[] shown = new bool[4];
+            bool buffSpent = false;
+            for (int i = 0; i < order.Length; i++)
+            {
+                PlayerWeapon w = order[i];
+                Vector2 spot = new Vector2(-20f + i * 16f, 40f);
+                yield return TeleportLocalPlayer(spot, 0f);
+                cam.SnapYaw(0f);
+                weapons.ServerSelect(w);
+                yield return new WaitForSeconds(1.2f);
+                string report = weapons.Report();
+                shown[i] = w == PlayerWeapon.Axe ? report.Contains("shown axe") : report.Contains("Weapon_" + WeaponRules.Name(w) + " mesh True");
+                Vector3 me = wood.transform.position;
+                Vector3[] at = { new Vector3(0f, 0f, 1.7f), new Vector3(0.9f, 0f, 2.0f), new Vector3(0f, 0f, 3.0f) };
+                var spawned = new System.Collections.Generic.List<Treant>();
+                foreach (Vector3 o in at)
+                {
+                    Vector3 p = me + o;
+                    p.y = Chopper.World.WorldGround.HeightAt(p);
+                    Treant t = EnemyDirector.Instance.ServerSpawn(Element.Fire, TreeSize.Small, false, p);
+                    t.ServerActivate();
+                    spawned.Add(t);
+                }
+                yield return new WaitForSeconds(0.4f);
+                buffs.ServerReset();
+                buffs.ServerAwardKill(NightRules.CounterOf(Element.Fire));
+                yield return null;
+                int chargesBefore = buffs.Charges(NightRules.CounterOf(Element.Fire));
+                int swingsBefore = axe.ServerSwings;
+                cam.SnapYaw(0f);
+                bool swung = axe.TrySwing();
+                Time.timeScale = 0.15f;
+                Vector3 side = Vector3.right;
+                Vector3 look = me + Vector3.forward * 0.8f + Vector3.up * 1.1f;
+                Vector3 eye = look + side * 4.4f + Vector3.up * 0.4f;
+                cam.DebugHold(eye, Quaternion.LookRotation(look - eye, Vector3.up));
+                if (pose == null) pose = wood.GetComponent<ToolPose>();
+                string name = WeaponRules.Name(w).ToLowerInvariant();
+                float press = Time.time;
+                while (pose != null && pose.Phase < 0.36f && Time.time - press < 2f) yield return null;
+                yield return Shot(folder, $"weapon_{i}_{name}_windup");
+                while (pose != null && pose.Phase < ToolMotion.Contact(WeaponRules.Tool(w)) + 0.01f && Time.time - press < 2f) yield return null;
+                yield return Shot(folder, $"weapon_{i}_{name}_contact");
+                Time.timeScale = 1f;
+                cam.DebugRelease();
+                float wait = Time.time;
+                while (axe.ServerSwings == swingsBefore && Time.time - wait < 2f) yield return null;
+                yield return new WaitForSeconds(0.2f);
+                targets[i] = axe.LastServerTargets;
+                units[i] = axe.LastServerUnits;
+                int chargesAfter = buffs.Charges(NightRules.CounterOf(Element.Fire));
+                if (chargesAfter < chargesBefore) buffSpent = true;
+                Debug.Log($"[Weapons] {w}: swung {swung}, server weapon {axe.LastServerWeapon}, targets hit {targets[i]}, units {units[i]:F2}, fire charges {chargesBefore}->{chargesAfter}, pose {(pose != null ? pose.Kind.ToString() : "none")}, {report}");
+                foreach (Treant t in spawned) if (t != null && t.IsActive) t.ServerHit(9999f, null, null, me);
+                yield return new WaitForSeconds(0.6f);
+            }
+            weapons.ServerSelect(PlayerWeapon.Axe);
+            bool pass = targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3];
+            Debug.Log($"[Weapons] RESULT {(pass ? "PASS" : "FAIL")}: targets axe {targets[0]} sword {targets[1]} mace {targets[2]} spear {targets[3]}; mace units {units[2]:F2} vs axe {units[0]:F2}; buff spent {buffSpent}; models shown sword {shown[1]} mace {shown[2]} spear {shown[3]}");
+        }
+
         private static IEnumerator TeleportLocalPlayer(Vector2 position, float yaw)
         {
             PlayerWood wood = PlayerWood.Local;

@@ -257,10 +257,26 @@ namespace Chopper.Player
                 hit = RhythmHit.OnBeat;
             bool bar = RhythmRules.Register(ref _rhythmBar, ref _rhythmMask, since, hit);
             StrikeQuality quality = MiningRules.FromRhythm(hit);
-            PlayStrike(quality);
             RhythmCue?.Invoke(vein, hit, bar);
-            StrikeServerRpc(vein, (int)quality, bar);
+            _lastStrikeAt = Time.time;
+            StrikePlayed?.Invoke();
+            StartCoroutine(StrikeOnContact(vein, quality, bar));
             return true;
+        }
+
+        public const float PickSwingSeconds = 0.5f;
+
+        private System.Collections.IEnumerator StrikeOnContact(int vein, StrikeQuality quality, bool bar)
+        {
+            ToolPose pose = GetComponent<ToolPose>();
+            if (pose == null) pose = gameObject.AddComponent<ToolPose>();
+            pose.Play(SwingTool.Pick, 0, PickSwingSeconds);
+            yield return new WaitForSeconds(PickSwingSeconds * ToolMotion.Contact(SwingTool.Pick));
+            Vector3 at = transform.position + transform.forward * 0.9f + Vector3.up * 1.2f;
+            if (quality == StrikeQuality.Clean) Sfx.Play(ProceduralSfx.Parry, at, 0.75f, 1.15f, 0.06f);
+            else Sfx.Play(ProceduralSfx.Chop, at, 0.7f, quality == StrikeQuality.Good ? 0.9f : 0.75f, 0.08f);
+            if (PlayerCamera.Local != null) PlayerCamera.Local.AddShake(0.06f);
+            StrikeServerRpc(vein, (int)quality, bar);
         }
 
         private void Engage(int vein)

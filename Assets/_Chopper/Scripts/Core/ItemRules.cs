@@ -33,7 +33,15 @@ namespace Chopper.Core
 
         public static int SharkRod => Boat + 1;
 
-        public static int Count => SharkRod + 1;
+        public static int Sword => SharkRod + 1;
+
+        public static int Mace => SharkRod + 2;
+
+        public static int Spear => SharkRod + 3;
+
+        public static int Count => Spear + 1;
+
+        public static bool IsWeapon(int kind) => kind >= Sword && kind <= Spear;
 
         public static bool IsBoat(int kind) => kind == Boat;
 

@@ -203,6 +203,14 @@ namespace Chopper.Trees
         }
 
         // Any peer. The same pick against this peer's view of which trees are down (the owner's swing prediction).
+        public bool ClientTreePosition(int treeId, out Vector3 position)
+        {
+            position = Vector3.zero;
+            if (_database == null || treeId < 0) return false;
+            position = _database.Get(treeId).Position;
+            return true;
+        }
+
         public bool ClientFindTree(Vector3 origin, Vector3 aim, out int treeId, out float distance)
         {
             return FindTree(origin, aim, server: false, out treeId, out distance);

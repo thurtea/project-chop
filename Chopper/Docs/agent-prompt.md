@@ -1,110 +1,213 @@
-<prompt>
+# Chopper: handoff brief (written 2026-10-16 23:55 ADT, for a new conversation)
 
-<goal>
-Keep making Chopper look and play like the concept sheets, picking up where the session stopped on 2026-10-16 00:39. Prove each item in Builds/Dev/Chopper.exe before starting the next. Use the smallest useful team. No proof, no done. Feel is judged only by the human. Never call the game or the feel finished.
-</goal>
+Trust a later TASKBOARD line over this brief. Never invent check results.
 
-<project_brief>
-Project: Chopper, a co-op survival game (one to four players). Live Unity 6000.5.10f1 project at E:\Projects\project-chop (FishNet, URP). Shared record: Chopper/Docs/TASKBOARD.md. Concepts: Chopper/Art/Concepts.
-Desired outcome: every asset is built by a Blender script in Chopper/Art/Scripts and matches its concept sheet as closely as possible, adapted to voxel, lit with Valheim-style depth and volumetrics (warm sun, cool shadow, distance haze, light shafts, dark nights).
-Audience: one developer playing the Windows dev build, sometimes with friends.
-Deadline: none.
-Done means: every item in what_to_do has a fresh build, EditMode 0 failed, a tour, opened shots compared with the named sheet, and a TASKBOARD RESULT line.
-Available tools: Blender 5.2 at C:\Program Files\Blender Foundation\Blender 5.2\blender.exe. Unity at C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe. Python with PIL. .NET 10 SDK. Git (no gh CLI). Checks: pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 <task> (build, player, editmode, blender, unity <Class.Method>, tour <Name>). Tours: Feet, Concept, House, Mine, Crypt, Zones, Gear, Shafts, Fishing, Fly, Logging, MoveTest, Arrival. Shots land in Logs\homework\tour-<Name>-<MMdd-HHmm>\; comparison sheets in C:\Users\itsth\chopper-shots\.
-Sources and assets: Chopper/Docs/TASKBOARD.md. Read W11-51 to W11-57 and every RESULT line from 2026-10-15 21:55 onward before editing (the late lines are dated only "23:40", "00:16", "00:35"). Open the named concept sheet before building toward it.
-Constraints: see boundaries.
-</project_brief>
+## 1. Project setup
+- Chopper is a co-op survival game for 1 to 4 players. It is a Unity 6000.5.10f1 project using FishNet and URP.
+- Repo: `E:\Projects\project-chop` on the Windows machine. Work on main.
+- Shared record: `Chopper/Docs/TASKBOARD.md`. Every proven item gets a RESULT line there.
+- Unity: `C:\Program Files\Unity\Hub\Editor\6000.5.10f1\Editor\Unity.exe`
+- Blender 5.2: `"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b -P <script.py>`. Asset scripts are in `Chopper/Art/Scripts` and exports go to `Chopper/Art/Export`.
+- Other tools: Python with PIL, .NET 10 SDK, Git (no gh CLI).
+- Playable exe: `E:\Projects\project-chop\Builds\Dev\Chopper.exe` (dev build). The playtest guide is `Chopper/Docs/playtest-windows.md`.
+- Checks, run from the repo root:
+  - `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build`: dev build into Builds\Dev. It must end "Build Finished, Result: Success" with "error CS lines: 0".
+  - `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode`: EditMode tests. It reports the passed and failed counts.
+  - `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 tour <Name>`: runs a Play tour on the dev build (passes `-chopper<Name>`) and prints its RESULT line.
+  - `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 unity <Class.Method>`: runs an editor batch method `Chopper.Editor.<Class.Method>`.
+  - Also available: `player` and `blender`.
+- Logs go to `Logs\homework\`. Tour shots go to `Logs\homework\tour-<Name>-<MMdd-HHmm>\`. Comparison sheets and scratch files go in `C:\Users\itsth\chopper-shots\` (staging folder `...\src`).
+- Main tours: Feet, Concept, House, Mine, Crypt, Zones, Gear, Shafts, Fishing, Fly, Logging, MoveTest, Arrival, Boat, Combat, Weapons.
+- All tour flags in ShotCapture: AnimProbe, Armour, Arrival, AxeRun, BlockGround, Boat, Cabin, Combat, Combo, Concept, Console, Crypt, DoubleJump, Feet, Fishing, Flicker, Floors, Fly, FoliageWalk, GearLook, GrassTest, GroundProbe, GuardTest, Hold, House, Hut, Inventory, Land, Light, LightAtmo, LightBase, LoadTour, Logging, Look, Mine, Motion, MoveTest, PadHotbar, PadTest, Perf, Pickup, Plants, SetFov, Shafts, Shimmer, Shot, Site, Sky, Swim, Title, TutorialTour, Weapons, Weather, WorldAudit, Yard, Zones.
+- Practical notes:
+  - homework's `Start-Process -Wait` can hang after Unity exits on compile errors. Check the newest log in `Logs\homework`, and kill only the hung pwsh wrapper or the -batchmode Unity.
+  - NetworkBehaviours must be on Player.prefab. Add them through an editor setup method and through `NetworkScenesBuilder`.
+  - In builds, vertex-colour meshes use the world material (the same one as `Resources/Props/prop_boat_voxel`).
 
-<where_we_are>
-State at 2026-10-16 00:39. Trust a later TASKBOARD line over this paragraph. Do not invent check results.
-Latest proof: build-1016-0031 Build Finished, Result: Success, CS 0; editmode-1016-0032 passed 321, failed 0; tour-Feet-1016-0032 RESULT PASS; tour-Mine-1016-0013 PASS; latest House PASS tour-House-1015-2321.
-W11-51 motion is LOCKED. Do not retune: move 6, sprint 9.5, crouch 2.6, acceleration 16, deceleration 22, turn 480, jump 1.05, gravity 26, landing recovery 3 / 0.2 s / 0.35, swing commit 0.85, swing move 0.45, swing turn 0.35, strike step 2.5, hit-stop 0.07 / heavy 0.09, hit kick 0.05 / heavy 0.12. GripRules firm stop on normal ground (0.50 m), snow glide (about 4.8x); PlayerAnimator StopSmoothing 14/28. Done.
-Already done today (leave them): hand axe visible; voxel saplings (build_saplings.py) and voxel branches (build_branches.py, the human likes them); "Drip Mine" renamed "Mine" and the cave floor sink fixed; fog halved, dark nights, warm 12 m torch; cave crystals cyan, _Fill 0.03 on cave stone.
-Clipping (t29u, TOP PRIORITY): 00:35 new Scripts/Player/FootGrounder.cs (auto-added to every Animator with leg bones: per-foot ground ray, hips drop to the lowest planted foot, two-bone leg lift, after GuardPose). New tour Feet (-chopperFeet): flat, 35 deg slope, slope walk, Earth enemy on a slope, hut steps, hut wall push, mine chamber + walk. tour-Feet-1016-0032 RESULT PASS (8 stops, worst sole 0.000 m, 0 buried bones, Treant sink 0.000); shots chopper-shots\feet_tour1.png. Still open: close camera frames legs only; slope_enemy boots hidden behind a block (sink not seen); Treants have no Animator, so no foot IK (mesh bottom only); ankle calibration varied 0.10-0.18 m between runs; capsule radius 0.5 not refitted to the mesh; body-vs-wall is a 4 cm bone probe, not a mesh test. The human has not confirmed it in play.
-Old assets PURGED: 22:20 48 pixel_tree* files deleted (Logs/homework/deleted-legacy-1015.txt); Treant _modelsByElement removed, MeadowBuilder uses prop_pine_* voxel, GolemSetup tree list emptied. 23:00 PixelPurge.Run unpacked 59 nested pack instances, swapped materials to M_World / M_Bark / M_Fire, then deleted Assets/ThirdParty/PixelLowpoly_100Assets and Assets/_Recovery: 950 paths in Logs/homework/deleted-pixelpack-1015.txt (tours House/Mine/Crypt PASS after). 23:10 PixelPackSetup.cs, PixelPackSheet.cs, PixelPurge.cs deleted. MeadowBuilder.FireEffectPath is empty (no voxel fire effect yet). KEEP Piece_Stairs: it is the voxel player build piece (piece_stairs_voxel).
-Yard and hub light: 23:10 build_yard.py (stepped stone pond rim + bed, pond water sheet, 2x2 m plank floor tile) via ChopperPropDress.ApplyYard; Hut.cs places prefabs (yard pines, stone path from the door, prop_mountain_backdrop_voxel). Hub light toward Valheim: cooler ambient, noon sun 1.65, cool shadow / warm highlight grade, sun shafts in the hub.
-Haze, shafts, mountains: 23:20 to 23:25 ForestShafts adds depth/height volumetric haze (start 42 m, density 0.004, height falloff, cool away from the sun / warm toward it, global _ChopperHaze from DayNightCycle, off underground), shafts x2.4 (hub 0.9). Mountain backdrops about 125 m behind the hut at 2.4-3.4x. Still off: no visible beams outdoors, haze slightly milky on the hut.
-Portals (lock cave-chopper-concept-3.0.jpeg): build_portal.py -> prop_mine_portal_voxel (dark round log posts, lintel, braces, stepped dark rock, cyan clusters) + prop_mine_rail_voxel x3 + prop_mine_cart_voxel, black adit quad, forest grade lifted within 28 m of a portal, Earth overhang cleared. 00:16 final round: craggy crown, rock 9 deep beside the posts, 3x3 tapered clusters, cart light; found kit.hsh returns a 32-bit int (not 0..1), so every 'hsh(...) > 0.x' was always true; build_portal.py now uses h01() (tour-Mine-1016-0013 PASS, chopper-shots\mine_portals13.png). The human's open portal misses to recheck: arch reads as a smooth dome, pale stone strips show, the cart reads as a black box, crystals look thin. Also from 00:16: cart small and hidden at the left cheek, rock near-black in daylight (concept is lighter grey-blue), no moss/grass on the crag, and the same hsh bug still lives in other Blender scripts (their noise is dead; fix with h01()).
-Cave interiors (still off): chambers evenly lit, floors flat, crystals too big and too few, frames dark, no tall stepped cliffs.
-Hut: NEW LOCK Chopper/Art/Concepts/hut-three-story-concept.jpg (three-story timber hut). This REPLACES the one-floor hut. Current exe still has the one-floor 1.8x hut (dormer, proud log courses, yard). Work in progress, not proven, no RESULT line: build_hut3.py, build_hut_props.py, and new exports prop_hut_bunk/notice/sack/stool/table/toolwall/vise/wheel_voxel.fbx, hall_voxel.fbx changed (all staged in git, uncommitted). Check them before building more.
-Fishing: cameras above water, HOOKED! cue and tension arc readable (tour-Fishing-1015-2053). Still off: thin yellow line arc, small arcs at distance, pale underwater view, no New World x Ocarina of Time polish judged.
-Enemy weapon arms: build_elemental.py tree elementals carry axe / mace / sword / spear right arms with Elemental_Chop / Thrust / Smash / Stab and a bark wrist sleeve (tour-Fly-1015-2022). ENEMY ONLY. Not yet placed as per-zone archetypes; enemies read small.
-Character: chopper-character-and-axe-3D-concept-2.0.jpg IS the player. Legs proof stands (tour-Concept-1015-0249). Do not run build_chopper_voxel.py.
-Website: the gallery has an "In game" section (Website/images/shots/ingame-*.jpg, 1600x900) above the concept art; those shots predate the portals, haze and hut work. Landing page stays logo + banner. No deploy.
-Frame-time budget (W5-08): hut 6 ms, night with 16 enemies 7 ms. Keep it.
-</where_we_are>
+## 2. Rules (current, verbatim intent)
+- No commit, push, deploy, upload or buying. The human commits.
+- No deletes unless the human asked for that specific removal. List every deleted file.
+- No `//` or `#` comments in new code. Rationale goes on the TASKBOARD.
+- Don't touch `Assets/_Chopper/Resources/Audio`.
+- Don't retune W11-51. Motion is locked: move 6, sprint 9.5, crouch 2.6, jump 1.05, gravity 26, and so on.
+  - Note: the 2026-10-16 slide fix moved acceleration, deceleration and turning into `Core/SteerRules.cs` at the user's request (no sliding).
+- Don't run `build_chopper_voxel.py`.
+- Keep `Piece_Stairs`.
+- Don't replace Chopper/Block, Chopper/Water, DayNightCycle or ZonePalette. Tuning their values is fine. The chunk mesh bevel was approved.
+- Ask before replacing ZoneTracker's fog.
+- Leave `unity-assets.md` unchanged. Leave the registry value `chopper.atmosphere` alone.
+- Custom Blender assets only. No asset-store packs or Unity primitives for art.
+- One Unity job at a time, with the editor closed. If the editor is open or another bot has it, say so and don't fight it.
+- If a Unity job is stuck, kill only the `-batchmode` Unity.exe, never the Hub or the editor GUI.
+- Check that Chopper.exe isn't running before any build.
+- Weapons: players DO get the axe (as a weapon), sword, mace and spear, each with its own skill (user rule t58u). Ranged weapons are still excluded.
+  - The logging chop on trees stays separate from axe combat.
+- Proof discipline, for every item:
+  - A fresh build (Success, 0 CS errors).
+  - EditMode with 0 failed.
+  - The relevant tour(s).
+  - Opened shots compared beside the concept sheet.
+  - A TASKBOARD RESULT line with counts, log names, the shots opened and what is still off.
+  - A script summary is not a picture.
+  - Never call the game or the feel finished. Feel is the human's to judge.
+  - Report after each phase.
+- Work in small steps. If a tool fails, report the error and make the smallest fix. Ask one focused question only if it blocks the work.
 
-<look_lock>
-Open the relevant sheet before every asset and match it as closely as voxel allows. Build assets in Blender scripts, not Unity primitives.
-Hut: Chopper/Art/Concepts/hut-three-story-concept.jpg. Heavy timber on a grassy rock outcrop, steep gable roof with a stone chimney, an outside ladder. Basement: storage cave cut into the rock (barrels, crates, sacks). Ground floor: hub (stone fireplace, notice board, tables and stools, stairs). Second floor: dormitory (bunk and single beds, chests, chimney passing through). Third floor: workshop (workbench, tool wall, vise, spinning wheel). Hub framing stays from chopper-start-menu-background-3D-concept-2.0.jpg (pines, stepped pond, stone paths, misty mountains).
-Caves and portals: cave-chopper-concept-3.0.jpeg (dark teal stone, cyan crystals, timber frames with crossed braces, warm lanterns, rails and cart, stepped 3D relief; chunky 3D caves are wanted).
-Player: chopper-character-and-axe-3D-concept-2.0.jpg. Enemies: the four *elemental tree.jpg files (older chopper-*elemental-3D-concept-3.0.jpg are backup). chopper-3D-concept-3.0.jpg is the tree-enemy overview.
-E:\Projects\project-chop\Chopper\Art\Concepts\hut-three-story-concept.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\cave-chopper-concept-3.0.jpeg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-3D-concept-2.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-all-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-character-and-axe-3D-concept-2.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-fireelemental-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-hut-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-nonelemental-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-start-menu-background-3D-concept-2.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-water-crypt-zone-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-waterelemental-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\chopper-windelemental-3D-concept-3.0.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\fire elemental tree.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\non elemental tree.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\water elemental tree.jpg
-E:\Projects\project-chop\Chopper\Art\Concepts\wind elemental tree.jpg
-</look_lock>
+## 3. Art direction
+- `Chopper/Docs/art-direction.md` governs the look:
+  - Chunky voxel-adjacent low-poly with bevelled silhouettes and flat hand-painted textures.
+  - Subtle haze and a warm/cool grade.
+  - Organic water, soft clouds and restrained god-rays.
+  - It also has a "Player weapons" section.
+- Open the named sheet before building any asset.
+- All concept images are in `E:\Projects\project-chop\Chopper\Art\Concepts\`:
+  - Hut:
+    - `hut-three-story-concept.jpg`: the locked three-story hut (basement storage, hub, dormitory, workshop, outside ladder, chimney).
+    - `chopper-hut-outside.jpg`: the hub hut exterior. A Norse log longhouse with a stepped shingle roof, crossed gable horns, a dormer, a porch and a stone foundation.
+    - `chopper-hut-zone-3D-concept-3.0.jpg`
+  - Hub framing: `chopper-start-menu-background-3D-concept-2.0.jpg` (pines, stepped pond, stone paths, misty mountains).
+  - Caves and portals: `cave-chopper-concept-3.0.jpeg`.
+  - Player: `chopper-character-and-axe-3D-concept-2.0.jpg`.
+  - Overviews: `chopper-3D-concept-2.0.jpg`, `chopper-3D-concept-3.0.jpg` (the tree-enemy overview), `chopper-all-3D-concept-3.0.jpg`.
+  - Water crypt zone: `chopper-water-crypt-zone-3D-concept-3.0.jpg`.
+  - The 5 tree enemy concepts (these govern):
+    - `non elemental tree.jpg`: dark bark, green willow hair, blue eyes, antlers, a shield; carries a random plain weapon.
+    - `earth elemental tree.jpg`: gold veins and a gold crown; mace.
+    - `fire elemental tree.jpg`: charred body, orange cracks, flame hair; sword.
+    - `water elemental tree.jpg`: blue water body, coral base; spear.
+    - `wind elemental tree.jpg`: pale cloud body; axe.
+  - Older backups: `chopper-fireelemental-3D-concept-3.0.jpg`, `chopper-nonelemental-3D-concept-3.0.jpg`, `chopper-waterelemental-3D-concept-3.0.jpg`, `chopper-windelemental-3D-concept-3.0.jpg`.
 
-<what_to_do>
-Work in order. Finish one item's proof before starting the next. Do not stop while an item is unproven.
+## 4. User design decisions so far
+- **Toggles:** sprint, crouch and similar are toggles as set in Keybinds.
+- **Swimming:** nothing in the hands while swimming. Entering water holsters the axe, rod, torch and hammer; leaving it restores what was held; tools can't be drawn while swimming.
+- **Fog and atmosphere:**
+  - The Atmosphere setting defaults to 0.6, and is 0 indoors.
+  - Distance haze is capped so it never goes milky.
+  - ZoneTracker fog stays unless the human approves replacing it.
+- **Ladders:** follow the ladder rules on the TASKBOARD. Climb only when facing and touching the ladder, exit cleanly at the top, and no ladder snapping from a distance.
+- **Building and world:**
+  - Windows are transparent.
+  - No white crosses on paths.
+- **Pickups:** ground items as they are now on the TASKBOARD (walk-over or press pickup, visible voxel items).
+- **Enemies:**
+  - Weapons follow the element: earth mace, fire sword, water spear, wind axe. Non-elementals carry a random plain weapon.
+  - Enemies are bigger than before.
+  - Sapling spawn loop: felled trees leave saplings that can wake into enemies at night.
+- **Elemental buff:** a hit-count buff. Killing an elemental loads charges; each effective hit spends one.
+- **Hotbar:** the pick is on slot 7. Slot 8 is the new Next-weapon key (pad uses the hotbar path).
+- **Boat and shark:**
+  - The boat is crafted at the workbench, carried, deployed only on ocean water and picked back up.
+  - The shark tows the boat in a balance phase; keep the arc centred to drain shark stamina. Then normal reeling.
+  - Mining, fishing and the shark are meant to share the arc UI.
+  - The shark rod is crafted after landing 10 fish.
+- **Movement:**
+  - No sliding anywhere: SteerRules gives a firm stop and no drift on turns, including on snow.
+  - Per-tool animations (ToolPose and ToolMotion). The axe alternates overhead and diagonal two-handed chops.
+  - Chops, pick strikes and hammer placement trigger on the contact frame, with facing and snap to the trunk.
+- **Weapons and skills plan (APPROVED):**
+  - Weapons:
+    - Sword: wood 6 / iron 6.
+    - Mace: wood 8 / iron 8.
+    - Spear: wood 10 / iron 4.
+    - All costs live in GameConfig and are crafted at the workbench.
+    - Moves: axe fast chop; sword sweep (multi-target); mace overhead smash (stagger and splash); spear thrust (long reach).
+    - They must work with the elemental buff.
+  - Skills:
+    - Fishing, Logging, Mining, Axe, Sword, Mace, Spear, each 0 to 100. XP on use.
+    - Modest bonuses: at level 100, about +25% damage or yield and up to 15% faster swings.
+    - Death loss: about 5% of the current level per skill (configurable), then a grace period of about 10 min with no further loss (configurable).
+    - HUD toast, a Skills page under Tab, save/load with migration from LogSkill/MineSkill/FishSkill, network sync, tests.
 
-1. Clipping (t29u). Legs and body must not sink into or pass through ground, stairs, walls, or props. Close the 00:35 gaps: a wider Feet camera that shows the whole body, a visible slope_enemy shot, Treant ground contact, stable ankle calibration, the capsule fitted to the mesh, and a body-vs-wall test that uses the mesh. Re-run Feet on the hut stairs, slopes, and cave floors.
+## 5. Status at end of 2026-10-16
+- **Boat round:**
+  - Pulled-back camera through the leap and catch.
+  - The camera collides with the shark.
+  - The catch happens beside the boat.
+  - Rowing pose fixed and pick-up framing widened.
+  - The camera ignores the invisible "Boundary" walls (cause of the close camera).
+- **Playtest doc:** `playtest-windows.md` updated with a 2026-10-16 section.
+- **Slide fix:**
 
-2. Three-story hut from hut-three-story-concept.jpg, adapted to voxel. Start from the staged build_hut3.py / build_hut_props.py work. Basement storage cave, ground-floor hub, second-floor dormitory, third-floor workshop, outside ladder, chimney, steep gable roof, outcrop. Every floor walkable, stairs between floors (Piece_Stairs colliders with visible treads), no see-through gaps, the player fits doors and headroom. Update the House tour to visit every floor. Proof: House + Feet tours, shots of the outside and every floor beside the sheet.
+  | Measure | Before | After |
+  |---|---|---|
+  | Sprint stop | 0.52 m (snow 2.38 m) | 0.15 m (snow 0.15 m) |
+  | Turn drift | 2.70 m | 0.00 m |
+  | Facing lag | 0.27 s | 0.08 s |
 
-3. Finish the portals vs cave-chopper-concept-3.0.jpeg: craggy arch (not a smooth dome), no pale strips, a readable timber cart, chunky crystals, rock in grey-blue daylight, moss on the crag. Fix the hsh -> h01 bug in the other Blender scripts. Then cave interiors: stepped relief, tall cliffs, uneven floors, more and smaller crystals, lit frames, warm lantern pools.
+- **Tool animations:** ToolPose and ToolMotion added, with contact-frame chops, pick and hammer. Chop shots: trunk at 1.37 to 1.39 m, facing error 0.
+- **Weapons phase 1:** code is in and the tour passed (see 6.3). Not yet reported to the human, and no TASKBOARD RESULT line for it yet.
+- **Latest proof (2026-10-16 23:45 to 23:48 ADT):**
+  - Build Success, 0 CS errors.
+  - EditMode 401/401 passed. That is 395 before the weapon tests plus 6 WeaponRulesTests.
+  - Tours:
+    - tour-Weapons-1016-2345 PASS: targets axe 1, sword 3, mace 3, spear 2; mace 7.20 vs axe 4.50 units; buff spent; models shown.
+    - tour-Logging-1016-2346 PASS.
+    - tour-Feet-1016-2348 PASS.
+  - The Weapons shots have not been opened yet.
+- **All work is uncommitted.** Run `git status` to see it:
+  - Modified: many scripts, Player.prefab, tests, and the docs TASKBOARD, agent-prompt, art-direction and playtest-windows.
+  - New: SteerRules, ToolMotion, ToolPose, WeaponRules, PlayerWeapons, WeaponSetup, SteerAndToolTests, WeaponRulesTests, `Resources/Weapons/`, build_weapons.py and the sword/mace/spear fbx exports.
 
-4. Leftover items 3-6: soften hard block edges; ground items vs the sheets; fishing toward New World x Ocarina of Time (thicker line arc, arcs readable at distance, clear underwater view); pick and rod first-class beside the axe. Fishing additions (t43u): while reeling, hooked fish occasionally leap out of the water (Ocarina of Time style); when the fish runs and pulls line back out, the camera zooms in and cuts to an underwater view of the fish, then returns to the normal view. The zoom is not designed yet: build a first version for the human to judge.
+## 6. TODO for tomorrow (priority order)
+1. **BUG: boots clip through the ground inside caves.**
+   - Check FootGrounder and ModelGrounder on cave floors; the ray may hit the wrong layer or the chunk floor height.
+   - Add a cave stop to the Feet tour and prove it with shots.
+2. **BUG: fishing appears to spawn trees (user t59u).**
+   - Find out whether it is real in normal play or tour-only, and fix it. Fishing must never spawn or move trees.
+   - Already checked, with nothing found in the fishing code: PlayerFishing, FishSchoolView (spawns only the rod, bobber, aim-ring and fish props) and FishingHotspots.
+   - Next suspects:
+     - Tree streaming or culling popping in when the fishing or cast camera pulls back.
+     - Night saplings or treants spawning while the player idles.
+     - Dawn regrow in TreeManager.
+     - ScatterMask re-culls.
+     - The WorldGen.SurfaceAt change in tree placement.
+     - A ShotCapture or tour helper leaking into normal play.
+   - Add a test, then rebuild the exe (Chopper.exe must not be running).
+3. **Weapons phase 1: finish and report.** What exists:
+   - Models: `build_weapons.py`. The fbx files are in `Resources/Weapons` and their checks passed.
+   - Rules and inventory:
+     - `Core/WeaponRules.cs`: PlayerWeapon enum and per-weapon stats.
+     - ItemRules: Sword, Mace and Spear items, plus IsWeapon.
+     - GameConfig cost fields and RecipeBook recipes (Sword 4, Mace 5, Spear 6).
+     - Keybinds: KeyAction.Weapon on key 8.
+   - Player:
+     - `Player/PlayerWeapons.cs`: SyncVars, a cycle and select RPC, and the model shown in place of the axe. It is on Player.prefab and in NetworkScenesBuilder.
+     - PlayerAxe: per-weapon range, radius, damage, cooldown, sword and spear extra targets, mace splash and stagger, buff per target, and stats for the tour.
+   - Save/load: Weapons and Weapon in PlayerRecord.
+   - Tools and tests: the dev console `weapons` command; WeaponRulesTests; the Weapons tour.
+   - Still to do:
+     - Open the Weapons shots (windup and contact per weapon) and judge them.
+     - Get a craft-page shot of the weapon recipes.
+     - Add a HUD hint for the active weapon.
+     - Write the TASKBOARD RESULT line and the phase 1 report.
+4. **Skills phase 2** as approved in section 4. Not started.
+5. **Known misses:**
+   - Catch shot framing.
+   - Rod and torch animations still use their old clips.
+   - Remote players see the swing start at contact.
+   - Leg lag of about 0.05 s.
+   - One remaining MoveTest freeze at a real cliff.
+   - Fishing and mining are not on ArcRules.
+   - The landed shark is only a counter.
+   - B is not rebindable.
+   - The sharkrod console help text was changed to "normally crafted at the workbench after landing 10 fish"; verify it.
+   - Rerun the Arrival tour.
+   - The cave cliff drop.
+   - The remaining items.
+   - Lighting phase 4+ options.
+   - Enemies appear mid-size in frame.
+   - Earth gold looks muted.
+   - The BoatCamBlockers helper is tour-only.
+   - PlayerCamera ignores invisible walls everywhere, which may let it pass world edges.
+6. **Older open items:**
+   - The three-story hut.
+   - Portal and cave interiors versus `cave-chopper-concept-3.0.jpeg`, including the hsh to h01 fix in the other Blender scripts.
+   - Fishing polish.
+   - Final tours on one build.
+   - The website "In game" shots (no deploy).
 
-5. Enemy weapon-arm archetypes per zone (axe / sword / mace / spear, each its own attack: sword sweep, spear thrust, mace overhead smash). Enemies read bigger. Enemy only.
-
-6. Final tours: Feet, Concept, House, Mine, Crypt, Zones, Gear, Shafts, Fishing, Fly, Logging, MoveTest, Arrival on one fresh build; open the shots and list what is still off.
-
-7. Craftable little boat for the ocean and the shark fishing minigame (the shark tows the boat; tire it out, then reel it in). Human answers (t39u-t41u): the boat is crafted at the workbench, carried in the inventory, deployed only on ocean water, and picked back up. Mining, fishing and the shark fight all use the SAME existing arc UI above the target, with shared arc code: mining is timing/rhythm, fishing stays as it is, and the shark is a Tony Hawk-style balance phase while it tows the boat (keep the arc centred to drain the shark stamina bar; drifting too far left or right loses it), then the normal fishing minigame reels it in. Thresholds go in config. Sharks need a special shark rod obtained later like the armour; the unlock method is a config placeholder for the human to decide.
-
-8. Refresh the website gallery "In game" shots from the final tours (Website/images/shots/, 1600x900 JPG). Skip sheets, composites, failed and "You died!" shots. Landing page stays logo + banner. No deploy.
-</what_to_do>
-
-<proof>
-No proof, no done. With the Unity editor closed, one Unity batch job at a time: homework.ps1 build ends Build Finished, Result: Success, error CS 0; EditMode has 0 failed (321 at last count); one tour shows the change; open the shots and compare them with the named sheet; write a TASKBOARD RESULT line with check counts, log names, shots opened, and what is still off. A script summary is not a picture. Feel is the human's to judge.
-</proof>
-
-<boundaries>
-Do not commit, push, deploy, upload, or buy. The human commits. Do not delete files unless the human asked for that specific removal; list every deleted file. Do not add // or # comments in code; rationale goes on the TASKBOARD. Do not touch Assets/_Chopper/Resources/Audio. Do not retune W11-51. Do not run build_chopper_voxel.py. Do not add player swords, spears, maces, or ranged. Keep Piece_Stairs. Do not replace Chopper/Block, Chopper/Water, the chunk meshes, DayNightCycle, or ZonePalette (tuning values is fine). One Unity job at a time, editor closed; if the editor is open or another bot has it, say so and do not fight it. If a batch Unity.exe is stuck, kill only that -batchmode process, never the Hub or the editor GUI. Work on main. If a tool fails, report the error and make the smallest fix. Do not invent files, test results, or completed actions. Ask one focused question only if it blocks the goal.
-</boundaries>
-
-<completion_gate>
-Before saying an item is done, confirm: the change is in a fresh build made with the editor closed; EditMode 0 failed; a tour ran; the shots were opened beside the sheet; the TASKBOARD line is written; misses are named. Never call the game or the feel finished. Return a partial status until every started item has that proof.
-</completion_gate>
-
-<handoff>
-Return a short report: what changed, the build to test, check counts and log names, which shots you opened and how they compare, what is still off, which item is next, any files deleted, and one suggested commit line with no author line.
-</handoff>
-
-<start>
-Check that the Unity editor is closed and that no -batchmode Unity.exe is running. Read Chopper/Docs/TASKBOARD.md from the 2026-10-15 21:55 line onward, check git status (the hut3 work is staged, uncommitted), then start item 1 (clipping).
-</start>
-
-</prompt>
-
-## Item 4 fishing spec (t43u)
-- While reeling, a hooked fish now and then leaps out of the water (Ocarina of Time style): about every 3.5-7 s while it pulls or thrashes, a 0.8 s arc peaking at 1.1 m, with a splash out and in. Tunables in Core/FishShow.cs.
-- When the fish runs and pulls the line back out, the camera cuts for 1.4 s to an underwater view beside the fish (teal tint, float and arcs hidden), then returns. First version, for the user to judge.
-- Fishing arcs are small (about a third of the first size) and grow at most 1.4x with distance; the line grows at most 1.6x.
-- Swimming: nothing in the hands. Entering water puts away the axe, rod, torch and build hammer; leaving it brings back what was held; tools can't be drawn while swimming.
-
-## Governing look spec
-Chopper/Docs/art-direction.md (t50u) governs the look: chunky voxel-adjacent low-poly, bevelled silhouettes, flat hand-painted textures, subtle haze and warm/cool grade, organic water, soft clouds, restrained god-rays. Work block a-e runs after the current polish round and before item 5 content.
+## 7. Start
+- Check that the Unity editor is closed and that no -batchmode Unity.exe or Chopper.exe is running.
+- Read the TASKBOARD from the 2026-10-16 lines onward and run `git status`.
+- Then begin TODO 1.

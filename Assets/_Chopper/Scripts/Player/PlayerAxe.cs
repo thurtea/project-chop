@@ -86,6 +86,7 @@ namespace Chopper.Player
             _wood = GetComponent<PlayerWood>();
             _combat = GetComponent<PlayerCombat>();
             _motor = GetComponent<PlayerMotor>();
+            _weapons = GetComponent<PlayerWeapons>();
             _validator = GetComponent<PlayerMovementValidator>();
             _upgrades = GetComponent<PlayerUpgrades>();
             _buffs = GetComponent<PlayerBuffs>();
@@ -353,14 +354,32 @@ namespace Chopper.Player
 
             // A tree in front (and no enemy closer) is a plain chop. Anything else is a combo swing.
             int step = -1;
-            bool tree = TreeManager.Instance != null && TreeManager.Instance.ClientFindTree(transform.position, aim, out _, out float treeDistance)
+            int treeId = -1;
+            float treeDistance = float.MaxValue;
+            bool tree = WeaponRules.ChopsTrees(Weapon) && TreeManager.Instance != null && TreeManager.Instance.ClientFindTree(transform.position, aim, out treeId, out treeDistance)
                         && !EnemyCloserThan(aim, treeDistance);
             if (!tree) step = ComboRules.NextStep(_comboStep, Time.time - _comboTime, Cooldown);
             _comboStep = step;
             _comboTime = Time.time;
 
-            float swingSeconds = Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) : 1f);
+            float swingSeconds = Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) * WeaponRules.Stats(Weapon).CooldownScale : 1f);
             _nextSwingTime = Time.time + swingSeconds;
+            SwingTool swingTool = tree ? SwingTool.Axe : WeaponRules.Tool(Weapon);
+            float contactDelay = swingSeconds * ToolMotion.Contact(swingTool);
+            if (tree && TreeManager.Instance.ClientTreePosition(treeId, out Vector3 trunk))
+            {
+                Vector3 toTrunk = trunk - transform.position;
+                toTrunk.y = 0f;
+                if (toTrunk.sqrMagnitude > 0.01f) aim = toTrunk.normalized;
+                if (_motor != null && IsDrawn) _motor.SnapTo(ToolMotion.SnapPoint(transform.position, trunk, ToolMotion.ChopReach), contactDelay);
+                LastTrunk = trunk;
+            }
+            if (IsDrawn)
+            {
+                if (_toolPose == null) _toolPose = GetComponent<ToolPose>();
+                if (_toolPose == null) _toolPose = gameObject.AddComponent<ToolPose>();
+                _toolPose.Play(swingTool, tree ? _chopCount++ : step, swingSeconds);
+            }
             transform.rotation = Quaternion.LookRotation(aim, Vector3.up);
             _commitUntil = Time.time + swingSeconds * _config.SwingCommitFraction;
             _strikeAt = Time.time + Cooldown * _config.SwingStrikeFraction;
@@ -368,7 +387,9 @@ namespace Chopper.Player
             _strikeSpeed = step < 0 ? 0f : _config.SwingStrikeStep + (step == ComboRules.Steps - 1 ? ComboRules.FinisherLunge : 0f);
             _strikePending = _strikeSpeed > 0f;
             ClientPlaySwing(step);
-            SwingAxeServerRpc(aim);
+            _contactPending = true;
+            _contactAt = Time.time + contactDelay;
+            _contactAim = aim;
             return true;
         }
 
@@ -393,12 +414,29 @@ namespace Chopper.Player
             }
             aim.Normalize();
             int step = ServerResolveHit(aim);
-            _serverNextSwingTime = now + Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) : 1f);
+            _serverNextSwingTime = now + Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) * WeaponRules.Stats(Weapon).CooldownScale : 1f);
             // The finisher lunges the owner forward: let the speed check expect it.
             if (step == ComboRules.Steps - 1 && _validator != null) _validator.ServerAllowBurst(ComboRules.FinisherLunge, LungeSeconds, "finisher lunge");
 
             SwingObserversRpc(step);
         }
+
+        private PlayerWeapons _weapons;
+        public Transform AxePivot => _axePivot;
+        public PlayerWeapon Weapon => _weapons != null && IsDrawn ? _weapons.Selected : PlayerWeapon.Axe;
+        public int LastServerTargets { get; private set; }
+        public float LastServerUnits { get; private set; }
+        public PlayerWeapon LastServerWeapon { get; private set; }
+        public int ServerSwings { get; private set; }
+
+        private ToolPose _toolPose;
+        private int _chopCount;
+        private bool _contactPending;
+        private float _contactAt;
+        private Vector3 _contactAim;
+        public Vector3 LastTrunk { get; private set; }
+        public int ContactsSent { get; private set; }
+        public float LastContactTime { get; private set; }
 
         public void CancelSwing()
         {
@@ -413,6 +451,13 @@ namespace Chopper.Player
             {
                 _strikePending = false;
                 if (_motor != null) _motor.Lunge(_strikeAim, _strikeSpeed);
+            }
+            if (_contactPending && Time.time >= _contactAt)
+            {
+                _contactPending = false;
+                ContactsSent++;
+                LastContactTime = Time.time;
+                SwingAxeServerRpc(_contactAim);
             }
             if (_hitPending && Time.time >= _hitAt) PlayHitFeel();
         }
@@ -477,9 +522,17 @@ namespace Chopper.Player
             Vector3 origin = transform.position;
             int foundTreeId = -1;
             float foundTreeDistance = float.MaxValue;
-            if (TreeManager.Instance != null) TreeManager.Instance.ServerFindTree(origin, aim, out foundTreeId, out foundTreeDistance);
+            PlayerWeapon weapon = Weapon;
+            WeaponStats stats = WeaponRules.Stats(weapon);
+            float range = _config.SwingRange * stats.RangeScale;
+            float radius = _config.SwingRadius * stats.RadiusScale;
+            if (TreeManager.Instance != null && WeaponRules.ChopsTrees(weapon)) TreeManager.Instance.ServerFindTree(origin, aim, out foundTreeId, out foundTreeDistance);
 
-            Treant treant = Treant.ServerFindTarget(origin, aim, _config.SwingRange, _config.SwingRadius, out float treantDistance);
+            Treant treant = Treant.ServerFindTarget(origin, aim, range, radius, out float treantDistance);
+            ServerSwings++;
+            LastServerWeapon = weapon;
+            LastServerTargets = 0;
+            LastServerUnits = 0f;
 
             bool hitsTreant = treant != null && (foundTreeId < 0 || treantDistance < foundTreeDistance);
             bool hitsTree = !hitsTreant && foundTreeId >= 0;
@@ -501,8 +554,14 @@ namespace Chopper.Player
                     buffs.ServerConsumeHit(treant.Element);
                 }
                 units *= ComboRules.Damage(step);
+                if (armed) units *= stats.Damage;
                 NetworkObject target = treant.NetworkObject;
+                Vector3 primaryAt = treant.transform.position;
                 treant.ServerHit(units, buffs, _wood, transform.position);
+                LastServerTargets = 1;
+                LastServerUnits = units;
+                if (armed) ServerWeaponExtras(weapon, stats, treant, primaryAt, origin, aim, range, radius, units, buffs);
+                if (armed && stats.Stagger >= 2f && treant.IsActive) treant.ServerStagger(_config.TreantStaggerSeconds * 0.5f * stats.Stagger, transform.position, true);
                 if (step == ComboRules.Steps - 1 && treant.IsActive) treant.ServerStagger(_config.TreantStaggerSeconds * ComboRules.FinisherStagger * 1.5f, transform.position, true);
                 bool killed = !treant.IsSpawned || !treant.IsActive;
                 if (Owner.IsValid) HitLandedTargetRpc(Owner, killed ? null : target, killed || step == ComboRules.Steps - 1, false);
@@ -518,6 +577,31 @@ namespace Chopper.Player
                 if (Owner.IsValid) HitLandedTargetRpc(Owner, null, false, true);
             }
             return step;
+        }
+
+        private void ServerWeaponExtras(PlayerWeapon weapon, WeaponStats stats, Treant primary, Vector3 primaryAt, Vector3 origin, Vector3 aim, float range, float radius, float units, PlayerBuffs buffs)
+        {
+            var extra = new System.Collections.Generic.List<(Treant t, float d)>();
+            foreach (Treant other in new System.Collections.Generic.List<Treant>(Treant.All))
+            {
+                if (other == null || other == primary || !other.IsActive) continue;
+                float d = TreeTargeting.HitDistance(origin, aim, range, radius, other.transform.position, other.HitRadius);
+                if (d >= 0f && stats.Targets > 1) { extra.Add((other, d)); continue; }
+                float splash = WeaponRules.SplashUnits(weapon, units, Vector3.Distance(other.transform.position, primaryAt));
+                if (splash > 0f)
+                {
+                    other.ServerHit(splash, null, _wood, transform.position);
+                    LastServerTargets++;
+                }
+            }
+            extra.Sort((a, b) => a.d.CompareTo(b.d));
+            for (int i = 0; i < extra.Count && i < stats.Targets - 1; i++)
+            {
+                float each = units;
+                if (buffs != null) each *= buffs.DamageMultiplier(extra[i].t.Element) / Mathf.Max(0.01f, buffs.DamageMultiplier(primary.Element));
+                extra[i].t.ServerHit(each, buffs, _wood, transform.position);
+                LastServerTargets++;
+            }
         }
 
         // The owner already played its swing locally; on a host the owner is the local client, so it is excluded too.

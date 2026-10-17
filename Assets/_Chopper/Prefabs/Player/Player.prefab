@@ -227,6 +227,7 @@ GameObject:
   - component: {fileID: 6865979792115316423}
   - component: {fileID: 5629842289416030085}
   - component: {fileID: 2513389053556370342}
+  - component: {fileID: 4447440381654144781}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -726,6 +727,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b7539dbb282c4ba4884251948f540c3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Chopper.Runtime::Chopper.Player.PlayerBoat
+  _componentIndexCache: 255
+  _addedNetworkObject: {fileID: 6426892059398373065}
+  _networkObjectCache: {fileID: 0}
+  _config: {fileID: 11400000, guid: 7b102bf9d3556e34faf545023c1aaa3f, type: 2}
+--- !u!114 &4447440381654144781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6234038844538286488}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f712d3d54a5ecb4e9ed331effdaecb5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Chopper.Runtime::Chopper.Player.PlayerWeapons
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 6426892059398373065}
   _networkObjectCache: {fileID: 0}

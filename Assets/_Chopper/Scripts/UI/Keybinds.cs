@@ -29,7 +29,8 @@ namespace Chopper.UI
         Axe,
         Build,
         Unequip,
-        Pick
+        Pick,
+        Weapon
     }
 
     public static class Keybinds
@@ -56,7 +57,8 @@ namespace Chopper.UI
             "<Keyboard>/1",          // Axe
             "<Keyboard>/6",          // Build (the hammer)
             "<Keyboard>/h",          // Unequip: put away whatever is in the hands
-            "<Keyboard>/7"
+            "<Keyboard>/7",
+            "<Keyboard>/8"
         };
 
         // Valheim style: triggers for the weapon and the guard, face buttons for jump, roll, interact and inventory,
@@ -81,6 +83,7 @@ namespace Chopper.UI
             HotbarPath,                    // Axe (draw or put away)
             HotbarPath,                    // Build (the hammer)
             "<Gamepad>/rightStickPress",   // Unequip (R3)
+            HotbarPath,
             HotbarPath
         };
 
@@ -88,7 +91,7 @@ namespace Chopper.UI
         {
             "Chop and attack", "Block", "Roll", "Jump", "Interact", "Repair the hut", "Toggle sprint",
             "Toggle crouch", "Torch on or off", "Bandage", "Inventory", "Map", "Eat fish", "Fishing rod",
-            "Axe out or away", "Build (hammer)", "Put away (hands free)", "Pickaxe out or away"
+            "Axe out or away", "Build (hammer)", "Put away (hands free)", "Pickaxe out or away", "Next weapon"
         };
 
         private static readonly string[] Cache = new string[Defaults.Length];

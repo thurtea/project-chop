@@ -1,5 +1,75 @@
 # Chopper playtest on Windows
 
+## Today's playtest, 2026-10-16 (start here)
+
+### Run it
+- Exe: `E:\Projects\project-chop\Builds\Dev\Chopper.exe` (development build, built 2026-10-16 22:11 Halifax time; it includes boat round 2). Windows still shows the exe file itself as 2026-10-13 because Unity leaves the launcher stub alone. The game data in `Builds\Dev\Chopper_Data` is from today.
+- Start it from PowerShell: `Start-Process "E:\Projects\project-chop\Builds\Dev\Chopper.exe"`, or double-click it.
+- You don't need to open Unity or rebuild anything. Networking (FishNet) is already compiled into the build, so there's nothing to regenerate. Close the Unity editor first so it doesn't fight over the project.
+- Choose **Host** for a world on this PC. For co-op, a second PC runs the same `Builds\Dev` folder, chooses Join and types the host's six-character code.
+
+### Keys
+WASD move, mouse look, Left click attack/cast (hold to charge), Right click guard, Space jump (again for the double jump), Left Alt roll, Left Shift sprint, Left Ctrl crouch, E interact, Tab inventory, M map, 1 axe, 2 torch, 3 potion, 4 rod, 5 food, 6 hammer, 7 pick, H puts away what's in your hands, B boat, the backtick key (left of 1) or F5 opens the console (Esc closes it).
+
+### Checklist (write good / bad / notes on each)
+1. Sprint and crouch are toggles: tap Left Shift and it stays on, tap again to stop. The same goes for Left Ctrl crouch.
+2. Faster sprint-swim: in deep water tap Left Shift. You should move clearly faster (about 4.8 m/s against 3.0) and use stamina faster.
+3. Tools stowed in water: hold the axe (1) or torch (2), then swim. They're put away while you swim and come back on land.
+4. Auto-climb: walk into a ledge about 1 block high and you step up without jumping. Swim to a bank and keep pushing W; you should climb out. Walls higher than about 1.6 m stay walls.
+5. Pick on slot 7: press 7. The pick is in hand, it mines ore, and H puts it away.
+6. Enemy weapons and AI: `spawn earth 2` (mace), `spawn wind 2` (axe), `spawn fire 2` (sword), `spawn water 2` (spear), `spawn plain 3` (random weapons on non-elemental trees). Check their swings differ, they chase you and block, and an elemental buff shows after they land several hits.
+7. Bigger enemies: next to the hut door, check ordinary, large and boss (`boss`) sizes read right.
+8. New hut exterior: `tp hut`, `time 12`, walk all the way round.
+9. No grass through floors: stand on hut floors and on built floors in a meadow. No grass should poke through.
+10. Lighting: Settings, Atmosphere slider, default 0.6. If your old save had it at 0, move the slider once (your saved 0 sticks until you do). Try `time 6`, `12`, `17`, `19`.
+11. Night torches and moonlight: `night`, light a torch (2). The torch light should be warm and the moonlit ground readable, not pitch black.
+12. Water and shores: the pond and the sea, how waves meet the sand, and depth colour.
+13. Bevel edges: blocks should show soft edges up close.
+14. Clouds: look up in daytime and with `weather cloudy`.
+15. Fishing: the rod (4) at a bank, hold Left click to cast, then reel.
+16. The boat: `boat` (or craft it at a workbench). On the ocean (open sea past the shore), press B to put it in the water. Tap B by it to board or leave, hold B by it to pick it up. WASD rows (A/D turn). Check that you sit on the middle seat, the oars move, the boat bobs and has momentum, and there's no water inside the hull.
+17. The shark: in the boat at sea, with the shark rod, press 4 (the rod key) to cast. The shark should surface 20-30 m ahead with a fin, a wake and a line. A/D keep it in the centre band while it tows you. When it's tired, hold Left click to reel. Hold Left Shift during its leaps. On the catch it should show beside the boat, and the camera should stay back through it all.
+18. Shark rod unlock: at the workbench Craft page the shark rod shows "Land 10 fish" until you've landed 10, then it crafts (wood 12, fiber 8, iron 4). For a quick test, type `sharkrod` in the console instead.
+19. Console commands (backtick key): `help`, `god`, `fly`, `day`, `night`, `time <h>`, `tp hut`, `wood 100`, `fiber 20`, `iron 10`, `spawn`, `wave`, `killall`, `boss`, `boat`, `sharkrod`, `weather sunny`, `hud`, `atmosphere 0.6`, `fps`.
+
+### Report back (copy this)
+```
+Item | Good | Bad | Notes (video time)
+1 toggle sprint/crouch | | |
+2 sprint-swim | | |
+3 tools stowed in water | | |
+4 auto-climb / climb out of water | | |
+5 pick slot 7 | | |
+6 enemy weapons + AI + elemental buff | | |
+7 enemy sizes | | |
+8 hut exterior | | |
+9 no grass through floors | | |
+10 lighting / Atmosphere 0.6 | | |
+11 night torches + moonlight | | |
+12 water + shores | | |
+13 bevel edges | | |
+14 clouds | | |
+15 fishing | | |
+16 boat | | |
+17 shark | | |
+18 shark rod unlock | | |
+19 console | | |
+```
+
+### Known issues today
+- The catch view: the shark can cover most of the boat.
+- From behind, the rowing arms are mostly hidden by the body.
+- The shark fight's built-in test runs near the world edge. In play, row away from the edge if the camera acts oddly.
+- The landed shark is only a counter (no item or trophy yet). B can't be rebound in Settings.
+- The `sharkrod` console help text still says its unlock is "undecided". It is now the workbench, after 10 fish.
+- Fishing and mining don't use the new arc bar yet (only the shark does).
+- A 4.5 m cliff at the ridge foot is a real wall, so auto-climb won't go up it.
+- This is a development build, so a small "Development Build" label shows in the corner.
+
+---
+
+## Full checklist (earlier builds)
+
 Two parts: the computer runs every test it can simulate, then you play for what only a person can judge (feel, look, sound). Tick each box as you go, and write down anything that looks or feels wrong, with the time in the video.
 
 ## 1. Run the simulated tests
