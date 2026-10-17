@@ -110,11 +110,11 @@ def arm_coords(p, n, sx):
 
 
 # ------------------------------------------------------------------ palette (concept 1.5)
-RED = S(182, 36, 32)
-RED_LINE = S(122, 22, 22)
-PLAID_MID = S(92, 16, 18)
-PLAID_BLACK = S(30, 10, 12)
-LEATHER = [S(124, 74, 38), S(100, 60, 30), S(142, 90, 48)]
+RED = S(209, 19, 13)
+RED_LINE = S(140, 12, 9)
+PLAID_MID = S(106, 8, 7)
+PLAID_BLACK = S(34, 5, 5)
+LEATHER = [S(131, 65, 24), S(105, 52, 19), S(150, 79, 30)]
 PATCH = [S(108, 108, 108), S(88, 90, 92)]
 SEAM = S(58, 34, 18)
 THREAD = S(214, 190, 146)
@@ -125,8 +125,8 @@ STEEL_MID = S(132, 136, 142)
 STEEL_DARK = S(70, 72, 78)
 TROUSERS = S(104, 70, 42)
 KNEE_PAD = S(76, 54, 38)
-BOOT = S(72, 46, 28)
-BOOT_WRAP = S(88, 74, 62)
+BOOT = S(52, 27, 12)
+BOOT_WRAP = S(64, 43, 26)
 CORD = S(166, 126, 82)
 SOLE = S(46, 30, 20)
 SKIN = S(228, 168, 132)
@@ -134,10 +134,10 @@ SKIN_SHADE = S(200, 138, 106)
 EYE_WHITE = S(236, 232, 222)
 IRIS = S(52, 150, 70)
 PUPIL = S(24, 30, 26)
-GINGER = S(160, 70, 26)          # deeper copper of the model sheet
-GINGER_DARK = S(108, 42, 15)
-GINGER_LIGHT = S(196, 100, 44)
-MOUSTACHE_C = S(180, 86, 34)
+GINGER = S(148, 54, 10)          # deeper copper of the model sheet
+GINGER_DARK = S(100, 33, 6)
+GINGER_LIGHT = S(181, 78, 18)
+MOUSTACHE_C = S(148, 65, 14)
 WOOD = S(176, 106, 52)
 WOOD_DARK = S(136, 80, 38)
 WOOD_GROOVE = S(92, 50, 22)
@@ -496,9 +496,9 @@ def paint_armour(name, p, n, rgb):
         col = math.floor(side_coord(p, n) / t)
         row = math.floor(z / t)
         link = (col + (row % 2)) % 2
-        base = S(120, 126, 136) if link == 0 else S(52, 54, 62)
+        base = S(61, 52, 54) if link == 0 else S(27, 22, 25)
         if row % 2 == 0:
-            base = mix(base, S(168, 174, 185), 0.28)
+            base = mix(base, S(132, 116, 102), 0.45)
         return grain(base, p, t, 0.06)
     elif name in ("chopper_plate", "chopper_pauldrons"):
         if (int(abs(x) * 30) + int(z * 30)) % 8 == 0:
