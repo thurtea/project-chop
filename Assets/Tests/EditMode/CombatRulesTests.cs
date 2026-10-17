@@ -17,6 +17,22 @@ namespace Chopper.Tests
         }
 
         [Test]
+        public void StaggeredEnemiesTakeDoubleAndOthersNormal()
+        {
+            Assert.AreEqual(8f, CombatRules.StaggeredDamage(4f, true, 2f), 0.0001f);
+            Assert.AreEqual(4f, CombatRules.StaggeredDamage(4f, false, 2f), 0.0001f);
+            Assert.AreEqual(4f, CombatRules.StaggeredDamage(4f, true, 0.5f), 0.0001f);
+        }
+
+        [Test]
+        public void ShieldInHandBlocksMoreThanTheWeaponAlone()
+        {
+            Assert.AreEqual(0.9f, CombatRules.BlockReductionFor(true, Reduction, 0.9f), 0.0001f);
+            Assert.AreEqual(Reduction, CombatRules.BlockReductionFor(false, Reduction, 0.9f), 0.0001f);
+            Assert.Less(CombatRules.BlockedDamage(20, CombatRules.BlockReductionFor(true, Reduction, 0.9f)), CombatRules.BlockedDamage(20, Reduction));
+        }
+
+        [Test]
         public void UnguardedHitLandsInFull()
         {
             int dealt = CombatRules.Resolve(10, false, 0f, 0f, 5f, Reduction, Window, out HitOutcome outcome);

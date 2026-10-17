@@ -21,6 +21,10 @@ namespace Chopper.Core
             return Mathf.Max(1, Mathf.CeilToInt(raw * (1f - Mathf.Clamp01(reduction))));
         }
 
+        public static float StaggeredDamage(float units, bool staggered, float multiplier) => staggered ? units * Mathf.Max(1f, multiplier) : units;
+
+        public static float BlockReductionFor(bool shieldInHand, float weaponReduction, float shieldReduction) => shieldInHand ? Mathf.Max(weaponReduction, shieldReduction) : weaponReduction;
+
         public static bool IsParryWindow(float now, float blockStartedAt, float window)
         {
             return now - blockStartedAt <= Mathf.Max(0f, window);

@@ -174,7 +174,7 @@ namespace Chopper.Player
         {
             if (_god.Value) return 0;
             int damage = CombatRules.Resolve(raw, _blocking.Value, _blockStartedAt, _invulnerableUntil, Time.time,
-                _config.BlockReduction, _config.ParryWindow, out HitOutcome outcome);
+                CombatRules.BlockReductionFor(_upgrades != null && _upgrades.ShieldInHand, _config.BlockReduction, _config.ShieldBlockReduction), _config.ParryWindow, out HitOutcome outcome);
             if (outcome == HitOutcome.Hit) return damage;
 
             if (outcome == HitOutcome.Parried && source != null) source.ServerStagger(_config.TreantStaggerSeconds * 2.2f, transform.position, true);
@@ -187,7 +187,7 @@ namespace Chopper.Player
         private void BlockedTargetRpc(NetworkConnection connection)
         {
             if (_stamina == null) return;
-            _stamina.Drain(_config.BlockStaminaPerHit);
+            _stamina.Drain(_config.BlockStaminaPerHit * (_upgrades != null && _upgrades.ShieldInHand ? _config.ShieldBlockStaminaScale : 1f));
             if (_stamina.Exhausted || _stamina.Current <= 0.5f) _guardBrokenUntil = Time.time + GuardBreakSeconds;
         }
 

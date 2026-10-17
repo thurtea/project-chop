@@ -125,7 +125,26 @@ namespace Chopper.World
             }
             PlayerWood wood = player.GetComponent<PlayerWood>();
             if (wood != null) wood.ServerAddWood(GiveWood);
+            if (upgrades != null)
+            {
+                upgrades.ServerSetShield(true);
+                int stones = 0;
+                foreach (Element element in Elementals) stones = ElementBuffRules.AddStone(stones, element);
+                upgrades.ServerLoadStones(stones);
+            }
+            PlayerWeapons weapons = player.GetComponent<PlayerWeapons>();
+            if (weapons != null) weapons.ServerGrantAll();
+            PlayerBoat boat = player.GetComponent<PlayerBoat>();
+            if (boat != null)
+            {
+                if (boat.Boats == 0) boat.ServerChangeBoats(1);
+                boat.ServerGrantSharkRod();
+            }
+            PlayerBuffs buffs = player.GetComponent<PlayerBuffs>();
+            if (buffs != null) foreach (Element element in Elementals) buffs.ServerAwardKill(element);
         }
+
+        private static readonly Element[] Elementals = { Element.Water, Element.Fire, Element.Earth, Element.Wind };
 
         private void SpawnDummy()
         {

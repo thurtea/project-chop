@@ -1510,6 +1510,19 @@ namespace Chopper.Networking
                 Expect(wood.GetComponent<PlayerAxe>().HasAxe && rod.Rod > 0, "the player has the axe and a rod");
                 Expect(kit.Torches > 0 && kit.Salves > 0 && kit.Herbs > 0 && kit.Fabric > 0 && kit.Iron > 0 && kit.Shards > 0 && wood.Carried > 0,
                     "the player carries torches, bandages, herbs, fiber, iron, shards and wood");
+                PlayerUpgrades tUp = wood.GetComponent<PlayerUpgrades>();
+                PlayerWeapons tWeapons = wood.GetComponent<PlayerWeapons>();
+                PlayerBoat tBoat = wood.GetComponent<PlayerBoat>();
+                PlayerBuffs tBuffs = wood.GetComponent<PlayerBuffs>();
+                bool allStones = tUp.HasStone(Element.Water) && tUp.HasStone(Element.Fire) && tUp.HasStone(Element.Earth) && tUp.HasStone(Element.Wind);
+                bool allCharges = tBuffs.Charges(Element.Water) > 0 && tBuffs.Charges(Element.Fire) > 0 && tBuffs.Charges(Element.Earth) > 0 && tBuffs.Charges(Element.Wind) > 0;
+                Expect(tUp.HasShield && tWeapons.Owns(PlayerWeapon.Sword) && tWeapons.Owns(PlayerWeapon.Mace) && tWeapons.Owns(PlayerWeapon.Spear) && tBoat.Boats == 1 && tBoat.HasSharkRod && allStones && allCharges,
+                    $"the player has the shield, sword, mace, spear, boat, shark rod, every element stone and charges (shield {tUp.HasShield}, weapons mask {tWeapons.OwnedMask}, boats {tBoat.Boats}, shark rod {tBoat.HasSharkRod}, stones {allStones}, charges {allCharges})");
+                PlayerAxe tAxeShield = wood.GetComponent<PlayerAxe>();
+                tAxeShield.RequestShieldToggle();
+                yield return new WaitForSeconds(0.8f);
+                Expect(tUp.ShieldInHand && wood.GetComponent<PlayerOutfit>().ShieldInHandShown, "the shield key puts the shield in the left hand");
+                yield return Shot(folder, "tutorial_shield_hotbar");
                 float clockBefore = cycle.PhaseElapsed;
                 yield return new WaitForSeconds(3f);
                 Expect(cycle.Phase == DayPhase.Day && Mathf.Abs(cycle.PhaseElapsed - clockBefore) < 0.01f, "the clock holds at day");
@@ -1548,6 +1561,69 @@ namespace Chopper.Networking
                     yield return new WaitForSeconds(6f);
                     Treant again = yard.Dummy;
                     Expect(again != null && again != dummy && again.IsActive, "a felled training tree comes back");
+                }
+
+                PlayerAxe tAxe = wood.GetComponent<PlayerAxe>();
+                if (!tAxe.IsDrawn) { tAxe.RequestToggleDrawn(); yield return new WaitForSeconds(1f); }
+                bool tFound = false;
+                Vector2 tSpot = Vector2.zero;
+                float tYaw = 0f;
+                int tId = -1;
+                for (int tries = 0; tries < 1600 && !tFound; tries++)
+                {
+                    Vector2 c = new Vector2(-80f + (tries % 40) * 4f, -80f + (tries / 40) * 4f);
+                    for (int turn = 0; turn < 8 && !tFound; turn++)
+                    {
+                        Vector3 aimTry = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
+                        if (!TreeManager.Instance.ServerFindTree(new Vector3(c.x, Chopper.World.WorldGround.HeightAt(new Vector3(c.x, 0f, c.y)), c.y), aimTry, out tId, out _)) continue;
+                        if (TreeManager.Instance.Database.Get(tId).Size != TreeSize.Large) continue;
+                        tSpot = c; tYaw = turn * 45f; tFound = true;
+                    }
+                }
+                Expect(tFound, $"a tree to chop near the yard ({tSpot})");
+                if (tFound)
+                {
+                    yield return TeleportLocalPlayer(tSpot, tYaw);
+                    PlayerCamera tCam = wood.GetComponent<PlayerCamera>();
+                    tCam.SnapYaw(tYaw);
+                    yield return new WaitForSeconds(1.2f);
+                    float worstFrame = 0f;
+                    int swings = 0;
+                    float start = Time.realtimeSinceStartup;
+                    while (!TreeManager.Instance.IsFelledOnClient(tId) && Time.realtimeSinceStartup - start < 40f)
+                    {
+                        tCam.SnapYaw(tYaw);
+                        if (tAxe.TrySwing()) { swings++; Debug.Log($"[Tutorial] chop {swings} at {Time.realtimeSinceStartup - start:F1}s"); }
+                        float before = Time.realtimeSinceStartup;
+                        yield return null;
+                        worstFrame = Mathf.Max(worstFrame, Time.realtimeSinceStartup - before);
+                    }
+                    bool felled = TreeManager.Instance.IsFelledOnClient(tId);
+                    float after = Time.realtimeSinceStartup;
+                    float worstAfter = 0f;
+                    PlayerHealth tHealth = wood.GetComponent<PlayerHealth>();
+                    bool wentDown = false;
+                    while (Time.realtimeSinceStartup - after < 10f)
+                    {
+                        float before = Time.realtimeSinceStartup;
+                        yield return null;
+                        worstAfter = Mathf.Max(worstAfter, Time.realtimeSinceStartup - before);
+                        if (tHealth.IsDown && !wentDown) { wentDown = true; yield return Shot(folder, "tutorial_tree_crushed"); }
+                    }
+                    yield return Shot(folder, "tutorial_tree_felled");
+                    Vector3 tBefore = wood.transform.position;
+                    PlayerMotor tMotor = wood.GetComponent<PlayerMotor>();
+                    UnityEngine.InputSystem.Gamepad tPad = UnityEngine.InputSystem.InputSystem.AddDevice<UnityEngine.InputSystem.Gamepad>();
+                    float walkStart = Time.time;
+                    while (Time.time - walkStart < 1.5f)
+                    {
+                        UnityEngine.InputSystem.InputSystem.QueueStateEvent(tPad, new UnityEngine.InputSystem.LowLevel.GamepadState { leftStick = new Vector2(0f, 1f) });
+                        yield return null;
+                    }
+                    UnityEngine.InputSystem.InputSystem.RemoveDevice(tPad);
+                    Vector3 walked = wood.transform.position - tBefore; walked.y = 0f;
+                    Debug.Log($"[Tutorial] large tree {TreeManager.Instance.Database.Get(tId).Size} at {TreeManager.Instance.Database.Get(tId).Position:F1}: went down {wentDown}, down now {tHealth.IsDown}, health {tHealth.Health}, walked {walked.magnitude:F2} m after, input blocked {UiState.GameplayBlocked} {UiState.InputBlocked}");
+                    Expect(felled && worstFrame < 0.5f && worstAfter < 0.5f && !tHealth.IsDown && walked.magnitude > 1f, $"a large tree falls to the axe without a freeze and the player can walk after (felled {felled} in {swings} chops, worst frame while chopping {worstFrame:F2} s, after {worstAfter:F2} s, walked {walked.magnitude:F2} m)");
                 }
                 Debug.Log($"[Tutorial] RESULT {(all ? "PASS" : "FAIL")}");
                 Application.Quit();
@@ -6595,6 +6671,24 @@ namespace Chopper.Networking
                 foreach (Treant t in spawned) if (t != null && t.IsActive) t.ServerHit(9999f, null, null, me);
                 yield return new WaitForSeconds(0.6f);
             }
+            Vector3 sp = wood.transform.position + wood.transform.forward * 6f;
+            sp.y = Chopper.World.WorldGround.HeightAt(sp);
+            Treant plain = EnemyDirector.Instance.ServerSpawn(Element.Neutral, TreeSize.Large, false, sp);
+            plain.ServerActivate();
+            Treant broken = EnemyDirector.Instance.ServerSpawn(Element.Neutral, TreeSize.Large, false, sp + Vector3.right * 3f);
+            broken.ServerActivate();
+            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(1.0f);
+            float plainBefore = plain.HealthFraction;
+            plain.ServerHit(1f, null, null, wood.transform.position);
+            float plainLoss = plainBefore - plain.HealthFraction;
+            broken.ServerStagger(2f, wood.transform.position, true);
+            float brokenBefore = broken.HealthFraction;
+            broken.ServerHit(1f, null, null, wood.transform.position);
+            float brokenLoss = brokenBefore - broken.HealthFraction;
+            bool staggerDouble = plainLoss > 0f && Mathf.Abs(brokenLoss - 2f * plainLoss) < 0.001f;
+            Debug.Log($"[Weapons] stagger bonus: plain hit took {plainLoss:F3} of health, hit on a strongly staggered enemy took {brokenLoss:F3}; RESULT {(staggerDouble ? "PASS" : "FAIL")}");
+            foreach (Treant t in new[] { plain, broken }) if (t != null && t.IsActive) t.ServerHit(9999f, null, null, wood.transform.position);
             weapons.ServerSelect(PlayerWeapon.Axe);
             yield return new WaitForSeconds(1.2f);
             bool chopState = false, chopFaced = false, awayCombat = false, treeFound = false;
@@ -6655,7 +6749,7 @@ namespace Chopper.Networking
             var uniqueClips = new System.Collections.Generic.HashSet<string>(clipNames);
             bool clipsUnique = uniqueClips.Count == 4 && !uniqueClips.Contains("none") && !uniqueClips.Contains(chopClip);
             Debug.Log($"[Weapons] clips at contact: axe {clipNames[0]} ({stateOk[0]}), sword {clipNames[1]} ({stateOk[1]}), mace {clipNames[2]} ({stateOk[2]}), spear {clipNames[3]} ({stateOk[3]}), tree chop {chopClip}");
-            bool pass = hotbarOk && targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3] && clipsUnique && stateOk[0] && stateOk[1] && stateOk[2] && stateOk[3] && chopState && chopFaced && awayCombat;
+            bool pass = hotbarOk && staggerDouble && targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3] && clipsUnique && stateOk[0] && stateOk[1] && stateOk[2] && stateOk[3] && chopState && chopFaced && awayCombat;
             Debug.Log($"[Weapons] RESULT {(pass ? "PASS" : "FAIL")}: hotbar {hotbarOk}; targets axe {targets[0]} sword {targets[1]} mace {targets[2]} spear {targets[3]}; mace units {units[2]:F2} vs axe {units[0]:F2}; buff spent {buffSpent}; models shown sword {shown[1]} mace {shown[2]} spear {shown[3]}; unique clips {clipsUnique}, states {stateOk[0]}/{stateOk[1]}/{stateOk[2]}/{stateOk[3]}, tree chop state {chopState} faced {chopFaced}, away swing is combat {awayCombat}");
         }
 

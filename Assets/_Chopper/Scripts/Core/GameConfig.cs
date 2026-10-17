@@ -205,6 +205,12 @@ namespace Chopper.Core
         [Tooltip("A block raised this recently before a hit parries it: no damage and the attacker is staggered.")]
         [SerializeField, Min(0f)] private float _parryWindow = 0.25f;
         [SerializeField, Min(0f)] private float _blockStaminaPerHit = 10f;
+        [Tooltip("Hits on an enemy staggered by a parry, a mace blow or a combo finisher deal this many times their damage (Valheim).")]
+        [SerializeField, Min(1f)] private float _staggerDamageMultiplier = 2f;
+        [Tooltip("Share of a blocked hit the shield in hand stops (the weapon alone stops BlockReduction).")]
+        [Range(0f, 1f), SerializeField] private float _shieldBlockReduction = 0.9f;
+        [Tooltip("Stamina a blocked hit costs with the shield in hand, as a share of BlockStaminaPerHit.")]
+        [Range(0f, 1f), SerializeField] private float _shieldBlockStaminaScale = 0.6f;
         [SerializeField, Min(0f)] private float _blockStaminaPerSecond = 2f;
         [SerializeField, Range(0.1f, 1f)] private float _blockMoveMultiplier = 0.5f;
         [SerializeField, Min(0f)] private float _rollStamina = 18f;
@@ -493,6 +499,9 @@ namespace Chopper.Core
         public float BlockReduction => _blockReduction;
         public float ParryWindow => _parryWindow;
         public float BlockStaminaPerHit => _blockStaminaPerHit;
+        public float StaggerDamageMultiplier => _staggerDamageMultiplier;
+        public float ShieldBlockReduction => _shieldBlockReduction;
+        public float ShieldBlockStaminaScale => _shieldBlockStaminaScale;
         public float BlockStaminaPerSecond => _blockStaminaPerSecond;
         public float BlockMoveMultiplier => _blockMoveMultiplier;
         public float RollStamina => _rollStamina;

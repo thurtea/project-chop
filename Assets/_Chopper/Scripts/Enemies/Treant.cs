@@ -144,6 +144,8 @@ namespace Chopper.Enemies
         public float ActivatedAt { get; private set; }
         // Server: stunned by a hit or a parry, so it cannot walk or attack for a moment.
         public bool IsStaggered => Time.time < _staggerUntil;
+        public bool IsBroken => Time.time < _brokenUntil;
+        private float _brokenUntil;
         public Animator BodyAnimator => _draugr;
         public Transform VisualModel => _model;
         // Walking speed before the long distance charge bonus.
@@ -271,6 +273,7 @@ namespace Chopper.Enemies
         {
             if (!IsActive) return;
             _staggerUntil = Mathf.Max(_staggerUntil, Time.time + CombatRules.StaggerSeconds(seconds, (int)Size, IsBoss));
+            if (strong) _brokenUntil = Mathf.Max(_brokenUntil, _staggerUntil);
             if (IsBoss || _agent == null || !_agent.enabled) return;
             Vector3 away = transform.position - fromPosition;
             away.y = 0f;
@@ -298,7 +301,7 @@ namespace Chopper.Enemies
                 return;
             }
 
-            _health -= ZoneBossRules.DamageTaken(units, IsWarden && IsShielded);
+            _health -= ZoneBossRules.DamageTaken(CombatRules.StaggeredDamage(units, IsBroken, _config.StaggerDamageMultiplier), IsWarden && IsShielded);
             if (_health > 0f)
             {
                 if (IsWarden)
