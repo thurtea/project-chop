@@ -151,6 +151,7 @@ namespace Chopper.World.Saving
             EnemyDirector director = EnemyDirector.Instance;
             save.TreesFelled = director.TreesFelledSinceBoss;
             save.BossesDefeated = director.BossesDefeated;
+            save.ZoneGoals = director.ZoneGoals;
             save.BossPlanted = director.BossPlanted;
             foreach ((Vector3 position, Element element) in director.ServerPendingBosses())
             {
@@ -305,6 +306,7 @@ namespace Chopper.World.Saving
             var pending = new List<(Vector3, Element)>();
             foreach (BossRecord boss in save.PendingBosses) pending.Add((boss.Position, (Element)boss.Element));
             director.ServerLoadProgress(save.TreesFelled, save.BossesDefeated, save.BossPlanted, pending);
+            director.ServerLoadZoneGoals(save.ZoneGoals);
             director.ServerLoadGroves(save.GroveFelled);
             TreeManager.Instance.ServerLoadFelled(save.FelledTrees, save.FirstLargeTreeFelled);
 

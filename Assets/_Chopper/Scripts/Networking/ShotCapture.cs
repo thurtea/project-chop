@@ -1948,6 +1948,13 @@ namespace Chopper.Networking
                 Application.Quit(ok ? 0 : 1);
                 yield break;
             }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperZoneGoals") >= 0)
+            {
+                yield return ZoneGoalsTour(folder, wood, ui);
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperWeapons") >= 0)
             {
                 yield return WeaponsTour(folder, wood, ui);
@@ -6525,6 +6532,48 @@ namespace Chopper.Networking
                 yield return null;
             }
             Debug.Log($"[ChopTrace] {label}: {string.Join(" | ", lines)}");
+        }
+
+        private static IEnumerator ZoneGoalsTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            yield return new WaitForSeconds(4f);
+            EnemyDirector director = EnemyDirector.Instance;
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            int before = director.ZoneGoals;
+            ui.DebugShow(2);
+            yield return new WaitForSeconds(0.4f);
+            ui.DebugInventoryPage(5);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "zones_0_empty");
+            ui.DebugShow(0);
+            Vector3 at = wood.transform.position + wood.transform.forward * 8f;
+            Treant warden = director.ServerWakeWarden(at, Element.Fire);
+            yield return new WaitForSeconds(1f);
+            bool wardenUp = warden != null;
+            for (int i = 0; i < 40 && warden != null && warden.IsActive; i++)
+            {
+                warden.ServerHit(50f, null, wood, wood.transform.position);
+                yield return new WaitForSeconds(0.1f);
+            }
+            yield return new WaitForSeconds(1f);
+            bool wardenGoal = ZoneGoalRules.Has(director.ZoneGoals, Element.Fire, ZoneGoal.Warden);
+            bool notYet = !ZoneGoalRules.HomeUnlocked(director.ZoneGoals, Element.Fire);
+            director.ServerMarkZoneGoal(Element.Fire, ZoneGoal.Fish);
+            director.ServerMarkZoneGoal(Element.Fire, ZoneGoal.Gem);
+            director.ServerMarkZoneGoal(Element.Water, ZoneGoal.Gem);
+            yield return new WaitForSeconds(0.5f);
+            yield return Shot(folder, "zones_1_announce");
+            bool fireHome = ZoneGoalRules.HomeUnlocked(director.ZoneGoals, Element.Fire);
+            bool waterPart = ZoneGoalRules.Count(director.ZoneGoals, Element.Water) == 1 && !ZoneGoalRules.HomeUnlocked(director.ZoneGoals, Element.Water);
+            ui.DebugShow(2);
+            yield return new WaitForSeconds(0.4f);
+            ui.DebugInventoryPage(5);
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "zones_2_page");
+            ui.DebugShow(0);
+            bool pass = before == 0 && wardenUp && wardenGoal && notYet && fireHome && waterPart;
+            Debug.Log($"[ZoneGoals] start mask {before}, warden rose {wardenUp}, beating it marked the Fire warden goal {wardenGoal}, home locked until all three {notYet}, Fire home unlocked {fireHome}, Water 1/3 {waterPart}, mask {director.ZoneGoals}; RESULT {(pass ? "PASS" : "FAIL")}");
         }
 
         private static IEnumerator WeaponsTour(string folder, PlayerWood wood, GameUi ui)

@@ -961,6 +961,8 @@ namespace Chopper.Player
             _bobber.Value = Vector3.zero;
             ChangeFish(_serverKind, 1);
             _landed.Value++;
+            if (ZoneGoalRules.ZoneOfFish(_serverKind, out Element goalZone) && Chopper.Enemies.EnemyDirector.Instance != null)
+                Chopper.Enemies.EnemyDirector.Instance.ServerMarkZoneGoal(goalZone, ZoneGoal.Fish);
             ServerWearRod(1);
             int k = (int)_serverKind;
             if (k >= 0 && k < _records.Count && LureRules.IsRecord(_serverKg, _records[k])) _records[k] = _serverKg;

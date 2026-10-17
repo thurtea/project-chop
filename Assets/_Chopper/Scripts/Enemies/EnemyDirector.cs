@@ -5,6 +5,7 @@ using Chopper.Trees;
 using Chopper.World;
 using FishNet.Connection;
 using FishNet.Object;
+using FishNet.Object.Synchronizing;
 using UnityEngine;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
 using UnityEngine.InputSystem;
@@ -114,6 +115,21 @@ namespace Chopper.Enemies
         public int TreesFelled => _treesFelled;
         public int BossesDefeated => _bossesDefeated;
         public bool BossPlanted => _bossPlanted;
+        private readonly SyncVar<int> _zoneGoals = new SyncVar<int>();
+        public int ZoneGoals => _zoneGoals.Value;
+
+        public void ServerLoadZoneGoals(int mask) => _zoneGoals.Value = Mathf.Max(0, mask);
+
+        public void ServerMarkZoneGoal(Element zone, ZoneGoal goal)
+        {
+            if (!ZoneGoalRules.IsZone(zone) || ZoneGoalRules.Has(_zoneGoals.Value, zone, goal)) return;
+            _zoneGoals.Value = ZoneGoalRules.Mark(_zoneGoals.Value, zone, goal);
+            string what = goal == ZoneGoal.Fish ? "rare fish caught" : goal == ZoneGoal.Gem ? "gem mined" : "warden beaten";
+            int done = ZoneGoalRules.Count(_zoneGoals.Value, zone);
+            ServerAnnounce(ZoneGoalRules.HomeUnlocked(_zoneGoals.Value, zone)
+                ? $"{ZoneGoalRules.ZoneName(zone)}: {what}. A home can now be built in the {ZoneGoalRules.ZoneName(zone)}!"
+                : $"{ZoneGoalRules.ZoneName(zone)}: {what} ({done}/{ZoneGoalRules.GoalsPerZone}).");
+        }
         // Server: the awake grove warden, or null.
         public Treant Warden => _warden != null && _warden.IsSpawned ? _warden : null;
         public int WardenGuardsAlive => CountGuards();
@@ -331,6 +347,7 @@ namespace Chopper.Enemies
             _warden = null;
             DespawnGuards();
             _bossesDefeated++;
+            ServerMarkZoneGoal(warden.Element, ZoneGoal.Warden);
             Hut hut = Hut.Instance;
             if (hut != null) hut.ServerAddStoreWood(_config.WardenRewardWood);
             BoonKind kind = BoonRules.Pick(_rng);
@@ -568,6 +585,7 @@ namespace Chopper.Enemies
         {
             Message = text;
             MessageUntil = Time.time + MessageSeconds;
+            Chopper.UI.Toasts.Show(text, new Color(0.98f, 0.86f, 0.5f));
         }
 
         // Development only: F7 drops a ring of saplings around the caller so the night can be tried quickly.

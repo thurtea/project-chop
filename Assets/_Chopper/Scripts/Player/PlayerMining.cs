@@ -370,6 +370,8 @@ namespace Chopper.Player
         private bool ServerAward(MineFindKind kind, float grams)
         {
             ServerChangeFind(kind, 1);
+            if (ZoneGoalRules.ZoneOfGem(kind, out Element goalZone) && Chopper.Enemies.EnemyDirector.Instance != null)
+                Chopper.Enemies.EnemyDirector.Instance.ServerMarkZoneGoal(goalZone, ZoneGoal.Gem);
             int i = (int)kind;
             if (i < 0 || i >= _records.Count || !MiningRules.IsRecord(grams, _records[i])) return false;
             _records[i] = grams;

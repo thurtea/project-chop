@@ -156,7 +156,7 @@ Numbers are defaults from `Assets/_Chopper/Config/SO_GameConfig.asset` (`Core/Ga
 - **Crypt guardians and crypt bosses**: in the arena under each crypt's vault.
 
 **Open question (owner):** keep the per-size sapling count, or switch to a flat 2-3 per felled tree, and whether night fells should plant too.
-
+ANSWER: This should have an element of RNG to it and factor in things like how long the player has played, if they're heavily geared, etc. This way we can try to give them more challenging nights occasionally. Where the elementals spawn at roughly the same rate, and you have the elemental buff for less time. I kind of backed myself into a corner by putting all the one element in one area, then that buff going onto the weapon. We might have to rethink how that is done in order to make it still fun and engaging. Make all the elemental enemies spawn in a zone but have it favor the zones element. So you could have a bvunch of other elementals that spawn when you have the fire buff. You would be able to dispatch of them quickly. And it isnt like the fire buffed weapon doesnt do damage to the fire elemental it does it just doesnt have the elemental bonus damage. 
 ## 9. The hut and building
 
 **Built**
@@ -166,7 +166,12 @@ Numbers are defaults from `Assets/_Chopper/Config/SO_GameConfig.asset` (`Core/Ga
 - **Protective dome**: a dome stone makes a 12 m dome over a base in a forest.
 - Windows are transparent.
 
-**Approved, not built (t63u): biome home bases.** In each biome: beat the boss, clear its crypt, catch its fish, then a quest to build a home there, then a quest to raise a magic barrier around it. The barrier needs upkeep; if it lapses, enemies can attack. Biome homes are raided every night by crypt enemies, chopping or not.
+**Approved, not built (t63u, clarified 2026-10-17): zone homes.**
+- Each of the four forests has objectives: catch that zone's fish, mine that zone's finds, and beat that zone's boss. When a zone's objectives are done, the players can build a home there.
+- A zone home is raided every night by crypt enemies (the Draugr from that zone's crypt, not tree enemies), whether anyone chopped or not.
+- Players collect materials to raise a barrier (shield) around the home so it is not destroyed. The barrier must be maintained: without upkeep it lapses and the raiders can damage the home.
+- This is separate from the hub. The hub hut is only attacked by the saplings of trees the players fell in the forests.
+- Already in the code to build on: per-zone fish (Marsh/Fire/Earth/Wind waters, 5 kinds each), per-zone mine finds (MineZone), the grove warden per forest and the crypt arena boss per element, Draugr crypt guardians, building pieces and the 12 m protective dome (no health or upkeep yet).
 
 ## 10. Crafting and upgrades
 

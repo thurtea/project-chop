@@ -18,10 +18,10 @@ namespace Chopper.UI
     //   and Repair (the axe and the rod). It closes when the player walks away from the bench.
     public class InventoryView
     {
-        public enum Page { Character, Bag, Craft, Upgrades, Forge, Repair, Fishing, Mining }
+        public enum Page { Character, Bag, Craft, Upgrades, Forge, Repair, Fishing, Mining, Zones }
 
-        private static readonly string[] AllPageNames = { "Character", "Bag", "Craft", "Upgrades", "Forge", "Repair", "Fishing", "Mining" };
-        private static readonly Page[] TabPages = { Page.Character, Page.Bag, Page.Craft, Page.Fishing, Page.Mining };
+        private static readonly string[] AllPageNames = { "Character", "Bag", "Craft", "Upgrades", "Forge", "Repair", "Fishing", "Mining", "Zones" };
+        private static readonly Page[] TabPages = { Page.Character, Page.Bag, Page.Craft, Page.Fishing, Page.Mining, Page.Zones };
         private static readonly Page[] BenchPages = { Page.Craft, Page.Upgrades, Page.Forge, Page.Repair };
         private const float Width = 1440f;
         private const float Height = 840f;
@@ -91,6 +91,9 @@ namespace Chopper.UI
         // Mining page.
         private Text _mineAbout;
         private Text _mineList;
+        private Text _zoneAbout;
+        private Text _zoneList;
+        private static FishSpecies[] _zoneFish;
 
         // Fishing page.
         private Text _fishGear;
@@ -177,6 +180,7 @@ namespace Chopper.UI
                     case Page.Repair: BuildRepair(page); break;
                     case Page.Fishing: BuildFishing(page); break;
                     case Page.Mining: BuildMining(page); break;
+                    case Page.Zones: BuildZones(page); break;
                 }
             }
             _root.gameObject.SetActive(false);
@@ -407,6 +411,7 @@ namespace Chopper.UI
                 case Page.Bag: RefreshBag(); break;
                 case Page.Fishing: RefreshFishing(); break;
                 case Page.Mining: RefreshMining(); break;
+                case Page.Zones: RefreshZones(); break;
             }
         }
 
@@ -639,6 +644,41 @@ namespace Chopper.UI
         }
 
         // ---------- Mining ----------
+
+        private void BuildZones(RectTransform page)
+        {
+            _zoneAbout = Column(page, 40f, 600f, 20);
+            _zoneList = Column(page, 700f, 620f, 20);
+        }
+
+        private void RefreshZones()
+        {
+            int mask = Chopper.Enemies.EnemyDirector.Instance != null ? Chopper.Enemies.EnemyDirector.Instance.ZoneGoals : 0;
+            if (_zoneFish == null) _zoneFish = FishSpecies.Defaults();
+            var about = new StringBuilder();
+            about.AppendLine(Gold("Zone homes"));
+            about.AppendLine("Each forest has three goals: catch its rare fish, mine its gem and beat its grove warden.");
+            about.AppendLine("When all three are done, a home can be built in that forest.");
+            about.AppendLine("Zone homes are raided every night by the dead from that forest's crypt. A barrier fed with the forest's essence keeps them off.");
+            about.AppendLine();
+            about.AppendLine("The hut in the hub is only raided by the saplings of trees you fell.");
+            _zoneAbout.text = about.ToString();
+            var list = new StringBuilder();
+            foreach (Element zone in ZoneGoalRules.Zones)
+            {
+                bool home = ZoneGoalRules.HomeUnlocked(mask, zone);
+                list.AppendLine(Gold(ZoneGoalRules.ZoneName(zone)) + (home ? "  <color=#7FD37F>home unlocked</color>" : $"  <color=#9A968C>{ZoneGoalRules.Count(mask, zone)}/{ZoneGoalRules.GoalsPerZone}</color>"));
+                list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Fish), $"Catch {Article(FishingRules.Species(_zoneFish, ZoneGoalRules.RareFish(zone)).Name)} (it bites in the rain)"));
+                list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Gem), $"Mine {Article(MiningRules.Finds[(int)ZoneGoalRules.Gem(zone)].Name)} in the {zone} forest's mine"));
+                list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Warden), "Beat the grove warden"));
+                list.AppendLine();
+            }
+            _zoneList.text = list.ToString();
+        }
+
+        private static string Article(string name) => ("AEIOUaeiou".IndexOf(name[0]) >= 0 ? "an " : "a ") + name;
+
+        private static string GoalLine(bool done, string text) => done ? $"  <color=#7FD37F>[x]</color> {text}" : $"  <color=#9A968C>[ ]</color> {text}";
 
         private void BuildMining(RectTransform page)
         {

@@ -31,6 +31,7 @@ namespace Chopper.World.Saving
 
         public int TreesFelled;
         public int BossesDefeated;
+        public int ZoneGoals;
         public bool BossPlanted;
         public List<SaplingRecord> Saplings = new List<SaplingRecord>();
         public List<BossRecord> PendingBosses = new List<BossRecord>();
