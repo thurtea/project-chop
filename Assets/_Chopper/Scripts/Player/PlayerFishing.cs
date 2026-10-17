@@ -1341,7 +1341,7 @@ namespace Chopper.Player
                 _runCam.depth = 40f;
                 _runCam.fieldOfView = 40f;
                 _runCam.nearClipPlane = 0.05f;
-                _runCam.farClipPlane = 60f;
+                _runCam.farClipPlane = FishShow.RunCutFar;
                 _runCam.clearFlags = CameraClearFlags.SolidColor;
                 _runCam.backgroundColor = new Color(0.05f, 0.22f, 0.28f);
             }
@@ -1349,12 +1349,8 @@ namespace Chopper.Player
             _runCam.enabled = show;
             if (!show) return;
             float k = 1f - (_runCutUntil - Time.time) / FishShow.RunCutSeconds;
-            Vector3 side = Vector3.Cross(Vector3.up, heading.normalized);
-            float under = Chopper.World.Generation.WorldGen.WaterHeight - 0.45f;
-            Vector3 eye = fish + side * Mathf.Lerp(3.2f, 2.0f, k) - heading.normalized * 0.6f;
-            eye.y = Mathf.Max(under, Chopper.World.WorldGround.HeightAt(eye) + 0.25f);
-            Vector3 look = fish;
-            look.y = Mathf.Min(fish.y, eye.y + 0.1f);
+            Vector3 eye = FishShow.RunCutEye(fish, heading, k, Chopper.World.Generation.WorldGen.WaterHeight, Chopper.World.WorldGround.HeightAt);
+            Vector3 look = FishShow.RunCutLook(fish, eye);
             _runCam.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(look - eye));
         }
 

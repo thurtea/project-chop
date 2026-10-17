@@ -27,6 +27,43 @@ namespace Chopper.Core
         public const int Count = 4;
         public const int AllForged = (1 << 1) | (1 << 2) | (1 << 3);
 
+        public static readonly string[][] MoveStates =
+        {
+            new[] { "Swing", "Swing2", "Swing3" },
+            new[] { "Sword1", "Sword2", "Sword3" },
+            new[] { "Mace1", "Mace1", "Mace2" },
+            new[] { "Spear1", "Spear2", "Spear3" },
+        };
+
+        public static readonly (string state, string clip)[] MoveClips =
+        {
+            ("Swing", "Melee_1H_Attack_Chop"),
+            ("Swing2", "Melee_1H_Attack_Slice_Diagonal"),
+            ("Swing3", "Melee_1H_Attack_Jump_Chop"),
+            ("Sword1", "Melee_1H_Attack_Slice_Horizontal"),
+            ("Sword2", "Melee_2H_Attack_Slice"),
+            ("Sword3", "Melee_2H_Attack_Spin"),
+            ("Mace1", "Melee_2H_Attack_Chop"),
+            ("Mace2", "Melee_Dualwield_Attack_Chop"),
+            ("Spear1", "Melee_2H_Attack_Stab"),
+            ("Spear2", "Melee_1H_Attack_Stab"),
+            ("Spear3", "Melee_Dualwield_Attack_Stab"),
+        };
+
+        public const string TreeChopState = "Chop";
+
+        public static string MoveState(PlayerWeapon weapon, int step)
+        {
+            string[] moves = MoveStates[Mathf.Clamp((int)weapon, 0, MoveStates.Length - 1)];
+            return moves[Mathf.Clamp(step, 0, moves.Length - 1)];
+        }
+
+        public static string MoveClip(string state)
+        {
+            foreach (var move in MoveClips) if (move.state == state) return move.clip;
+            return null;
+        }
+
         public static WeaponStats Stats(PlayerWeapon weapon)
         {
             switch (weapon)

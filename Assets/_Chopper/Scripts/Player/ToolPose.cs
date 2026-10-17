@@ -12,7 +12,7 @@ namespace Chopper.Player
         private float _start = -10f;
         private float _seconds = 0.6f;
         private PlayerAxe _axe;
-        private PlayerMining _mining;
+        private PlayerMining _mining; private bool _overlay = true;
 
         public SwingTool Kind => _kind;
         public int Variant => _variant;
@@ -20,12 +20,14 @@ namespace Chopper.Player
         public bool Playing => Phase >= 0f && Phase < 1f;
         public float ContactTime => _start + _seconds * ToolMotion.Contact(_kind);
 
-        public void Play(SwingTool kind, int variant, float seconds)
+        public bool Overlay => _overlay;
+
+        public void Play(SwingTool kind, int variant, float seconds, bool overlay = true)
         {
             _kind = kind;
             _variant = variant;
             _seconds = Mathf.Max(0.2f, seconds);
-            _start = Time.time;
+            _start = Time.time; _overlay = overlay;
         }
 
         private void Awake()
@@ -38,7 +40,7 @@ namespace Chopper.Player
         {
             float phase = Phase;
             float weight = ToolMotion.Weight(phase);
-            if (weight <= 0f) return;
+            if (weight <= 0f || !_overlay) return;
             if (_body == null) _body = GetComponentInChildren<Animator>();
             if (_body == null || !_body.isHuman) return;
             ToolPoseKey key = ToolMotion.Sample(_kind, _variant, phase);

@@ -378,7 +378,7 @@ namespace Chopper.Player
             {
                 if (_toolPose == null) _toolPose = GetComponent<ToolPose>();
                 if (_toolPose == null) _toolPose = gameObject.AddComponent<ToolPose>();
-                _toolPose.Play(swingTool, tree ? _chopCount++ : step, swingSeconds);
+                _toolPose.Play(swingTool, tree ? _chopCount++ : step, swingSeconds, false);
             }
             transform.rotation = Quaternion.LookRotation(aim, Vector3.up);
             _commitUntil = Time.time + swingSeconds * _config.SwingCommitFraction;
@@ -389,12 +389,12 @@ namespace Chopper.Player
             ClientPlaySwing(step);
             _contactPending = true;
             _contactAt = Time.time + contactDelay;
-            _contactAim = aim;
+            _contactAim = aim; _contactChop = tree;
             return true;
         }
 
         [ServerRpc]
-        private void SwingAxeServerRpc(Vector3 aim)
+        private void SwingAxeServerRpc(Vector3 aim, bool chop)
         {
             if (_health != null && _health.IsDown) return;
             if (_combat != null && _combat.IsBlocking) return;
@@ -413,7 +413,7 @@ namespace Chopper.Player
                 return;
             }
             aim.Normalize();
-            int step = ServerResolveHit(aim);
+            int step = ServerResolveHit(aim, chop);
             _serverNextSwingTime = now + Cooldown * (step >= 0 ? ComboRules.CooldownScale(step) * WeaponRules.Stats(Weapon).CooldownScale : 1f);
             // The finisher lunges the owner forward: let the speed check expect it.
             if (step == ComboRules.Steps - 1 && _validator != null) _validator.ServerAllowBurst(ComboRules.FinisherLunge, LungeSeconds, "finisher lunge");
@@ -433,7 +433,7 @@ namespace Chopper.Player
         private int _chopCount;
         private bool _contactPending;
         private float _contactAt;
-        private Vector3 _contactAim;
+        private Vector3 _contactAim; private bool _contactChop;
         public Vector3 LastTrunk { get; private set; }
         public int ContactsSent { get; private set; }
         public float LastContactTime { get; private set; }
@@ -457,7 +457,7 @@ namespace Chopper.Player
                 _contactPending = false;
                 ContactsSent++;
                 LastContactTime = Time.time;
-                SwingAxeServerRpc(_contactAim);
+                SwingAxeServerRpc(_contactAim, _contactChop);
             }
             if (_hitPending && Time.time >= _hitAt) PlayHitFeel();
         }
@@ -516,7 +516,7 @@ namespace Chopper.Player
         // Bare fists do a fraction of an axe hit: a tree only counts a hit every few punches, and fists never use
         // or earn element charges.
         // Returns the combo step of the swing (-1 for a plain tree chop).
-        public int ServerResolveHit(Vector3 aim)
+        public int ServerResolveHit(Vector3 aim, bool chop = true)
         {
             bool armed = IsDrawn;
             Vector3 origin = transform.position;
@@ -526,7 +526,7 @@ namespace Chopper.Player
             WeaponStats stats = WeaponRules.Stats(weapon);
             float range = _config.SwingRange * stats.RangeScale;
             float radius = _config.SwingRadius * stats.RadiusScale;
-            if (TreeManager.Instance != null && WeaponRules.ChopsTrees(weapon)) TreeManager.Instance.ServerFindTree(origin, aim, out foundTreeId, out foundTreeDistance);
+            if (chop && TreeManager.Instance != null && WeaponRules.ChopsTrees(weapon)) TreeManager.Instance.ServerFindTree(origin, aim, out foundTreeId, out foundTreeDistance);
 
             Treant treant = Treant.ServerFindTarget(origin, aim, range, radius, out float treantDistance);
             ServerSwings++;
@@ -910,7 +910,7 @@ namespace Chopper.Player
         {
             if (!IsOwner) return;
             Vector3 aim = transform.forward;
-            for (int i = 0; i < DebugSpamCount; i++) SwingAxeServerRpc(aim);
+            for (int i = 0; i < DebugSpamCount; i++) SwingAxeServerRpc(aim, true);
             Debug.Log($"[PlayerAxe] Debug sent {DebugSpamCount} swings ignoring the client cooldown.");
         }
 #endif

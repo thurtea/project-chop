@@ -119,6 +119,11 @@ Trust a later TASKBOARD line over this brief. Never invent check results.
     - Death loss: about 5% of the current level per skill (configurable), then a grace period of about 10 min with no further loss (configurable).
     - HUD toast, a Skills page under Tab, save/load with migration from LogSkill/MineSkill/FishSkill, network sync, tests.
 
+- Biome home bases (t63u, NEW, not built yet): every biome lets the player build their own home base. Per-biome progression: beat the biome boss, clear its crypt and catch its fish, then a quest to build a home, then a quest to raise a magic barrier around it. The barrier needs upkeep (maintenance); if it lapses, enemies can attack the home. Biome homes are NOT safe at night like the hub: in home areas enemies spawn from the crypts every night and come to raid, regardless of chopping.
+- Hub night raids (t64u, user answer): the hub IS attacked at night, but only as a consequence of chopping. Felling any tree in one of the 4 zones spawns 2-3 saplings (a mix of elemental and non-elemental); at night they go for the player and the hub hut. With no chopping, the hub is not raided.
+  - Current code vs this (checked 2026-10-17): saplings are planted on fell in the 4 zones only (hub trees plant none), elements rolled from the zone's spawn table (zone element or plain), and at night they target the nearest player in their forest or the hub, otherwise the hut. Gaps: the count depends on tree size (small 1-2, medium 2-3, large 3-4) and is scaled up with player count (coefficient 0.4), not a flat 2-3; trees felled at night plant nothing; the global cap is 150.
+- Weapon animations (t63u): axe, sword, mace and spear each need a clearly unique swing (not one clip with different stats). The tree chop only happens when a tree is targeted (face, snap, blade into the trunk) and is separate from free combat swings.
+- Asset sourcing list: Chopper/Docs/req-assets.md is the living list of needed sounds, UI icons and animations.
 ## 5. Status at end of 2026-10-16
 - **Boat round:**
   - Pulled-back camera through the leap and catch.

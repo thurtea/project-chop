@@ -287,13 +287,13 @@ namespace Chopper.World.Generation
                 int h = CaveShell.Hash(Index * 71 + room * 29, q, 33);
                 float sx = (q & 1) == 0 ? 1f : -1f;
                 float sz = (q & 2) == 0 ? 1f : -1f;
-                Vector3 at = c + new Vector3(sx * (4.4f + (h % 3) * 0.3f), 0f, sz * (4.4f + ((h / 3) % 3) * 0.3f));
+                Vector3 at = c + new Vector3(sx * (4.5f + (h % 3) * 0.5f), 0f, sz * (4.5f + ((h / 3) % 3) * 0.5f));
                 if (room == 0 && Vector3.Distance(at, c + Normal(LadderSide) * (RoomSize * 0.5f - 2.4f)) < 3f) continue;
                 if (room > 0 && room % 2 == 1 && sx == (((CaveShell.Hash(Index * 53 + room, 7, 77)) % 2) == 0 ? 1f : -1f) && sz == ((((CaveShell.Hash(Index * 53 + room, 7, 77)) / 2) % 2) == 0 ? 1f : -1f)) continue;
-                float size = 2.2f + (h % 2) * 0.6f;
-                Add(at + Vector3.up * 0.1f, new Vector3(size, 0.2f, size), CryptMaterial.Floor);
+                float size = 2f + (h % 2);
+                Add(at + Vector3.up * 0.25f, new Vector3(size, 0.5f, size), CryptMaterial.Floor);
                 if ((h % 3) != 0)
-                    Add(at + new Vector3(sx * 0.4f, 0.3f, sz * 0.4f), new Vector3(size * 0.5f, 0.2f, size * 0.5f), CryptMaterial.Floor);
+                    Add(at + new Vector3(sx * 0.5f, 0.75f, sz * 0.5f), new Vector3(1f, 0.5f, 1f), CryptMaterial.Floor);
             }
         }
 

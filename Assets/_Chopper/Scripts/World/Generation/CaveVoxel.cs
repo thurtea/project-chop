@@ -29,9 +29,7 @@ namespace Chopper.World.Generation
             Bounds bounds = BoundsOf(boxes);
             bounds.Expand(Cell * 4f);
             Vector3 min = bounds.min;
-            float floorTop = float.MinValue;
-            foreach (CryptBox box in boxes)
-                if (box.Material == CryptMaterial.Floor) floorTop = Mathf.Max(floorTop, box.Center.y + box.Size.y * 0.5f);
+            float floorTop = MainFloorTop(boxes);
             if (floorTop > float.MinValue) min.y = floorTop - Cell * Mathf.Ceil((floorTop - min.y) / Cell);
             int nx = Mathf.Max(1, Mathf.CeilToInt(bounds.size.x / Cell));
             int ny = Mathf.Max(1, Mathf.CeilToInt((bounds.max.y - min.y) / Cell) + 1);
@@ -109,6 +107,23 @@ namespace Chopper.World.Generation
             mesh.SetTriangles(tris, 0);
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        public static float MainFloorTop(List<CryptBox> boxes)
+        {
+            var area = new Dictionary<int, float>();
+            foreach (CryptBox box in boxes)
+            {
+                if (box.Material != CryptMaterial.Floor) continue;
+                int key = Mathf.RoundToInt((box.Center.y + box.Size.y * 0.5f) * 100f);
+                area.TryGetValue(key, out float a);
+                area[key] = a + box.Size.x * box.Size.z;
+            }
+            int best = 0;
+            float most = -1f;
+            foreach (var pair in area)
+                if (pair.Value > most || (Mathf.Approximately(pair.Value, most) && pair.Key < best)) { most = pair.Value; best = pair.Key; }
+            return most < 0f ? float.MinValue : best / 100f;
         }
 
         private static Bounds BoundsOf(List<CryptBox> boxes)

@@ -3025,6 +3025,7 @@ namespace Chopper.Networking
                 cam.DebugSetDistance(4f);
                 cam.SnapYaw(270f);
                 yield return new WaitForSeconds(0.6f);
+                var fishTreesBefore = TreeLikeSnapshot(out int fishTreantsBefore);
                 bool rodOut = false;
                 float bankR = Chopper.World.Generation.WorldGen.PondOuterRadius;
                 for (float r = Chopper.World.Generation.WorldGen.PondOuterRadius + 1.2f; r > 2f; r -= 0.5f)
@@ -3174,6 +3175,8 @@ namespace Chopper.Networking
                     yield return new WaitForSeconds(1.2f);
                     yield return Shot(folder, "fish_8_hotspot");
                 }
+                string fishTreesLine = TreeLikeDiff(fishTreesBefore, fishTreantsBefore, out bool fishTreesClean);
+                Debug.Log($"[FishTrees] RESULT {(fishTreesClean ? "PASS" : "FAIL")} after a full fishing session (cast, bite, reel, catch, snap, hotspot): " + fishTreesLine);
                 Debug.Log("[Shot] done");
                 Application.Quit(0);
                 yield break;
@@ -6409,6 +6412,22 @@ namespace Chopper.Networking
             slide.y = 0f;
             Debug.Log($"[Grip] {label}: anim speed after {wood.GetComponentInChildren<Animator>().GetFloat("Speed"):F2}, slippery {slippery}, slide {slide.magnitude:F2} m, stopped in {(stoppedAt < 0f ? "over 2.5" : stoppedAt.ToString("F2"))} s");
         }
+        private static bool ChopLayerIn(PlayerWood wood, string[] states, out string clip)
+        {
+            clip = "none";
+            Animator anim = wood.GetComponentInChildren<Animator>();
+            if (anim == null) return false;
+            int layer = anim.GetLayerIndex("Chop");
+            if (layer < 0) return false;
+            AnimatorClipInfo[] clips = anim.GetNextAnimatorClipInfo(layer);
+            if (clips.Length == 0) clips = anim.GetCurrentAnimatorClipInfo(layer);
+            if (clips.Length > 0 && clips[0].clip != null) clip = clips[0].clip.name;
+            AnimatorStateInfo now = anim.GetCurrentAnimatorStateInfo(layer);
+            AnimatorStateInfo upcoming = anim.GetNextAnimatorStateInfo(layer);
+            foreach (string s in states) if (now.IsName(s) || upcoming.IsName(s)) return true;
+            return false;
+        }
+
         private static IEnumerator WeaponsTour(string folder, PlayerWood wood, GameUi ui)
         {
             Application.runInBackground = true;
@@ -6429,7 +6448,7 @@ namespace Chopper.Networking
             PlayerWeapon[] order = { PlayerWeapon.Axe, PlayerWeapon.Sword, PlayerWeapon.Mace, PlayerWeapon.Spear };
             int[] targets = new int[4];
             float[] units = new float[4];
-            bool[] shown = new bool[4];
+            bool[] shown = new bool[4]; bool[] stateOk = new bool[4]; string[] clipNames = { "none", "none", "none", "none" };
             bool buffSpent = false;
             for (int i = 0; i < order.Length; i++)
             {
@@ -6471,7 +6490,10 @@ namespace Chopper.Networking
                 while (pose != null && pose.Phase < 0.36f && Time.time - press < 2f) yield return null;
                 yield return Shot(folder, $"weapon_{i}_{name}_windup");
                 while (pose != null && pose.Phase < ToolMotion.Contact(WeaponRules.Tool(w)) + 0.01f && Time.time - press < 2f) yield return null;
+                stateOk[i] = ChopLayerIn(wood, WeaponRules.MoveStates[(int)w], out clipNames[i]);
                 yield return Shot(folder, $"weapon_{i}_{name}_contact");
+                while (pose != null && pose.Phase < 0.8f && Time.time - press < 3f) yield return null;
+                yield return Shot(folder, $"weapon_{i}_{name}_recovery");
                 Time.timeScale = 1f;
                 cam.DebugRelease();
                 float wait = Time.time;
@@ -6486,8 +6508,108 @@ namespace Chopper.Networking
                 yield return new WaitForSeconds(0.6f);
             }
             weapons.ServerSelect(PlayerWeapon.Axe);
-            bool pass = targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3];
-            Debug.Log($"[Weapons] RESULT {(pass ? "PASS" : "FAIL")}: targets axe {targets[0]} sword {targets[1]} mace {targets[2]} spear {targets[3]}; mace units {units[2]:F2} vs axe {units[0]:F2}; buff spent {buffSpent}; models shown sword {shown[1]} mace {shown[2]} spear {shown[3]}");
+            yield return new WaitForSeconds(1.2f);
+            bool chopState = false, chopFaced = false, awayCombat = false, treeFound = false;
+            string chopClip = "none", awayClip = "none";
+            float chopReach = -1f;
+            Vector2 chopSpot = Vector2.zero;
+            float chopYaw = 0f;
+            for (int tries = 0; tries < 400 && !treeFound; tries++)
+            {
+                Vector2 candidate = new Vector2(-40f + (tries % 20) * 4f, 20f + (tries / 20) * 4f);
+                for (int turn = 0; turn < 8 && !treeFound; turn++)
+                {
+                    Vector3 aimTry = Quaternion.Euler(0f, turn * 45f, 0f) * Vector3.forward;
+                    if (!TreeManager.Instance.ServerFindTree(new Vector3(candidate.x, 0f, candidate.y), aimTry, out _, out _)) continue;
+                    chopSpot = candidate;
+                    chopYaw = turn * 45f;
+                    treeFound = true;
+                }
+            }
+            if (treeFound)
+            {
+                yield return TeleportLocalPlayer(chopSpot, chopYaw);
+                cam.SnapYaw(chopYaw);
+                yield return new WaitForSeconds(1.5f);
+                cam.SnapYaw(chopYaw);
+                Vector3 me2 = wood.transform.position;
+                bool chopped = axe.TrySwing();
+                Vector3 trunk = axe.LastTrunk;
+                Time.timeScale = 0.15f;
+                Vector3 fwd = Quaternion.Euler(0f, chopYaw, 0f) * Vector3.forward;
+                Vector3 look2 = me2 + fwd * 0.8f + Vector3.up * 1.1f;
+                Vector3 eye2 = look2 + Vector3.Cross(Vector3.up, fwd) * 4.4f + Vector3.up * 0.4f;
+                cam.DebugHold(eye2, Quaternion.LookRotation(look2 - eye2, Vector3.up));
+                float press2 = Time.time;
+                while (pose != null && pose.Phase < 0.36f && Time.time - press2 < 2f) yield return null;
+                yield return Shot(folder, "weapon_tree_chop_windup");
+                while (pose != null && pose.Phase < ToolMotion.Contact(SwingTool.Axe) + 0.01f && Time.time - press2 < 2f) yield return null;
+                chopState = ChopLayerIn(wood, new[] { WeaponRules.TreeChopState }, out chopClip);
+                Vector3 toTrunk = trunk - wood.transform.position;
+                toTrunk.y = 0f;
+                chopReach = toTrunk.magnitude;
+                chopFaced = toTrunk.sqrMagnitude > 0.01f && Vector3.Angle(wood.transform.forward, toTrunk) < 12f;
+                yield return Shot(folder, "weapon_tree_chop_contact");
+                while (pose != null && pose.Phase < 0.8f && Time.time - press2 < 3f) yield return null;
+                yield return Shot(folder, "weapon_tree_chop_recovery");
+                Time.timeScale = 1f;
+                cam.DebugRelease();
+                yield return new WaitForSeconds(1.5f);
+                cam.SnapYaw(chopYaw + 180f);
+                yield return null;
+                bool awaySwung = axe.TrySwing();
+                float press3 = Time.time;
+                while (pose != null && pose.Phase < ToolMotion.Contact(SwingTool.AxeFight) + 0.01f && Time.time - press3 < 2f) yield return null;
+                awayCombat = awaySwung && ChopLayerIn(wood, WeaponRules.MoveStates[(int)PlayerWeapon.Axe], out awayClip);
+                Debug.Log($"[Weapons] tree chop: swung {chopped}, chop state {chopState} clip {chopClip}, faced trunk {chopFaced}, reach {chopReach:F2} m; turned away from the tree: combat swing {awayCombat} clip {awayClip}");
+            }
+            var uniqueClips = new System.Collections.Generic.HashSet<string>(clipNames);
+            bool clipsUnique = uniqueClips.Count == 4 && !uniqueClips.Contains("none") && !uniqueClips.Contains(chopClip);
+            Debug.Log($"[Weapons] clips at contact: axe {clipNames[0]} ({stateOk[0]}), sword {clipNames[1]} ({stateOk[1]}), mace {clipNames[2]} ({stateOk[2]}), spear {clipNames[3]} ({stateOk[3]}), tree chop {chopClip}");
+            bool pass = targets[0] == 1 && targets[1] >= 2 && targets[2] >= 2 && targets[3] >= 2 && units[2] > units[0] * 1.3f && buffSpent && shown[1] && shown[2] && shown[3] && clipsUnique && stateOk[0] && stateOk[1] && stateOk[2] && stateOk[3] && chopState && chopFaced && awayCombat;
+            Debug.Log($"[Weapons] RESULT {(pass ? "PASS" : "FAIL")}: targets axe {targets[0]} sword {targets[1]} mace {targets[2]} spear {targets[3]}; mace units {units[2]:F2} vs axe {units[0]:F2}; buff spent {buffSpent}; models shown sword {shown[1]} mace {shown[2]} spear {shown[3]}; unique clips {clipsUnique}, states {stateOk[0]}/{stateOk[1]}/{stateOk[2]}/{stateOk[3]}, tree chop state {chopState} faced {chopFaced}, away swing is combat {awayCombat}");
+        }
+
+        private static System.Collections.Generic.Dictionary<Renderer, Vector3> TreeLikeSnapshot(out int treants)
+        {
+            treants = Treant.All.Count;
+            var found = new System.Collections.Generic.Dictionary<Renderer, Vector3>();
+            foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude))
+            {
+                if (!r.enabled || !TreeLike(r.transform)) continue;
+                found[r] = r.transform.position;
+            }
+            return found;
+        }
+
+        private static bool TreeLike(Transform t)
+        {
+            string n = (t.name + "/" + t.root.name).ToLowerInvariant();
+            return n.Contains("pine") || n.Contains("tree") || n.Contains("sapling") || n.Contains("treant") || n.Contains("birch") || n.Contains("oak");
+        }
+
+        private static string TreeLikeDiff(System.Collections.Generic.Dictionary<Renderer, Vector3> before, int treantsBefore, out bool clean)
+        {
+            var after = TreeLikeSnapshot(out int treantsAfter);
+            int added = 0, moved = 0, gone = 0;
+            string detail = "";
+            foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude))
+            {
+                if (!after.ContainsKey(r)) continue;
+                if (!before.TryGetValue(r, out Vector3 was))
+                {
+                    added++;
+                    if (added <= 12) detail += $" new {r.transform.root.name}/{r.name}@{r.transform.position:F1}";
+                }
+                else if ((was - r.transform.position).sqrMagnitude > 0.0025f)
+                {
+                    moved++;
+                    if (moved <= 12) detail += $" moved {r.transform.root.name}/{r.name} {was:F1}->{r.transform.position:F1}";
+                }
+            }
+            foreach (Renderer id in before.Keys) if (id == null || !after.ContainsKey(id)) gone++;
+            clean = added == 0 && moved == 0 && treantsAfter <= treantsBefore;
+            return $"tree-like renderers {before.Count}->{after.Count}, new {added}, moved {moved}, hidden {gone}, treants {treantsBefore}->{treantsAfter};{detail}";
         }
 
         private static IEnumerator TeleportLocalPlayer(Vector2 position, float yaw)
@@ -6844,6 +6966,7 @@ namespace Chopper.Networking
             var cam = new GameObject("FeetCamera").AddComponent<Camera>();
             cam.depth = 50f; cam.fieldOfView = 45f; cam.nearClipPlane = 0.02f; cam.enabled = false;
             float worstSole = 0f; int buried = 0; int stops = 0; float worstMeshFrac = 0f; int meshSampled = 0;
+            float worstHover = 0f; int caveChecks = 0;
             var lines = new System.Collections.Generic.List<string>();
             IEnumerator Stop(string label, bool walk)
             {
@@ -6865,6 +6988,40 @@ namespace Chopper.Networking
                     float m = Mathf.Min(g.GapL, g.GapR);
                     who += $" {g.transform.root.name}:{g.GapL:F3}/{g.GapR:F3}(ankle {g.Ankle:F3})";
                     stopWorst = Mathf.Min(stopWorst, m);
+                }
+                if (label.StartsWith("cave") || label.StartsWith("crypt"))
+                {
+                    var temp = new System.Collections.Generic.List<MeshCollider>();
+                    foreach (MeshFilter mf in UnityEngine.Object.FindObjectsByType<MeshFilter>(FindObjectsSortMode.None))
+                    {
+                        Renderer mr = mf.GetComponent<Renderer>();
+                        if (mf.sharedMesh != null && mr != null && mr.enabled && !mf.transform.IsChildOf(wood.transform) && mf.GetComponent<Collider>() == null && mr.bounds.SqrDistance(wood.transform.position) < 64f)
+                            temp.Add(mf.gameObject.AddComponent<MeshCollider>());
+                    }
+                    Physics.SyncTransforms();
+                    bool backfaces = Physics.queriesHitBackfaces; Physics.queriesHitBackfaces = true;
+                    string visual = "";
+                    var fgv = wood.GetComponentInChildren<Chopper.Player.FootGrounder>();
+                    if (fgv != null && fgv.Ready)
+                    {
+                        foreach (Transform foot in new[] { fgv.FootL, fgv.FootR })
+                        {
+                            float sole = foot.position.y - fgv.Ankle;
+                            float top = float.NegativeInfinity;
+                            foreach (RaycastHit vh in Physics.RaycastAll(foot.position + Vector3.up * 0.7f, Vector3.down, 1.8f, ~0, QueryTriggerInteraction.Ignore))
+                                { if (vh.collider is MeshCollider vmc && temp.Contains(vmc)) { top = Mathf.Max(top, vh.point.y); visual += $" [{vh.collider.name}@{vh.point.y:F3} n{vh.normal.y:F1}]"; } }
+                            if (float.IsNegativeInfinity(top)) { visual += $" {foot.name} no visible mesh below"; continue; }
+                            float gap = sole - top;
+                            visual += $" {foot.name} sole {sole:F3} visible top {top:F3} gap {gap:F3}";
+                            stopWorst = Mathf.Min(stopWorst, gap);
+                            worstHover = Mathf.Max(worstHover, gap);
+                            caveChecks++;
+                        }
+                    }
+                    Physics.queriesHitBackfaces = backfaces;
+                    foreach (MeshCollider mc in temp) UnityEngine.Object.DestroyImmediate(mc);
+                    Physics.SyncTransforms();
+                    Debug.Log($"[Feet] {label} visual floor ({temp.Count} meshes within 8 m):{visual}");
                 }
                 foreach (Animator an in UnityEngine.Object.FindObjectsByType<Animator>(FindObjectsSortMode.None))
                 {
@@ -6946,6 +7103,14 @@ namespace Chopper.Networking
                     ui.DebugShow(0);
                     yield return Shot(folder, $"feet_{label}_{n}");
                     taken++;
+                }
+                if (label.StartsWith("cave") || label.StartsWith("crypt"))
+                {
+                    cam.transform.position = p + wood.transform.right * 1.5f + wood.transform.forward * 0.4f + Vector3.up * 0.3f;
+                    cam.transform.LookAt(p + Vector3.up * 0.15f);
+                    cam.enabled = true;
+                    ui.DebugShow(0);
+                    yield return Shot(folder, $"feet_{label}_boots");
                 }
                 if (taken == 0)
                 {
@@ -7037,6 +7202,12 @@ namespace Chopper.Networking
                     yield return Stop("cave2", false);
                     yield return Stop("cave2_walk", true);
                 }
+                var relief = plans[0].Boxes.Find(b => b.Material == Chopper.World.Generation.CryptMaterial.Floor && b.Center.y + b.Size.y * 0.5f > Chopper.World.Generation.MinePlan.FloorY + 0.1f && b.Center.y + b.Size.y * 0.5f < Chopper.World.Generation.MinePlan.FloorY + 0.7f && b.Size.x >= 0.9f && b.Size.z >= 0.9f);
+                if (relief.Size.x > 0f)
+                {
+                    yield return TeleportExact(new Vector3(relief.Center.x, relief.Center.y + relief.Size.y * 0.5f + 0.1f, relief.Center.z), 0f);
+                    yield return Stop("cave_relief", false);
+                }
             }
 
             bool swimOk = false;
@@ -7117,8 +7288,15 @@ namespace Chopper.Networking
                 swimOk &= handEmpty && restored && blocked && hammerGone;
             }
 
-            bool pass = stops >= 6 && worstSole > -0.04f && buried == 0 && meshSampled > 0 && worstMeshFrac <= 0.005f && swimOk;
-            Debug.Log($"[Feet] RESULT {(pass ? "PASS" : "FAIL")} ({stops} stops, worst sole {worstSole:F3} m, {buried} buried bones, worst mesh-in-solid {worstMeshFrac:P2} of {meshSampled} sampled verts)");
+            var crypts = Chopper.World.Generation.CryptWorld.Plans;
+            if (crypts != null && crypts.Count > 0 && crypts[0].Rooms.Count > 1)
+            {
+                yield return TeleportExact(crypts[0].RoomCenter(1) + Vector3.up * 0.1f, 0f);
+                yield return Stop("crypt", false);
+                yield return Stop("crypt_walk", true);
+            }
+            bool pass = stops >= 6 && worstSole > -0.04f && buried == 0 && meshSampled > 0 && worstMeshFrac <= 0.005f && swimOk && caveChecks > 0 && worstHover <= 0.08f;
+            Debug.Log($"[Feet] RESULT {(pass ? "PASS" : "FAIL")} ({stops} stops, worst sole {worstSole:F3} m, {buried} buried bones, worst mesh-in-solid {worstMeshFrac:P2} of {meshSampled} sampled verts, cave floor checks {caveChecks}, worst cave hover {worstHover:F3} m)");
         }
 
         private static string BoatCamBlockers(Transform me) { Camera view = Camera.main; Vector3 pivot = me.position + Vector3.up * 1.6f; Vector3 back = -view.transform.forward; string found = string.Empty; foreach (RaycastHit h in Physics.SphereCastAll(pivot, 0.3f, back, 20f, ~0, QueryTriggerInteraction.Ignore)) { if (h.collider.transform.IsChildOf(me)) continue; found += h.collider.name + "@" + h.distance.ToString("F1") + " "; } return found; }

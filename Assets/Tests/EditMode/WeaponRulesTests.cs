@@ -80,5 +80,24 @@ namespace Chopper.Tests.EditMode
             Assert.AreEqual(0f, WeaponRules.SplashUnits(PlayerWeapon.Mace, 10f, 3f));
             Assert.AreEqual(0f, WeaponRules.SplashUnits(PlayerWeapon.Sword, 10f, 1f));
         }
+
+        [Test]
+        public void EveryWeaponHasItsOwnClipsAndTheTreeChopIsSeparate()
+        {
+            var owner = new System.Collections.Generic.Dictionary<string, PlayerWeapon>();
+            foreach (PlayerWeapon w in new[] { PlayerWeapon.Axe, PlayerWeapon.Sword, PlayerWeapon.Mace, PlayerWeapon.Spear })
+            {
+                for (int step = 0; step < 3; step++)
+                {
+                    string state = WeaponRules.MoveState(w, step);
+                    Assert.AreNotEqual(WeaponRules.TreeChopState, state);
+                    Assert.IsNotNull(WeaponRules.MoveClip(state), state);
+                    if (owner.TryGetValue(state, out PlayerWeapon other)) Assert.AreEqual(w, other, state + " is shared");
+                    owner[state] = w;
+                }
+            }
+            var clips = new System.Collections.Generic.HashSet<string>();
+            foreach (var move in WeaponRules.MoveClips) Assert.IsTrue(clips.Add(move.clip), move.clip + " used twice");
+        }
     }
 }

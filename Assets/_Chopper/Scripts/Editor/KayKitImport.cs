@@ -13,9 +13,9 @@ namespace Chopper.Editor
         public const string MeleePath = Folder + "/Rig_Medium_CombatMelee.fbx";
         public const string GeneralPath = Folder + "/Rig_Medium_General.fbx";
 
-        public const string StrikeA = "Melee_1H_Attack_Slice_Diagonal";
-        public const string StrikeB = "Melee_1H_Attack_Slice_Horizontal";
-        public const string StrikeC = "Melee_1H_Attack_Chop";
+        public const string StrikeA = "Melee_1H_Attack_Chop";
+        public const string StrikeB = "Melee_1H_Attack_Slice_Diagonal";
+        public const string StrikeC = "Melee_1H_Attack_Jump_Chop";
         public const string Flinch = "Hit_A";
         public const string Parry = "Melee_Block_Attack";
 

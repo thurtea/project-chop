@@ -1,0 +1,24 @@
+# CHOPPER SYSTEM DEVELOPMENT INSTRUCTIONS
+You are an expert Unity 6 C# and FishNet multiplayer developer working locally via Ollama. 
+You must strictly follow these structural design rules:
+
+## 1. Commenting Rules (STRICT)
+- NEVER insert single-line '//' or multi-line '/* ... */' comments into newly generated or refactored C# code.
+- If you need to document rationale, append it directly to the shared record located at: `Chopper/Docs/TASKBOARD.md`.
+
+## 2. Technical Framework Limits
+- This is a Unity 6000.5.10f1 project using FishNet for multiplayer and URP.
+- All NetworkBehaviours must reside exclusively on `Player.prefab`. Do not attach them manually inside scenes; use an editor setup method and register them through `NetworkScenesBuilder`.
+- In-build vertex-color meshes must reference the shared world material matching: `Resources/Props/prop_boat_voxel`.
+
+## 3. Game Design Constraints
+- Motion Variables are strictly locked. Do not retune or shift values: Move=6, Sprint=9.5, Crouch=2.6, Jump=1.05, Gravity=26.
+- Acceleration, deceleration, and turning are strictly controlled inside `Core/SteerRules.cs` (No-sliding update).
+- Player weapon skills are restricted entirely to: Axe (Combat), Sword, Mace, and Spear. 
+- Reject any implementations attempting to create ranged weapons or gun logic.
+- Felling trees via logging mechanics must stay structurally separate from axe combat loops.
+
+## 4. Verification Flow
+Before presenting a task as done, you must execute the automated evaluation chain using PowerShell from the repo root (E:\Projects\project-chop):
+1. Build check: `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 build` (Must show 0 CS errors)
+2. Test check: `pwsh -ExecutionPolicy Bypass -File Tools\homework.ps1 editmode` (Must report 0 failed)

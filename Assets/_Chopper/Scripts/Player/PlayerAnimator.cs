@@ -211,7 +211,8 @@ namespace Chopper.Player
             // Fit the clip into the swing cooldown so faster axes chop faster.
             float cooldown = _config.SwingCooldown * (_upgrades != null ? _upgrades.SwingCooldownMultiplier : 1f) * SkillRules.LogSwingMultiplier(_axe != null ? _axe.LogSkill : 0);
             bool punch = _axe != null && !_axe.IsDrawn;
-            // Step -1 is a tree chop. Bare fists alternate a jab and a cross; the axe in a fight runs the sword combo.
+            if (_axe != null && _axe.IsDrawn && step >= 0) cooldown *= ComboRules.CooldownScale(step) * WeaponRules.Stats(_axe.Weapon).CooldownScale;
+            // Step -1 is a tree chop. Bare fists alternate a jab and a cross; each weapon runs its own combo.
             int trigger;
             float clipSeconds;
             if (punch)
@@ -224,23 +225,31 @@ namespace Chopper.Player
                 trigger = ChopId;
                 clipSeconds = ChopClipSeconds;
             }
-            else if (step == ComboRules.Steps - 1)
-            {
-                trigger = Swing3Id;
-                clipSeconds = ComboCClipSeconds;
-            }
-            else if (step == 1)
-            {
-                trigger = Swing2Id;
-                clipSeconds = ComboBClipSeconds;
-            }
             else
             {
-                trigger = SwingId;
-                clipSeconds = ComboAClipSeconds;
+                string state = WeaponRules.MoveState(_axe != null ? _axe.Weapon : PlayerWeapon.Axe, step);
+                trigger = Animator.StringToHash(state);
+                clipSeconds = MoveSeconds(state, step == ComboRules.Steps - 1 ? ComboCClipSeconds : step == 1 ? ComboBClipSeconds : ComboAClipSeconds);
             }
             _animator.SetFloat(SwingSpeedId, clipSeconds / Mathf.Max(0.1f, cooldown * ChopFillsCooldown));
             _animator.SetTrigger(trigger);
+        }
+
+        private System.Collections.Generic.Dictionary<string, float> _moveSeconds;
+
+        private float MoveSeconds(string state, float fallback)
+        {
+            if (_moveSeconds == null && _animator != null && _animator.runtimeAnimatorController != null)
+            {
+                _moveSeconds = new System.Collections.Generic.Dictionary<string, float>();
+                foreach (AnimationClip clip in _animator.runtimeAnimatorController.animationClips)
+                    if (clip != null) _moveSeconds[clip.name] = clip.length;
+            }
+            string clipName = WeaponRules.MoveClip(state);
+            if (_moveSeconds != null && clipName != null)
+                foreach (var pair in _moveSeconds)
+                    if (pair.Key == clipName || pair.Key.EndsWith("|" + clipName)) return pair.Value;
+            return fallback;
         }
 
         // A hit that got through, and a parry. The clips are in and still need polish.

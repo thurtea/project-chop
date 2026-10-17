@@ -47,7 +47,7 @@ namespace Chopper.World.Generation
                     bool propCorner = ax > half - inset && az > half - inset;
                     if (centre || !againstWall || doorway || propCorner) continue;
                     if (skip != null && skip(local)) continue;
-                    float rise = (h % 3) == 0 ? 0.48f : 0.24f;
+                    float rise = (h % 3) == 0 ? 1.0f : 0.5f;
                     float w = (h % 2) == 0 ? 1.15f : 0.72f;
                     float d = (h % 2) == 0 ? 0.78f : 1.05f;
                     Append(boxes, group, origin + new Vector3(local.x, rise * 0.5f, local.z), new Vector3(w, rise, d), Quaternion.identity, CryptMaterial.Floor);
