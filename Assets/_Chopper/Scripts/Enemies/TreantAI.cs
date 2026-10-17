@@ -178,6 +178,23 @@ namespace Chopper.Enemies
             }
             agent.updateRotation = true;
 
+            if (_treant.IsRaider)
+            {
+                BuildManager homes = BuildManager.Instance;
+                if (homes != null && homes.HomeIn(_treant.RaidZone, out Vector3 heart, out _))
+                {
+                    FitBody(agent);
+                    agent.stoppingDistance = Mathf.Max(0.5f, _config.HomeHeartReach - 0.8f);
+                    agent.SetDestination(heart);
+                    SetChargeSpeed(heart);
+                    return;
+                }
+                agent.stoppingDistance = 0.5f;
+                agent.SetDestination(_treant.Home);
+                _treant.Agent.speed = _treant.BaseSpeed;
+                return;
+            }
+
             // A crypt guardian with nobody near walks back to where it stood watch, and the warden and its guards to
             // their grove: they never go for the hut.
             if (_treant.IsGuardian || _treant.HasLeash)
@@ -430,6 +447,18 @@ namespace Chopper.Enemies
                 int pieceDamage = _config.TreantHutDamage * (int)HitMultiplier * (_treant.IsBoss ? BossDamageMultiplier : 1);
                 pieces.ServerDamage(pieceId, pieceDamage);
                 Swing();
+                return;
+            }
+
+            if (_treant.IsRaider)
+            {
+                BuildManager homes = BuildManager.Instance;
+                if (homes != null && homes.HomeIn(_treant.RaidZone, out Vector3 heart, out _)
+                    && HomeRaidRules.InReach(transform.position, heart, _config.HomeHeartReach + (int)_treant.Size * 0.3f))
+                {
+                    homes.ServerDamageHome(_treant.RaidZone, _config.TreantHutDamage * HitMultiplier);
+                    Swing();
+                }
                 return;
             }
 

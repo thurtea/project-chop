@@ -532,6 +532,17 @@ namespace Chopper.UI
                 Element zone = ZoneMap.ElementAt(here, _config.HubRadius);
                 Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
                 bool hasHome = build != null && build.HomeIn(zone, out _, out _);
+                if (hasHome && build.HomeIn(zone, out Vector3 heartAt, out _) && BarrierRules.Covers(heartAt, here, PlayerUpgrades.BarrierFeedReach))
+                {
+                    float barrier = build.BarrierOf(zone);
+                    int essence = PlayerInventory.Local != null ? PlayerInventory.Local.Essence(zone) : 0;
+                    bool canFeed = essence > 0 && barrier < _config.BarrierMax;
+                    string state = BarrierRules.IsUp(barrier)
+                        ? $"Barrier {Mathf.CeilToInt(barrier)}/{Mathf.CeilToInt(_config.BarrierMax)}: lasts about {BarrierRules.Nights(barrier, _config.BarrierNightlyBurn)} more nights, less for every blow it stops."
+                        : "The barrier is down: the crypt's dead will break the home tonight.";
+                    _items.Add(new Item { Name = "Home barrier", Icon = HotbarIcons.Get("upgrade"), Tint = Color.Lerp(new Color(0.55f, 0.75f, 0.95f), ZonePalette.Label(zone), 0.5f), Count = Mathf.CeilToInt(barrier).ToString(),
+                        Description = $"{state} One {zone} essence adds {Mathf.RoundToInt(_config.BarrierPerEssence)} (you carry {essence}).", Action = canFeed ? "Feed essence" : null, Use = canFeed ? upgrades.RequestFeedBarrier : (System.Action)null });
+                }
                 if (ZoneGoalRules.IsZone(zone) && !hasHome)
                 {
                     int goals = Chopper.Enemies.EnemyDirector.Instance != null ? Chopper.Enemies.EnemyDirector.Instance.ZoneGoals : 0;
@@ -691,7 +702,7 @@ namespace Chopper.UI
                 list.AppendLine(GoalLine(ZoneGoalRules.Has(mask, zone, ZoneGoal.Warden), "Beat the grove warden"));
                 Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
                 if (build != null && build.HomeIn(zone, out _, out float homeHealth))
-                    list.AppendLine($"  <color=#FFB866>Home raised</color>  <color=#9A968C>heart {Mathf.CeilToInt(homeHealth)}/{Mathf.CeilToInt(_config.HomeHealth)}</color>");
+                    list.AppendLine($"  <color=#FFB866>Home raised</color>  <color=#9A968C>heart {Mathf.CeilToInt(homeHealth)}/{Mathf.CeilToInt(_config.HomeHealth)}, barrier {(BarrierRules.IsUp(build.BarrierOf(zone)) ? Mathf.CeilToInt(build.BarrierOf(zone)) + "/" + Mathf.CeilToInt(_config.BarrierMax) : "down")}</color>");
                 else if (home)
                     list.AppendLine($"  <color=#9A968C>Stand in the forest and raise its home from the Bag ({_config.HomeWoodCost} wood, {_config.HomeIronCost} crypt iron)</color>");
                 list.AppendLine();

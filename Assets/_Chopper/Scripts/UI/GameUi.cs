@@ -673,29 +673,24 @@ namespace Chopper.UI
             // A broken axe leaves fists; the empty wear bar says why.
             _slotIcons[1].sprite = ownAxe != null && !ownAxe.HasAxe ? HotbarIcons.Fists : HotbarIcons.Axe;
             if (ownAxe != null) ShowWear(1, ownAxe.Durability, ownAxe.MaxDurability);
-            // Holstered: the axe is faded and the frame plain; drawn: lit like the rod when it is out.
-            bool holstered = ownAxe != null && ownAxe.HasAxe && !ownAxe.IsDrawn;
-            _slotIcons[1].color = holstered ? EmptySlot : Color.white;
+            // Every slot: a bright icon is something you have, a faded one something you lack; the frame lights while it is in your hands.
+            _slotIcons[1].color = ownAxe != null && ownAxe.HasAxe ? Color.white : EmptySlot;
             if (charged == Element.Neutral && ownAxe != null && ownAxe.IsDrawn) _slotFrames[1].color = new Color(0.45f, 0.7f, 0.9f);
 
             PlayerWeapons weapons = local.GetComponent<PlayerWeapons>();
             PlayerWeapon held = weapons != null ? weapons.Selected : PlayerWeapon.Axe;
             bool drawn = ownAxe != null && ownAxe.HasAxe && ownAxe.IsDrawn;
-            if (held != PlayerWeapon.Axe)
-            {
-                _slotIcons[1].color = EmptySlot;
-                if (charged == Element.Neutral) _slotFrames[1].color = normal;
-            }
+            if (held != PlayerWeapon.Axe && charged == Element.Neutral) _slotFrames[1].color = normal;
             for (int w = 1; w < WeaponRules.Count; w++)
             {
                 int slot = HotbarSlots - WeaponRules.Count + w;
                 bool owned = weapons != null && weapons.Owns((PlayerWeapon)w);
                 bool inHand = owned && held == (PlayerWeapon)w && drawn;
-                _slotIcons[slot].color = owned && ownAxe != null && ownAxe.HasAxe ? (inHand ? Color.white : new Color(1f, 1f, 1f, 0.75f)) : EmptySlot;
+                _slotIcons[slot].color = owned && ownAxe != null && ownAxe.HasAxe ? Color.white : EmptySlot;
                 _slotFrames[slot].color = inHand ? (charged == Element.Neutral ? new Color(0.45f, 0.7f, 0.9f) : ZonePalette.Label(charged)) : normal;
             }
             bool shieldInHand = upgrades != null && upgrades.ShieldInHand;
-            _slotIcons[0].color = upgrades != null && upgrades.HasShield ? (shieldInHand ? Color.white : new Color(1f, 1f, 1f, 0.75f)) : EmptySlot;
+            _slotIcons[0].color = upgrades != null && upgrades.HasShield ? Color.white : EmptySlot;
             _slotFrames[0].color = shieldInHand ? new Color(0.45f, 0.7f, 0.9f) : normal;
             bool lit = inventory != null && inventory.TorchLit;
             _slotFrames[2].color = lit ? new Color(1f, 0.7f, 0.25f) : normal;

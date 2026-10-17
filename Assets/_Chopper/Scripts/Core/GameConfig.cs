@@ -217,6 +217,24 @@ namespace Chopper.Core
         [SerializeField, Min(0)] private int _homeIronCost = 5;
         [Tooltip("Hit points of a zone home heart.")]
         [SerializeField, Min(1f)] private float _homeHealth = 600f;
+        [Tooltip("Crypt dead that raid each zone home at nightfall, for one player.")]
+        [SerializeField, Min(0)] private int _homeRaidBase = 3;
+        [Tooltip("Extra raiders per home for every player after the first.")]
+        [SerializeField, Min(0)] private int _homeRaidPerExtraPlayer = 1;
+        [Tooltip("Most raiders one home gets in a night.")]
+        [SerializeField, Min(0)] private int _homeRaidCap = 10;
+        [Tooltip("How close a raider must be to a home heart to hit it.")]
+        [SerializeField, Min(0.5f)] private float _homeHeartReach = 2.4f;
+        [Tooltip("Barrier charge one essence of the home's element adds.")]
+        [SerializeField, Min(0f)] private float _barrierPerEssence = 15f;
+        [Tooltip("Most charge a home barrier holds.")]
+        [SerializeField, Min(1f)] private float _barrierMax = 60f;
+        [Tooltip("Charge every home barrier burns at nightfall.")]
+        [SerializeField, Min(0f)] private float _barrierNightlyBurn = 10f;
+        [Tooltip("Charge a barrier spends for each raider blow it stops.")]
+        [SerializeField, Min(0f)] private float _barrierDrainPerHit = 3f;
+        [Tooltip("Ground the barrier covers around the heart: the heart and any piece built inside.")]
+        [SerializeField, Min(2f)] private float _barrierRadius = 14f;
         [SerializeField, Min(0f)] private float _blockStaminaPerSecond = 2f;
         [SerializeField, Range(0.1f, 1f)] private float _blockMoveMultiplier = 0.5f;
         [SerializeField, Min(0f)] private float _rollStamina = 18f;
@@ -511,6 +529,15 @@ namespace Chopper.Core
         public int HomeWoodCost => _homeWoodCost;
         public int HomeIronCost => _homeIronCost;
         public float HomeHealth => _homeHealth;
+        public int HomeRaidBase => _homeRaidBase;
+        public int HomeRaidPerExtraPlayer => _homeRaidPerExtraPlayer;
+        public int HomeRaidCap => _homeRaidCap;
+        public float HomeHeartReach => _homeHeartReach;
+        public float BarrierPerEssence => _barrierPerEssence;
+        public float BarrierMax => _barrierMax;
+        public float BarrierNightlyBurn => _barrierNightlyBurn;
+        public float BarrierDrainPerHit => _barrierDrainPerHit;
+        public float BarrierRadius => _barrierRadius;
         public float BlockStaminaPerSecond => _blockStaminaPerSecond;
         public float BlockMoveMultiplier => _blockMoveMultiplier;
         public float RollStamina => _rollStamina;

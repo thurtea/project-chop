@@ -147,7 +147,7 @@ namespace Chopper.World.Saving
                 save.Pieces.AddRange(BuildManager.Instance.ServerCapture());
                 save.Domes = BuildManager.Instance.ServerDomePositions();
                 foreach (HomeState home in BuildManager.Instance.ServerHomes())
-                    save.Homes.Add(new HomeRecord { Position = home.Position, Zone = home.Zone, Health = home.Health });
+                    save.Homes.Add(new HomeRecord { Position = home.Position, Zone = home.Zone, Health = home.Health, Barrier = home.Barrier });
             }
 
             EnemyDirector director = EnemyDirector.Instance;
@@ -304,7 +304,7 @@ namespace Chopper.World.Saving
                 BuildManager.Instance.ServerLoadDomes(save.Domes);
                 var homes = new List<HomeState>();
                 if (save.Homes != null)
-                    foreach (HomeRecord record in save.Homes) homes.Add(new HomeState { Position = record.Position, Zone = record.Zone, Health = record.Health });
+                    foreach (HomeRecord record in save.Homes) homes.Add(new HomeState { Position = record.Position, Zone = record.Zone, Health = record.Health, Barrier = record.Barrier });
                 BuildManager.Instance.ServerLoadHomes(homes);
             }
 

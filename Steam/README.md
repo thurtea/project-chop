@@ -68,3 +68,17 @@ Still **empty**: library hero (3840×1240: the widest text-free band is 1560 px)
 
 - Nothing has been uploaded to Steamworks.
 - Every **Empty** slot needs new art with the name on it, or a game screenshot (hero). That is the user's decision.
+
+## Library customization (non-Steam shortcut, made 2026-10-17)
+
+Right-click Chopper in the Steam library, Properties, Customization, then Change on each slot. Files in `Steam/library/`:
+
+| Slot | File | Notes |
+|---|---|---|
+| Cover | `cover_600x900.jpg` | Character cover with the CHOPPER wordmark |
+| Background | `background_3840x1240.jpg` | `chopper-3D-concept-2.0.jpg` cropped to a 3.1:1 band and upscaled 2.8x; no text (the logo goes on top) |
+| Logo | `logo_1280.png` | Transparent PNG, CHOPPER in Cinzel (the game's heading font), gold with a dark outline and shadow. Drag it on the library page to place it |
+| Wide cover | `wide_cover_920x430.jpg` | For the horizontal grid if Steam asks |
+| Icon | `icon_256.png` | The exe icon |
+| Background (with title) | `background_3840x1240_title.jpg` | Same background with CHOPPER baked in at the top left (x 230, y 305 of 3840x1240; moved down 1/8 after it clipped at the top of the Steam page), inside the top band Steam keeps when it crops the hero. Use this one (user, 2026-10-17) |
+| Logo | not used | The owner already has a logo set; `logo_1280.png` and `logo_blank.png` are spare (not deleted) |

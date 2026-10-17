@@ -68,6 +68,15 @@ namespace Chopper.Enemies
         private readonly SyncVar<int> _element = new SyncVar<int>();
         private readonly SyncVar<int> _weaponRoll = new SyncVar<int>();
         private readonly SyncVar<int> _size = new SyncVar<int>();
+        private readonly SyncVar<int> _raidZone = new SyncVar<int>();
+        public bool IsRaider => _raidZone.Value != 0;
+        public Element RaidZone => (Element)_raidZone.Value;
+
+        public void ServerMakeRaider(Element zone, Vector3 from)
+        {
+            _raidZone.Value = (int)zone;
+            _home = from;
+        }
         private readonly SyncVar<bool> _boss = new SyncVar<bool>();
         private readonly SyncVar<float> _bornDays = new SyncVar<float>();
         // Crypt guardians stay in their crypt, ignore the hut and the night cycle, and are not counted in the night cap.
@@ -186,6 +195,7 @@ namespace Chopper.Enemies
             _shielded.Value = false;
             _leashRadius = 0f;
             _wardenHealth = 0f;
+            _raidZone.Value = 0;
         }
 
         public override void OnStartServer()
@@ -623,7 +633,8 @@ namespace Chopper.Enemies
             return baseGlow;
         }
 
-        private bool ShowsDraugr => IsGuardian && State == TreantState.Active && _draugrPrefab != null;
+        public bool LooksDraugr => ShowsDraugr;
+        private bool ShowsDraugr => (IsGuardian || IsRaider) && State == TreantState.Active && _draugrPrefab != null;
 
         public bool ShowsGolem => !IsGuardian && State == TreantState.Active && _golemPrefab != null;
 

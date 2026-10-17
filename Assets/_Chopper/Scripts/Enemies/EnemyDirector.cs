@@ -416,6 +416,42 @@ namespace Chopper.Enemies
                 night += " They are coming for what you built in the forest.";
             ServerAnnounce(night);
             _pendingBosses.Clear();
+            ServerStartHomeRaids();
+        }
+
+        public int ServerStartHomeRaids()
+        {
+            Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
+            if (build == null) return 0;
+            build.ServerBurnBarriers(_config.BarrierNightlyBurn);
+            int spawned = 0;
+            foreach (Element zone in ZoneGoalRules.Zones)
+            {
+                if (!build.HomeIn(zone, out Vector3 heart, out _)) continue;
+                if (!CryptDoor(zone, out Vector3 door)) continue;
+                int count = HomeRaidRules.Count(_config.HomeRaidBase, _config.HomeRaidPerExtraPlayer, PlayerCount, _config.HomeRaidCap);
+                for (int i = 0; i < count; i++)
+                {
+                    if (Treant.All.Count >= _config.MaxSaplings) break;
+                    Treant raider = ServerSpawn(zone, HomeRaidRules.Size(i), false, ScatterAround(door, 3f));
+                    raider.ServerMakeRaider(zone, door);
+                    if (raider.ServerActivate()) spawned++;
+                }
+                if (count > 0) ServerAnnounce($"The dead climb out of the {ZoneGoalRules.ZoneName(zone)}'s crypt and march on your home!");
+            }
+            return spawned;
+        }
+
+        private static bool CryptDoor(Element zone, out Vector3 door)
+        {
+            foreach (Chopper.World.Generation.CryptPlan plan in Chopper.World.Generation.CryptWorld.Plans)
+            {
+                if (plan.Site.Zone != zone) continue;
+                door = plan.ReturnSpot;
+                return true;
+            }
+            door = Vector3.zero;
+            return false;
         }
 
         private void EndNight()

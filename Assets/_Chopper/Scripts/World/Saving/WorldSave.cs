@@ -75,6 +75,7 @@ namespace Chopper.World.Saving
         public Vector3 Position;
         public int Zone;
         public float Health;
+        public float Barrier;
     }
 
     // One building piece: which kind (its index in the piece catalog), where, which way it faces and its health.

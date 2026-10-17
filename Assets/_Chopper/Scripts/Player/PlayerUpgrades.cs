@@ -213,6 +213,34 @@ namespace Chopper.Player
 
         public HomeRaiseResult LastHomeResult { get; private set; }
 
+        public const float BarrierFeedReach = 5f;
+
+        public void RequestFeedBarrier()
+        {
+            if (IsOwner) FeedBarrierServerRpc();
+        }
+
+        [ServerRpc]
+        private void FeedBarrierServerRpc() => ServerFeedBarrier();
+
+        public bool ServerFeedBarrier()
+        {
+            Element zone = Chopper.World.ZoneMap.ElementAt(transform.position, _config.HubRadius);
+            BuildManager build = BuildManager.Instance;
+            string refusal = null;
+            if (build == null || !build.HomeIn(zone, out Vector3 heart, out _)) refusal = "Feed a barrier at a home heart in the forest.";
+            else if (!BarrierRules.Covers(heart, transform.position, BarrierFeedReach)) refusal = "Stand by the home heart to feed its barrier.";
+            else if (build.BarrierOf(zone) >= _config.BarrierMax) refusal = "The barrier is full.";
+            else if (_inventory == null || !_inventory.ServerTrySpendEssence(zone, 1)) refusal = $"The barrier needs {zone} essence, from the {ZoneGoalRules.ZoneName(zone)}'s crypt arena.";
+            if (refusal != null)
+            {
+                if (Owner.IsValid) HomeToastTargetRpc(Owner, refusal);
+                return false;
+            }
+            build.ServerFeedBarrier(zone, _config.BarrierPerEssence);
+            return true;
+        }
+
         [TargetRpc]
         private void HomeToastTargetRpc(FishNet.Connection.NetworkConnection connection, string text) => Chopper.UI.Toasts.Show(text, new Color(0.95f, 0.55f, 0.45f));
 

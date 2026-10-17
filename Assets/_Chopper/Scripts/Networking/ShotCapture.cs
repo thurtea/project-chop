@@ -1948,6 +1948,13 @@ namespace Chopper.Networking
                 Application.Quit(ok ? 0 : 1);
                 yield break;
             }
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperHomeRaid") >= 0)
+            {
+                yield return HomeRaidTour(folder, wood, ui);
+                Debug.Log("[Shot] done");
+                Application.Quit(0);
+                yield break;
+            }
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "-chopperZoneGoals") >= 0)
             {
                 yield return ZoneGoalsTour(folder, wood, ui);
@@ -6532,6 +6539,109 @@ namespace Chopper.Networking
                 yield return null;
             }
             Debug.Log($"[ChopTrace] {label}: {string.Join(" | ", lines)}");
+        }
+
+        private static IEnumerator HomeRaidTour(string folder, PlayerWood wood, GameUi ui)
+        {
+            Application.runInBackground = true;
+            yield return new WaitForSeconds(4f);
+            EnemyDirector director = EnemyDirector.Instance;
+            Chopper.World.Building.BuildManager build = Chopper.World.Building.BuildManager.Instance;
+            wood.GetComponent<PlayerCombat>().ServerSetGod(true);
+            Hut.Instance.ServerSetRepaired(true);
+            foreach (ZoneGoal goal in new[] { ZoneGoal.Fish, ZoneGoal.Gem, ZoneGoal.Warden }) director.ServerMarkZoneGoal(Element.Fire, goal);
+            float hub = TreeManager.Instance.Config.HubRadius;
+            Vector3 door = Vector3.zero;
+            foreach (Chopper.World.Generation.CryptPlan plan in Chopper.World.Generation.CryptWorld.Plans)
+                if (plan.Site.Zone == Element.Fire) door = plan.ReturnSpot;
+            Vector2 spot = Vector2.zero;
+            bool found = false;
+            for (float r = 22f; r <= 34f && !found; r += 4f)
+                for (int k = 0; k < 16 && !found; k++)
+                {
+                    float ang = k * 22.5f * Mathf.Deg2Rad;
+                    Vector3 p = door + new Vector3(Mathf.Sin(ang) * r, 0f, Mathf.Cos(ang) * r);
+                    float h = Chopper.World.WorldGround.HeightAt(p);
+                    if (h < Chopper.World.Generation.WorldGen.WaterHeight + 0.5f || Mathf.Abs(h - door.y) > 4f) continue;
+                    if (ZoneMap.ElementAt(p, hub) != Element.Fire) continue;
+                    spot = new Vector2(p.x, p.z);
+                    found = true;
+                }
+            yield return TeleportLocalPlayer(spot, 0f);
+            yield return new WaitForSeconds(1.5f);
+            PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Wood, 40);
+            PlayerItems.ServerChange(wood.gameObject, (int)ItemKind.Iron, 8);
+            HomeRaiseResult raised = wood.GetComponent<PlayerUpgrades>().ServerRaiseHome();
+            yield return new WaitForSeconds(0.5f);
+            build.HomeIn(Element.Fire, out Vector3 heart, out float startHealth);
+            PlayerUpgrades feeder = wood.GetComponent<PlayerUpgrades>();
+            bool emptyRefused = !feeder.ServerFeedBarrier();
+            wood.GetComponent<PlayerInventory>().ServerAddEssence(Element.Fire, 2);
+            bool fed = feeder.ServerFeedBarrier() && feeder.ServerFeedBarrier();
+            yield return new WaitForSeconds(0.5f);
+            float fedCharge = build.BarrierOf(Element.Fire);
+            PlayerCamera cam0 = wood.GetComponent<PlayerCamera>();
+            Vector3 look0 = heart + Vector3.up * 2f;
+            Vector3 eye0 = heart + new Vector3(0f, 9f, -16f);
+            cam0.DebugHold(eye0, Quaternion.LookRotation(look0 - eye0, Vector3.up));
+            yield return new WaitForSeconds(0.6f);
+            yield return Shot(folder, "raid_0_barrier_up");
+            cam0.DebugRelease();
+            Vector3 awayDir = heart - door;
+            awayDir.y = 0f;
+            awayDir = awayDir.sqrMagnitude > 0.01f ? awayDir.normalized : Vector3.forward;
+            Vector3 watch = heart + awayDir * 55f;
+            yield return TeleportLocalPlayer(new Vector2(watch.x, watch.z), Mathf.Atan2(-awayDir.x, -awayDir.z) * Mathf.Rad2Deg);
+            yield return new WaitForSeconds(1.5f);
+            int hutBefore = Hut.Instance.Health;
+            DayNightCycle.Instance.ServerDebugSetClock(DayPhase.Dusk, 0.15f);
+            int spawned = director.ServerStartHomeRaids();
+            float afterBurn = build.BarrierOf(Element.Fire);
+            yield return new WaitForSeconds(1f);
+            int raiders = 0, draugr = 0, fire = 0;
+            foreach (Treant t in Treant.All)
+            {
+                if (t == null || !t.IsRaider) continue;
+                raiders++;
+                if (t.Element == Element.Fire) fire++;
+                if (t.LooksDraugr) draugr++;
+            }
+            PlayerCamera cam = wood.GetComponent<PlayerCamera>();
+            Vector3 look = heart + Vector3.up;
+            Vector3 eye = look + awayDir * 10f + Vector3.Cross(Vector3.up, awayDir) * 4f + Vector3.up * 6f;
+            cam.DebugHold(eye, Quaternion.LookRotation(look - eye, Vector3.up));
+            float start = Time.time;
+            float health = startHealth;
+            float firstHitAt = -1f;
+            float barrierDownAt = -1f;
+            float healthWhileUp = startHealth;
+            while (Time.time - start < 150f)
+            {
+                if (!build.HomeIn(Element.Fire, out _, out health)) break;
+                if (BarrierRules.IsUp(build.BarrierOf(Element.Fire))) healthWhileUp = health;
+                else if (barrierDownAt < 0f) barrierDownAt = Time.time - start;
+                if (health < startHealth && firstHitAt < 0f) { firstHitAt = Time.time - start; yield return Shot(folder, "raid_1_at_heart"); }
+                if (firstHitAt >= 0f && Time.time - start > firstHitAt + 8f) break;
+                yield return new WaitForSeconds(0.25f);
+            }
+            float closest = 999f;
+            foreach (Treant t in Treant.All)
+            {
+                if (t == null || !t.IsRaider || !t.IsActive) continue;
+                Vector3 o = t.transform.position - heart; o.y = 0f;
+                closest = Mathf.Min(closest, o.magnitude);
+            }
+            yield return Shot(folder, "raid_2_after");
+            bool hutSafe = Hut.Instance.Health >= hutBefore;
+            build.ServerDamageHome(Element.Fire, 99999f);
+            yield return new WaitForSeconds(1f);
+            bool gone = !build.HomeIn(Element.Fire, out _, out _);
+            yield return Shot(folder, "raid_3_heart_fallen");
+            cam.DebugRelease();
+            bool barrierOk = emptyRefused && fed && Mathf.Abs(fedCharge - 30f) < 0.01f && Mathf.Abs(afterBurn - 20f) < 0.01f && healthWhileUp >= startHealth && barrierDownAt >= 0f && firstHitAt > barrierDownAt;
+            Debug.Log($"[HomeRaid] barrier: no essence refused {emptyRefused}, fed 2 essence {fed} -> {fedCharge:F0}, nightfall burn -> {afterBurn:F0}, heart while the barrier was up {healthWhileUp:F0}/{startHealth:F0}, barrier down after {barrierDownAt:F1} s, first heart damage after {firstHitAt:F1} s; RESULT {(barrierOk ? "PASS" : "FAIL")}");
+            bool pass = barrierOk && found && raised == HomeRaiseResult.Ok && spawned >= 3 && raiders == spawned && fire == raiders && draugr == raiders && firstHitAt >= 0f && health < startHealth && hutSafe && gone;
+            Debug.Log($"[HomeRaid] home near the Fire crypt {found} ({raised}) at {heart:F1}, door {door:F1}; raid spawned {spawned}, raiders {raiders}, fire {fire}, draugr look {draugr}; first hit on the heart after {firstHitAt:F1} s, heart {startHealth:F0} -> {health:F0}, closest raider {closest:F1} m; hub hut untouched {hutSafe}; heart destroyed removes the home {gone}; RESULT {(pass ? "PASS" : "FAIL")}");
         }
 
         private static IEnumerator ZoneGoalsTour(string folder, PlayerWood wood, GameUi ui)

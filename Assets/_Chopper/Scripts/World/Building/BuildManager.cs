@@ -34,6 +34,7 @@ namespace Chopper.World.Building
         public Vector3 Position;
         public int Zone;
         public float Health;
+        public float Barrier;
     }
 
     // Every building piece in the world, server owned (one entry per piece in a SyncList, so a piece costs a few bytes
@@ -135,6 +136,13 @@ namespace Chopper.World.Building
             {
                 if (_homes[i].Zone != (int)zone) continue;
                 HomeState home = _homes[i];
+                if (BarrierRules.IsUp(home.Barrier))
+                {
+                    BarrierRules.Absorb(ref home.Barrier, _config != null ? _config.BarrierDrainPerHit : 3f);
+                    _homes[i] = home;
+                    if (!BarrierRules.IsUp(home.Barrier)) AnnounceBarrierDown(zone);
+                    return false;
+                }
                 home.Health = HomeRules.AfterDamage(home.Health, damage);
                 if (HomeRules.Destroyed(home.Health))
                 {
@@ -147,6 +155,58 @@ namespace Chopper.World.Building
                 return false;
             }
             return false;
+        }
+
+        public float BarrierOf(Element zone)
+        {
+            for (int i = 0; i < _homes.Count; i++) if (_homes[i].Zone == (int)zone) return _homes[i].Barrier;
+            return 0f;
+        }
+
+        public float ServerFeedBarrier(Element zone, float add)
+        {
+            for (int i = 0; i < _homes.Count; i++)
+            {
+                if (_homes[i].Zone != (int)zone) continue;
+                HomeState home = _homes[i];
+                home.Barrier = BarrierRules.Feed(home.Barrier, add, _config != null ? _config.BarrierMax : 60f);
+                _homes[i] = home;
+                return home.Barrier;
+            }
+            return -1f;
+        }
+
+        public void ServerBurnBarriers(float burn)
+        {
+            for (int i = 0; i < _homes.Count; i++)
+            {
+                HomeState home = _homes[i];
+                if (!BarrierRules.IsUp(home.Barrier)) continue;
+                home.Barrier = BarrierRules.Burn(home.Barrier, burn);
+                _homes[i] = home;
+                if (!BarrierRules.IsUp(home.Barrier)) AnnounceBarrierDown((Element)home.Zone);
+            }
+        }
+
+        private bool ServerBarrierAbsorbs(Vector3 position)
+        {
+            float radius = _config != null ? _config.BarrierRadius : 14f;
+            for (int i = 0; i < _homes.Count; i++)
+            {
+                HomeState home = _homes[i];
+                if (!BarrierRules.IsUp(home.Barrier) || !BarrierRules.Covers(home.Position, position, radius)) continue;
+                BarrierRules.Absorb(ref home.Barrier, _config != null ? _config.BarrierDrainPerHit : 3f);
+                _homes[i] = home;
+                if (!BarrierRules.IsUp(home.Barrier)) AnnounceBarrierDown((Element)home.Zone);
+                return true;
+            }
+            return false;
+        }
+
+        private static void AnnounceBarrierDown(Element zone)
+        {
+            if (Chopper.Enemies.EnemyDirector.Instance != null)
+                Chopper.Enemies.EnemyDirector.Instance.ServerAnnounce($"The barrier around the {ZoneGoalRules.ZoneName(zone)} home is down! Feed it {zone} essence at the heart.");
         }
 
         public List<HomeState> ServerHomes()
@@ -174,7 +234,16 @@ namespace Chopper.World.Building
                 _homeViews.RemoveAt(last);
             }
             for (int i = 0; i < _homes.Count; i++)
-                if (_homeViews[i] != null) _homeViews[i].transform.position = _homes[i].Position;
+            {
+                if (_homeViews[i] == null) continue;
+                _homeViews[i].transform.position = _homes[i].Position;
+                Transform barrier = _homeViews[i].transform.Find("Barrier");
+                if (barrier == null) continue;
+                bool up = BarrierRules.IsUp(_homes[i].Barrier);
+                if (barrier.gameObject.activeSelf != up) barrier.gameObject.SetActive(up);
+                Renderer ring = barrier.GetComponent<Renderer>();
+                if (ring != null && ring.material.HasProperty("_BaseColor")) ring.material.SetColor("_BaseColor", Color.Lerp(new Color(0.55f, 0.75f, 0.95f), ZonePalette.Label((Element)_homes[i].Zone), 0.5f));
+            }
         }
 
         private GameObject MakeHomeView()
@@ -196,6 +265,15 @@ namespace Chopper.World.Building
             light.color = new Color(1f, 0.62f, 0.3f);
             light.range = 9f;
             light.intensity = 2.2f;
+            var barrier = new GameObject("Barrier");
+            barrier.transform.SetParent(root.transform, false);
+            barrier.transform.localScale = Vector3.one * ((_config != null ? _config.BarrierRadius : 14f) / DomeRadius);
+            barrier.AddComponent<MeshFilter>().sharedMesh = DomeMesh();
+            var ringRenderer = barrier.AddComponent<MeshRenderer>();
+            Shader shader = Shader.Find("Chopper/Block");
+            if (shader != null) ringRenderer.material = new Material(shader);
+            ringRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            barrier.SetActive(false);
             return root;
         }
 
@@ -466,6 +544,7 @@ namespace Chopper.World.Building
             if (index < 0 || amount <= 0) return;
             PieceState state = _pieces[index];
             if (Protects(state.Position)) return;
+            if (ServerBarrierAbsorbs(state.Position)) return;
             state.Health -= amount;
             if (state.Health <= 0)
             {
