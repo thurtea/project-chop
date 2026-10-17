@@ -8,7 +8,9 @@ Bark is the shared wood body (neutral and earth): muscled torso, antlers, root f
 a right arm shaped as an axe, and a carved shield. Leaves0 adds the willow crown, blue
 eyes and leaf skirt. Leaves3 is a moss crown and amber eyes on that same body.
 Leaves1, Leaves2 and Leaves4 are full water, fire and wind bodies, each with its own
-right-arm weapon (spear, sword, axe); the bark body carries the axe in Leaves0 and the mace in Leaves3. Weapon boxes are weighted to the arm bones.
+right-arm weapon (spear, sword, axe); water and wind are the same willow tree spirit as the others,
+recoloured (teal bark and willow with coral; tan bark and pale green willow), after
+chopper-all-3D-concept-3.0 (user, 2026-10-17). Leaves3 is now earth's own stone body; the bark body carries the axe in Leaves0 and the mace in Leaves3. Weapon boxes are weighted to the arm bones.
 Shield boxes sit in the LeftHand frame.
 """
 import math
@@ -63,6 +65,15 @@ WIND = dict(body=S(123, 184, 208), dark=S(90, 144, 175), light=S(151, 209, 227),
 EARTH = dict(WOOD, body=S(66, 56, 43), dark=S(30, 24, 17), light=S(110, 90, 64), muscle=S(80, 66, 49),
              socket=S(14, 10, 7), antler=S(72, 58, 41), thorn=S(60, 49, 35),
              shield=S(76, 44, 27), carve=S(255, 176, 52), rim=S(38, 27, 19))
+WATER_TREE = dict(WATER, body=S(34, 84, 90), dark=S(16, 42, 48), light=S(62, 118, 120), muscle=S(44, 98, 102),
+                  socket=S(8, 20, 24), antler=S(34, 40, 42), thorn=S(30, 36, 38),
+                  shield=S(58, 44, 32), carve=S(70, 170, 180), rim=S(30, 24, 18), eye=S(120, 235, 255),
+                  leaf=S(44, 128, 136), leaf2=S(64, 152, 158), leaf3=S(30, 96, 106))
+WIND_TREE = dict(WIND, body=S(132, 114, 78), dark=S(90, 74, 48), light=S(170, 150, 106), muscle=S(146, 126, 86),
+                 socket=S(40, 32, 20), antler=S(124, 104, 70), thorn=S(110, 92, 62),
+                 shield=S(146, 118, 80), carve=S(96, 76, 50), rim=S(92, 72, 46), eye=S(150, 240, 255),
+                 leaf=S(140, 172, 124), leaf2=S(170, 196, 150), leaf3=S(112, 146, 100))
+CORAL = (S(240, 120, 110), S(250, 150, 130))
 MOSS = (S(50, 65, 20), S(70, 78, 25), S(37, 52, 17))
 PLAIN = dict(WOOD, blade=S(150, 156, 164), edge=S(204, 210, 216), rune=S(112, 118, 126))
 EARTH_VEIN = S(255, 176, 52)
@@ -358,41 +369,6 @@ def flame_crown(P, g, pal):
         P.put(g, "Head", (0, -0.18, 1.78 + i * 0.08), (0.08 - i * 0.015, 0.06, 0.08), cols[min(i + 1, 3)], 0.006)
 
 
-def water_hair(P, g, pal):
-    cols = (pal["leaf"], pal["leaf2"], pal["leaf3"], pal["light"])
-    for i in range(7):
-        t = i / 6.0
-        pts = []
-        for k in range(8):
-            f = k / 7.0
-            x = -0.08 + t * 0.10 + f * (0.22 + t * 0.50)
-            y = -0.14 + f * 0.18 + math.sin(f * math.pi) * 0.10
-            z = 1.70 + math.sin(f * math.pi) * (0.26 + t * 0.10) - f * 0.14
-            pts.append((x, y, z))
-        for k in range(7):
-            P.limb(g, "Head", pts[k], pts[k + 1], 0.08 - k * 0.006, 0.05, cols[(i + k) % 4])
-    for x in (-0.10, -0.04, 0.02, 0.08, 0.12):
-        P.limb(g, "Head", (x, -0.20, 1.48), (x * 1.5, -0.30, 1.12), 0.055, 0.04, pal["light"])
-        P.limb(g, "Chest", (x * 1.3, -0.28, 1.14), (x * 1.6, -0.24, 0.88), 0.04, 0.03, pal["leaf2"])
-
-
-def wind_crown(P, g, pal):
-    cols = (pal["leaf3"], pal["light"], pal["leaf2"], pal["edge"])
-    P.put(g, "Head", (0.04, -0.08, 1.88), (0.36, 0.28, 0.22), pal["light"], 0.016)
-    P.put(g, "Head", (0.18, 0.02, 1.98), (0.28, 0.22, 0.16), pal["leaf3"], 0.014)
-    for k in range(14):
-        a = k * 0.55
-        r = 0.18 + (k % 5) * 0.04
-        x = math.cos(a) * r * 1.2
-        y = -0.06 + math.sin(a) * r * 0.38
-        z = 1.90 + math.sin(a * 1.4) * 0.06
-        P.put(g, "Head", (x, y, z), (0.20, 0.11, 0.06), cols[k % 4], 0.006)
-    P.limb(g, "Head", (0.22, -0.10, 1.72), (0.48, 0.06, 1.52), 0.10, 0.07, pal["leaf2"])
-    for k in range(5):
-        w = 0.16 - k * 0.022
-        P.put(g, "RightFoot", (0.22, 0.08, 0.10 + k * 0.11), (w, w, 0.08), cols[k % 3], 0.006)
-
-
 def moss_crown(P, g):
     for x in (-0.16, -0.05, 0.06, 0.16):
         for y, h in ((-0.06, 0.16), (0.06, 0.12), (0.14, 0.10)):
@@ -419,14 +395,12 @@ def skirt(P, g, cols, kind):
             P.limb(g, "Hips", (x * 1.2, y * 1.15, 0.70), (x * 1.55, y * 1.4, 0.52), 0.04, 0.02, cols[-1])
 
 
-def splash(P, R, g, pal):
-    P.put(g, "Hips", (0.0, -0.04, 0.02), (0.95, 0.72, 0.03), pal["leaf3"], 0.008)
-    for side in ("Left", "Right"):
-        an = R.head[side + "Foot"]
-        for k in range(5):
-            a = k * 1.25
-            P.put(g, side + "Foot", (an.x + math.cos(a) * 0.18, -0.08 + math.sin(a) * 0.14, 0.04 + (k % 2) * 0.03),
-                  (0.09, 0.07, 0.04), pal["leaf3"] if k % 2 == 0 else pal["light"], 0.006)
+def coral(P, g):
+    for s in (-1, 1):
+        P.limb(g, "Head", (s * 0.12, 0.02, 1.86), (s * 0.20, 0.04, 2.02), 0.026, 0.026, CORAL[0])
+        P.limb(g, "Head", (s * 0.16, 0.03, 1.94), (s * 0.26, 0.06, 2.04), 0.02, 0.02, CORAL[1])
+        P.limb(g, side_bone(s), (s * 0.30, 0.02, 1.40), (s * 0.34, 0.04, 1.52), 0.024, 0.024, CORAL[0])
+        P.limb(g, side_bone(s), (s * 0.32, 0.03, 1.46), (s * 0.40, 0.05, 1.54), 0.018, 0.018, CORAL[1])
 
 
 def eyes_only(P, g, color):
@@ -459,16 +433,6 @@ def body(P, R, g, pal, eyes, kind, weapon):
         cracks(P, g, pal["crack"], bones=False)
 
 
-def puff(P, g, bone, c, r, cols, n=5, seed=0):
-    for k in range(n):
-        a = (k + seed) * 2.39996
-        rr = r * (0.55 + 0.45 * ((k * 37 + seed) % 7) / 6.0)
-        x = c[0] + math.cos(a) * r * 0.6
-        y = c[1] + math.sin(a) * r * 0.35
-        z = c[2] + math.sin(a * 1.7) * r * 0.4
-        P.put(g, bone, (x, y, z), (rr, rr * 0.85, rr * 0.8), cols[k % len(cols)], rr * 0.3)
-
-
 def tongue(P, g, bone, base, lean, height, width, cols):
     steps = 5
     pts = []
@@ -493,35 +457,6 @@ def fire_pass(P, g, pal):
             P.limb(g, "Chest" if z > 1.0 else "Spine", (s * 0.04, -0.16, z), (s * 0.16, -0.155, z + 0.07), 0.018, 0.012, pal["crack"])
 
 
-def water_pass(P, g, pal):
-    cols = (pal["leaf"], pal["leaf2"], pal["leaf3"], pal["light"])
-    for s in (-1, 1):
-        for i in range(10):
-            a = i * 0.62
-            r = 0.10 + i * 0.022
-            P.put(g, "Head", (s * (0.20 + math.cos(a) * r), -0.02 + math.sin(a) * 0.06, 1.90 + math.sin(a) * r), (0.09, 0.08, 0.07), cols[i % 4], 0.028)
-    for i in range(9):
-        a = i * 0.8
-        P.put(g, "Hips", (math.cos(a) * 0.34, math.sin(a) * 0.26, 0.10 + (i % 3) * 0.05), (0.12, 0.12, 0.10), cols[i % 4], 0.04)
-    for c in ((0.30, 0.10, 0.06), (-0.32, 0.06, 0.08), (0.22, -0.24, 0.05)):
-        P.limb(g, "Hips", c, (c[0] * 1.1, c[1], c[2] + 0.22), 0.03, 0.03, S(240, 120, 110))
-        P.limb(g, "Hips", (c[0], c[1], c[2] + 0.12), (c[0] * 1.25, c[1] + 0.04, c[2] + 0.26), 0.022, 0.022, S(250, 150, 130))
-    puff(P, g, "UpperChest", (0, 0.0, 1.34), 0.16, cols, 6, 1)
-
-
-def wind_pass(P, g, pal):
-    cols = (pal["light"], pal["leaf3"], pal["leaf2"], pal["edge"])
-    puff(P, g, "Head", (0.0, -0.02, 2.00), 0.20, cols, 8, 0)
-    puff(P, g, "Head", (0.16, 0.04, 2.10), 0.14, cols, 5, 3)
-    for s in (-1, 1):
-        puff(P, g, side_bone(s), (s * 0.30, 0.0, 1.38), 0.13, cols, 5, 2 + s)
-    puff(P, g, "Chest", (0, -0.04, 1.14), 0.17, cols, 6, 4)
-    puff(P, g, "Hips", (0, 0.0, 0.76), 0.18, cols, 6, 5)
-    for k in range(10):
-        a = k * 0.7
-        P.put(g, "Hips", (math.cos(a) * 0.28, math.sin(a) * 0.20, 0.12 + k * 0.035), (0.16, 0.06, 0.05), cols[k % 4], 0.02)
-
-
 def build_all(P, R):
     body(P, R, "Bark", WOOD, False, "wood", "axe")
     gear(P, R, "Bark", PLAIN, "leaf", "axe", "Weapon0Axe")
@@ -532,12 +467,11 @@ def build_all(P, R):
     eyes_only(P, "Leaves0", WOOD["eye"])
     willow(P, "Leaves0", (WOOD["leaf"], WOOD["leaf2"], WOOD["leaf3"]))
     skirt(P, "Leaves0", (WOOD["leaf"], WOOD["leaf2"], WOOD["leaf3"]), "leaf")
-    body(P, R, "Leaves1", WATER, True, "water", "spear")
-    gear(P, R, "Leaves1", WATER, "swirl", "spear")
-    water_hair(P, "Leaves1", WATER)
-    skirt(P, "Leaves1", (WATER["light"], WATER["leaf2"], WATER["leaf3"]), "cloth")
-    splash(P, R, "Leaves1", WATER)
-    water_pass(P, "Leaves1", WATER)
+    body(P, R, "Leaves1", WATER_TREE, True, "wood", "spear")
+    gear(P, R, "Leaves1", WATER_TREE, "swirl", "spear")
+    willow(P, "Leaves1", (WATER_TREE["leaf"], WATER_TREE["leaf2"], WATER_TREE["leaf3"]))
+    skirt(P, "Leaves1", (WATER_TREE["leaf"], WATER_TREE["leaf2"], WATER_TREE["leaf3"]), "leaf")
+    coral(P, "Leaves1")
     body(P, R, "Leaves2", FIRE, True, "fire", "sword")
     gear(P, R, "Leaves2", FIRE, "brand", "sword")
     flame_crown(P, "Leaves2", FIRE)
@@ -553,11 +487,10 @@ def build_all(P, R):
         P.put("Leaves3", "Head", (x, -0.10, 1.80 + (0.05 if abs(x) < 0.08 else 0.0)), (0.05, 0.05, 0.12), EARTH_VEIN, 0.006)
     for s in (-1, 1):
         P.put("Leaves3", side_bone(s), (s * 0.30, -0.02, 1.40), (0.14, 0.12, 0.05), EARTH_VEIN, 0.008)
-    body(P, R, "Leaves4", WIND, True, "wind", "axe")
-    gear(P, R, "Leaves4", WIND, "wind", "axe")
-    wind_crown(P, "Leaves4", WIND)
-    skirt(P, "Leaves4", (WIND["leaf"], WIND["light"], WIND["leaf3"]), "cloth")
-    wind_pass(P, "Leaves4", WIND)
+    body(P, R, "Leaves4", WIND_TREE, True, "wood", "axe")
+    gear(P, R, "Leaves4", WIND_TREE, "leaf", "axe")
+    willow(P, "Leaves4", (WIND_TREE["leaf"], WIND_TREE["leaf2"], WIND_TREE["leaf3"]))
+    skirt(P, "Leaves4", (WIND_TREE["leaf"], WIND_TREE["leaf2"], WIND_TREE["leaf3"]), "leaf")
 
 
 def main():

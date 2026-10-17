@@ -144,10 +144,10 @@ Numbers are defaults from `Assets/_Chopper/Config/SO_GameConfig.asset` (`Core/Ga
 **Built**
 - **Tree enemies (Treants)**: saplings planted by felled trees wake at night. Sizes follow the tree's size (bigger than the player). Elements:
   - Non-elemental: dark bark, green willow hair, blue eyes, antlers, a shield; carries a random plain weapon.
-  - Earth: gold veins and crown; mace.
+  - Earth: its own stone-brown body with gold veins, a moss crown and a glowing gold tree shield; mace.
   - Fire: charred body, orange cracks, flame hair; sword.
-  - Water: blue water body, coral base; spear.
-  - Wind: pale cloud body; axe.
+  - Water: the same willow tree spirit in teal (teal bark and willow, coral on head and shoulders); spear. Follows chopper-all-3D-concept-3.0 (user, 2026-10-17).
+  - Wind: the same willow tree spirit in tan bark with pale green willow; axe. Follows chopper-all-3D-concept-3.0.
 - They telegraph each hit (0.65 s wind-up), can be staggered and knocked back, and break building pieces and the hut.
 - Each night rolls an elemental share, so some nights are mostly elemental and some mostly plain.
 - **Hub night raids (t64u)**: only felled forest trees plant saplings. A tree plants 1-2 (small), 2-3 (medium) or 3-4 (large), times player scaling (coefficient 0.4). Trees felled at night plant nothing. Global cap 150. No chopping means no hub raid.
