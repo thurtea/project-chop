@@ -109,7 +109,7 @@ def elementals():
             if ob.name.startswith("Leaves"):
                 ob.hide_render = ob.name != "Leaves%d" % i
             elif ob.name == "Bark":
-                ob.hide_render = i in (1, 2, 4)
+                ob.hide_render = i != 0
         bpy.context.view_layer.update()
         name = "elemental_%d" % i
         rv.shoot(sc, name, (0, -0.05, 1.0), -35, 8, 2.5)

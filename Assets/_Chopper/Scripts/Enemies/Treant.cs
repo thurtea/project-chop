@@ -733,7 +733,7 @@ namespace Chopper.Enemies
         {
             int element = Mathf.Clamp(_element.Value, 0, 4);
             string keep = "Leaves" + element;
-            bool fullBody = element == (int)Element.Water || element == (int)Element.Fire || element == (int)Element.Wind;
+            bool fullBody = element != (int)Element.Neutral;
             foreach (Renderer renderer in model.GetComponentsInChildren<Renderer>(true))
             {
                 string name = renderer.gameObject.name;

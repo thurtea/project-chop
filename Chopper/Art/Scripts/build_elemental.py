@@ -60,6 +60,9 @@ WIND = dict(body=S(123, 184, 208), dark=S(90, 144, 175), light=S(151, 209, 227),
             shield=S(81, 132, 175), carve=S(230, 244, 255), rim=S(51, 91, 132),
             eye=S(230, 250, 255), leaf=S(137, 179, 204), leaf2=S(160, 197, 216), leaf3=S(186, 214, 230),
             crack=S(220, 240, 252))
+EARTH = dict(WOOD, body=S(66, 56, 43), dark=S(30, 24, 17), light=S(110, 90, 64), muscle=S(80, 66, 49),
+             socket=S(14, 10, 7), antler=S(72, 58, 41), thorn=S(60, 49, 35),
+             shield=S(76, 44, 27), carve=S(255, 176, 52), rim=S(38, 27, 19))
 MOSS = (S(50, 65, 20), S(70, 78, 25), S(37, 52, 17))
 PLAIN = dict(WOOD, blade=S(150, 156, 164), edge=S(204, 210, 216), rune=S(112, 118, 126))
 EARTH_VEIN = S(255, 176, 52)
@@ -280,10 +283,23 @@ def shield(P, frame, g, pal, kind):
         P.put_local(g, bone, frame, (0.07, -0.02, 0.185), (0.12, 0.05, 0.012), pal["carve"], 0.003)
         P.put_local(g, bone, frame, (-0.05, -0.10, 0.185), (0.10, 0.045, 0.012), pal["carve"], 0.003)
     elif kind == "brand":
-        P.put_local(g, bone, frame, (0.0, 0.04, 0.185), (0.16, 0.03, 0.012), pal["carve"], 0.003)
-        P.put_local(g, bone, frame, (0.0, -0.02, 0.185), (0.03, 0.22, 0.012), pal["carve"], 0.003)
-        P.put_local(g, bone, frame, (-0.08, 0.10, 0.185), (0.10, 0.03, 0.012), pal["carve"], 0.003)
-        P.put_local(g, bone, frame, (0.08, 0.10, 0.185), (0.10, 0.03, 0.012), pal["carve"], 0.003)
+        shield_border(P, bone, frame, g, pal["carve"])
+        P.put_local(g, bone, frame, (0.0, 0.0, 0.185), (0.05, 0.36, 0.012), pal["carve"], 0.003)
+        P.put_local(g, bone, frame, (0.0, 0.0, 0.185), (0.18, 0.04, 0.012), pal["carve"], 0.003)
+        for s in (-1, 1):
+            for k, (x, y) in enumerate(((0.04, 0.07), (0.08, 0.11), (0.11, 0.15))):
+                P.put_local(g, bone, frame, (s * x, 0.02 + y, 0.185), (0.05, 0.05, 0.012), pal["carve"], 0.003)
+            for x, y in ((0.04, -0.09), (0.08, -0.13)):
+                P.put_local(g, bone, frame, (s * x, 0.02 + y, 0.185), (0.05, 0.05, 0.012), pal["carve"], 0.003)
+    elif kind == "tree":
+        shield_border(P, bone, frame, g, pal["carve"])
+        P.put_local(g, bone, frame, (0.0, -0.02, 0.185), (0.045, 0.30, 0.012), pal["carve"], 0.003)
+        P.put_local(g, bone, frame, (0.0, 0.18, 0.185), (0.04, 0.08, 0.012), pal["carve"], 0.003)
+        for s in (-1, 1):
+            for x, y in ((0.04, 0.06), (0.08, 0.10), (0.11, 0.14), (0.13, 0.18)):
+                P.put_local(g, bone, frame, (s * x, 0.02 + y, 0.185), (0.04, 0.04, 0.012), pal["carve"], 0.003)
+            for x, y in ((0.04, -0.14), (0.08, -0.17)):
+                P.put_local(g, bone, frame, (s * x, 0.02 + y, 0.185), (0.045, 0.03, 0.012), pal["carve"], 0.003)
     elif kind == "swirl":
         for k in range(7):
             a = k * 0.85
@@ -296,6 +312,13 @@ def shield(P, frame, g, pal, kind):
             r = 0.03 + k * 0.02
             P.put_local(g, bone, frame, (math.cos(a) * r * 0.8, 0.04 + math.sin(a) * r, 0.185),
                         (0.07, 0.04, 0.012), pal["carve"], 0.003)
+
+
+def shield_border(P, bone, frame, g, color):
+    P.put_local(g, bone, frame, (0.0, 0.26, 0.185), (0.34, 0.025, 0.012), color, 0.003)
+    P.put_local(g, bone, frame, (0.0, -0.22, 0.185), (0.34, 0.025, 0.012), color, 0.003)
+    for s in (-1, 1):
+        P.put_local(g, bone, frame, (s * 0.165, 0.02, 0.185), (0.025, 0.46, 0.012), color, 0.003)
 
 
 def gear(P, R, g, pal, kind, weapon, weapon_group=None):
@@ -520,6 +543,8 @@ def build_all(P, R):
     flame_crown(P, "Leaves2", FIRE)
     skirt(P, "Leaves2", (FIRE["leaf"], FIRE["dark"], FIRE["leaf2"]), "flame")
     fire_pass(P, "Leaves2", FIRE)
+    body(P, R, "Leaves3", EARTH, False, "wood", "mace")
+    shield(P, R.frame["LeftHand"], "Leaves3", EARTH, "tree")
     eyes_only(P, "Leaves3", EARTH_EYE)
     moss_crown(P, "Leaves3")
     willow(P, "Leaves3", MOSS)
